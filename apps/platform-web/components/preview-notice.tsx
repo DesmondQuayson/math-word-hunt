@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
 
+import { Notice } from "@/components/feedback/notice";
+
 export function PreviewNotice({ children }: { children: ReactNode }) {
   return (
-    <aside className="preview-notice" aria-label="Preview status">
-      <span className="notice-mark" aria-hidden="true">
-        i
-      </span>
-      <div>{children}</div>
-    </aside>
+    <Notice label="Preview status" tone="information">
+      {children}
+    </Notice>
   );
 }

@@ -1,5 +1,8 @@
-import { PageHeading } from "@/components/page-heading";
-import { PreviewNotice } from "@/components/preview-notice";
+import { Notice } from "@/components/feedback/notice";
+import { Container } from "@/components/layout/container";
+import { PageHeader } from "@/components/layout/page-header";
+import { SectionHeader } from "@/components/layout/section-header";
+import { LinkButton } from "@/components/ui/link-button";
 import { getLegacyGameDestination } from "@/lib/legacy-game";
 
 export const metadata = { title: "Play" };
@@ -8,20 +11,20 @@ export default function PlayPage() {
   const legacyGameUrl = getLegacyGameDestination();
 
   return (
-    <div className="shell page-stack">
-      <PageHeading
+    <Container className="page-stack">
+      <PageHeader
         eyebrow="Current classroom experience"
         title="Launch the vocabulary hunt"
         description="The working v7 game remains separate from this platform preview. Open it without changing how your classroom session works."
       />
 
-      <PreviewNotice>
+      <Notice label="Game preservation status" tone="information">
         <strong>The game is preserved.</strong>
         <p>
           This gateway does not embed, copy, or replace the current game. It
           opens the canonical v7 experience directly.
         </p>
-      </PreviewNotice>
+      </Notice>
 
       <section className="launch-panel" aria-labelledby="launch-heading">
         <div>
@@ -32,15 +35,15 @@ export default function PlayPage() {
             game host is slow or unavailable.
           </p>
         </div>
-        <a
-          className="button button-primary launch-button"
+        <LinkButton
           href={legacyGameUrl}
           target="_blank"
           rel="noopener noreferrer"
+          className="launch-button"
           data-testid="legacy-game-launch"
         >
           Open Math Vocabulary Hunt
-        </a>
+        </LinkButton>
       </section>
 
       <details className="fallback-panel">
@@ -57,10 +60,12 @@ export default function PlayPage() {
       </details>
 
       <section className="assurance-grid" aria-labelledby="preserved-heading">
-        <div className="section-heading compact-heading">
-          <p className="eyebrow">Preserved behavior</p>
-          <h2 id="preserved-heading">The same game, not a remake</h2>
-        </div>
+        <SectionHeader
+          eyebrow="Preserved behavior"
+          title="The same game, not a remake"
+          id="preserved-heading"
+          compact
+        />
         <ul>
           <li>Keyboard and Pointer Event play</li>
           <li>Responsive phone and classroom-display layout</li>
@@ -68,6 +73,6 @@ export default function PlayPage() {
           <li>Current vocabulary and Combine Mode safeguards</li>
         </ul>
       </section>
-    </div>
+    </Container>
   );
 }

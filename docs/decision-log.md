@@ -79,3 +79,20 @@ future billing provider. The latter services remain unintegrated. The initial
 account model is teacher-only, students do not create accounts, and static v7
 remains production. Detailed implementation and remaining decisions are
 recorded in `phase-1c-decisions.md`.
+
+## Accepted on 2026-07-26 during Phase 1C.5A
+
+### Scholarly field-guide design system
+
+Status: accepted. The Next.js shell uses semantic tokens, system fonts, small
+typed UI/layout/feedback primitives, restrained functional motion, and the
+graph-paper vocabulary trail as its single signature device. Consequence: new
+platform pages must compose the documented primitives and may not introduce
+raw color systems, fake controls, fabricated records, or decorative motion.
+
+### Platform-only visual evolution
+
+Status: accepted. Phase 1C.5A changes only the isolated platform shell. The
+canonical v7 game, its vocabulary source, and historical builds remain exact
+rollback baselines. Consequence: any future game redesign requires its own
+explicit product and regression phase.

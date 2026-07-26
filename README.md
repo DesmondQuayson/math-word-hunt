@@ -34,7 +34,9 @@ continues to publish directly from docs without a build step.
 - npm run test:unit checks platform-core contracts and platform-web adapters.
 - npm run test:e2e:canonical runs the v7 browser regression suite.
 - npm run test:e2e:platform checks shell routes, accessibility, responsive
-  behavior, anonymous state, access denial, and the safe game gateway.
+  behavior, anonymous state, access denial, visual baselines, and the safe game
+  gateway.
+- npm run test:e2e:visual runs only the three stable platform visual snapshots.
 - npm run build creates the isolated Next.js production build.
 - npm run test:security inspects production client assets and platform-core
   source for secret markers or forbidden dependencies.
@@ -48,6 +50,13 @@ identity, and entitlement contracts. The shell does not change production and
 adds no authentication, database, billing, pricing, or student accounts. Start
 with `docs/workspace-architecture.md`, `docs/platform-shell-design.md`, and
 `docs/phase-1c-decisions.md`.
+
+Phase 1C.5A adds a local design-system layer under
+`apps/platform-web/components` and `apps/platform-web/styles`. Its visual,
+component, accessibility, and responsive standards are documented in
+`docs/design-system.md`, `docs/component-guidelines.md`,
+`docs/accessibility-visual-standard.md`, and
+`docs/responsive-design-standard.md`.
 
 ## Preservation rules
 

@@ -63,7 +63,8 @@ try {
     [
       resolve("node_modules/@playwright/test/cli.js"),
       "test",
-      "--config=playwright.platform.config.mjs"
+      "--config=playwright.platform.config.mjs",
+      ...process.argv.slice(2)
     ],
     { stdio: "inherit" }
   );

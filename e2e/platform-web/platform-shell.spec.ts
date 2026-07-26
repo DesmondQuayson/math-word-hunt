@@ -64,6 +64,89 @@ test("mobile layouts avoid horizontal overflow and preserve 44px targets", async
   }
 });
 
+test("tablet, desktop, and Smart Board layouts remain bounded and readable", async ({ page }) => {
+  const viewports = [
+    { width: 768, height: 1024 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+    { width: 1920, height: 1080 }
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const [route] of routes) {
+      await page.goto(route);
+      const layout = await page.evaluate(() => {
+        const documentWidth = document.documentElement.scrollWidth;
+        const main = document.querySelector("main");
+        const widestContainer = Math.max(
+          ...Array.from(document.querySelectorAll<HTMLElement>(".container")).map(
+            (element) => element.getBoundingClientRect().width
+          )
+        );
+        return {
+          documentWidth,
+          viewportWidth: window.innerWidth,
+          mainVisible: Boolean(main && main.getBoundingClientRect().height > 0),
+          widestContainer
+        };
+      });
+
+      expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+      expect(layout.mainVisible).toBe(true);
+      expect(layout.widestContainer).toBeLessThanOrEqual(1440);
+    }
+  }
+});
+
+test("interactive controls preserve minimum sizing and visible focus", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/teacher");
+
+  const targets = await page.locator(
+    "header a:visible, main a:visible, main button:visible, main summary:visible, footer a:visible"
+  ).evaluateAll(
+    (elements) => elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { height: rect.height, width: rect.width, text: element.textContent };
+    })
+  );
+  for (const target of targets) {
+    expect.soft(target.height, target.text ?? "interactive target").toBeGreaterThanOrEqual(44);
+  }
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await expect(skipLink).toBeFocused();
+  const focus = await skipLink.evaluate((element) => ({
+    style: getComputedStyle(element).outlineStyle,
+    width: getComputedStyle(element).outlineWidth
+  }));
+  expect(focus.style).not.toBe("none");
+  expect(parseFloat(focus.width)).toBeGreaterThanOrEqual(3);
+});
+
+test("every route has unique IDs and a logical landmark structure", async ({ page }) => {
+  for (const [route] of routes) {
+    await page.goto(route);
+    const structure = await page.evaluate(() => {
+      const ids = Array.from(document.querySelectorAll<HTMLElement>("[id]")).map(
+        (element) => element.id
+      );
+      return {
+        duplicateIds: ids.filter((id, index) => ids.indexOf(id) !== index),
+        banners: document.querySelectorAll("header.site-header").length,
+        mains: document.querySelectorAll("main").length,
+        footers: document.querySelectorAll("footer").length
+      };
+    });
+    expect(structure.duplicateIds).toEqual([]);
+    expect(structure.banners).toBe(1);
+    expect(structure.mains).toBe(1);
+    expect(structure.footers).toBe(1);
+  }
+});
+
 test("reduced-motion preference removes meaningful transitions", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
