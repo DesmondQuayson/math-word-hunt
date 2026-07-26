@@ -149,3 +149,13 @@ Status: pending where listed in `phase-1c5c-owner-decisions.md`. Activity-mode
 enumeration, time/team defaults, archive and deletion operations, report
 retention, curriculum review ownership, reporting approval, and identity/session
 sequence are not silently approved by the contract freeze.
+
+## Recorded on 2026-07-26 during Phase 2A
+
+Billing ownership is the immutable authenticated teacher identity. Internal
+plan keys and entitlement meaning remain provider-independent; provider IDs,
+signatures, subscription state, and invoice state remain server-only. Billing
+tables are service-only, reconciliation must be idempotent/order-independent,
+and account restrictions override payment. Paid prices and commercial policies
+remain unapproved. No provider resource, endpoint, payment, or deployment was
+created. See `phase-2a-decisions.md`.

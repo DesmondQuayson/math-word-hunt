@@ -1,18 +1,16 @@
 # Platform Migration Roadmap
 
-## Current checkpoint: Phase 1D local vertical slice
+## Current checkpoint: Phase 2A billing contract freeze
 
 Local Supabase Auth, versioned PostgreSQL migrations, RLS, server-only adapters,
 teacher profiles, classes, activity drafts, account deletion requests, and
 default-deny entitlement reads are implemented alongside unchanged static v7.
 The work is a local validation foundation, not a production cutover.
 
-The next approved planning phase should focus on production-readiness evidence:
-hosted environment ownership and regions, secrets and key rotation, backup and
-restore drills, email delivery/abuse controls, support and deletion operations,
-privacy/legal review, observability without student tracking, migration dry
-runs, and a preview-only deployment plan. It must not introduce billing,
-students, sessions, reports, or v7 migration without separate approval.
+Phase 2A adds local schema, policy, configuration, reconciliation, privacy,
+support, and rollback contracts without accepting payment. Phase 2B may begin
+only after the true blockers in `phase-2a-decisions.md` are approved, and must
+remain test-mode with signed webhook integration and no public cutover.
 
 Status: incremental plan updated after the Phase 1C workspace foundation.
 
@@ -103,6 +101,20 @@ release. Define availability, error, performance, accessibility, content, and
 support acceptance thresholds. Changing the public deployment or archiving v7
 requires explicit owner approval and a tested rollback. Historical deletion is
 never automatic.
+
+### Checkpoint 6A: billing architecture preflight (Phase 2A complete)
+
+Billing ownership, restrained proposed catalog, service-only projections,
+default-deny reconciliation, strict configuration, future Checkout/portal
+contracts, privacy limits, threat model, and operations are frozen. No Stripe
+SDK, resource, endpoint, or payment exists.
+
+### Checkpoint 6B: test-mode billing integration (recommended Phase 2B)
+
+After owner blockers resolve, add the official server SDK, approved test
+products/prices, authenticated Checkout/portal actions, and a raw-body verified
+webhook. Prove duplicate/out-of-order handling with sandbox/browser tests. Live
+activation remains a separate phase.
 
 ## Non-negotiable gates
 

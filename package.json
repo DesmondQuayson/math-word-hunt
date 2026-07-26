@@ -33,6 +33,9 @@
     "db:test": "npm run supabase:test",
     "db:verify": "npm run supabase:status && npm run db:test",
     "phase1d:verify": "node scripts/verify-phase1d.mjs",
+    "test:billing": "npm run test --workspace @math-vocabulary-hunt/platform-core -- src/billing && npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/billing",
+    "test:billing:security": "node scripts/audit-billing-security.mjs",
+    "phase2a:verify": "node scripts/verify-phase2a.mjs",
     "test": "npm run test:content && npm run test:unit && npm run test:e2e && npm run test:e2e:platform"
   },
   "devDependencies": {

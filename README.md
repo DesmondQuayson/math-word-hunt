@@ -47,6 +47,7 @@ continues to publish directly from docs without a build step.
   profile/class/activity persistence, archive, deletion request, entitlement
   denial, and sign-out.
 - npm run phase1d:verify runs the complete old and new release gate.
+- npm run phase2a:verify runs that full gate plus billing secret and live-marker checks.
 - npm run build creates the isolated Next.js production build.
 - npm run test:security inspects production client assets and platform-core
   source for secret markers or forbidden dependencies.
@@ -94,6 +95,14 @@ sessions, reports, billing, students, hosted Supabase, and production deployment
 remain deferred. Start with `docs/authentication-architecture.md`,
 `docs/database-schema.md`, `docs/row-level-security.md`, and
 `docs/phase-1d-security-review.md`.
+
+Phase 2A freezes a local-only billing architecture: provider-independent plan
+and access contracts, strict server configuration, constrained billing
+projections, default-deny privileges, and test/operations documentation. Billing
+remains disabled; there is no Stripe SDK, provider object, endpoint, payment,
+portal session, hosted link, price, or deployment. Start with
+`docs/billing-readiness-audit.md`, `docs/billing-ownership-and-threat-model.md`,
+`docs/billing-webhook-contract.md`, and `docs/phase-2a-decisions.md`.
 
 ## Preservation rules
 
