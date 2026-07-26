@@ -1,44 +1,35 @@
 import js from "@eslint/js";
 import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
-import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default [
   {
     ignores: [
-      "dist",
-      "playwright-report",
-      "test-results",
-      "coverage",
-      "vocab.js"
+      "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
+      "coverage/**",
+      "qa-artifacts/**",
+      ".vite/**",
+      "dist/**",
+      "dist2/**",
+      "docs/**/*.js",
+      "vocab.js",
+      "**/*.ts"
     ]
   },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
-    files: ["**/*.{ts,tsx}"],
+    ...js.configs.recommended,
+    files: ["**/*.mjs"],
     languageOptions: {
       ecmaVersion: 2022,
-      globals: { ...globals.browser, ...globals.node }
-    },
-    plugins: {
-      "react-hooks": reactHooks,
-      "react-refresh": reactRefresh
-    },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true }
-      ],
-      "@typescript-eslint/no-explicit-any": "off"
-    }
-  },
-  {
-    files: ["public/sw.js"],
-    languageOptions: {
-      globals: { ...globals.serviceworker }
+      sourceType: "module",
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        CURRICULUM: "readonly",
+        TERMS: "readonly",
+        selfCheck: "readonly"
+      }
     }
   }
-);
+];

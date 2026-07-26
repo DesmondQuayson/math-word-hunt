@@ -1,0 +1,20 @@
+{
+  "name": "math-vocabulary-hunt",
+  "version": "7.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve-static.mjs",
+    "lint": "eslint .",
+    "test:content": "node scripts/audit-content.mjs",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:canonical": "node scripts/run-e2e.mjs e2e/math-word-hunt-v7.spec.mjs",
+    "test": "npm run test:content && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@playwright/test": "latest",
+    "eslint": "latest",
+    "globals": "latest"
+  }
+}
