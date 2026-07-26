@@ -96,3 +96,23 @@ Status: accepted. Phase 1C.5A changes only the isolated platform shell. The
 canonical v7 game, its vocabulary source, and historical builds remain exact
 rollback baselines. Consequence: any future game redesign requires its own
 explicit product and regression phase.
+
+## Accepted on 2026-07-26 during Phase 1C.5B
+
+### Teacher task architecture and minimization
+
+Status: accepted for prototype review. The future teacher navigation is
+Overview, Classes, Activities, Live Sessions, Reports, Curriculum, and Account.
+Class concepts omit student rosters; activity concepts use curriculum
+references; session concepts preserve current v7 as the only working launch;
+and reports are aggregate and non-predictive. Consequence: persistence may not
+be added until the owner approves the shapes, retention, deletion, and privacy
+boundaries documented in the Phase 1C.5B set.
+
+### Production-denied demonstration data
+
+Status: accepted. Generic workflow fixtures live only in a server-only module,
+require the exact `enabled` switch in development or test, and are denied in
+production regardless of configuration. Browser-controlled values cannot
+enable them. Consequence: every fixture view is visibly labeled and separate
+default, opt-in, and production-negative tests are mandatory.

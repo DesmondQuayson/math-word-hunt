@@ -6,7 +6,11 @@ import { NavigationItem } from "./navigation-item";
 const teacherNavigation = [
   { href: "/teacher", label: "Overview" },
   { href: "/teacher/classes", label: "Classes" },
-  { href: "/teacher/reports", label: "Reports" }
+  { href: "/teacher/activities", label: "Activities" },
+  { href: "/teacher/sessions", label: "Live Sessions" },
+  { href: "/teacher/reports", label: "Reports" },
+  { href: "/teacher/curriculum", label: "Curriculum" },
+  { href: "/account", label: "Account" }
 ] as const;
 
 type TeacherShellProps = Readonly<{
@@ -14,24 +18,40 @@ type TeacherShellProps = Readonly<{
   currentPath: string;
 }>;
 
+function isCurrentPath(currentPath: string, itemPath: string): boolean {
+  if (itemPath === "/teacher") return currentPath === itemPath;
+  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+}
+
 export function TeacherShell({ children, currentPath }: TeacherShellProps) {
   return (
-    <Container className="page-stack">
-      <nav className="teacher-nav" aria-label="Teacher workspace">
-        <span className="teacher-nav-label">Workspace preview</span>
-        <ul>
-          {teacherNavigation.map((item) => (
-            <li key={item.href}>
-              <NavigationItem
-                href={item.href}
-                label={item.label}
-                current={currentPath === item.href}
-              />
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {children}
+    <Container width="wide" className="page-stack teacher-shell">
+      <div className="teacher-shell-layout">
+        <aside className="teacher-rail" aria-label="Teacher workflow map">
+          <div className="teacher-rail-heading">
+            <p className="teacher-nav-label">Teacher field map</p>
+            <p>Plan → play → review</p>
+          </div>
+          <nav className="teacher-workspace-nav" aria-label="Teacher workspace">
+            <ul>
+              {teacherNavigation.map((item) => (
+                <li key={item.href}>
+                  <NavigationItem
+                    href={item.href}
+                    label={item.label}
+                    current={isCurrentPath(currentPath, item.href)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <p className="teacher-rail-note">
+            Workflow prototype only. Account services and saved classroom data
+            are not connected.
+          </p>
+        </aside>
+        <div className="teacher-main">{children}</div>
+      </div>
     </Container>
   );
 }

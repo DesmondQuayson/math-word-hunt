@@ -3,10 +3,17 @@ import { expect, test } from "@playwright/test";
 const routes = [
   ["/", "Words make math visible."],
   ["/play", "Launch the vocabulary hunt"],
-  ["/teacher", "A calm home base for teachers"],
-  ["/teacher/classes", "Class tools are not connected"],
-  ["/teacher/reports", "Reporting starts with a privacy decision"],
-  ["/account", "Teacher accounts are not connected"]
+  ["/teacher", "Your next classroom move, made clear"],
+  ["/teacher/classes", "Organize the room without identifying students"],
+  ["/teacher/classes/new", "Describe a future class"],
+  ["/teacher/classes/not-a-record", "No class record is available"],
+  ["/teacher/activities", "Turn curriculum choices into a classroom-ready plan"],
+  ["/teacher/activities/new", "Shape a vocabulary activity"],
+  ["/teacher/sessions", "Know which kind of session you are starting"],
+  ["/teacher/sessions/new", "Prepare the room before the clock starts"],
+  ["/teacher/reports", "Review the lesson, not a prediction about a child"],
+  ["/teacher/curriculum", "See what is playable before you plan"],
+  ["/account", "A future teacher account, with clear boundaries"]
 ] as const;
 
 test("all platform routes render with one clear page heading", async ({ page }) => {
@@ -162,11 +169,36 @@ test("reduced-motion preference removes meaningful transitions", async ({ page }
 
 test("teacher workspace is anonymous and premium access is denied", async ({ page }) => {
   await page.goto("/teacher");
-  await expect(page.getByText("Signed out", { exact: true })).toBeVisible();
   await expect(page.getByText("Teacher accounts are not connected in this preview.")).toBeVisible();
   const access = page.getByTestId("premium-access-state");
   await expect(access).toHaveAttribute("data-access", "denied");
   await expect(access).toHaveText("Not available");
+});
+
+test("teacher navigation exposes the complete future information architecture", async ({ page }) => {
+  await page.goto("/teacher/activities/new");
+  const navigation = page.getByRole("navigation", { name: "Teacher workspace" });
+  for (const label of [
+    "Overview",
+    "Classes",
+    "Activities",
+    "Live Sessions",
+    "Reports",
+    "Curriculum",
+    "Account"
+  ]) {
+    await expect(navigation.getByRole("link", { name: new RegExp(label) })).toBeVisible();
+  }
+  await expect(navigation.getByRole("link", { name: /Activities/ })).toHaveAttribute(
+    "aria-current",
+    "page"
+  );
+
+  const links = navigation.getByRole("link");
+  await links.first().focus();
+  await expect(links.first()).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(links.nth(1)).toBeFocused();
 });
 
 test("browser-controlled values never grant premium authority", async ({ context, page }) => {
@@ -187,6 +219,25 @@ test("browser-controlled values never grant premium authority", async ({ context
     "data-access",
     "denied"
   );
+});
+
+test("browser-controlled values cannot enable demonstration records", async ({ context, page }) => {
+  await context.addCookies([
+    {
+      name: "MVH_TEACHER_PROTOTYPE_MODE",
+      value: "enabled",
+      domain: "127.0.0.1",
+      path: "/"
+    }
+  ]);
+  await page.addInitScript(() => {
+    localStorage.setItem("MVH_TEACHER_PROTOTYPE_MODE", "enabled");
+    sessionStorage.setItem("teacherPrototype", "enabled");
+  });
+  await page.goto("/teacher/classes?MVH_TEACHER_PROTOTYPE_MODE=enabled#enabled");
+  await expect(page.getByText("Demonstration data", { exact: true })).toHaveCount(0);
+  await expect(page.locator("[data-prototype-fixture]")).toHaveCount(0);
+  await expect(page.getByText("No saved classes", { exact: true })).toBeVisible();
 });
 
 test("play gateway links directly and safely to canonical v7", async ({ page }) => {
@@ -220,14 +271,66 @@ test("an unavailable legacy game leaves a usable fallback on the gateway", async
 });
 
 test("future workspace routes contain no fabricated persisted records", async ({ page }) => {
-  for (const route of ["/teacher/classes", "/teacher/reports", "/account"]) {
+  for (const route of [
+    "/teacher",
+    "/teacher/classes",
+    "/teacher/classes/algebra-foundations",
+    "/teacher/activities",
+    "/teacher/sessions",
+    "/teacher/reports",
+    "/account"
+  ]) {
     await page.goto(route);
     await expect(page.locator("[data-persisted-record]")).toHaveCount(0);
+    await expect(page.locator("[data-prototype-fixture]")).toHaveCount(0);
+    await expect(page.getByText("Demonstration data", { exact: true })).toHaveCount(0);
   }
   await page.goto("/teacher/classes");
-  await expect(page.getByText("No classroom data is saved.")).toBeVisible();
+  await expect(page.getByText("No saved classes", { exact: true })).toBeVisible();
   await page.goto("/teacher/reports");
-  await expect(page.getByText("No reports exist.")).toBeVisible();
+  await expect(page.getByText("No reports exist", { exact: true })).toBeVisible();
   await page.goto("/account");
   await expect(page.getByText("No profile has been created")).toBeVisible();
+  await expect(page.getByText(/no sign-up, login, saved profile, plan, subscription/i)).toBeVisible();
+});
+
+test("class and activity prototypes expose accessible validation and honest outcomes", async ({ page }) => {
+  await page.goto("/teacher/classes/new");
+  await page.getByRole("button", { name: "Check class setup" }).click();
+  await expect(page.getByTestId("error-summary")).toBeFocused();
+  await expect(page.getByLabel(/Class name/)).toHaveAttribute("aria-invalid", "true");
+  await page.getByLabel(/Class name/).fill("Math Language Lab");
+  await page.getByRole("button", { name: "Check class setup" }).click();
+  await expect(page.getByText("Nothing was saved.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cancel and return to classes" })).toBeVisible();
+  await page.getByRole("link", { name: "Cancel and return to classes" }).click();
+  await expect(page).toHaveURL(/\/teacher\/classes$/);
+
+  await page.goto("/teacher/activities/new");
+  await page.getByRole("button", { name: "Check activity setup" }).click();
+  await expect(page.getByTestId("error-summary")).toBeFocused();
+  await expect(page.getByText("Choose a grade.").first()).toBeVisible();
+  await page.getByLabel(/Grade/).selectOption("7");
+  await page.getByLabel(/Topic/).selectOption("g7-probability");
+  await page.getByLabel(/Lesson/).selectOption("g7-7-3");
+  await page.getByLabel(/Game mode/).selectOption("team-hunt");
+  await page.getByLabel(/Team count/).selectOption("4");
+  await page.getByRole("button", { name: "Check activity setup" }).click();
+  await expect(page.getByText("Nothing was assigned or saved.")).toBeVisible();
+  await page.getByRole("link", { name: "Cancel and return to activities" }).click();
+  await expect(page).toHaveURL(/\/teacher\/activities$/);
+});
+
+test("curriculum and session boundaries are explicit", async ({ page }) => {
+  await page.goto("/teacher/curriculum");
+  for (const count of ["506", "170", "8", "13"]) {
+    await expect(page.getByText(count, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByText(/definitions still require teacher review/i)).toBeVisible();
+  await expect(page.getByText(/Combine Mode/i).first()).toBeVisible();
+
+  await page.goto("/teacher/sessions/new");
+  await expect(page.getByRole("link", { name: "Open v7 gateway" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create managed session" })).toBeDisabled();
+  await expect(page.getByText("Unavailable until a trusted backend exists.")).toBeVisible();
 });

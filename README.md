@@ -58,6 +58,14 @@ component, accessibility, and responsive standards are documented in
 `docs/accessibility-visual-standard.md`, and
 `docs/responsive-design-standard.md`.
 
+Phase 1C.5B adds the teacher workflow prototype under `/teacher` and
+`/account`. It is production-default empty, adds no persistence, and keeps the
+current v7 game as the only real classroom launch. Start with
+`docs/teacher-experience-architecture.md`, `docs/teacher-workflow-map.md`, and
+`docs/prototype-data-policy.md`. Optional generic fixtures can be exercised only
+through `npm run test:e2e:platform:prototype`; `npm run
+test:production-default` proves that a production build denies them.
+
 ## Preservation rules
 
 - Do not replace docs/index.html in place without an explicit release decision.

@@ -31,6 +31,15 @@ responsive, security-negative, and gateway tests. It has not been deployed and
 does not replace `docs/`. Rollback is removal or disabling of the isolated
 workspace; static v7 remains live.
 
+### Checkpoint 2B: teacher workflow architecture (Phase 1C.5B complete)
+
+The isolated shell now prototypes the complete teacher navigation, class and
+activity forms, current-versus-future session boundary, aggregate reporting
+structure, curriculum readiness, and account lifecycle information. It remains
+empty by default, persists nothing, and uses only explicit local/test fixture
+mode. Owner approval of workflows and minimization rules is required before
+turning any prototype shape into a schema or service.
+
 ### Checkpoint 3: teacher identity
 
 After login, privacy, RLS, retention, and environment decisions, implement

@@ -298,6 +298,266 @@
   margin: 0;
 }
 
+.metric-grid,
+.teacher-task-grid,
+.record-grid,
+.curriculum-status-grid,
+.account-control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.teacher-task-grid,
+.curriculum-status-grid,
+.account-control-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.teacher-task-grid-compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.teacher-task-card > * + *,
+.record-card > * + *,
+.curriculum-status-card > * + *,
+.session-boundary-card > * + *,
+.account-control-grid .card > * + * {
+  margin-top: var(--space-4);
+}
+
+.teacher-task-card p,
+.record-card p,
+.curriculum-status-card p,
+.session-boundary-card p,
+.account-control-grid p {
+  color: var(--color-text-muted);
+}
+
+.readiness-panel,
+.privacy-panel,
+.boundary-panel,
+.ready-check,
+.combine-mode-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: var(--space-8);
+  padding: clamp(var(--space-6), 4vw, var(--space-10));
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+}
+
+.readiness-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  background: var(--color-brand-primary-hover);
+  color: var(--color-on-brand);
+}
+
+.readiness-panel h2 {
+  margin-block: var(--space-2);
+  color: var(--color-on-brand);
+}
+
+.readiness-panel p:not(.card-kicker) {
+  max-width: 44rem;
+  color: #c9dce5;
+}
+
+.readiness-panel .card-kicker {
+  color: var(--color-brand-secondary);
+}
+
+.privacy-panel ul,
+.ready-check ul,
+.report-category-grid ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.privacy-panel li,
+.ready-check li {
+  position: relative;
+  padding: var(--space-3) 0 var(--space-3) var(--space-8);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
+}
+
+.privacy-panel li::before,
+.ready-check li::before {
+  position: absolute;
+  left: 0;
+  content: "✓";
+  color: var(--color-success);
+  font-weight: 900;
+}
+
+.boundary-panel,
+.combine-mode-panel {
+  background-color: var(--color-surface);
+  background-image:
+    linear-gradient(rgb(13 59 87 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(13 59 87 / 6%) 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+}
+
+.boundary-panel p:last-child,
+.combine-mode-panel p:last-child {
+  color: var(--color-text-secondary);
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.record-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.record-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.record-card dl div,
+.definition-grid div {
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+}
+
+.record-card dt,
+.definition-grid dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.record-card dd,
+.definition-grid dd {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-primary);
+  font-weight: 800;
+}
+
+.record-card > a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand-primary);
+  font-weight: 800;
+}
+
+.record-disclaimer {
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+}
+
+.definition-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.session-boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.session-boundary-card h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+}
+
+.disabled-explanation {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.data-table-wrap {
+  max-width: 100%;
+  margin-top: var(--space-6);
+  overflow-x: auto;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table caption {
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table thead th {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.report-category-grid ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.report-category-grid li {
+  padding: var(--space-4);
+  border-left: var(--border-width-strong) solid var(--color-brand-secondary);
+  background: var(--color-surface-elevated);
+}
+
+.report-category-grid strong,
+.report-category-grid span {
+  display: block;
+}
+
+.report-category-grid span {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.curriculum-status-card .status-badge {
+  height: auto;
+  min-height: var(--size-target-min);
+  white-space: normal;
+}
+
 @media (min-width: 90rem) {
   .page-stack {
     max-width: 78rem;
@@ -322,6 +582,12 @@
   .assurance-grid {
     grid-template-columns: 1fr;
     gap: var(--space-6);
+  }
+
+  .metric-grid,
+  .teacher-task-grid-compact,
+  .definition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -353,5 +619,81 @@
   .launch-button,
   .access-state {
     width: 100%;
+  }
+
+  .metric-grid,
+  .teacher-task-grid,
+  .teacher-task-grid-compact,
+  .record-grid,
+  .curriculum-status-grid,
+  .account-control-grid,
+  .session-boundary-grid,
+  .definition-grid,
+  .report-category-grid ul,
+  .readiness-panel,
+  .privacy-panel,
+  .boundary-panel,
+  .ready-check,
+  .combine-mode-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading-row,
+  .record-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .data-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td,
+  .data-table th {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .data-table caption {
+    padding-inline: 0;
+  }
+
+  .data-table tr {
+    margin-bottom: var(--space-4);
+    overflow: hidden;
+    border: var(--border-width-thin) solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface-elevated);
+  }
+
+  .data-table tbody th {
+    background: var(--color-surface-muted);
+  }
+
+  .data-table td {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.8fr) minmax(0, 1.2fr);
+    gap: var(--space-3);
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    font-weight: 750;
+    text-transform: uppercase;
   }
 }

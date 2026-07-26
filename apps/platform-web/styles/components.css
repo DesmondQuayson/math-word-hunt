@@ -473,6 +473,377 @@
   color: #c9dce5;
 }
 
+.nav-current-label {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-family: var(--font-utility);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+}
+
+.breadcrumbs li:not(:last-child)::after {
+  content: "/";
+  color: var(--color-border-strong);
+}
+
+.breadcrumbs a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand-primary);
+  font-weight: 750;
+}
+
+.teacher-shell-layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(var(--space-8), 4vw, var(--space-16));
+}
+
+.teacher-rail {
+  position: sticky;
+  top: var(--space-6);
+  overflow: hidden;
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-small);
+}
+
+.teacher-rail-heading {
+  padding: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
+  background-color: var(--color-surface);
+  background-image:
+    linear-gradient(rgb(13 59 87 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(13 59 87 / 7%) 1px, transparent 1px);
+  background-size: 1rem 1rem;
+}
+
+.teacher-rail-heading > * + * {
+  margin-top: var(--space-2);
+}
+
+.teacher-rail-heading > p:last-child {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.teacher-workspace-nav ul {
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+}
+
+.teacher-workspace-nav a {
+  min-height: var(--size-target-min);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--border-width-strong) solid transparent;
+  border-radius: var(--radius-small);
+  color: var(--color-brand-primary);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.teacher-workspace-nav a:hover {
+  background: var(--color-surface-muted);
+}
+
+.teacher-workspace-nav a[aria-current="page"] {
+  border-left-color: var(--color-brand-secondary);
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.teacher-rail-note {
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.teacher-main {
+  min-width: 0;
+}
+
+.teacher-main > * + * {
+  margin-top: var(--space-6);
+}
+
+.workflow-stepper ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-stepper li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-elevated);
+}
+
+.workflow-stepper li[data-step-state="current"] {
+  border-color: var(--color-border-strong);
+  box-shadow: 0.25rem 0.25rem 0 var(--color-brand-secondary);
+}
+
+.workflow-stepper li[data-step-state="complete"] {
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface-elevated));
+}
+
+.workflow-step-number {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-brand-primary);
+  color: var(--color-on-brand);
+  font-family: var(--font-utility);
+  font-weight: 800;
+}
+
+.workflow-stepper strong,
+.workflow-stepper small {
+  display: block;
+}
+
+.workflow-stepper small {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.summary-metric {
+  min-width: 0;
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-elevated);
+}
+
+.summary-metric span,
+.summary-metric small {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+.summary-metric strong {
+  display: block;
+  margin-block: var(--space-1);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.prototype-form {
+  max-width: 58rem;
+  padding: clamp(var(--space-6), 4vw, var(--space-10));
+  border: var(--border-width-standard) solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+}
+
+.prototype-form > * + * {
+  margin-top: var(--space-6);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.form-field label,
+.form-field input,
+.form-field select {
+  display: block;
+  width: 100%;
+}
+
+.form-field label {
+  color: var(--color-text-primary);
+  font-weight: 800;
+}
+
+.required-text {
+  color: var(--color-danger);
+  font-size: var(--font-size-caption);
+}
+
+.form-field > p:not(.validation-message) {
+  margin-block: var(--space-1) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+}
+
+.form-field input,
+.form-field select {
+  min-height: var(--size-control-standard);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.validation-message {
+  margin-top: var(--space-2);
+  color: var(--color-danger);
+  font-weight: 750;
+}
+
+.error-summary,
+.form-outcome {
+  padding: var(--space-5);
+  border: var(--border-width-standard) solid var(--color-danger);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface-elevated));
+}
+
+.error-summary > * + *,
+.form-outcome > * + * {
+  margin-top: var(--space-2);
+}
+
+.error-summary a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-danger);
+  font-weight: 750;
+}
+
+.form-outcome {
+  border-color: var(--color-information);
+  background: color-mix(in srgb, var(--color-information) 7%, var(--color-surface-elevated));
+}
+
+.checkbox-field {
+  min-height: var(--size-target-min);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkbox-field input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.2rem;
+  accent-color: var(--color-brand-primary);
+}
+
+.checkbox-field strong,
+.checkbox-field small {
+  display: block;
+}
+
+.checkbox-field small {
+  color: var(--color-text-muted);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.form-actions > a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand-primary);
+  font-weight: 750;
+}
+
+@media (max-width: 64rem) {
+  .teacher-shell-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-rail {
+    position: static;
+  }
+
+  .teacher-workspace-nav ul {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+
+  .teacher-rail-note {
+    display: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .teacher-workspace-nav ul,
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-workspace-nav a {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .nav-current-label {
+    margin-left: 0;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-actions .button,
+  .form-actions > a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .footer-inner {
   min-height: 7.5rem;
   display: flex;

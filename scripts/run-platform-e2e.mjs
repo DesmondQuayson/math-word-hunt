@@ -2,6 +2,9 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { resolve } from "node:path";
 
+const prototypeMode = process.argv.includes("--prototype");
+const playwrightArgs = process.argv.slice(2).filter((argument) => argument !== "--prototype");
+
 const staticServer = spawn(
   process.execPath,
   [resolve("scripts/serve-static.mjs"), "--port", "4173"],
@@ -22,7 +25,8 @@ const platformServer = spawn(
   {
     env: {
       ...process.env,
-      LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html"
+      LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html",
+      ...(prototypeMode ? { MVH_TEACHER_PROTOTYPE_MODE: "enabled" } : {})
     },
     stdio: ["ignore", "ignore", "inherit"]
   }
@@ -64,9 +68,15 @@ try {
       resolve("node_modules/@playwright/test/cli.js"),
       "test",
       "--config=playwright.platform.config.mjs",
-      ...process.argv.slice(2)
+      ...playwrightArgs
     ],
-    { stdio: "inherit" }
+    {
+      env: {
+        ...process.env,
+        ...(prototypeMode ? { MVH_TEACHER_PROTOTYPE_TEST: "enabled" } : {})
+      },
+      stdio: "inherit"
+    }
   );
   const [code] = await once(playwright, "exit");
   exitCode = code ?? 1;

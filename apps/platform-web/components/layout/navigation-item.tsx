@@ -13,7 +13,8 @@ export function NavigationItem({
 }: NavigationItemProps) {
   return (
     <Link href={href} aria-current={current ? "page" : undefined}>
-      {label}
+      <span>{label}</span>
+      {current ? <span className="nav-current-label">Current</span> : null}
     </Link>
   );
 }
