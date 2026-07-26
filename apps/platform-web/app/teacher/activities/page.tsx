@@ -8,7 +8,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 
-export const metadata = { title: "Activities prototype" };
+export const metadata = { title: "Activities" };
 
 export default function ActivitiesPage() {
   const prototype = getTeacherPrototypeState();
@@ -27,7 +27,7 @@ export default function ActivitiesPage() {
           <section aria-labelledby="activity-list-heading" data-prototype-fixture="activity-list">
             <div className="section-heading-row">
               <SectionHeader eyebrow="Demonstration records" title="Activity list structure" id="activity-list-heading" compact />
-              <LinkButton href="/teacher/activities/new">Prototype an activity</LinkButton>
+              <LinkButton href="/teacher/activities/new">Review activity setup</LinkButton>
             </div>
             <div className="record-grid">
               {prototype.data.activities.map((activity) => (
@@ -51,18 +51,18 @@ export default function ActivitiesPage() {
           symbol="+"
           headingId="activities-empty-heading"
           title="No saved activities"
-          description="Assignment delivery and persistence do not exist. The authoring prototype demonstrates choices and validation only."
-          action={<LinkButton href="/teacher/activities/new">Open activity prototype</LinkButton>}
+          description="Saving and assignment delivery are not available. You can review the activity choices and validation without creating an activity."
+          action={<LinkButton href="/teacher/activities/new">Review activity setup</LinkButton>}
         />
       )}
 
       <section className="boundary-panel" aria-labelledby="activity-boundary-heading">
         <p className="card-kicker">Content boundary</p>
-        <h2 id="activity-boundary-heading">The platform summarizes; the canonical source stays canonical</h2>
+        <h2 id="activity-boundary-heading">Activity planning uses the current v7 curriculum</h2>
         <p>
-          The prototype uses a small, reviewed curriculum summary. A future
-          server adapter must read the canonical content without duplicating the
-          complete vocabulary dataset into the platform.
+          This preview uses a small curriculum summary. Future activity planning
+          must read the current v7 curriculum without copying the complete word
+          list into a second source.
         </p>
       </section>
     </TeacherShell>

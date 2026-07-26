@@ -24,9 +24,9 @@ export default async function TeacherPage() {
   return (
     <TeacherShell currentPath="/teacher">
       <PageHeader
-        eyebrow="Teacher workspace · Prototype"
+        eyebrow="Teacher workspace · Preview"
         title="Your next classroom move, made clear"
-        description="Plan vocabulary practice, launch the preserved game, and understand where future class and reporting tools will live—without implying that accounts or saved data work today."
+        description="Plan vocabulary practice, open the current v7 game, and preview where classes, activities, live sessions, and aggregate reports will live. Accounts and saving are not available yet."
       />
 
       {prototype.enabled ? <PrototypeDataNotice /> : (
@@ -47,7 +47,7 @@ export default async function TeacherPage() {
           <div className="metric-grid" data-prototype-fixture="overview-summary">
             <SummaryMetric label="Sample classes" value={prototype.data.classes.length} detail="Not saved" />
             <SummaryMetric label="Sample activities" value={prototype.data.activities.length} detail="Not assigned" />
-            <SummaryMetric label="Sample sessions" value={prototype.data.sessions.length} detail="No realtime service" />
+            <SummaryMetric label="Sample sessions" value={prototype.data.sessions.length} detail="No live connection" />
           </div>
         </section>
       ) : null}
@@ -63,7 +63,7 @@ export default async function TeacherPage() {
           <TeacherTaskCard
             marker="▶"
             title="Launch the current game"
-            description="Open the preserved v7 experience for teacher-led, local classroom play."
+            description="Open the current v7 game for teacher-led play on a shared classroom screen."
             href="/play"
             actionLabel="Go to game gateway"
             current
@@ -77,17 +77,17 @@ export default async function TeacherPage() {
           />
           <TeacherTaskCard
             marker="+"
-            title="Prototype an activity"
+            title="Plan an activity"
             description="Walk through grade, lesson, mode, time, and team choices without saving an assignment."
             href="/teacher/activities/new"
-            actionLabel="Open activity prototype"
+            actionLabel="Review activity setup"
           />
           <TeacherTaskCard
             marker="□"
             title="Plan a class structure"
             description="Preview a privacy-minimized class setup that never asks for student names."
             href="/teacher/classes/new"
-            actionLabel="Open class prototype"
+            actionLabel="Review class setup"
           />
         </div>
       </section>
@@ -95,22 +95,22 @@ export default async function TeacherPage() {
       <section className="readiness-panel" aria-labelledby="readiness-heading">
         <div>
           <p className="card-kicker">Ready now</p>
-          <h2 id="readiness-heading">The independent v7 classroom game</h2>
+          <h2 id="readiness-heading">The current v7 classroom game</h2>
           <p>
             Grades 6–8, keyboard and Pointer Event play, optional audio, mobile
             support, and Combine Mode remain available without an account.
           </p>
         </div>
-        <LinkButton href="/play">Launch path</LinkButton>
+        <LinkButton href="/play">Open current v7 game</LinkButton>
       </section>
 
       <section className="access-panel" aria-labelledby="access-heading">
         <div>
-          <p className="card-kicker">Default-deny policy</p>
+          <p className="card-kicker">Access status</p>
           <h2 id="access-heading">Premium access</h2>
           <p>
-            Browser state and prototype fixtures never grant product access.
-            A future trusted server must verify identity and entitlement.
+            Browser settings and demonstration data cannot unlock paid
+            features. Paid features are unavailable in this preview.
           </p>
         </div>
         <StatusBadge

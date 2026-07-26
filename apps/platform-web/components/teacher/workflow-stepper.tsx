@@ -15,8 +15,7 @@ export function WorkflowStepper({
   label
 }: WorkflowStepperProps) {
   return (
-    <nav className="workflow-stepper" aria-label={label}>
-      <ol>
+    <ol className="workflow-stepper" aria-label={label}>
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const state = stepNumber < currentStep
@@ -37,7 +36,6 @@ export function WorkflowStepper({
             </li>
           );
         })}
-      </ol>
-    </nav>
+    </ol>
   );
 }

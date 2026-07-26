@@ -63,7 +63,7 @@ export function ClassFormPrototype() {
       {notSaved ? (
         <div className="form-outcome" role="status">
           <strong>Nothing was saved.</strong>
-          <p>Class persistence is unavailable in this workflow prototype.</p>
+          <p>Saving classes is unavailable in this preview.</p>
         </div>
       ) : null}
 

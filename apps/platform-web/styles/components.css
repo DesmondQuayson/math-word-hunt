@@ -594,7 +594,7 @@
   margin-top: var(--space-6);
 }
 
-.workflow-stepper ol {
+.workflow-stepper {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: var(--space-3);
@@ -841,6 +841,60 @@
   .form-actions > a {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 22rem) {
+  .teacher-workspace-nav ul,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, summary, input, select, [tabindex]):focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+
+  .teacher-workspace-nav a[aria-current="page"] {
+    border: 2px solid LinkText;
+    border-left-width: 4px;
+  }
+
+  .button:disabled,
+  .button[aria-disabled="true"] {
+    border-color: GrayText;
+    color: GrayText;
+    opacity: 1;
+  }
+
+  .card,
+  .notice,
+  .empty-state,
+  .teacher-rail,
+  .workflow-stepper li,
+  .prototype-form,
+  .summary-metric,
+  .status-badge,
+  .error-summary,
+  .form-outcome {
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+
+  .notice-mark,
+  .workspace-symbol,
+  .empty-state-mark,
+  .workflow-step-number,
+  .status-badge-dot {
+    border: 1px solid currentColor;
+  }
+
+  .teacher-rail-heading,
+  .card-muted,
+  .workflow-stepper li[data-step-state="complete"] {
+    background-image: none;
   }
 }
 

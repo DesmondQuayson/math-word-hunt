@@ -46,8 +46,8 @@ export function TeacherShell({ children, currentPath }: TeacherShellProps) {
             </ul>
           </nav>
           <p className="teacher-rail-note">
-            Workflow prototype only. Account services and saved classroom data
-            are not connected.
+            Preview only. Accounts, saving, and managed live sessions are not
+            available.
           </p>
         </aside>
         <div className="teacher-main">{children}</div>

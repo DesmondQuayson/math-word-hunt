@@ -13,7 +13,7 @@ type ClassDetailPageProps = Readonly<{
   params: Promise<{ classId: string }>;
 }>;
 
-export const metadata = { title: "Class detail prototype" };
+export const metadata = { title: "Class details" };
 
 export default async function ClassDetailPage({ params }: ClassDetailPageProps) {
   const { classId } = await params;
@@ -31,7 +31,7 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
           <PageHeader
             eyebrow="Demonstration class · Not saved"
             title={classRecord.name}
-            description="This structure demonstrates how a future teacher-owned class could connect activities, sessions, and aggregate reports without becoming a student directory."
+            description="This demonstration shows how a future teacher-owned class could connect activities, live sessions, and aggregate reports without becoming a student directory."
           >
             <StatusBadge tone="success">{classRecord.status}</StatusBadge>
           </PageHeader>
@@ -50,24 +50,24 @@ export default async function ClassDetailPage({ params }: ClassDetailPageProps) 
               compact
             />
             <div className="teacher-task-grid teacher-task-grid-compact">
-              <TeacherTaskCard marker="+" title="Activity" description="Choose curriculum and classroom settings." href="/teacher/activities/new" actionLabel="Prototype an activity" />
-              <TeacherTaskCard marker="▶" title="Live session" description="Review the future setup and current-v7 launch boundary." href="/teacher/sessions/new" actionLabel="Prepare a session" />
-              <TeacherTaskCard marker="∑" title="Report" description="Review only aggregate demonstration structure." href="/teacher/reports" actionLabel="Preview reports" />
+              <TeacherTaskCard marker="+" title="Activity" description="Choose curriculum and classroom settings." href="/teacher/activities/new" actionLabel="Review activity setup" />
+              <TeacherTaskCard marker="▶" title="Live session" description="Compare future setup with the current v7 game." href="/teacher/sessions/new" actionLabel="Review session setup" />
+              <TeacherTaskCard marker="∑" title="Report" description="Review only aggregate demonstration information." href="/teacher/reports" actionLabel="Review aggregate reports" />
             </div>
           </section>
         </>
       ) : (
         <>
           <PageHeader
-            eyebrow="Class detail · Prototype"
+            eyebrow="Class details · Preview"
             title="No class record is available"
-            description="Production-default mode contains no saved classes. URL values cannot create or reveal a prototype record."
+            description="No classes are saved in this preview. Changing the page address cannot create or reveal a class."
           />
           <EmptyState
             symbol="Aa"
             headingId="class-detail-empty"
             title="Return to the class overview"
-            description="Only server-enabled demonstration mode can show an allowlisted fixture. Unknown class identifiers remain empty."
+            description="This preview can show only its named demonstration classes. An unknown class address stays empty."
             action={<LinkButton href="/teacher/classes">Back to classes</LinkButton>}
           />
         </>

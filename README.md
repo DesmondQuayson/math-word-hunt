@@ -66,6 +66,16 @@ current v7 game as the only real classroom launch. Start with
 through `npm run test:e2e:platform:prototype`; `npm run
 test:production-default` proves that a production build denies them.
 
+Phase 1C.5C validates those workflows against ten classroom scenarios, hardens
+reflow and forced-colors behavior, and freezes provider-independent teacher
+information contracts under `packages/platform-core/src/teacher`. It still adds
+no provider, account, persistence, student model, billing, or deployment. Start
+with `docs/teacher-scenario-validation.md`,
+`docs/teacher-accessibility-validation.md`,
+`docs/teacher-information-contracts.md`, and
+`docs/phase-1c5c-owner-decisions.md`. Run `npm run test:e2e:scenarios` for the
+scenario and responsive matrix.
+
 ## Preservation rules
 
 - Do not replace docs/index.html in place without an explicit release decision.

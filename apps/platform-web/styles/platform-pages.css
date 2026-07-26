@@ -697,3 +697,30 @@
     text-transform: uppercase;
   }
 }
+
+@media (max-width: 22rem) {
+  .data-table td {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  .vocabulary-board,
+  .boundary-panel,
+  .combine-mode-panel {
+    background-image: none;
+  }
+
+  .launch-panel,
+  .access-panel,
+  .readiness-panel,
+  .privacy-panel,
+  .boundary-panel,
+  .ready-check,
+  .combine-mode-panel,
+  .data-table-wrap,
+  .data-table tr {
+    border: 2px solid CanvasText;
+    box-shadow: none;
+  }
+}

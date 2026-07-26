@@ -37,3 +37,4 @@ export {
   type TeacherProfile,
   type UserId
 } from "./identity/types";
+export * from "./teacher/index";

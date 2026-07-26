@@ -9,7 +9,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { getTeacherSession } from "@/lib/adapters/identity";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 
-export const metadata = { title: "Account prototype" };
+export const metadata = { title: "Teacher account" };
 
 export default async function AccountPage() {
   const session = await getTeacherSession();
@@ -20,7 +20,7 @@ export default async function AccountPage() {
       <PageHeader
         eyebrow="Teacher workspace · Account"
         title="A future teacher account, with clear boundaries"
-        description="Teacher-only identity, password security, profile control, and deletion requests will require a trusted backend and a separate security phase."
+        description="Teacher profiles, password controls, and deletion requests are planned, but account setup and security tools are not available in this preview."
       />
 
       {prototype.enabled ? (
@@ -46,7 +46,7 @@ export default async function AccountPage() {
             symbol="ID"
             headingId="account-empty-heading"
             title="No profile has been created"
-            description="This production-default preview has no sign-up, login, saved profile, plan, subscription, pricing, or customer portal."
+            description="This preview has no sign-up, login, saved profile, plan, subscription, pricing, or customer portal."
             action={<LinkButton href="/play">Play without an account</LinkButton>}
           />
         </>
@@ -55,7 +55,7 @@ export default async function AccountPage() {
       <section aria-labelledby="account-controls-heading">
         <SectionHeader eyebrow="Future account controls" title="Security and lifecycle" id="account-controls-heading" compact />
         <div className="account-control-grid">
-          <Card><h3>Profile</h3><p>Display name and teacher-owned preferences only after identity exists.</p></Card>
+          <Card><h3>Profile</h3><p>Display name and teacher-owned preferences only after account setup is available.</p></Card>
           <Card><h3>Password and security</h3><p>Email verification, recovery, session review, and secure password changes.</p></Card>
           <Card><h3>Deletion request</h3><p>A soft, reversible request boundary before any future approved permanent deletion.</p></Card>
           <Card variant="muted"><h3>Subscription</h3><p>Plans, pricing, billing, and customer-portal behavior are deliberately deferred.</p></Card>
@@ -64,7 +64,7 @@ export default async function AccountPage() {
 
       <Notice label="Data minimization principles" tone="success">
         <strong>Collect less by design.</strong>
-        <p>No student accounts, no student names required for team play, and no browser value treated as account authority.</p>
+        <p>No student accounts, no student names required for team play, and no page setting can sign a teacher in or unlock account features.</p>
       </Notice>
     </TeacherShell>
   );

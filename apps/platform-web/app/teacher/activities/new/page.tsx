@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TeacherShell } from "@/components/layout/teacher-shell";
 import { WorkflowStepper } from "@/components/teacher/workflow-stepper";
 
-export const metadata = { title: "Create activity prototype" };
+export const metadata = { title: "Plan an activity" };
 
 const steps = [
   { label: "Content", description: "Grade, topic, lesson" },
@@ -18,12 +18,12 @@ export default function NewActivityPage() {
     <TeacherShell currentPath="/teacher/activities/new">
       <Breadcrumbs items={[
         { label: "Activities", href: "/teacher/activities" },
-        { label: "Create activity prototype" }
+        { label: "Plan an activity" }
       ]} />
       <PageHeader
-        eyebrow="Workflow prototype · No assignment delivery"
+        eyebrow="Planning preview · Saving unavailable"
         title="Shape a vocabulary activity"
-        description="Choose the content and classroom constraints a teacher needs under time pressure. Validation works; saving and assignment delivery do not."
+        description="Choose the content, time, and team settings you would need before class. You can check the form, but you cannot save or assign the activity."
       />
       <WorkflowStepper steps={steps} currentStep={1} label="Activity authoring steps" />
       <Notice label="Curriculum selection guidance" tone="information">

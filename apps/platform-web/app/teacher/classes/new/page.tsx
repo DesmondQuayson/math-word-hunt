@@ -4,19 +4,19 @@ import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { PageHeader } from "@/components/layout/page-header";
 import { TeacherShell } from "@/components/layout/teacher-shell";
 
-export const metadata = { title: "Create class prototype" };
+export const metadata = { title: "Review class setup" };
 
 export default function NewClassPage() {
   return (
     <TeacherShell currentPath="/teacher/classes/new">
       <Breadcrumbs items={[
         { label: "Classes", href: "/teacher/classes" },
-        { label: "Create class prototype" }
+        { label: "Review class setup" }
       ]} />
       <PageHeader
-        eyebrow="Workflow prototype · No persistence"
+        eyebrow="Class setup preview · Saving unavailable"
         title="Describe a future class"
-        description="Use only teacher-recognizable class information. This form validates the planned interaction but cannot create or save a class."
+        description="Use a class label you recognize without entering student names. You can check the form, but you cannot create or save a class."
       />
       <Notice label="Class privacy guidance" tone="warning">
         <strong>Do not enter student names.</strong>

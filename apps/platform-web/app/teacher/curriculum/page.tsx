@@ -10,7 +10,7 @@ import {
   CURRICULUM_STATUS_ITEMS
 } from "@/lib/adapters/curriculum-summary";
 
-export const metadata = { title: "Curriculum browser prototype" };
+export const metadata = { title: "Curriculum" };
 
 export default function CurriculumPage() {
   return (
@@ -18,7 +18,7 @@ export default function CurriculumPage() {
       <PageHeader
         eyebrow="Teacher workspace · Curriculum"
         title="See what is playable before you plan"
-        description="This summary reflects the technically validated canonical inventory without copying the complete vocabulary dataset into the platform."
+        description="This summary uses the checked lesson and vocabulary counts from the current v7 game. The complete word list stays with the game."
       />
 
       <div className="metric-grid" aria-label="Curriculum inventory">

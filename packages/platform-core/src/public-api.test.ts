@@ -5,18 +5,31 @@ import * as platformCore from "./index.js";
 describe("platform-core public API", () => {
   it("exposes the intentional runtime contract surface", () => {
     expect(Object.keys(platformCore).sort()).toEqual([
+      "CLASS_GRADES",
+      "CURRICULUM_STATUSES",
       "FEATURE_KEYS",
       "PRODUCT_CATALOG",
       "PRODUCT_KEYS",
+      "SESSION_STATUSES",
       "assertUniqueKeys",
       "createEntitlementPolicy",
       "defineProductCatalog",
+      "denyTeacherOperation",
       "isFeatureKey",
       "isProductKey",
+      "parseActivityDefinition",
+      "parseAggregateReport",
+      "parseClassRecord",
+      "parseCurriculumSummary",
       "parseEntitlement",
       "parseFeatureKey",
       "parseProductKey",
-      "parseUserId"
+      "parseSessionRecord",
+      "parseTeacherDashboard",
+      "parseTeacherProfile",
+      "parseUserId",
+      "teacherFailure",
+      "teacherSuccess"
     ]);
   });
 

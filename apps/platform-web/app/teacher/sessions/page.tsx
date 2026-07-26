@@ -9,7 +9,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 
-export const metadata = { title: "Live sessions prototype" };
+export const metadata = { title: "Live sessions" };
 
 export default function SessionsPage() {
   const prototype = getTeacherPrototypeState();
@@ -19,21 +19,21 @@ export default function SessionsPage() {
       <PageHeader
         eyebrow="Teacher workspace · Live Sessions"
         title="Know which kind of session you are starting"
-        description="The current game runs locally for a shared classroom screen. Future managed sessions would add teacher-owned setup and recovery, but no realtime service exists yet."
+        description="The current v7 game works on a shared classroom screen. A future managed live session would add setup and recovery, but that service is not available yet."
       />
 
       <div className="session-boundary-grid">
         <Card variant="highlighted" className="session-boundary-card">
           <p className="card-kicker">Available now</p>
-          <h2>Local classroom v7</h2>
+          <h2>Current v7 game</h2>
           <p>Teacher-led play on a shared display. No account, remote join, or saved session is required.</p>
-          <LinkButton href="/play">Launch current game path</LinkButton>
+          <LinkButton href="/play">Open current v7 game</LinkButton>
         </Card>
         <Card variant="muted" className="session-boundary-card">
           <p className="card-kicker">Future managed workflow</p>
-          <h2>Platform session</h2>
+          <h2>Managed live session</h2>
           <p>Conceptual setup, ready, active, reconnect, and completed states. No remote devices can join.</p>
-          <LinkButton href="/teacher/sessions/new" variant="secondary">Review setup prototype</LinkButton>
+          <LinkButton href="/teacher/sessions/new" variant="secondary">Review session setup</LinkButton>
         </Card>
       </div>
 
@@ -55,7 +55,7 @@ export default function SessionsPage() {
                       <div><dt>Teams</dt><dd>{session.teams}</dd></div>
                       <div><dt>Terms</dt><dd>{session.termsReviewed}</dd></div>
                     </dl>
-                    <p className="record-disclaimer">Demonstration only · No realtime connection</p>
+                    <p className="record-disclaimer">Demonstration only · No live connection</p>
                   </Card>
                 </article>
               ))}
@@ -67,14 +67,14 @@ export default function SessionsPage() {
           symbol="▶"
           headingId="sessions-empty-heading"
           title="No managed sessions"
-          description="No session service, reconnect state, remote participant channel, or saved history is connected."
+          description="Managed live sessions, recovery, remote participation, and saved session history are not available."
           action={<LinkButton href="/teacher/sessions/new">Review session setup</LinkButton>}
         />
       )}
 
       <Notice label="Remote participation boundary" tone="warning">
         <strong>Remote student devices cannot join.</strong>
-        <p>Realtime networking and participant identity are deliberately outside this phase.</p>
+        <p>This preview does not connect student devices or identify individual participants.</p>
       </Notice>
     </TeacherShell>
   );

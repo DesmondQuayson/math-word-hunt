@@ -43,11 +43,11 @@ describe("design-system components", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it("uses an alert only when a notice is live", () => {
+  it("uses a note for static guidance and an alert only when live", () => {
     const { rerender } = render(
       <Notice label="Preview status">Static information</Notice>
     );
-    expect(screen.getByLabelText("Preview status").getAttribute("role")).toBeNull();
+    expect(screen.getByRole("note", { name: "Preview status" })).toBeTruthy();
 
     rerender(
       <Notice label="Connection error" tone="danger" live>

@@ -28,7 +28,7 @@ export function Notice({
     <aside
       className={`notice notice-${tone} ${className}`.trim()}
       aria-label={label}
-      role={live ? "alert" : undefined}
+      role={live ? "alert" : "note"}
     >
       <span className="notice-mark" aria-hidden="true">
         {marks[tone]}

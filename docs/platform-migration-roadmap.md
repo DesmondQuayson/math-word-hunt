@@ -40,6 +40,15 @@ empty by default, persists nothing, and uses only explicit local/test fixture
 mode. Owner approval of workflows and minimization rules is required before
 turning any prototype shape into a schema or service.
 
+### Checkpoint 2C: validation and information-contract freeze (Phase 1C.5C)
+
+Teacher workflows now have scenario, keyboard, forced-colors, text-spacing,
+extreme-reflow, mobile-landscape, and Smart Board evidence. Provider-independent
+teacher records and repository interfaces define only the minimized information
+supported by the prototype. The owner-decision register separates phase
+requirements from unresolved product, privacy, retention, and sequence choices.
+No provider adapter or persistence is implied.
+
 ### Checkpoint 3: teacher identity
 
 After login, privacy, RLS, retention, and environment decisions, implement

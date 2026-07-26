@@ -9,7 +9,7 @@ import { SummaryMetric } from "@/components/teacher/summary-metric";
 import { LinkButton } from "@/components/ui/link-button";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 
-export const metadata = { title: "Reports prototype" };
+export const metadata = { title: "Reports" };
 
 export default function ReportsPage() {
   const prototype = getTeacherPrototypeState();
@@ -40,13 +40,13 @@ export default function ReportsPage() {
           symbol="∑"
           headingId="reports-empty-heading"
           title="No reports exist"
-          description="No activities, sessions, scores, student profiles, or report persistence exist in production-default mode."
-          action={<LinkButton href="/teacher/sessions">Review session architecture</LinkButton>}
+          description="No activities, live sessions, aggregate results, or student profiles are saved."
+          action={<LinkButton href="/teacher/sessions">Review live sessions</LinkButton>}
         />
       )}
 
       <section className="report-category-grid" aria-labelledby="report-categories-heading">
-        <SectionHeader eyebrow="Future information architecture" title="Useful reporting levels" id="report-categories-heading" compact />
+        <SectionHeader eyebrow="Future aggregate reports" title="Useful reporting levels" id="report-categories-heading" compact />
         <ul>
           <li><strong>Class overview</strong><span>Aggregate activity and session history.</span></li>
           <li><strong>Activity completion</strong><span>Whether a teacher-led activity ran, without individual tracking.</span></li>
@@ -59,7 +59,7 @@ export default function ReportsPage() {
 
       <Notice label="Reporting limits" tone="warning">
         <strong>No mastery or predictive claims.</strong>
-        <p>The prototype contains no standards alignment, student-level analytics, ranking, or automated educational judgment.</p>
+        <p>This preview contains no standards claims, student-level tracking, ranking, or automated judgments about learners.</p>
       </Notice>
     </TeacherShell>
   );

@@ -116,3 +116,22 @@ require the exact `enabled` switch in development or test, and are denied in
 production regardless of configuration. Browser-controlled values cannot
 enable them. Consequence: every fixture view is visibly labeled and separate
 default, opt-in, and production-negative tests are mandatory.
+
+## Recorded on 2026-07-26 during Phase 1C.5C
+
+### Provider-independent teacher information boundary
+
+Status: accepted as a structural frontend contract, not as provider or schema
+approval. Teacher profiles, classes, activities, sessions, aggregate reports,
+curriculum summaries, dashboard summaries, explicit result errors, and
+ownership-scoped repository interfaces live in platform-core. Strict parsers
+reject unknown fields and excluded student/predictive data. Consequence: future
+providers must adapt through this boundary and may not expose database query
+language or browser-controlled authority.
+
+### Product and policy choices remain explicit
+
+Status: pending where listed in `phase-1c5c-owner-decisions.md`. Activity-mode
+enumeration, time/team defaults, archive and deletion operations, report
+retention, curriculum review ownership, reporting approval, and identity/session
+sequence are not silently approved by the contract freeze.

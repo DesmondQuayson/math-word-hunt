@@ -330,7 +330,7 @@ test("curriculum and session boundaries are explicit", async ({ page }) => {
   await expect(page.getByText(/Combine Mode/i).first()).toBeVisible();
 
   await page.goto("/teacher/sessions/new");
-  await expect(page.getByRole("link", { name: "Open v7 gateway" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open current v7 game" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create managed session" })).toBeDisabled();
-  await expect(page.getByText("Unavailable until a trusted backend exists.")).toBeVisible();
+  await expect(page.getByText("Unavailable until account and live-session services are ready.")).toBeVisible();
 });

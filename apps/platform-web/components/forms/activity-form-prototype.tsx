@@ -79,7 +79,7 @@ export function ActivityFormPrototype() {
       {notSaved ? (
         <div className="form-outcome" role="status">
           <strong>Nothing was assigned or saved.</strong>
-          <p>This prototype only validates the planned activity workflow.</p>
+          <p>Saving and assignment delivery are unavailable in this preview.</p>
         </div>
       ) : null}
 
