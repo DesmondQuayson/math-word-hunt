@@ -16,6 +16,7 @@ const teacherNavigation = [
 type TeacherShellProps = Readonly<{
   children: ReactNode;
   currentPath: string;
+  accountNote?: string;
 }>;
 
 function isCurrentPath(currentPath: string, itemPath: string): boolean {
@@ -23,7 +24,7 @@ function isCurrentPath(currentPath: string, itemPath: string): boolean {
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-export function TeacherShell({ children, currentPath }: TeacherShellProps) {
+export function TeacherShell({ children, currentPath, accountNote }: TeacherShellProps) {
   return (
     <Container width="wide" className="page-stack teacher-shell">
       <div className="teacher-shell-layout">
@@ -46,8 +47,7 @@ export function TeacherShell({ children, currentPath }: TeacherShellProps) {
             </ul>
           </nav>
           <p className="teacher-rail-note">
-            Preview only. Accounts, saving, and managed live sessions are not
-            available.
+            {accountNote ?? "Preview only. Accounts, saving, and managed live sessions are not available."}
           </p>
         </aside>
         <div className="teacher-main">{children}</div>

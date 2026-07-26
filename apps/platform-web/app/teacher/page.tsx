@@ -1,5 +1,5 @@
-import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { Notice } from "@/components/feedback/notice";
+import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
 import { TeacherShell } from "@/components/layout/teacher-shell";
@@ -11,116 +11,27 @@ import { CURRICULUM_INVENTORY } from "@/lib/adapters/curriculum-summary";
 import { getPlatformAccess } from "@/lib/adapters/entitlements";
 import { getTeacherSession } from "@/lib/adapters/identity";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
+import { createServerRepositories } from "@/lib/repositories/server-repositories";
+import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 
 export const metadata = { title: "Teacher overview" };
 
 export default async function TeacherPage() {
-  const [session, access] = await Promise.all([
-    getTeacherSession(),
-    getPlatformAccess()
-  ]);
   const prototype = getTeacherPrototypeState();
+  const configured = isSupabaseConfigured();
+  const [session, access] = await Promise.all([getTeacherSession(), getPlatformAccess()]);
+  const repositories = session.status === "active" ? await createServerRepositories() : null;
+  const [classResult, activityResult] = repositories && session.teacher ? await Promise.all([repositories.classes.listByOwner(session.teacher.userId), repositories.activities.listByOwner(session.teacher.userId)]) : [null, null];
+  const classes = classResult?.ok ? classResult.value : [];
+  const activities = activityResult?.ok ? activityResult.value : [];
+  const signedIn = Boolean(session.teacher);
 
-  return (
-    <TeacherShell currentPath="/teacher">
-      <PageHeader
-        eyebrow="Teacher workspace · Preview"
-        title="Your next classroom move, made clear"
-        description="Plan vocabulary practice, open the current v7 game, and preview where classes, activities, live sessions, and aggregate reports will live. Accounts and saving are not available yet."
-      />
-
-      {prototype.enabled ? <PrototypeDataNotice /> : (
-        <Notice label="Teacher session status" tone="information">
-          <strong>Account features are in development.</strong>
-          <p>{session.message} No classes, activities, sessions, or reports are saved.</p>
-        </Notice>
-      )}
-
-      {prototype.enabled ? (
-        <section aria-labelledby="demo-summary-heading">
-          <SectionHeader
-            eyebrow="Demonstration workspace"
-            title="Layout summary"
-            id="demo-summary-heading"
-            compact
-          />
-          <div className="metric-grid" data-prototype-fixture="overview-summary">
-            <SummaryMetric label="Sample classes" value={prototype.data.classes.length} detail="Not saved" />
-            <SummaryMetric label="Sample activities" value={prototype.data.activities.length} detail="Not assigned" />
-            <SummaryMetric label="Sample sessions" value={prototype.data.sessions.length} detail="No live connection" />
-          </div>
-        </section>
-      ) : null}
-
-      <section aria-labelledby="next-step-heading">
-        <SectionHeader
-          eyebrow="Under classroom time pressure"
-          title="What should I do next?"
-          description="Start with the action that matches the room you are in."
-          id="next-step-heading"
-        />
-        <div className="teacher-task-grid">
-          <TeacherTaskCard
-            marker="▶"
-            title="Launch the current game"
-            description="Open the current v7 game for teacher-led play on a shared classroom screen."
-            href="/play"
-            actionLabel="Go to game gateway"
-            current
-          />
-          <TeacherTaskCard
-            marker="Aa"
-            title="Check curriculum readiness"
-            description={`${CURRICULUM_INVENTORY.playableLessons} lessons are playable; thin and missing lessons remain clearly labeled.`}
-            href="/teacher/curriculum"
-            actionLabel="Browse curriculum"
-          />
-          <TeacherTaskCard
-            marker="+"
-            title="Plan an activity"
-            description="Walk through grade, lesson, mode, time, and team choices without saving an assignment."
-            href="/teacher/activities/new"
-            actionLabel="Review activity setup"
-          />
-          <TeacherTaskCard
-            marker="□"
-            title="Plan a class structure"
-            description="Preview a privacy-minimized class setup that never asks for student names."
-            href="/teacher/classes/new"
-            actionLabel="Review class setup"
-          />
-        </div>
-      </section>
-
-      <section className="readiness-panel" aria-labelledby="readiness-heading">
-        <div>
-          <p className="card-kicker">Ready now</p>
-          <h2 id="readiness-heading">The current v7 classroom game</h2>
-          <p>
-            Grades 6–8, keyboard and Pointer Event play, optional audio, mobile
-            support, and Combine Mode remain available without an account.
-          </p>
-        </div>
-        <LinkButton href="/play">Open current v7 game</LinkButton>
-      </section>
-
-      <section className="access-panel" aria-labelledby="access-heading">
-        <div>
-          <p className="card-kicker">Access status</p>
-          <h2 id="access-heading">Premium access</h2>
-          <p>
-            Browser settings and demonstration data cannot unlock paid
-            features. Paid features are unavailable in this preview.
-          </p>
-        </div>
-        <StatusBadge
-          className="access-state"
-          data-access={access.features["premium-game-modes"] ? "allowed" : "denied"}
-          data-testid="premium-access-state"
-        >
-          {access.features["premium-game-modes"] ? "Available" : "Not available"}
-        </StatusBadge>
-      </section>
-    </TeacherShell>
-  );
+  return <TeacherShell currentPath="/teacher" accountNote={signedIn ? "Local teacher data is enabled. Managed sessions and reports remain unavailable." : undefined}>
+    <PageHeader eyebrow={signedIn ? "Teacher workspace · Local account" : "Teacher workspace · Preview"} title={session.teacher?.profile ? `Welcome, ${session.teacher.profile.displayName}` : "Your next classroom move, made clear"} description={signedIn ? "Plan with teacher-owned local data, or launch the unchanged v7 classroom game." : "Plan vocabulary practice, open the current v7 game, and preview where classes, activities, live sessions, and aggregate reports will live. Accounts and saving are not available yet."} />
+    {prototype.enabled ? <PrototypeDataNotice /> : !configured ? <Notice label="Teacher session status" tone="information"><strong>Account features are in development.</strong><p>{session.message} No classes, activities, sessions, or reports are saved.</p></Notice> : <Notice label="Teacher session status" tone={session.status === "active" ? "success" : session.status === "suspended" || session.status === "deletion-requested" || session.status === "missing-profile" ? "warning" : "information"}><strong>{session.status === "active" ? "Local teacher account active" : session.status === "anonymous" ? "Sign in to save teacher data" : "Protected operations restricted"}</strong><p>{session.message}</p>{session.status === "anonymous" ? <LinkButton href="/sign-in">Sign in</LinkButton> : null}</Notice>}
+    {prototype.enabled ? <section aria-labelledby="demo-summary-heading"><SectionHeader eyebrow="Demonstration workspace" title="Layout summary" id="demo-summary-heading" compact /><div className="metric-grid" data-prototype-fixture="overview-summary"><SummaryMetric label="Sample classes" value={prototype.data.classes.length} detail="Not saved" /><SummaryMetric label="Sample activities" value={prototype.data.activities.length} detail="Not assigned" /><SummaryMetric label="Sample sessions" value={prototype.data.sessions.length} detail="No live connection" /></div></section> : session.status === "active" ? <section aria-labelledby="real-summary-heading"><SectionHeader eyebrow="Local teacher data" title="Workspace summary" id="real-summary-heading" compact /><div className="metric-grid" data-testid="real-teacher-summary"><SummaryMetric label="Classes" value={classes.filter((item) => item.status === "active").length} detail="Active" /><SummaryMetric label="Activity drafts" value={activities.filter((item) => item.status === "draft").length} detail="Saved locally" /><SummaryMetric label="Managed sessions" value={0} detail="Unavailable" /></div></section> : null}
+    <section aria-labelledby="next-step-heading"><SectionHeader eyebrow="Under classroom time pressure" title="What should I do next?" description="Start with the action that matches the room you are in." id="next-step-heading" /><div className="teacher-task-grid"><TeacherTaskCard marker="▶" title="Launch the current game" description={session.status === "active" ? "Open the current v7 game for teacher-led play on a shared classroom screen." : "Open the preserved v7 experience for teacher-led, local classroom play."} href="/play" actionLabel="Go to game gateway" current /><TeacherTaskCard marker="Aa" title="Check curriculum readiness" description={`${CURRICULUM_INVENTORY.playableLessons} lessons are playable; thin and missing lessons remain clearly labeled.`} href="/teacher/curriculum" actionLabel="Browse curriculum" /><TeacherTaskCard marker="+" title={session.status === "active" ? "Create an activity draft" : "Prototype an activity"} description={session.status === "active" ? "Choose approved grade, lesson, time, and team settings." : "Walk through grade, lesson, mode, time, and team choices without saving an assignment."} href="/teacher/activities/new" actionLabel={session.status === "active" ? "Create activity draft" : "Open activity prototype"} /><TeacherTaskCard marker="□" title={session.status === "active" ? "Create a class" : "Plan a class structure"} description={session.status === "active" ? "Use a privacy-minimized class label without student names." : "Preview a privacy-minimized class setup that never asks for student names."} href="/teacher/classes/new" actionLabel={session.status === "active" ? "Create class" : "Open class prototype"} /></div></section>
+    <section className="readiness-panel" aria-labelledby="readiness-heading"><div><p className="card-kicker">Ready now</p><h2 id="readiness-heading">The current v7 classroom game</h2><p>Grades 6–8, keyboard and Pointer Event play, optional audio, mobile support, and Combine Mode remain available without an account.</p></div><LinkButton href="/play">Open current v7 game</LinkButton></section>
+    <section className="access-panel" aria-labelledby="access-heading"><div><p className="card-kicker">Access status</p><h2 id="access-heading">Premium access</h2><p>Entitlements are server-authoritative and deny access when absent or malformed. No premium access is granted automatically.</p></div><StatusBadge className="access-state" data-access={access.features["premium-game-modes"] ? "allowed" : "denied"} data-testid="premium-access-state">{access.features["premium-game-modes"] ? "Available" : "Not available"}</StatusBadge></section>
+  </TeacherShell>;
 }

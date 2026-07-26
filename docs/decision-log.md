@@ -4,6 +4,20 @@ This log records durable architecture decisions. A new entry should state the
 date, status, decision, rationale, and consequences. Superseded entries remain
 for history.
 
+## Accepted on 2026-07-26 during Phase 1D
+
+The first identity/data vertical slice is local-only Supabase with teacher-only
+email/password accounts, separate profiles, owner-scoped RLS, default-deny
+entitlements, privacy-minimized classes, activity drafts, and request-only
+account deletion. Browser input has no ownership, role, status, or entitlement
+authority. Deletion-requested accounts retain only own status/request visibility
+and cannot create new teacher data.
+
+Hosted Supabase, production rollout, permanent deletion, students, organization
+tenancy, Stripe/billing, final paid policy, automatic premium grants, additional
+game modes, managed sessions, and reports remain pending owner approval. See
+`phase-1d-decisions.md`.
+
 ## Accepted on 2026-07-26
 
 ### Dedicated product boundary

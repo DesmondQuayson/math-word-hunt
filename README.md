@@ -22,6 +22,11 @@ are protected by the content-integrity test and must be versioned together.
 3. For the isolated platform shell and its working game gateway, run
    npm run dev:platform and open http://127.0.0.1:3000.
 
+For the Phase 1D local teacher vertical slice, start Docker Desktop, run `npm
+run supabase:start`, then `npm run db:reset`. The authenticated integration
+runner supplies local runtime configuration without writing secrets: `npm run
+test:e2e:phase1d`. See `docs/local-supabase-setup.md`.
+
 The local server exists only for development and automated tests. GitHub Pages
 continues to publish directly from docs without a build step.
 
@@ -37,6 +42,11 @@ continues to publish directly from docs without a build step.
   behavior, anonymous state, access denial, visual baselines, and the safe game
   gateway.
 - npm run test:e2e:visual runs only the three stable platform visual snapshots.
+- npm run db:test runs 65 schema and Row Level Security assertions.
+- npm run test:e2e:phase1d tests local authentication, two-account isolation,
+  profile/class/activity persistence, archive, deletion request, entitlement
+  denial, and sign-out.
+- npm run phase1d:verify runs the complete old and new release gate.
 - npm run build creates the isolated Next.js production build.
 - npm run test:security inspects production client assets and platform-core
   source for secret markers or forbidden dependencies.
@@ -75,6 +85,15 @@ with `docs/teacher-scenario-validation.md`,
 `docs/teacher-information-contracts.md`, and
 `docs/phase-1c5c-owner-decisions.md`. Run `npm run test:e2e:scenarios` for the
 scenario and responsive matrix.
+
+Phase 1D adds a local-only Supabase foundation and connects supported teacher
+states to real server-owned data. It does not change the static deployment.
+Identity is teacher-only; all tables use RLS; entitlements default deny; classes
+contain no roster; activities are drafts only; deletion is request-only; and
+sessions, reports, billing, students, hosted Supabase, and production deployment
+remain deferred. Start with `docs/authentication-architecture.md`,
+`docs/database-schema.md`, `docs/row-level-security.md`, and
+`docs/phase-1d-security-review.md`.
 
 ## Preservation rules
 

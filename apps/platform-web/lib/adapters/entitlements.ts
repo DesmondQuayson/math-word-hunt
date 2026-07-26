@@ -6,10 +6,13 @@ import {
   type FeatureKey
 } from "@math-vocabulary-hunt/platform-core";
 
+import { resolveTeacherContext } from "@/lib/auth/teacher-context";
+import { createServerRepositories } from "@/lib/repositories/server-repositories";
+
 export type PlatformAccessView = Readonly<{
   productAccess: boolean;
   features: Readonly<Record<FeatureKey, boolean>>;
-  source: "default-deny";
+  source: "default-deny" | "server-authoritative";
 }>;
 
 const anonymousUserId = parseUserId("anonymous-platform-preview");
@@ -20,8 +23,14 @@ const productionPolicy = createEntitlementPolicy({
 });
 
 export async function getPlatformAccess(): Promise<PlatformAccessView> {
-  const summary = await productionPolicy.getUserAccessSummary(
-    anonymousUserId,
+  const [context, repositories] = await Promise.all([
+    resolveTeacherContext(),
+    createServerRepositories()
+  ]);
+  const canRead = context.status === "active" && repositories !== null;
+  const policy = canRead ? createEntitlementPolicy(repositories.entitlements) : productionPolicy;
+  const summary = await policy.getUserAccessSummary(
+    canRead ? context.userId : anonymousUserId,
     PRODUCT_KEYS[0]
   );
   const features = Object.fromEntries(
@@ -31,6 +40,6 @@ export async function getPlatformAccess(): Promise<PlatformAccessView> {
   return Object.freeze({
     productAccess: summary?.productAccess ?? false,
     features: Object.freeze(features),
-    source: "default-deny"
+    source: canRead ? "server-authoritative" : "default-deny"
   });
 }

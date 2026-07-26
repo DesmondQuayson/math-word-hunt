@@ -6,15 +6,22 @@ import { TeacherShell } from "@/components/layout/teacher-shell";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { resolveTeacherContext } from "@/lib/auth/teacher-context";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
+import { createServerRepositories } from "@/lib/repositories/server-repositories";
 
 export const metadata = { title: "Activities" };
 
-export default function ActivitiesPage() {
+export default async function ActivitiesPage() {
   const prototype = getTeacherPrototypeState();
+  const context = prototype.enabled ? null : await resolveTeacherContext();
+  const repositories = context?.status === "active" ? await createServerRepositories() : null;
+  const result = repositories && context?.userId ? await repositories.activities.listByOwner(context.userId) : null;
+  const activities = result?.ok ? result.value : [];
+  const realMode = context?.status === "active";
 
   return (
-    <TeacherShell currentPath="/teacher/activities">
+    <TeacherShell currentPath="/teacher/activities" accountNote={realMode ? "Local activity drafts are enabled. Assignment delivery remains unavailable." : undefined}>
       <PageHeader
         eyebrow="Teacher workspace · Activities"
         title="Turn curriculum choices into a classroom-ready plan"
@@ -46,13 +53,20 @@ export default function ActivitiesPage() {
             </div>
           </section>
         </>
+      ) : realMode ? (
+        <section aria-labelledby="activity-list-heading" data-testid="real-activity-list">
+          <div className="section-heading-row"><SectionHeader eyebrow="Your saved records" title="Activity drafts" id="activity-list-heading" compact /><LinkButton href="/teacher/activities/new">Create activity draft</LinkButton></div>
+          {activities.length ? <div className="record-grid">{activities.map((activity) => (
+            <article key={activity.activityId}><Card className="record-card"><div className="record-card-heading"><h3>{activity.lessonId}</h3><StatusBadge tone={activity.status === "ready" ? "success" : "warning"}>{activity.status}</StatusBadge></div><p>Grade {activity.grade} · {activity.topicId}</p><p><strong>Mode:</strong> Team vocabulary hunt</p><p>{activity.timeLimitMinutes} minutes · {activity.teamCount} teams</p><p className="record-disclaimer">Saved locally · Not assigned</p></Card></article>
+          ))}</div> : <EmptyState symbol="+" headingId="activities-empty-heading" title="No saved activity drafts" description="Create a supported local draft. Assignment delivery and managed sessions remain unavailable." action={<LinkButton href="/teacher/activities/new">Create activity draft</LinkButton>} />}
+        </section>
       ) : (
         <EmptyState
           symbol="+"
           headingId="activities-empty-heading"
           title="No saved activities"
-          description="Saving and assignment delivery are not available. You can review the activity choices and validation without creating an activity."
-          action={<LinkButton href="/teacher/activities/new">Review activity setup</LinkButton>}
+          description={context?.configured ? "Sign in with an active local teacher account to view saved activity drafts." : "Saving and assignment delivery are not available. You can review the activity choices and validation without creating an activity."}
+          action={context?.configured ? <LinkButton href="/sign-in">Sign in</LinkButton> : <LinkButton href="/teacher/activities/new">Review activity setup</LinkButton>}
         />
       )}
 

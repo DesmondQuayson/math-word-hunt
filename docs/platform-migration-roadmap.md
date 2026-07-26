@@ -1,5 +1,19 @@
 # Platform Migration Roadmap
 
+## Current checkpoint: Phase 1D local vertical slice
+
+Local Supabase Auth, versioned PostgreSQL migrations, RLS, server-only adapters,
+teacher profiles, classes, activity drafts, account deletion requests, and
+default-deny entitlement reads are implemented alongside unchanged static v7.
+The work is a local validation foundation, not a production cutover.
+
+The next approved planning phase should focus on production-readiness evidence:
+hosted environment ownership and regions, secrets and key rotation, backup and
+restore drills, email delivery/abuse controls, support and deletion operations,
+privacy/legal review, observability without student tracking, migration dry
+runs, and a preview-only deployment plan. It must not introduce billing,
+students, sessions, reports, or v7 migration without separate approval.
+
 Status: incremental plan updated after the Phase 1C workspace foundation.
 
 ## Preservation baseline

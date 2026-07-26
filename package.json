@@ -21,8 +21,18 @@
     "test:e2e:platform:prototype": "node scripts/run-platform-e2e.mjs --prototype teacher-prototype.spec.ts",
     "test:e2e:scenarios": "node scripts/run-platform-e2e.mjs teacher-scenarios.spec.ts",
     "test:e2e:visual": "node scripts/run-platform-e2e.mjs visual-regression.spec.ts",
+    "test:e2e:phase1d": "node scripts/run-phase1d-e2e.mjs",
     "test:production-default": "node scripts/audit-production-default.mjs",
     "test:security": "node scripts/audit-platform-bundle.mjs",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset --local",
+    "supabase:test": "supabase test db",
+    "db:reset": "npm run supabase:reset",
+    "db:test": "npm run supabase:test",
+    "db:verify": "npm run supabase:status && npm run db:test",
+    "phase1d:verify": "node scripts/verify-phase1d.mjs",
     "test": "npm run test:content && npm run test:unit && npm run test:e2e && npm run test:e2e:platform"
   },
   "devDependencies": {
@@ -31,6 +41,7 @@
     "@types/node": "latest",
     "eslint": "9.39.5",
     "globals": "latest",
+    "supabase": "2.109.1",
     "typescript": "latest",
     "vitest": "latest"
   },
