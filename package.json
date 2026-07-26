@@ -6,15 +6,20 @@
   "scripts": {
     "serve": "node scripts/serve-static.mjs",
     "lint": "eslint .",
+    "typecheck": "tsc --project tsconfig.platform.json",
     "test:content": "node scripts/audit-content.mjs",
+    "test:unit": "vitest run --config vitest.platform.config.ts",
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:canonical": "node scripts/run-e2e.mjs e2e/math-word-hunt-v7.spec.mjs",
-    "test": "npm run test:content && npm run test:e2e"
+    "test": "npm run test:content && npm run test:unit && npm run test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "latest",
     "@playwright/test": "latest",
+    "@types/node": "latest",
     "eslint": "latest",
-    "globals": "latest"
+    "globals": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
   }
 }

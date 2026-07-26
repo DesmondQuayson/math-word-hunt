@@ -26,10 +26,23 @@ continues to publish directly from docs without a build step.
 ## Verification
 
 - npm run lint checks repository scripts and current browser tests.
+- npm run typecheck checks the framework-independent platform contracts.
 - npm run test:content checks canonical hashes, curriculum references, lesson
   counts, and documented content gaps.
+- npm run test:unit checks catalog registration and default-deny entitlement
+  policy behavior.
 - npm run test:e2e:canonical runs the v7 browser regression suite.
-- npm test runs the content audit and all current and historical browser tests.
+- npm test runs the content audit, platform unit tests, and all current and
+  historical browser tests.
+
+## Future platform contracts
+
+Phase 1B adds framework-independent TypeScript contracts under `platform/` for
+the product catalog, teacher identity shape, and entitlement policy. These are
+future architecture boundaries only: they are not connected to the static
+game, do not change deployment, and add no authentication, billing, database,
+or application framework. Start with `docs/platform-architecture.md` and
+`docs/decision-log.md` for the boundary and pending owner decisions.
 
 ## Preservation rules
 
