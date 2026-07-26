@@ -17,32 +17,37 @@ are protected by the content-integrity test and must be versioned together.
 ## Local preview
 
 1. Install the development dependencies with npm install.
-2. Run npm run serve.
-3. Open http://127.0.0.1:4173/docs/index.html.
+2. For the current game, run npm run serve and open
+   http://127.0.0.1:4173/docs/index.html.
+3. For the isolated platform shell and its working game gateway, run
+   npm run dev:platform and open http://127.0.0.1:3000.
 
 The local server exists only for development and automated tests. GitHub Pages
 continues to publish directly from docs without a build step.
 
 ## Verification
 
-- npm run lint checks repository scripts and current browser tests.
-- npm run typecheck checks the framework-independent platform contracts.
+- npm run lint checks repository scripts and the Next.js workspace.
+- npm run typecheck checks every workspace in strict TypeScript mode.
 - npm run test:content checks canonical hashes, curriculum references, lesson
   counts, and documented content gaps.
-- npm run test:unit checks catalog registration and default-deny entitlement
-  policy behavior.
+- npm run test:unit checks platform-core contracts and platform-web adapters.
 - npm run test:e2e:canonical runs the v7 browser regression suite.
-- npm test runs the content audit, platform unit tests, and all current and
-  historical browser tests.
+- npm run test:e2e:platform checks shell routes, accessibility, responsive
+  behavior, anonymous state, access denial, and the safe game gateway.
+- npm run build creates the isolated Next.js production build.
+- npm run test:security inspects production client assets and platform-core
+  source for secret markers or forbidden dependencies.
+- npm test runs content, unit, current/historical, and platform browser tests.
 
-## Future platform contracts
+## Workspace foundation
 
-Phase 1B adds framework-independent TypeScript contracts under `platform/` for
-the product catalog, teacher identity shape, and entitlement policy. These are
-future architecture boundaries only: they are not connected to the static
-game, do not change deployment, and add no authentication, billing, database,
-or application framework. Start with `docs/platform-architecture.md` and
-`docs/decision-log.md` for the boundary and pending owner decisions.
+Phase 1C uses npm workspaces. `apps/platform-web` is the isolated Next.js App
+Router shell, and `packages/platform-core` contains the portable catalog,
+identity, and entitlement contracts. The shell does not change production and
+adds no authentication, database, billing, pricing, or student accounts. Start
+with `docs/workspace-architecture.md`, `docs/platform-shell-design.md`, and
+`docs/phase-1c-decisions.md`.
 
 ## Preservation rules
 

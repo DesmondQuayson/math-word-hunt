@@ -2,19 +2,19 @@ import {
   FEATURE_KEYS,
   isFeatureKey,
   type FeatureKey
-} from "../catalog/feature-keys.js";
+} from "../catalog/feature-keys";
 import {
   isProductKey,
   type ProductKey
-} from "../catalog/product-keys.js";
-import type { UserId } from "../identity/types.js";
+} from "../catalog/product-keys";
+import type { UserId } from "../identity/types";
 import type {
   Entitlement,
   EntitlementService,
   EntitlementSource,
   EntitlementSourceReader,
   UserAccessSummary
-} from "./types.js";
+} from "./types";
 
 const statuses = new Set(["active", "revoked"]);
 const sources = new Set<EntitlementSource>([

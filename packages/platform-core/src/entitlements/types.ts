@@ -1,10 +1,6 @@
-import type {
-  FeatureKey
-} from "../catalog/feature-keys.js";
-import type {
-  ProductKey
-} from "../catalog/product-keys.js";
-import type { UserId } from "../identity/types.js";
+import type { FeatureKey } from "../catalog/feature-keys";
+import type { ProductKey } from "../catalog/product-keys";
+import type { UserId } from "../identity/types";
 
 export type EntitlementStatus = "active" | "revoked";
 

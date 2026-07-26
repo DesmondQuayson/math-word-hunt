@@ -1,6 +1,6 @@
 # Platform Migration Roadmap
 
-Status: future work plan. Phase 1B implements contracts and documentation only.
+Status: incremental plan updated after the Phase 1C workspace foundation.
 
 ## Preservation baseline
 
@@ -23,25 +23,23 @@ tests; architecture decisions; content audit; and full canonical browser suite.
 Rollback is deletion/reversion of only the new platform files. The static game
 is untouched.
 
-### Checkpoint 2: platform shell alongside static production
+### Checkpoint 2: platform shell alongside static production (Phase 1C complete)
 
-After owner approval of framework and host, create a separate application path
-or directory. It must not replace `docs/` or change GitHub Pages. Add health,
-accessibility, and deployment-preview tests. Rollback removes the preview route
-while v7 remains live.
-
-If Next.js is approved, develop it in that separate application directory and
-publish only to a non-production preview first. It may reference platform
-contracts through a server adapter, but it must not absorb or rewrite v7 during
-foundation work. Supabase, Vercel, and Stripe each require their own explicit
-owner decision; approval of Next.js does not imply approval of any of them.
+The approved Next.js App Router shell now exists in `apps/platform-web`, with
+portable contracts in `packages/platform-core`. It has route, accessibility,
+responsive, security-negative, and gateway tests. It has not been deployed and
+does not replace `docs/`. Rollback is removal or disabling of the isolated
+workspace; static v7 remains live.
 
 ### Checkpoint 3: teacher identity
 
-After authentication and privacy decisions, implement teacher accounts in the
-preview environment. Add account lifecycle, session security, cross-account
-negative tests, and deletion workflow. The static game remains anonymously
-testable and production remains unchanged.
+After login, privacy, RLS, retention, and environment decisions, implement
+teacher identity behind the existing anonymous adapter in a non-production
+environment. Supabase is the approved intended provider but integration still
+requires a separate implementation approval and security plan. Add account
+lifecycle, session security, cross-account negative tests, and deletion
+workflow. The static game remains anonymously testable and production remains
+unchanged.
 
 ### Checkpoint 4: server entitlement storage
 
@@ -77,7 +75,7 @@ never automatic.
 ## Non-negotiable gates
 
 Every checkpoint preserves canonical hashes until an explicit release change,
-runs lint/type/content/unit/browser checks, documents schema and security
-changes, reviews curriculum impact, and records an owner decision. Next.js,
-Supabase, Vercel, Stripe, or alternatives are candidate decisions—not Phase 1B
-assumptions.
+runs lint/type/content/unit/browser/build/security checks, documents schema and
+security changes, reviews curriculum impact, and records an owner decision.
+Next.js and the intended future Vercel, Supabase, and Stripe directions are now
+recorded, but no provider integration or public cutover is implied.

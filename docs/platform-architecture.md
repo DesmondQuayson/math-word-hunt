@@ -12,9 +12,9 @@ single undifferentiated module. A module may later be extracted only when
 scale, reliability, or team ownership provides evidence for doing so.
 
 The current v7 static application remains the production baseline at
-`docs/index.html`, with `docs/vocab.js` as its curriculum source. A future
-platform shell will be built alongside it and will integrate the preserved
-game through a deliberate adapter. Phase 1B introduces contracts only.
+`docs/index.html`, with `docs/vocab.js` as its curriculum source. The Phase 1C
+platform shell is built alongside it and reaches the preserved game through a
+deliberate gateway adapter. It does not embed or rewrite gameplay.
 
 ## Future modules
 
@@ -48,7 +48,7 @@ local-storage value, or other browser-controlled value is never authority.
 
 ## Runtime shape
 
-The contracts in `platform/` are framework-independent TypeScript. They define
+The contracts in `packages/platform-core` are framework-independent TypeScript. They define
 stable vocabulary and policy behavior before selecting a web framework,
 database, authentication system, host, or payment provider. Future adapters
 may implement storage and transport, but must preserve these interfaces:
@@ -57,7 +57,9 @@ may implement storage and transport, but must preserve these interfaces:
 - `canAccessFeature`
 - `getUserAccessSummary`
 
-No external service or framework has been selected or installed in Phase 1B.
+Phase 1C places an approved Next.js shell in `apps/platform-web`. The core
+contracts remain independent, and no external database, identity, billing, or
+deployment service is installed or configured.
 
 ## Current versus future
 

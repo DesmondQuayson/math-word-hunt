@@ -12,6 +12,7 @@ export default [
       ".vite/**",
       "dist/**",
       "dist2/**",
+      "apps/platform-web/**",
       "docs/**/*.js",
       "vocab.js",
       "**/*.ts"

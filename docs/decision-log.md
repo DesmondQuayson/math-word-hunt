@@ -55,18 +55,27 @@ choices remain reversible and require a later decision.
 
 | Decision | Needed before | Required evidence |
 | --- | --- | --- |
-| Web framework and hosting | Platform shell | Maintenance, accessibility, preview/rollback, cost |
-| Database and identity provider | Teacher accounts | Security model, data location, recovery, export/deletion |
+| Vercel project and environment details | Preview deployment | Ownership, hostname, environment separation, rollback |
+| Supabase implementation details | Teacher accounts | Security model, data location, recovery, export/deletion |
 | Login methods and account policy | Teacher accounts | User needs, verification, support and abuse handling |
 | Feature-to-plan mapping | Paid design | Product value, curriculum availability, graceful downgrade |
-| Pricing, billing provider, refunds, tax | Paid launch | Business/legal approval and operational runbooks |
+| Pricing, Stripe configuration, refunds, tax | Paid launch | Business/legal approval and operational runbooks |
 | Product grants versus feature bundles | Entitlement persistence | Migration safety and future-feature behavior |
 | Reporting data and retention | Teacher reporting | Educational purpose, privacy review, deletion plan |
 | Organization licensing and seat rules | Licensing work | Customer need, roles, seat concurrency, contract terms |
 | Public cutover from GitHub Pages | Production migration | Parity evidence, monitoring, support, tested rollback |
 | Historical build archival/deletion | Repository cleanup | Owner approval and recovery location |
 
-The framework/hosting decision must explicitly approve or reject Next.js and
-Vercel. The database/identity decision must explicitly approve or reject
-Supabase. The billing decision must explicitly approve or reject Stripe. No
-selection is implied by naming these candidates in planning documents.
+Next.js is approved, while Vercel, Supabase, and Stripe are approved future
+directions with implementation still deferred. Their remaining operational and
+security decisions are detailed in `phase-1c-decisions.md`.
+
+## Accepted on 2026-07-26 during Phase 1C
+
+Next.js with TypeScript and the App Router is approved for the isolated future
+application, and Vercel is the intended future host. Supabase is the intended
+future database and teacher-identity provider, and Stripe is the intended
+future billing provider. The latter services remain unintegrated. The initial
+account model is teacher-only, students do not create accounts, and static v7
+remains production. Detailed implementation and remaining decisions are
+recorded in `phase-1c-decisions.md`.

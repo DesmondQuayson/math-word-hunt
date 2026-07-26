@@ -2,12 +2,12 @@ import {
   FEATURE_KEYS,
   isFeatureKey,
   type FeatureKey
-} from "./feature-keys.js";
+} from "./feature-keys";
 import {
   isProductKey,
   PRODUCT_KEYS,
   type ProductKey
-} from "./product-keys.js";
+} from "./product-keys";
 
 export type ProductDefinition = Readonly<{
   key: ProductKey;

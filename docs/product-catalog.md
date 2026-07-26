@@ -47,6 +47,7 @@ are introduced in Phase 1B.
 
 ## Validation
 
-`platform/catalog` exports readonly registries, runtime key guards, parsers,
-and a product-catalog constructor. Unit tests assert the exact registered keys,
-reject duplicates, and verify that unknown values follow default-deny parsing.
+`packages/platform-core/src/catalog` exports readonly registries, runtime key
+guards, parsers, and a product-catalog constructor through the package public
+API. Unit tests assert the exact registered keys, reject duplicates, and verify
+that unknown values follow default-deny parsing.

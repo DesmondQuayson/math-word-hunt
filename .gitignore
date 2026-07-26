@@ -7,6 +7,7 @@ qa-artifacts/
 .vite/
 dist/
 dist2/
+.next/
 *.tsbuildinfo
 *.log
 

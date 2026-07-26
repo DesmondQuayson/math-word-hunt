@@ -38,12 +38,31 @@ npm run test:e2e:canonical verifies:
 The existing v5 Playwright file is retained to protect a historical rollback
 reference. It is not a substitute for the canonical suite.
 
+### Platform contracts and shell
+
+`npm run test:unit` runs fourteen platform-core tests, including public exports,
+and four platform-web adapter tests. `npm run test:e2e:platform` verifies all six
+routes, headings and landmarks, keyboard navigation, visible focus, responsive
+containment, 44px targets, reduced motion, anonymous teacher state,
+default-deny access, browser-authority negatives, the canonical game link,
+unavailable-game recovery, and absence of fabricated persistence.
+
+`npm run build` compiles and prerenders every platform route. After the build,
+`npm run test:security` scans client assets for secret markers and checks that
+platform-core production source has no framework, provider, browser, or Node
+business-logic dependency.
+
 ## Commands
 
 - npm run lint
+- npm run typecheck
 - npm run test:content
+- npm run test:unit
 - npm run test:e2e:canonical
 - npm run test:e2e
+- npm run test:e2e:platform
+- npm run build
+- npm run test:security
 - npm test
 
 ## Manual release checks

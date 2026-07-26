@@ -1,6 +1,6 @@
 # Repository Structure
 
-## Canonical layout after Phase 1A
+## Canonical layout after Phase 1C
 
 | Path | Classification | Purpose |
 | --- | --- | --- |
@@ -22,6 +22,13 @@
 | playwright.config.mjs | Current tooling | Browser-test configuration |
 | eslint.config.js | Current tooling | Lint rules for repository scripts |
 | package.json and package-lock.json | Current tooling | Reproducible development dependencies |
+| apps/platform-web | Future platform preview | Isolated Next.js App Router shell and server adapters |
+| packages/platform-core | Shared contracts | Portable product, feature, identity, and entitlement policy API |
+| e2e/platform-web | Platform regression | Shell behavior, accessibility, responsive, and security-negative tests |
+| playwright.platform.config.mjs | Platform tooling | Isolated shell browser-test configuration |
+| scripts/run-platform-dev.mjs | Platform tooling | Local shell plus preserved-game runner |
+| scripts/run-platform-e2e.mjs | Platform tooling | Isolated platform browser-test runner |
+| scripts/audit-platform-bundle.mjs | Security tooling | Client-bundle and portable-core inspection |
 
 ## Before Phase 1A
 
@@ -52,6 +59,7 @@ The following are intentionally ignored and may be deleted and regenerated:
 - coverage
 - qa-artifacts
 - .vite
+- .next
 - dist and dist2
 - TypeScript build-info files
 - log files
