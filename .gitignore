@@ -1,0 +1,11 @@
+.vite/
+dist/
+dist2/
+test-results/
+qa-artifacts/
+*.tsbuildinfo
+debug.log
+node_modules/
+.env
+.env.*
+!.env.example

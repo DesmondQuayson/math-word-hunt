@@ -1,0 +1,1941 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07152e">
+  <title>Math Word Hunt</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #07152e;
+      --panel: #10264b;
+      --panel-2: #17335e;
+      --paper: #f7fbff;
+      --muted: #b9c9e3;
+      --yellow: #ffd166;
+      --cyan: #4dd7fa;
+      --rp: #ff6b6b;
+      --ns: #ffb84d;
+      --ee: #54d18b;
+      --g: #5cb8ff;
+      --sp: #b78cff;
+      --team-1: #27c2ff;
+      --team-2: #ff6f61;
+      --team-3: #ffd24a;
+      --team-4: #64df8f;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .32);
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-width: 320px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    body {
+      color: var(--paper);
+      background:
+        radial-gradient(circle at 8% 12%, rgba(77, 215, 250, .12), transparent 26rem),
+        radial-gradient(circle at 92% 92%, rgba(183, 140, 255, .12), transparent 30rem),
+        var(--ink);
+    }
+
+    button, select, input { font: inherit; }
+
+    button, select {
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      color: var(--paper);
+    }
+
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .55; }
+
+    :focus-visible {
+      outline: 4px solid var(--yellow);
+      outline-offset: 3px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .hidden { display: none !important; }
+
+    .setup-screen {
+      height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(340px, .78fr) minmax(650px, 1.22fr);
+      gap: clamp(1.5rem, 4vw, 5rem);
+      align-items: center;
+      padding: clamp(1.25rem, 4vw, 4rem);
+      overflow: auto;
+    }
+
+    .setup-copy { max-width: 690px; }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      margin: 0;
+      color: var(--cyan);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: clamp(.78rem, 1vw, 1rem);
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 2.3rem;
+      height: 4px;
+      border-radius: 99px;
+      background: var(--cyan);
+    }
+
+    .setup-copy h1 {
+      max-width: 8ch;
+      margin: .7rem 0 1rem;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(4.5rem, 8.5vw, 9rem);
+      font-weight: 900;
+      line-height: .82;
+      letter-spacing: -.035em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .setup-copy h1 span {
+      display: block;
+      color: var(--yellow);
+      transform: skew(-5deg);
+      text-shadow: 5px 5px 0 #d94b62;
+    }
+
+    .setup-copy > p:last-of-type {
+      max-width: 32ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+      line-height: 1.45;
+    }
+
+    .how-to {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .55rem;
+      padding: 0;
+      margin: 1.5rem 0 0;
+      list-style: none;
+    }
+
+    .how-to li {
+      padding: .5rem .75rem;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      color: #d7e4f7;
+      background: rgba(255,255,255,.06);
+      font-size: .9rem;
+      font-weight: 800;
+    }
+
+    .setup-panel {
+      width: min(900px, 100%);
+      justify-self: end;
+      padding: clamp(1rem, 2.2vw, 1.8rem);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 26px;
+      background: linear-gradient(145deg, rgba(25, 55, 101, .96), rgba(12, 32, 66, .98));
+      box-shadow: var(--shadow);
+    }
+
+    .setup-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .8rem 1.2rem;
+      align-items: end;
+      margin-bottom: 1.1rem;
+    }
+
+    .setup-field {
+      display: grid;
+      gap: .4rem;
+      flex: 1 1 180px;
+    }
+
+    .setup-field > span, .domain-heading {
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: .35rem;
+      padding: .3rem;
+      border-radius: 14px;
+      background: #081a38;
+    }
+
+    .segmented button {
+      min-width: 88px;
+      padding: .6rem .9rem;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 900;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      color: var(--ink);
+      background: var(--yellow);
+      box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    }
+
+    select {
+      width: 100%;
+      padding: .55rem 2rem .55rem .75rem;
+      border: 1px solid rgba(255,255,255,.16);
+      background: #081a38;
+      font-weight: 800;
+    }
+
+    .domain-heading {
+      margin: .2rem 0 .7rem;
+    }
+
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: .65rem;
+    }
+
+    .domain-button {
+      position: relative;
+      min-height: 136px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 1rem;
+      color: #07152e;
+      text-align: left;
+      box-shadow: inset 0 -5px 0 rgba(0,0,0,.18);
+      transition: transform .15s ease, filter .15s ease;
+    }
+
+    .domain-button:hover { filter: brightness(1.08); transform: translateY(-3px); }
+    .domain-button:active { transform: translateY(1px); }
+    .domain-button[data-domain="RP"] { background: var(--rp); }
+    .domain-button[data-domain="NS"] { background: var(--ns); }
+    .domain-button[data-domain="EE"] { background: var(--ee); }
+    .domain-button[data-domain="G"] { background: var(--g); }
+    .domain-button[data-domain="SP"] { background: var(--sp); }
+
+    .domain-code {
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(2.1rem, 3vw, 3.25rem);
+      letter-spacing: .02em;
+    }
+
+    .domain-name {
+      max-width: 15ch;
+      font-size: clamp(.72rem, .9vw, .92rem);
+      font-weight: 900;
+      line-height: 1.15;
+    }
+
+    .game-screen {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .teacher-bar {
+      min-height: 58px;
+      display: flex;
+      gap: .55rem;
+      align-items: center;
+      padding: .45rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,.11);
+      background: rgba(5, 18, 42, .97);
+    }
+
+    .game-brand {
+      flex: 0 0 auto;
+      margin-right: .35rem;
+      color: var(--yellow);
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    .teacher-field {
+      display: flex;
+      gap: .35rem;
+      align-items: center;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 900;
+    }
+
+    .teacher-field select {
+      width: auto;
+      min-width: 76px;
+      min-height: 44px;
+      padding-block: .35rem;
+      font-size: .85rem;
+    }
+
+    .toolbar-button {
+      flex: 0 0 auto;
+      padding: .45rem .75rem;
+      background: var(--panel-2);
+      font-size: .82rem;
+      font-weight: 900;
+    }
+
+    .toolbar-button:hover { background: #244878; }
+    .toolbar-button.danger { color: #ffc0c0; }
+
+    .toolbar-spacer { flex: 1; }
+
+    .switch-button {
+      display: flex;
+      gap: .45rem;
+      align-items: center;
+      padding: .4rem .65rem;
+      color: var(--muted);
+      background: var(--panel-2);
+      font-size: .78rem;
+      font-weight: 900;
+    }
+
+    .switch-dot {
+      width: 34px;
+      height: 20px;
+      display: block;
+      padding: 3px;
+      border-radius: 999px;
+      background: #586a87;
+    }
+
+    .switch-dot::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      display: block;
+      border-radius: 50%;
+      background: white;
+      transition: transform .18s ease;
+    }
+
+    .switch-button[aria-pressed="true"] .switch-dot { background: var(--cyan); }
+    .switch-button[aria-pressed="true"] .switch-dot::after { transform: translateX(14px); }
+
+    .scoreboard {
+      min-height: 82px;
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr) 150px;
+      gap: .7rem;
+      align-items: stretch;
+      padding: .55rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      background: #0b1c3b;
+    }
+
+    .puzzle-meta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .puzzle-meta small {
+      color: var(--cyan);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .puzzle-meta strong {
+      overflow: hidden;
+      margin-top: .2rem;
+      font-size: 1rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .team-scores {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(100px, 1fr));
+      gap: .5rem;
+      min-width: 0;
+    }
+
+    .team-score {
+      --team-color: white;
+      min-width: 0;
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: .4rem;
+      padding: .45rem .65rem;
+      border: 3px solid transparent;
+      border-radius: 13px;
+      color: var(--paper);
+      background: #132b51;
+      text-align: left;
+      transition: border-color .15s ease, transform .15s ease;
+    }
+
+    .team-score[aria-pressed="true"] {
+      border-color: var(--team-color);
+      background: color-mix(in srgb, var(--team-color) 18%, #132b51);
+      transform: translateY(-2px);
+    }
+
+    .team-score > span { min-width: 0; }
+
+    .team-score small {
+      display: block;
+      overflow: hidden;
+      color: var(--team-color);
+      font-size: .65rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .team-score b {
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    .timer-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      border-radius: 14px;
+      color: var(--muted);
+      background: #132b51;
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .timer-box b {
+      min-width: 64px;
+      color: var(--paper);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 1.65rem;
+      letter-spacing: 0;
+    }
+
+    .game-main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(330px, 31vw, 570px);
+      gap: .75rem;
+      padding: .75rem;
+    }
+
+    .board-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        #0b1d3c;
+      background-size: 32px 32px;
+    }
+
+    .letter-grid {
+      --grid-size: 10;
+      --cell-gap: clamp(1px, .18vmin, 3px);
+      width: min(100%, calc(100dvh - 184px));
+      max-width: calc(100dvh - 184px);
+      aspect-ratio: 1;
+      display: grid;
+      grid-template-columns: repeat(var(--grid-size), 1fr);
+      gap: var(--cell-gap);
+      padding: clamp(5px, .7vmin, 10px);
+      border: clamp(3px, .4vmin, 6px) solid #2a5082;
+      border-radius: clamp(12px, 1.8vmin, 24px);
+      background: #07162f;
+      box-shadow: 0 20px 45px rgba(0,0,0,.3);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .grid-cell {
+      --found-color: transparent;
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 2px solid rgba(255,255,255,.08);
+      border-radius: clamp(3px, .55vmin, 8px);
+      color: #eef7ff;
+      background: #17345f;
+      font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+      font-size: clamp(.72rem, calc(7.2vmin / var(--grid-size) * 10), 2.1rem);
+      font-weight: 900;
+      line-height: 1;
+      transition: background .1s ease, color .1s ease, transform .1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .grid-cell:hover { background: #244d7d; }
+    .grid-cell.selecting, .grid-cell.tap-start {
+      z-index: 1;
+      border-color: var(--yellow);
+      color: #07152e;
+      background: var(--yellow);
+      transform: scale(1.05);
+    }
+
+    .grid-cell.found {
+      border-color: color-mix(in srgb, var(--found-color) 85%, white);
+      color: #07152e;
+      background: var(--found-color);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--found-color) 48%, transparent);
+    }
+
+    .grid-cell.wrong { animation: wrong-cell .35s ease; }
+
+    .clue-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: linear-gradient(160deg, #17345f, #10264b);
+      box-shadow: var(--shadow);
+    }
+
+    .clue-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.15rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    .clue-header small {
+      display: block;
+      color: var(--cyan);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .66rem;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .clue-header h2 {
+      margin: .18rem 0 0;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+      line-height: 1;
+    }
+
+    .progress-count {
+      flex: 0 0 auto;
+      color: var(--yellow);
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: .03em;
+    }
+
+    .word-list {
+      min-height: 0;
+      display: grid;
+      align-content: center;
+      gap: clamp(.35rem, .9vh, .75rem);
+      overflow: auto;
+      padding: .8rem 1rem;
+      margin: 0;
+      list-style: none;
+    }
+
+    .word-item {
+      --owner-color: transparent;
+      position: relative;
+      min-width: 0;
+      padding: clamp(.45rem, .8vh, .8rem) .8rem;
+      border-left: 6px solid rgba(255,255,255,.16);
+      border-radius: 9px;
+      background: rgba(5, 18, 42, .42);
+    }
+
+    .word-item strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+      font-size: clamp(1.15rem, 1.8vw, 2rem);
+      line-height: 1.04;
+      letter-spacing: .025em;
+    }
+
+    .word-item p {
+      margin: 0;
+      color: #e6eefb;
+      font-size: clamp(.88rem, 1.15vw, 1.2rem);
+      font-weight: 700;
+      line-height: 1.22;
+    }
+
+    .word-item.found {
+      border-left-color: var(--owner-color);
+      background: color-mix(in srgb, var(--owner-color) 17%, rgba(5,18,42,.55));
+    }
+
+    .word-item.found strong, .word-item.found p {
+      color: var(--muted);
+      text-decoration: line-through;
+      text-decoration-thickness: 3px;
+    }
+
+    .word-item.found::after {
+      content: "FOUND";
+      position: absolute;
+      top: 50%;
+      right: .7rem;
+      padding: .22rem .4rem;
+      border-radius: 5px;
+      color: #07152e;
+      background: var(--owner-color);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .62rem;
+      font-weight: 900;
+      transform: translateY(-50%) rotate(-3deg);
+    }
+
+    .instruction {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      padding: .65rem 1rem;
+      border-top: 1px solid rgba(255,255,255,.1);
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .instruction strong { color: var(--yellow); }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: 1.25rem;
+      max-width: min(650px, calc(100% - 2rem));
+      padding: .8rem 1.15rem;
+      border: 2px solid rgba(255,255,255,.22);
+      border-radius: 12px;
+      color: white;
+      background: #a72f46;
+      box-shadow: var(--shadow);
+      font-size: 1rem;
+      font-weight: 900;
+      text-align: center;
+      transform: translateX(-50%);
+      animation: toast-in .2s ease;
+    }
+
+    .modal-layer {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(3, 12, 29, .82);
+      backdrop-filter: blur(8px);
+    }
+
+    .flash-card, .complete-card {
+      width: min(880px, 94vw);
+      max-height: 92dvh;
+      overflow: auto;
+      padding: clamp(1.4rem, 4vw, 3.5rem);
+      border: 4px solid var(--card-color, var(--cyan));
+      border-radius: 28px;
+      color: var(--ink);
+      background: #f6fbff;
+      box-shadow: 0 30px 100px rgba(0,0,0,.5);
+      text-align: center;
+    }
+
+    .flash-card .card-kicker {
+      margin: 0;
+      color: #45617d;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: clamp(.9rem, 1.4vw, 1.15rem);
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .flash-card h2, .complete-card h2 {
+      margin: .5rem 0 1rem;
+      color: #10264b;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(3rem, 8vw, 6.7rem);
+      font-weight: 900;
+      line-height: .92;
+      letter-spacing: .015em;
+      overflow-wrap: anywhere;
+      text-transform: uppercase;
+    }
+
+    .definition {
+      max-width: 29ch;
+      margin: 0 auto;
+      color: #203d5d;
+      font-size: clamp(1.65rem, 3.2vw, 2.7rem);
+      font-weight: 900;
+      line-height: 1.2;
+      text-wrap: balance;
+    }
+
+    .example-box {
+      max-width: 720px;
+      margin: 1.4rem auto;
+      padding: 1rem 1.2rem;
+      border-radius: 15px;
+      color: #16314f;
+      background: #e2f2ff;
+      font-size: clamp(1.2rem, 2vw, 1.7rem);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .example-box strong {
+      display: block;
+      margin-bottom: .3rem;
+      color: #006895;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .72em;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .primary-button {
+      min-width: 190px;
+      min-height: 58px;
+      padding: .8rem 1.2rem;
+      border-radius: 14px;
+      color: #07152e;
+      background: var(--yellow);
+      box-shadow: inset 0 -5px 0 rgba(0,0,0,.16);
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    .complete-card {
+      --card-color: var(--yellow);
+      position: relative;
+      overflow: hidden;
+      background: #fff7d9;
+    }
+
+    .complete-card h2 { color: #d63d58; }
+
+    .complete-card > p {
+      margin: 0 0 1.4rem;
+      color: #28425d;
+      font-size: clamp(1.3rem, 2.4vw, 2rem);
+      font-weight: 900;
+    }
+
+    .complete-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .7rem;
+      justify-content: center;
+    }
+
+    .secondary-button {
+      min-height: 58px;
+      padding: .8rem 1.2rem;
+      color: white;
+      background: #17345f;
+      font-weight: 900;
+    }
+
+    .confetti-piece {
+      position: fixed;
+      z-index: 110;
+      top: -8vh;
+      left: var(--x);
+      width: var(--w);
+      height: calc(var(--w) * 1.8);
+      border-radius: 2px;
+      pointer-events: none;
+      background: var(--c);
+      animation: confetti-fall var(--d) var(--delay) cubic-bezier(.2,.7,.35,1) forwards;
+    }
+
+    .found-pop { animation: found-pop .42s ease; }
+
+    @keyframes found-pop {
+      50% { transform: scale(1.035); filter: brightness(1.12); }
+    }
+
+    @keyframes wrong-cell {
+      25%, 75% { transform: translateX(-3px); background: #cf4058; }
+      50% { transform: translateX(3px); background: #cf4058; }
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translate(-50%, 12px); }
+    }
+
+    @keyframes confetti-fall {
+      to { transform: translate3d(var(--drift), 115vh, 0) rotate(820deg); opacity: .9; }
+    }
+
+    @media (max-width: 1100px) {
+      .setup-screen {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        align-content: start;
+      }
+
+      .setup-copy {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0 1.2rem;
+        align-items: center;
+        max-width: none;
+      }
+
+      .setup-copy .kicker { grid-column: 1 / -1; }
+      .setup-copy h1 { margin-block: .5rem; font-size: clamp(3.8rem, 9vw, 6rem); }
+      .setup-copy > p:last-of-type { max-width: none; }
+      .setup-copy .how-to { grid-column: 1 / -1; margin-top: .4rem; }
+      .setup-panel { justify-self: stretch; }
+      .domain-button { min-height: 110px; }
+
+      .game-brand { display: none; }
+      .teacher-field span { display: none; }
+      .game-main { grid-template-columns: minmax(0, 1fr) 330px; }
+      .scoreboard { grid-template-columns: 145px minmax(0, 1fr) 122px; }
+    }
+
+    @media (max-width: 820px) {
+      html, body { overflow: auto; }
+      .setup-screen { height: auto; min-height: 100dvh; overflow: visible; }
+      .domain-grid { grid-template-columns: repeat(2, 1fr); }
+      .domain-button:last-child { grid-column: 1 / -1; min-height: 90px; }
+
+      .game-screen { min-height: 100dvh; height: auto; overflow: visible; }
+      .teacher-bar { flex-wrap: wrap; }
+      .toolbar-spacer { display: none; }
+      .scoreboard { grid-template-columns: 1fr; }
+      .puzzle-meta, .timer-box { display: none; }
+      .team-scores { grid-template-columns: repeat(2, 1fr); }
+      .game-main { grid-template-columns: 1fr; }
+      .board-panel { min-height: min(94vw, 650px); }
+      .letter-grid { width: min(94vw, 650px); max-width: 94vw; }
+      .clue-panel { min-height: 480px; }
+      .word-list { max-height: 520px; }
+    }
+
+    @media (max-width: 520px) {
+      .setup-copy { display: block; }
+      .setup-copy h1 { font-size: 4rem; }
+      .how-to { display: none; }
+      .setup-row { display: grid; grid-template-columns: 1fr; }
+      .domain-grid { grid-template-columns: 1fr; }
+      .domain-button, .domain-button:last-child {
+        grid-column: auto;
+        min-height: 84px;
+      }
+      .domain-button { flex-direction: row; align-items: center; }
+      .teacher-field select { max-width: 120px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+      .confetti-piece { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main id="setupScreen" class="setup-screen">
+    <section class="setup-copy" aria-labelledby="gameTitle">
+      <p class="kicker">Grade 6–7 vocabulary</p>
+      <h1 id="gameTitle">Math <span>Word Hunt</span></h1>
+      <p>Pick a topic. Find the hidden terms. Learn what each one means.</p>
+      <ul class="how-to" aria-label="How to play">
+        <li>Drag across a word</li>
+        <li>or tap its first + last letter</li>
+        <li>Teams earn 100 points</li>
+      </ul>
+    </section>
+
+    <section class="setup-panel" aria-labelledby="chooseTopicTitle">
+      <h2 id="chooseTopicTitle" class="sr-only">Choose a topic</h2>
+      <div class="setup-row">
+        <div class="setup-field">
+          <span>Grade</span>
+          <div id="setupGrade" class="segmented" aria-label="Choose grade">
+            <button type="button" data-grade="6" aria-pressed="true">Grade 6</button>
+            <button type="button" data-grade="7" aria-pressed="false">Grade 7</button>
+          </div>
+        </div>
+        <div class="setup-field">
+          <span>Hunt style</span>
+          <div id="setupMode" class="segmented" aria-label="Choose hunt style">
+            <button type="button" data-mode="bank" aria-pressed="true">Word Bank</button>
+            <button type="button" data-mode="clue" aria-pressed="false">Clues</button>
+          </div>
+        </div>
+        <label class="setup-field">
+          <span>Teams</span>
+          <select id="setupTeams" aria-label="Number of teams">
+            <option value="2">2 teams</option>
+            <option value="3">3 teams</option>
+            <option value="4">4 teams</option>
+          </select>
+        </label>
+        <label class="setup-field">
+          <span>Grid</span>
+          <select id="setupGrid" aria-label="Grid size">
+            <option value="auto">Auto — best fit</option>
+            <option value="10">10 × 10</option>
+            <option value="12">12 × 12</option>
+            <option value="15">15 × 15</option>
+            <option value="18">18 × 18</option>
+            <option value="21">21 × 21</option>
+            <option value="25">25 × 25</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="domain-heading">Choose an MLS domain to start</p>
+      <div class="domain-grid">
+        <button class="domain-button" type="button" data-domain="RP">
+          <span class="domain-code">RP</span>
+          <span class="domain-name">Ratios &amp; Proportional Relationships</span>
+        </button>
+        <button class="domain-button" type="button" data-domain="NS">
+          <span class="domain-code">NS</span>
+          <span class="domain-name">The Number System</span>
+        </button>
+        <button class="domain-button" type="button" data-domain="EE">
+          <span class="domain-code">EE</span>
+          <span class="domain-name">Expressions &amp; Equations</span>
+        </button>
+        <button class="domain-button" type="button" data-domain="G">
+          <span class="domain-code">G</span>
+          <span class="domain-name">Geometry</span>
+        </button>
+        <button class="domain-button" type="button" data-domain="SP">
+          <span class="domain-code">SP</span>
+          <span class="domain-name">Statistics &amp; Probability</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <main id="gameScreen" class="game-screen hidden" aria-label="Math Word Hunt game">
+    <header class="teacher-bar" aria-label="Teacher controls">
+      <span class="game-brand">Math Word Hunt</span>
+      <label class="teacher-field"><span>Grade</span>
+        <select id="gradeControl" aria-label="Change grade">
+          <option value="6">Grade 6</option>
+          <option value="7">Grade 7</option>
+        </select>
+      </label>
+      <label class="teacher-field"><span>Domain</span>
+        <select id="domainControl" aria-label="Change domain">
+          <option value="RP">RP</option>
+          <option value="NS">NS</option>
+          <option value="EE">EE</option>
+          <option value="G">G</option>
+          <option value="SP">SP</option>
+        </select>
+      </label>
+      <label class="teacher-field"><span>Grid</span>
+        <select id="gridControl" aria-label="Change grid size">
+          <option value="auto">Auto</option>
+          <option value="10">10 × 10</option>
+          <option value="12">12 × 12</option>
+          <option value="15">15 × 15</option>
+          <option value="18">18 × 18</option>
+          <option value="21">21 × 21</option>
+          <option value="25">25 × 25</option>
+        </select>
+      </label>
+      <button id="modeControl" class="switch-button" type="button" aria-pressed="false">
+        <span class="switch-dot" aria-hidden="true"></span>
+        <span id="modeControlLabel">Word Bank</span>
+      </button>
+      <button id="timerControl" class="switch-button" type="button" aria-pressed="true">
+        <span class="switch-dot" aria-hidden="true"></span>
+        Timer
+      </button>
+      <span class="toolbar-spacer"></span>
+      <button id="newPuzzleButton" class="toolbar-button" type="button">New puzzle</button>
+      <button id="resetScoresButton" class="toolbar-button danger" type="button">Reset scores</button>
+      <button id="fullscreenButton" class="toolbar-button" type="button">Fullscreen</button>
+      <button id="topicsButton" class="toolbar-button" type="button">Topics</button>
+    </header>
+
+    <section class="scoreboard" aria-label="Team scoreboard">
+      <div class="puzzle-meta">
+        <small id="puzzleGradeLabel">Grade 6 · RP</small>
+        <strong id="puzzleDomainLabel">Ratios &amp; Proportional Relationships</strong>
+      </div>
+      <div id="teamScores" class="team-scores"></div>
+      <div id="timerBox" class="timer-box" aria-live="off">
+        <span>Time</span><b id="timerValue">00:00</b>
+      </div>
+    </section>
+
+    <section class="game-main">
+      <div id="boardPanel" class="board-panel">
+        <div id="letterGrid" class="letter-grid" role="grid" aria-label="Word search letter grid"></div>
+      </div>
+
+      <aside id="cluePanel" class="clue-panel" aria-labelledby="listTitle">
+        <div class="clue-header">
+          <div>
+            <small id="listEyebrow">Find these terms</small>
+            <h2 id="listTitle">Word bank</h2>
+          </div>
+          <span id="progressCount" class="progress-count" aria-label="Words found">0/0</span>
+        </div>
+        <ol id="wordList" class="word-list"></ol>
+        <p id="instruction" class="instruction">
+          <span><strong>Team 1:</strong> drag across a word, or tap its first and last letter.</span>
+        </p>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <div id="flashLayer" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="flashTerm">
+    <article id="flashCard" class="flash-card">
+      <p id="flashKicker" class="card-kicker">Team 1 found a word!</p>
+      <h2 id="flashTerm">Ratio</h2>
+      <p id="flashDefinition" class="definition"></p>
+      <div class="example-box">
+        <strong>Worked example</strong>
+        <span id="flashExample"></span>
+      </div>
+      <button id="gotItButton" class="primary-button" type="button">Got it — keep hunting</button>
+    </article>
+  </div>
+
+  <div id="completeLayer" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="completeTitle">
+    <article class="complete-card">
+      <p class="card-kicker">Puzzle complete</p>
+      <h2 id="completeTitle">Every word found!</h2>
+      <p id="winnerLine">Team 1 leads the hunt.</p>
+      <div class="complete-actions">
+        <button id="playAgainButton" class="primary-button" type="button">New puzzle</button>
+        <button id="changeTopicButton" class="secondary-button" type="button">Change topic</button>
+      </div>
+    </article>
+  </div>
+
+  <script>
+    "use strict";
+
+    const VOCAB = {
+      "6": {
+        "RP": [
+          {term:"RATIO", def:"A comparison of two quantities by division."},
+          {term:"RATE", def:"A ratio comparing two quantities with different units."},
+          {term:"UNITRATE", def:"A rate with a denominator of 1."},
+          {term:"PERCENT", def:"A ratio comparing a number to 100."},
+          {term:"EQUIVALENT", def:"Ratios that express the same relationship."},
+          {term:"TAPEDIAGRAM", def:"A visual model showing ratio relationships as bars."},
+          {term:"SCALEFACTOR", def:"The ratio between corresponding sides of similar figures."}
+        ],
+        "NS": [
+          {term:"INTEGER", def:"A whole number and its opposite; no fractions."},
+          {term:"ABSOLUTEVALUE", def:"A number's distance from zero on the number line."},
+          {term:"OPPOSITE", def:"A number the same distance from zero but other side."},
+          {term:"RECIPROCAL", def:"A number that when multiplied by the original gives 1."},
+          {term:"QUOTIENT", def:"The answer to a division problem."},
+          {term:"GCF", def:"The largest number that divides evenly into two numbers."},
+          {term:"LCM", def:"The smallest number that is a multiple of two numbers."},
+          {term:"COORDINATEPLANE", def:"A grid formed by a horizontal and vertical number line."}
+        ],
+        "EE": [
+          {term:"VARIABLE", def:"A letter representing an unknown number."},
+          {term:"COEFFICIENT", def:"The number multiplied by a variable."},
+          {term:"EXPRESSION", def:"Numbers and variables combined with operations, no equal sign."},
+          {term:"EQUATION", def:"A statement that two expressions are equal."},
+          {term:"EXPONENT", def:"Shows how many times a number is multiplied by itself."},
+          {term:"INEQUALITY", def:"A statement that compares two expressions using <, >, or =."},
+          {term:"TERM", def:"A single number, variable, or product in an expression."},
+          {term:"SUBSTITUTE", def:"To replace a variable with a given value."}
+        ],
+        "G": [
+          {term:"AREA", def:"The amount of space inside a two-dimensional shape."},
+          {term:"VOLUME", def:"The amount of space inside a three-dimensional shape."},
+          {term:"SURFACEAREA", def:"The total area of all faces of a solid figure."},
+          {term:"POLYGON", def:"A closed shape made of straight line segments."},
+          {term:"NET", def:"A flattened-out pattern that folds into a 3D shape."},
+          {term:"VERTEX", def:"A point where two or more edges meet."},
+          {term:"QUADRANT", def:"One of four sections of the coordinate plane."}
+        ],
+        "SP": [
+          {term:"MEAN", def:"The sum of values divided by the number of values."},
+          {term:"MEDIAN", def:"The middle value in an ordered data set."},
+          {term:"MODE", def:"The value that occurs most often in a data set."},
+          {term:"RANGE", def:"The difference between the greatest and least values."},
+          {term:"DISTRIBUTION", def:"How data values are spread out."},
+          {term:"HISTOGRAM", def:"A bar graph showing frequency of data in intervals."},
+          {term:"OUTLIER", def:"A data value far from the rest of the data."}
+        ]
+      },
+      "7": {
+        "RP": [
+          {term:"PROPORTIONAL", def:"A relationship where the ratio between quantities stays constant."},
+          {term:"CONSTANTOFPROPORTIONALITY", def:"The fixed ratio between two proportional quantities."},
+          {term:"SCALEDRAWING", def:"A drawing that represents a real object at a different size."},
+          {term:"SIMPLEINTEREST", def:"Interest calculated only on the original principal amount."},
+          {term:"MARKUP", def:"The amount added to the cost of an item to set the selling price."},
+          {term:"DISCOUNT", def:"An amount subtracted from the original price of an item."},
+          {term:"TAX", def:"A percentage of a purchase price added as a fee."},
+          {term:"COMMISSION", def:"A fee paid based on a percent of sales."}
+        ],
+        "NS": [
+          {term:"RATIONALNUMBER", def:"A number that can be written as a fraction of two integers."},
+          {term:"REPEATINGDECIMAL", def:"A decimal with a digit or group of digits that repeats forever."},
+          {term:"TERMINATINGDECIMAL", def:"A decimal that ends after a finite number of digits."},
+          {term:"ADDITIVEINVERSE", def:"A number that when added to another gives zero."},
+          {term:"MULTIPLICATIVEINVERSE", def:"A number that when multiplied by another gives one."}
+        ],
+        "EE": [
+          {term:"TWOSTEPEQUATION", def:"An equation requiring two operations to solve for the variable."},
+          {term:"LIKETERMS", def:"Terms that have the same variable raised to the same power."},
+          {term:"DISTRIBUTIVEPROPERTY", def:"Multiplying a sum by distributing to each addend."},
+          {term:"FACTOR", def:"To rewrite an expression as a product of its parts."},
+          {term:"SOLUTIONSET", def:"All values that make an equation or inequality true."}
+        ],
+        "G": [
+          {term:"SUPPLEMENTARY", def:"Two angles whose measures add up to 180 degrees."},
+          {term:"COMPLEMENTARY", def:"Two angles whose measures add up to 90 degrees."},
+          {term:"VERTICALANGLES", def:"A pair of opposite angles formed by two intersecting lines."},
+          {term:"CIRCUMFERENCE", def:"The distance around a circle."},
+          {term:"CROSSSECTION", def:"The shape formed when a solid is sliced by a plane."},
+          {term:"CONGRUENT", def:"Having the same size and shape."}
+        ],
+        "SP": [
+          {term:"POPULATION", def:"The entire group being studied."},
+          {term:"SAMPLE", def:"A subset of a population used to make inferences."},
+          {term:"RANDOMSAMPLE", def:"A sample where every member has an equal chance of being chosen."},
+          {term:"PROBABILITY", def:"A measure of how likely an event is to occur."},
+          {term:"SAMPLESPACE", def:"The set of all possible outcomes of an experiment."},
+          {term:"COMPOUNDEVENT", def:"An event made of two or more simple events."}
+        ]
+      }
+    };
+
+    const EXAMPLES = {
+      RATIO:"There are 3 red tiles and 2 blue tiles, so the ratio of red to blue is 3:2.",
+      RATE:"A car travels 180 miles in 3 hours. 180 ÷ 3 = 60 miles per hour.",
+      UNITRATE:"$12 for 4 notebooks becomes $12 ÷ 4 = $3 per notebook.",
+      PERCENT:"18 out of 20 is 18 ÷ 20 = 0.90, or 90%.",
+      EQUIVALENT:"2:3 and 8:12 are equivalent because both parts of 2:3 were multiplied by 4.",
+      TAPEDIAGRAM:"If 1 bar equals 5 students, 3 equal bars represent 3 × 5 = 15 students.",
+      SCALEFACTOR:"A 4 cm side becomes 10 cm. The scale factor is 10 ÷ 4 = 2.5.",
+      INTEGER:"−4, 0, and 9 are integers. The number 2.5 is not.",
+      ABSOLUTEVALUE:"|−7| = 7 because −7 is 7 units from zero.",
+      OPPOSITE:"The opposite of −8 is 8 because they are the same distance from zero.",
+      RECIPROCAL:"The reciprocal of 3/4 is 4/3, and 3/4 × 4/3 = 1.",
+      QUOTIENT:"In 42 ÷ 6 = 7, the quotient is 7.",
+      GCF:"The common factors of 18 and 24 include 1, 2, 3, and 6, so the GCF is 6.",
+      LCM:"Multiples of 4 and 6 first meet at 12, so the LCM is 12.",
+      COORDINATEPLANE:"The point (3, −2) is 3 units right and 2 units down from the origin.",
+      VARIABLE:"In 4x + 2, x is the variable because its value can change.",
+      COEFFICIENT:"In 7n, 7 is the coefficient because it multiplies n.",
+      EXPRESSION:"3x + 8 is an expression; it has no equal sign.",
+      EQUATION:"2x + 1 = 9 is an equation because it says two expressions are equal.",
+      EXPONENT:"In 5³, the exponent 3 means 5 × 5 × 5 = 125.",
+      INEQUALITY:"x > 6 means x can be any number greater than 6.",
+      TERM:"In 4x + 7 − y, the terms are 4x, 7, and −y.",
+      SUBSTITUTE:"If x = 3, substitute into 2x + 1: 2(3) + 1 = 7.",
+      AREA:"A 6 cm by 4 cm rectangle has area 6 × 4 = 24 cm².",
+      VOLUME:"A 3 × 4 × 5 rectangular prism has volume 60 cubic units.",
+      SURFACEAREA:"A cube with 2 cm edges has 6 faces, so its surface area is 6 × 4 = 24 cm².",
+      POLYGON:"A triangle is a polygon because three straight segments make a closed shape.",
+      NET:"Six connected squares can form a net that folds into a cube.",
+      VERTEX:"A triangle has 3 vertices—one at each corner.",
+      QUADRANT:"The point (−3, 4) is in Quadrant II.",
+      MEAN:"For 4, 7, and 10, the mean is (4 + 7 + 10) ÷ 3 = 7.",
+      MEDIAN:"For 2, 5, 9, 12, and 20, the median is 9.",
+      MODE:"For 3, 5, 5, 8, the mode is 5.",
+      RANGE:"For 6, 8, 11, and 15, the range is 15 − 6 = 9.",
+      DISTRIBUTION:"The values 2, 3, 3, 4 cluster together, while 12 sits far away.",
+      HISTOGRAM:"A bar from 10–19 with height 6 means six values are in that interval.",
+      OUTLIER:"In 4, 5, 5, 6, 25, the value 25 is an outlier.",
+      PROPORTIONAL:"If 2 tickets cost $6, then 5 tickets cost $15; both ratios equal $3 per ticket.",
+      CONSTANTOFPROPORTIONALITY:"In y = 4x, the constant of proportionality is 4.",
+      SCALEDRAWING:"At 1 cm = 5 m, a 7 cm wall on the drawing represents 35 m.",
+      SIMPLEINTEREST:"For $200 at 5% for 3 years, I = 200 × 0.05 × 3 = $30.",
+      MARKUP:"A $40 item with a 25% markup adds $10, making the price $50.",
+      DISCOUNT:"A $60 item with a 20% discount saves $12, so it costs $48.",
+      TAX:"At 8% tax, a $25 purchase adds $2 because 25 × 0.08 = 2.",
+      COMMISSION:"A 6% commission on $500 in sales is 500 × 0.06 = $30.",
+      RATIONALNUMBER:"0.75 is rational because it can be written as 3/4.",
+      REPEATINGDECIMAL:"1/3 = 0.333…; the digit 3 repeats forever.",
+      TERMINATINGDECIMAL:"3/8 = 0.375, which ends after three decimal places.",
+      ADDITIVEINVERSE:"The additive inverse of 12 is −12 because 12 + (−12) = 0.",
+      MULTIPLICATIVEINVERSE:"The multiplicative inverse of 5 is 1/5 because 5 × 1/5 = 1.",
+      TWOSTEPEQUATION:"Solve 3x + 4 = 19: subtract 4 to get 3x = 15, then divide by 3, so x = 5.",
+      LIKETERMS:"3x and −8x are like terms, so 3x − 8x = −5x.",
+      DISTRIBUTIVEPROPERTY:"4(x + 3) = 4x + 12 because 4 multiplies both terms.",
+      FACTOR:"6x + 12 can be factored as 6(x + 2).",
+      SOLUTIONSET:"For x + 2 < 5, the solution set is all x < 3.",
+      SUPPLEMENTARY:"Angles measuring 115° and 65° are supplementary because they total 180°.",
+      COMPLEMENTARY:"Angles measuring 35° and 55° are complementary because they total 90°.",
+      VERTICALANGLES:"If one vertical angle measures 72°, the opposite angle also measures 72°.",
+      CIRCUMFERENCE:"A circle with diameter 10 cm has circumference πd = 10π cm.",
+      CROSSSECTION:"A horizontal slice through a cylinder makes a circular cross section.",
+      CONGRUENT:"Two triangles with matching side lengths 3, 4, and 5 are congruent.",
+      POPULATION:"To study all seventh graders in a school, every seventh grader is the population.",
+      SAMPLE:"Surveying 40 of the school's 300 students uses a sample of 40.",
+      RANDOMSAMPLE:"Drawing student names from a mixed container gives each student an equal chance.",
+      PROBABILITY:"A fair number cube has a 1/6 probability of landing on 4.",
+      SAMPLESPACE:"For one coin flip, the sample space is {heads, tails}.",
+      COMPOUNDEVENT:"Rolling an even number and then flipping heads is a compound event."
+    };
+
+    const TERM_LABELS = {
+      UNITRATE:"UNIT RATE", TAPEDIAGRAM:"TAPE DIAGRAM", SCALEFACTOR:"SCALE FACTOR",
+      ABSOLUTEVALUE:"ABSOLUTE VALUE", COORDINATEPLANE:"COORDINATE PLANE",
+      SURFACEAREA:"SURFACE AREA", CONSTANTOFPROPORTIONALITY:"CONSTANT OF PROPORTIONALITY",
+      SCALEDRAWING:"SCALE DRAWING", SIMPLEINTEREST:"SIMPLE INTEREST",
+      RATIONALNUMBER:"RATIONAL NUMBER", REPEATINGDECIMAL:"REPEATING DECIMAL",
+      TERMINATINGDECIMAL:"TERMINATING DECIMAL", ADDITIVEINVERSE:"ADDITIVE INVERSE",
+      MULTIPLICATIVEINVERSE:"MULTIPLICATIVE INVERSE", TWOSTEPEQUATION:"TWO-STEP EQUATION",
+      LIKETERMS:"LIKE TERMS", DISTRIBUTIVEPROPERTY:"DISTRIBUTIVE PROPERTY",
+      SOLUTIONSET:"SOLUTION SET", VERTICALANGLES:"VERTICAL ANGLES",
+      CROSSSECTION:"CROSS SECTION", RANDOMSAMPLE:"RANDOM SAMPLE",
+      SAMPLESPACE:"SAMPLE SPACE", COMPOUNDEVENT:"COMPOUND EVENT"
+    };
+
+    const DOMAIN_NAMES = {
+      RP:"Ratios & Proportional Relationships",
+      NS:"The Number System",
+      EE:"Expressions & Equations",
+      G:"Geometry",
+      SP:"Statistics & Probability"
+    };
+
+    const DOMAIN_COLORS = {
+      RP:"#ff6b6b", NS:"#ffb84d", EE:"#54d18b", G:"#5cb8ff", SP:"#b78cff"
+    };
+
+    const TEAM_COLORS = ["#27c2ff", "#ff6f61", "#ffd24a", "#64df8f"];
+    const DIRECTIONS = [
+      [0,1], [0,-1], [1,0], [-1,0],
+      [1,1], [1,-1], [-1,1], [-1,-1]
+    ];
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+    const state = {
+      grade:"6",
+      domain:"RP",
+      mode:"bank",
+      requestedGrid:"auto",
+      gridSize:10,
+      teamCount:2,
+      teams:[],
+      activeTeam:0,
+      entries:[],
+      grid:[],
+      placements:[],
+      found:new Map(),
+      cellOwners:new Map(),
+      tapStart:null,
+      pointerStart:null,
+      pointerLast:null,
+      pointerMoved:false,
+      timerOn:true,
+      elapsed:0,
+      timerId:null,
+      completed:false,
+      lastFocus:null
+    };
+
+    function prettyTerm(term) {
+      return TERM_LABELS[term] || term;
+    }
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function autoSize(entries) {
+      const lengths = entries.map((entry) => entry.term.length).sort((a,b) => a-b);
+      const targetCount = Math.min(7, lengths.length);
+      return Math.max(10, Math.min(21, lengths[targetCount - 1] || 10));
+    }
+
+    function chooseEntries(allEntries, size) {
+      const fitting = allEntries.filter((entry) => entry.term.length <= size);
+      const count = Math.min(size > 18 ? 6 : 7, fitting.length);
+      return shuffle(fitting).slice(0, count);
+    }
+
+    function placementCells(row, col, dr, dc, length) {
+      return Array.from({length}, (_, index) => ({
+        row: row + dr * index,
+        col: col + dc * index
+      }));
+    }
+
+    function canPlace(grid, word, row, col, dr, dc) {
+      const lastRow = row + dr * (word.length - 1);
+      const lastCol = col + dc * (word.length - 1);
+      if (lastRow < 0 || lastRow >= grid.length || lastCol < 0 || lastCol >= grid.length) return false;
+      return placementCells(row, col, dr, dc, word.length).every((cell, index) => {
+        const current = grid[cell.row][cell.col];
+        return current === "" || current === word[index];
+      });
+    }
+
+    function generatePuzzle(entries, size) {
+      for (let restart = 0; restart < 80; restart += 1) {
+        const grid = Array.from({length:size}, () => Array(size).fill(""));
+        const placements = [];
+        const ordered = [...entries].sort((a,b) => b.term.length - a.term.length);
+        let success = true;
+
+        for (const entry of ordered) {
+          let placed = false;
+          for (let attempt = 0; attempt < 900 && !placed; attempt += 1) {
+            const [dr, dc] = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+            const row = Math.floor(Math.random() * size);
+            const col = Math.floor(Math.random() * size);
+            if (!canPlace(grid, entry.term, row, col, dr, dc)) continue;
+            const cells = placementCells(row, col, dr, dc, entry.term.length);
+            cells.forEach((cell, index) => { grid[cell.row][cell.col] = entry.term[index]; });
+            placements.push({entry, cells});
+            placed = true;
+          }
+          if (!placed) {
+            success = false;
+            break;
+          }
+        }
+
+        if (success) {
+          const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          grid.forEach((row) => row.forEach((letter, col) => {
+            if (!letter) row[col] = letters[Math.floor(Math.random() * letters.length)];
+          }));
+          return {grid, placements};
+        }
+      }
+      throw new Error("Could not build this puzzle. Try a different grid size.");
+    }
+
+    function setPressed(container, attribute, value) {
+      container.querySelectorAll("button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset[attribute] === value));
+      });
+    }
+
+    function configureTeams(count) {
+      state.teamCount = count;
+      const oldScores = state.teams.map((team) => team.score);
+      state.teams = Array.from({length:count}, (_, index) => ({
+        name:`Team ${index + 1}`,
+        color:TEAM_COLORS[index],
+        score:oldScores[index] || 0
+      }));
+      state.activeTeam = Math.min(state.activeTeam, count - 1);
+    }
+
+    function renderTeams() {
+      const container = $("#teamScores");
+      container.innerHTML = "";
+      container.style.gridTemplateColumns = `repeat(${state.teamCount}, minmax(100px, 1fr))`;
+      state.teams.forEach((team, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "team-score";
+        button.style.setProperty("--team-color", team.color);
+        button.setAttribute("aria-pressed", String(index === state.activeTeam));
+        button.setAttribute("aria-label", `${team.name}, ${team.score} points${index === state.activeTeam ? ", active team" : ""}`);
+        button.innerHTML = `<span><small>${index === state.activeTeam ? "Playing now" : "Tap to play"}</small><strong>${team.name}</strong></span><b>${team.score}</b>`;
+        button.addEventListener("click", () => {
+          state.activeTeam = index;
+          renderTeams();
+          updateInstruction();
+          playTone("select");
+        });
+        container.append(button);
+      });
+    }
+
+    function renderGrid() {
+      const gridElement = $("#letterGrid");
+      gridElement.innerHTML = "";
+      gridElement.style.setProperty("--grid-size", state.gridSize);
+      gridElement.setAttribute("aria-rowcount", state.gridSize);
+      gridElement.setAttribute("aria-colcount", state.gridSize);
+
+      state.grid.forEach((row, rowIndex) => {
+        row.forEach((letter, colIndex) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "grid-cell";
+          button.dataset.row = rowIndex;
+          button.dataset.col = colIndex;
+          button.setAttribute("role", "gridcell");
+          button.setAttribute("aria-rowindex", rowIndex + 1);
+          button.setAttribute("aria-colindex", colIndex + 1);
+          button.setAttribute("aria-label", `Row ${rowIndex + 1}, column ${colIndex + 1}, letter ${letter}`);
+          button.textContent = letter;
+          button.addEventListener("click", (event) => {
+            if (event.detail === 0) handleCellTap({row:rowIndex, col:colIndex});
+          });
+          button.addEventListener("keydown", handleGridKey);
+          gridElement.append(button);
+        });
+      });
+    }
+
+    function renderWordList() {
+      const list = $("#wordList");
+      list.innerHTML = "";
+      $("#listEyebrow").textContent = state.mode === "bank" ? "Find these terms" : "Solve each definition";
+      $("#listTitle").textContent = state.mode === "bank" ? "Word bank" : "Clue mode";
+
+      state.entries.forEach((entry, index) => {
+        const item = document.createElement("li");
+        item.className = "word-item";
+        item.dataset.term = entry.term;
+        const foundBy = state.found.get(entry.term);
+        if (foundBy !== undefined) {
+          item.classList.add("found");
+          item.style.setProperty("--owner-color", state.teams[foundBy].color);
+        }
+        item.innerHTML = state.mode === "bank"
+          ? `<strong>${prettyTerm(entry.term)}</strong>`
+          : `<p><span class="sr-only">Clue ${index + 1}: </span>${entry.def}</p>`;
+        list.append(item);
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      $("#progressCount").textContent = `${state.found.size}/${state.entries.length}`;
+      $("#progressCount").setAttribute("aria-label", `${state.found.size} of ${state.entries.length} words found`);
+    }
+
+    function updateInstruction() {
+      const team = state.teams[state.activeTeam];
+      $("#instruction").innerHTML = `<span><strong>${team.name}:</strong> drag across a word, or tap its first and last letter.</span>`;
+    }
+
+    function formatTimer(seconds) {
+      const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const remainder = String(seconds % 60).padStart(2, "0");
+      return `${minutes}:${remainder}`;
+    }
+
+    function startTimer() {
+      stopTimer();
+      if (!state.timerOn || state.completed) return;
+      state.timerId = window.setInterval(() => {
+        state.elapsed += 1;
+        $("#timerValue").textContent = formatTimer(state.elapsed);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (state.timerId) window.clearInterval(state.timerId);
+      state.timerId = null;
+    }
+
+    function startPuzzle({resetTimer = true} = {}) {
+      const allEntries = VOCAB[state.grade][state.domain];
+      state.gridSize = state.requestedGrid === "auto" ? autoSize(allEntries) : Number(state.requestedGrid);
+      state.entries = chooseEntries(allEntries, state.gridSize);
+
+      if (state.entries.length < 2) {
+        showToast(`Only ${state.entries.length} term fits a ${state.gridSize} × ${state.gridSize} grid. Choose Auto or a larger grid.`);
+        state.requestedGrid = "auto";
+        state.gridSize = autoSize(allEntries);
+        $("#setupGrid").value = "auto";
+        $("#gridControl").value = "auto";
+        state.entries = chooseEntries(allEntries, state.gridSize);
+      }
+
+      try {
+        const puzzle = generatePuzzle(state.entries, state.gridSize);
+        state.grid = puzzle.grid;
+        state.placements = puzzle.placements;
+      } catch (error) {
+        showToast(error.message);
+        return;
+      }
+
+      state.found = new Map();
+      state.cellOwners = new Map();
+      state.tapStart = null;
+      state.pointerStart = null;
+      state.completed = false;
+      if (resetTimer) state.elapsed = 0;
+      $("#timerValue").textContent = formatTimer(state.elapsed);
+      $("#gradeControl").value = state.grade;
+      $("#domainControl").value = state.domain;
+      $("#gridControl").value = state.requestedGrid;
+      $("#modeControl").setAttribute("aria-pressed", String(state.mode === "clue"));
+      $("#modeControlLabel").textContent = state.mode === "clue" ? "Clue Mode" : "Word Bank";
+      $("#puzzleGradeLabel").textContent = `Grade ${state.grade} · ${state.domain} · ${state.gridSize} × ${state.gridSize}`;
+      $("#puzzleDomainLabel").textContent = DOMAIN_NAMES[state.domain];
+      $("#setupScreen").classList.add("hidden");
+      $("#gameScreen").classList.remove("hidden");
+      renderTeams();
+      renderGrid();
+      renderWordList();
+      updateInstruction();
+      startTimer();
+      requestAnimationFrame(() => $("#letterGrid .grid-cell")?.focus());
+    }
+
+    function cellElement(cell) {
+      return $(`.grid-cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+    }
+
+    function keyFor(cell) {
+      return `${cell.row},${cell.col}`;
+    }
+
+    function cellsOnLine(start, end) {
+      const rowDelta = end.row - start.row;
+      const colDelta = end.col - start.col;
+      if (rowDelta === 0 && colDelta === 0) return [start];
+      const rowDirection = Math.sign(rowDelta);
+      const colDirection = Math.sign(colDelta);
+      const rowDistance = Math.abs(rowDelta);
+      const colDistance = Math.abs(colDelta);
+      if (rowDelta !== 0 && colDelta !== 0 && rowDistance !== colDistance) return [];
+      const length = Math.max(rowDistance, colDistance) + 1;
+      return placementCells(start.row, start.col, rowDirection, colDirection, length);
+    }
+
+    function clearPreview() {
+      $$(".grid-cell.selecting, .grid-cell.tap-start").forEach((cell) => {
+        cell.classList.remove("selecting", "tap-start");
+      });
+    }
+
+    function previewLine(start, end, tapStart = false) {
+      clearPreview();
+      const cells = cellsOnLine(start, end);
+      cells.forEach((cell) => cellElement(cell)?.classList.add("selecting"));
+      if (tapStart) cellElement(start)?.classList.add("tap-start");
+    }
+
+    function sameCell(a, b) {
+      return a && b && a.row === b.row && a.col === b.col;
+    }
+
+    function samePath(selection, placement) {
+      if (selection.length !== placement.cells.length) return false;
+      const forward = selection.every((cell, index) => sameCell(cell, placement.cells[index]));
+      const backward = selection.every((cell, index) => sameCell(cell, placement.cells[placement.cells.length - 1 - index]));
+      return forward || backward;
+    }
+
+    function submitSelection(start, end) {
+      const selection = cellsOnLine(start, end);
+      clearPreview();
+      if (selection.length < 2) return;
+      const match = state.placements.find((placement) => (
+        !state.found.has(placement.entry.term) && samePath(selection, placement)
+      ));
+
+      if (match) {
+        markFound(match);
+      } else {
+        selection.forEach((cell) => {
+          const element = cellElement(cell);
+          element?.classList.remove("wrong");
+          requestAnimationFrame(() => element?.classList.add("wrong"));
+        });
+        showToast("Not one of the hidden terms—check the spelling and direction.");
+        playTone("wrong");
+      }
+    }
+
+    function handleCellTap(cell) {
+      if (state.completed || !$("#flashLayer").classList.contains("hidden")) return;
+      if (!state.tapStart) {
+        state.tapStart = cell;
+        previewLine(cell, cell, true);
+        showToast("First letter selected. Now choose the last letter.", 1400);
+        playTone("select");
+        return;
+      }
+      const start = state.tapStart;
+      state.tapStart = null;
+      submitSelection(start, cell);
+    }
+
+    function handleGridKey(event) {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      const row = Number(event.currentTarget.dataset.row);
+      const col = Number(event.currentTarget.dataset.col);
+      const delta = {
+        ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1]
+      }[event.key];
+      const next = {
+        row:Math.max(0, Math.min(state.gridSize - 1, row + delta[0])),
+        col:Math.max(0, Math.min(state.gridSize - 1, col + delta[1]))
+      };
+      cellElement(next)?.focus();
+    }
+
+    function markFound(placement) {
+      const teamIndex = state.activeTeam;
+      const team = state.teams[teamIndex];
+      state.found.set(placement.entry.term, teamIndex);
+      team.score += 100;
+
+      placement.cells.forEach((cell) => {
+        state.cellOwners.set(keyFor(cell), teamIndex);
+        const element = cellElement(cell);
+        if (element) {
+          element.classList.add("found");
+          element.style.setProperty("--found-color", team.color);
+          element.setAttribute("aria-label", `${element.getAttribute("aria-label")}, found by ${team.name}`);
+        }
+      });
+
+      $("#boardPanel").classList.remove("found-pop");
+      requestAnimationFrame(() => $("#boardPanel").classList.add("found-pop"));
+      renderTeams();
+      renderWordList();
+      playTone("found");
+      showFlashCard(placement.entry, team);
+    }
+
+    function showFlashCard(entry, team) {
+      state.lastFocus = document.activeElement;
+      $("#flashCard").style.setProperty("--card-color", team.color);
+      $("#flashKicker").textContent = `${team.name} found a word! +100`;
+      $("#flashTerm").textContent = prettyTerm(entry.term);
+      $("#flashDefinition").textContent = entry.def;
+      $("#flashExample").textContent = EXAMPLES[entry.term] || "Use this term in your own math example.";
+      $("#flashLayer").classList.remove("hidden");
+      $("#gotItButton").focus();
+    }
+
+    function closeFlashCard() {
+      $("#flashLayer").classList.add("hidden");
+      if (state.found.size === state.entries.length) {
+        completePuzzle();
+      } else {
+        state.lastFocus?.focus?.();
+      }
+    }
+
+    function completePuzzle() {
+      state.completed = true;
+      stopTimer();
+      const highScore = Math.max(...state.teams.map((team) => team.score));
+      const leaders = state.teams.filter((team) => team.score === highScore);
+      $("#winnerLine").textContent = leaders.length === 1
+        ? `${leaders[0].name} leads with ${highScore} points. Time: ${formatTimer(state.elapsed)}.`
+        : `${leaders.map((team) => team.name).join(" and ")} are tied at ${highScore} points.`;
+      $("#completeLayer").classList.remove("hidden");
+      burstConfetti(54);
+      playTone("complete");
+      $("#playAgainButton").focus();
+    }
+
+    function showToast(message, duration = 2200) {
+      const toast = $("#toast");
+      window.clearTimeout(showToast.timer);
+      toast.textContent = message;
+      toast.classList.remove("hidden");
+      showToast.timer = window.setTimeout(() => toast.classList.add("hidden"), duration);
+    }
+
+    function burstConfetti(count) {
+      const colors = Object.values(DOMAIN_COLORS).concat(TEAM_COLORS);
+      for (let index = 0; index < count; index += 1) {
+        const piece = document.createElement("i");
+        piece.className = "confetti-piece";
+        piece.style.setProperty("--x", `${Math.random() * 100}vw`);
+        piece.style.setProperty("--w", `${6 + Math.random() * 8}px`);
+        piece.style.setProperty("--c", colors[index % colors.length]);
+        piece.style.setProperty("--d", `${1.8 + Math.random() * 1.7}s`);
+        piece.style.setProperty("--delay", `${Math.random() * .45}s`);
+        piece.style.setProperty("--drift", `${-90 + Math.random() * 180}px`);
+        document.body.append(piece);
+        window.setTimeout(() => piece.remove(), 4200);
+      }
+    }
+
+    function playTone(type) {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        playTone.context ||= new AudioContextClass();
+        const context = playTone.context;
+        const notes = {
+          select:[[330, .05]],
+          wrong:[[150, .08]],
+          found:[[523, .07], [659, .08], [784, .12]],
+          complete:[[523, .08], [659, .08], [784, .08], [1047, .2]]
+        }[type] || [[440, .06]];
+        let offset = 0;
+        notes.forEach(([frequency, duration]) => {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = type === "wrong" ? "square" : "sine";
+          oscillator.frequency.value = frequency;
+          gain.gain.setValueAtTime(.0001, context.currentTime + offset);
+          gain.gain.exponentialRampToValueAtTime(.12, context.currentTime + offset + .01);
+          gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + offset + duration);
+          oscillator.connect(gain).connect(context.destination);
+          oscillator.start(context.currentTime + offset);
+          oscillator.stop(context.currentTime + offset + duration + .02);
+          offset += duration;
+        });
+      } catch (_) {
+        // Sound is a bonus. The game remains fully playable if a browser blocks it.
+      }
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      setPressed($("#setupMode"), "mode", mode);
+      $("#modeControl").setAttribute("aria-pressed", String(mode === "clue"));
+      $("#modeControlLabel").textContent = mode === "clue" ? "Clue Mode" : "Word Bank";
+      if (!$("#gameScreen").classList.contains("hidden")) renderWordList();
+    }
+
+    function returnToTopics() {
+      stopTimer();
+      $("#gameScreen").classList.add("hidden");
+      $("#setupScreen").classList.remove("hidden");
+      $("#completeLayer").classList.add("hidden");
+      $("#flashLayer").classList.add("hidden");
+      $("#setupGrid").value = state.requestedGrid;
+      setPressed($("#setupGrade"), "grade", state.grade);
+      setPressed($("#setupMode"), "mode", state.mode);
+      $("#setupTeams").value = String(state.teamCount);
+      requestAnimationFrame(() => $(`.domain-button[data-domain="${state.domain}"]`)?.focus());
+    }
+
+    $("#setupGrade").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-grade]");
+      if (!button) return;
+      state.grade = button.dataset.grade;
+      setPressed($("#setupGrade"), "grade", state.grade);
+    });
+
+    $("#setupMode").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-mode]");
+      if (button) setMode(button.dataset.mode);
+    });
+
+    $$(".domain-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.domain = button.dataset.domain;
+        state.requestedGrid = $("#setupGrid").value;
+        configureTeams(Number($("#setupTeams").value));
+        startPuzzle();
+      });
+    });
+
+    $("#gradeControl").addEventListener("change", (event) => {
+      state.grade = event.target.value;
+      startPuzzle();
+    });
+
+    $("#domainControl").addEventListener("change", (event) => {
+      state.domain = event.target.value;
+      startPuzzle();
+    });
+
+    $("#gridControl").addEventListener("change", (event) => {
+      state.requestedGrid = event.target.value;
+      startPuzzle();
+    });
+
+    $("#modeControl").addEventListener("click", () => setMode(state.mode === "bank" ? "clue" : "bank"));
+    $("#newPuzzleButton").addEventListener("click", () => startPuzzle());
+    $("#resetScoresButton").addEventListener("click", () => {
+      state.teams.forEach((team) => { team.score = 0; });
+      renderTeams();
+      showToast("Team scores reset to zero.");
+    });
+
+    $("#timerControl").addEventListener("click", () => {
+      state.timerOn = !state.timerOn;
+      $("#timerControl").setAttribute("aria-pressed", String(state.timerOn));
+      $("#timerBox").classList.toggle("hidden", !state.timerOn);
+      if (state.timerOn) startTimer(); else stopTimer();
+    });
+
+    $("#fullscreenButton").addEventListener("click", async () => {
+      try {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+        else await document.exitFullscreen();
+      } catch (_) {
+        showToast("Fullscreen is blocked here. Use your browser's fullscreen control instead.");
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      $("#fullscreenButton").textContent = document.fullscreenElement ? "Exit fullscreen" : "Fullscreen";
+    });
+
+    $("#topicsButton").addEventListener("click", returnToTopics);
+    $("#gotItButton").addEventListener("click", closeFlashCard);
+    $("#playAgainButton").addEventListener("click", () => {
+      $("#completeLayer").classList.add("hidden");
+      startPuzzle();
+    });
+    $("#changeTopicButton").addEventListener("click", returnToTopics);
+
+    $("#letterGrid").addEventListener("pointerdown", (event) => {
+      const target = event.target.closest(".grid-cell");
+      if (!target || state.completed || !$("#flashLayer").classList.contains("hidden")) return;
+      event.preventDefault();
+      state.pointerStart = {row:Number(target.dataset.row), col:Number(target.dataset.col)};
+      state.pointerLast = state.pointerStart;
+      state.pointerMoved = false;
+      clearPreview();
+      target.setPointerCapture?.(event.pointerId);
+      previewLine(state.pointerStart, state.pointerLast);
+    });
+
+    $("#letterGrid").addEventListener("pointermove", (event) => {
+      if (!state.pointerStart) return;
+      const element = document.elementFromPoint(event.clientX, event.clientY)?.closest?.(".grid-cell");
+      if (!element) return;
+      const cell = {row:Number(element.dataset.row), col:Number(element.dataset.col)};
+      if (!sameCell(cell, state.pointerLast)) {
+        state.tapStart = null;
+        state.pointerLast = cell;
+        state.pointerMoved = true;
+        previewLine(state.pointerStart, state.pointerLast);
+      }
+    });
+
+    function finishPointer(event) {
+      if (!state.pointerStart) return;
+      event.preventDefault();
+      const start = state.pointerStart;
+      const end = state.pointerLast;
+      const moved = state.pointerMoved;
+      state.pointerStart = null;
+      state.pointerLast = null;
+      state.pointerMoved = false;
+      if (moved) submitSelection(start, end);
+      else handleCellTap(start);
+    }
+
+    $("#letterGrid").addEventListener("pointerup", finishPointer);
+    $("#letterGrid").addEventListener("pointercancel", () => {
+      state.pointerStart = null;
+      state.pointerLast = null;
+      clearPreview();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!$("#flashLayer").classList.contains("hidden")) closeFlashCard();
+      else if (!$("#completeLayer").classList.contains("hidden")) returnToTopics();
+      else if (state.tapStart) {
+        state.tapStart = null;
+        clearPreview();
+      }
+    });
+
+    window.addEventListener("beforeunload", stopTimer);
+
+    window.__MATH_WORD_HUNT__ = {
+      vocab: VOCAB,
+      getState: () => ({
+        grade:state.grade,
+        domain:state.domain,
+        mode:state.mode,
+        gridSize:state.gridSize,
+        entries:state.entries.map((entry) => entry.term),
+        placements:state.placements.map((placement) => ({
+          term:placement.entry.term,
+          cells:placement.cells.map((cell) => ({...cell}))
+        })),
+        found:[...state.found.keys()],
+        scores:state.teams.map((team) => team.score)
+      })
+    };
+  </script>
+</body>
+</html>
