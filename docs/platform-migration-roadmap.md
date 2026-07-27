@@ -1,16 +1,18 @@
 # Platform Migration Roadmap
 
-## Current checkpoint: Phase 2A billing contract freeze
+## Current checkpoint: Phase 2B–2F local test-mode billing foundation
 
 Local Supabase Auth, versioned PostgreSQL migrations, RLS, server-only adapters,
 teacher profiles, classes, activity drafts, account deletion requests, and
 default-deny entitlement reads are implemented alongside unchanged static v7.
 The work is a local validation foundation, not a production cutover.
 
-Phase 2A adds local schema, policy, configuration, reconciliation, privacy,
-support, and rollback contracts without accepting payment. Phase 2B may begin
-only after the true blockers in `phase-2a-decisions.md` are approved, and must
-remain test-mode with signed webhook integration and no public cutover.
+Phase 2B–2F adds a local/test-only Stripe provider, hosted Checkout and portal
+boundaries, signed webhook reconciliation, atomic entitlement projection,
+operator commands, and regression coverage. Billing remains disabled by
+default. Authenticated Stripe sandbox provisioning and lifecycle verification
+remain owner-run; production activation, pricing approval, legal/support
+operations, hosted deployment, and public cutover remain blocked.
 
 Status: incremental plan updated after the Phase 1C workspace foundation.
 

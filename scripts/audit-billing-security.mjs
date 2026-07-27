@@ -22,14 +22,12 @@ for (const path of candidates) {
   }
 }
 
-const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-const allDependencies = {
-  ...packageJson.dependencies,
-  ...packageJson.devDependencies
-};
-if (Object.keys(allDependencies).some((name) => name === "stripe" || name.startsWith("@stripe/"))) {
-  throw new Error("Stripe SDK was installed before Phase 2B approval");
+const webPackage = JSON.parse(readFileSync("apps/platform-web/package.json", "utf8"));
+if (webPackage.dependencies?.stripe !== "20.4.0") throw new Error("The approved server Stripe SDK must be pinned exactly to 20.4.0");
+if (Object.keys({ ...webPackage.dependencies, ...webPackage.devDependencies }).some((name) => name.startsWith("@stripe/"))) throw new Error("No client Stripe SDK is approved");
+for (const path of candidates.filter((file) => file.startsWith("apps/platform-web/") && /\.(?:ts|tsx)$/.test(file))) {
+  const contents = readFileSync(path, "utf8");
+  if (/^["']use client["'];/m.test(contents) && /from ["']stripe["']/.test(contents)) throw new Error(`Stripe SDK imported by client module: ${path}`);
 }
 
-console.log(`Billing security audit passed: ${candidates.length} repository files scanned; no secret/live-key marker or Stripe SDK found.`);
-
+console.log(`Billing security audit passed: ${candidates.length} repository files scanned; exact server SDK only, with no secret/live-key marker or client Stripe import.`);

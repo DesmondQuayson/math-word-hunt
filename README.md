@@ -42,12 +42,14 @@ continues to publish directly from docs without a build step.
   behavior, anonymous state, access denial, visual baselines, and the safe game
   gateway.
 - npm run test:e2e:visual runs only the three stable platform visual snapshots.
-- npm run db:test runs 65 schema and Row Level Security assertions.
+- npm run db:test runs the complete schema and Row Level Security assertion suite.
 - npm run test:e2e:phase1d tests local authentication, two-account isolation,
   profile/class/activity persistence, archive, deletion request, entitlement
   denial, and sign-out.
 - npm run phase1d:verify runs the complete old and new release gate.
 - npm run phase2a:verify runs that full gate plus billing secret and live-marker checks.
+- npm run test:e2e:phase2 runs deterministic local Checkout, portal, account-state, responsive, and accessibility flows.
+- npm run phase2:verify runs the complete Phase 2 local release gate, including reset-from-empty, billing integration, bundle/security scans, dependency audit, and protected hashes.
 - npm run build creates the isolated Next.js production build.
 - npm run test:security inspects production client assets and platform-core
   source for secret markers or forbidden dependencies.
@@ -96,13 +98,15 @@ remain deferred. Start with `docs/authentication-architecture.md`,
 `docs/database-schema.md`, `docs/row-level-security.md`, and
 `docs/phase-1d-security-review.md`.
 
-Phase 2A freezes a local-only billing architecture: provider-independent plan
-and access contracts, strict server configuration, constrained billing
-projections, default-deny privileges, and test/operations documentation. Billing
-remains disabled; there is no Stripe SDK, provider object, endpoint, payment,
-portal session, hosted link, price, or deployment. Start with
-`docs/billing-readiness-audit.md`, `docs/billing-ownership-and-threat-model.md`,
-`docs/billing-webhook-contract.md`, and `docs/phase-2a-decisions.md`.
+Phase 2B–2F implements the approved local/test-only Stripe boundary: the exact
+server SDK and API version, idempotent sandbox provisioning, hosted Checkout
+and portal actions, signed webhook reconciliation, transactional subscription
+and entitlement projection, operator reconciliation/replay, kill switches, and
+deterministic browser/security verification. Repository defaults still disable
+billing; no production resource, deployment, real charge, or final production
+price is approved. Start with `docs/phase-2-implementation.md`,
+`docs/stripe-test-mode-setup.md`, `docs/billing-operations-runbook.md`, and
+`docs/phase-2-verification.md`.
 
 ## Preservation rules
 

@@ -2,22 +2,31 @@ import "server-only";
 
 export type BillingApplicationEnvironment = "local" | "test" | "preview" | "production";
 export type StripeMode = "test" | "live";
+export type BillingProvider = "stripe" | "fixture";
+export const STRIPE_API_VERSION = "2026-02-25.clover" as const;
 
 export type BillingConfiguration = Readonly<
   | { enabled: false; applicationEnvironment: BillingApplicationEnvironment }
   | {
       enabled: true;
       applicationEnvironment: BillingApplicationEnvironment;
+      provider: BillingProvider;
       stripeMode: StripeMode;
+      apiVersion: typeof STRIPE_API_VERSION;
       publishableKey: string;
       secretKey: string;
       webhookSecret: string;
       productId: string;
+      portalConfigurationId: string;
       priceIds: Readonly<{
         "teacher-pro-monthly": string;
         "teacher-pro-annual": string;
       }>;
       applicationBaseUrl: string;
+      checkoutEnabled: boolean;
+      portalEnabled: boolean;
+      webhookEnabled: boolean;
+      emergencyDefaultDeny: boolean;
     }
 >;
 
@@ -48,8 +57,14 @@ function validateKey(value: string, kind: "publishable" | "secret", mode: Stripe
   }
 }
 
-function validateProviderId(value: string, prefix: "prod" | "price", code: string): void {
+function validateProviderId(value: string, prefix: "prod" | "price" | "bpc", code: string): void {
   if (!new RegExp(`^${prefix}_[A-Za-z0-9]{6,}$`).test(value)) throw new BillingConfigurationError(code);
+}
+
+function strictBoolean(source: EnvironmentSource, name: string): boolean {
+  const value = required(source, name);
+  if (value !== "true" && value !== "false") throw new BillingConfigurationError(`invalid-${name.toLowerCase().replaceAll("_", "-")}`);
+  return value === "true";
 }
 
 function validateBaseUrl(value: string, environment: BillingApplicationEnvironment): string {
@@ -82,6 +97,13 @@ export function parseBillingConfiguration(source: EnvironmentSource): BillingCon
   if (applicationEnvironment === "production" && source.BILLING_LIVE_ACTIVATION?.trim() !== "owner-approved") {
     throw new BillingConfigurationError("production-not-owner-approved");
   }
+  const provider = required(source, "BILLING_PROVIDER");
+  if (provider !== "stripe" && provider !== "fixture") throw new BillingConfigurationError("invalid-billing-provider");
+  if (provider === "fixture" && applicationEnvironment !== "local" && applicationEnvironment !== "test") {
+    throw new BillingConfigurationError("fixture-provider-environment");
+  }
+  const apiVersion = required(source, "STRIPE_API_VERSION");
+  if (apiVersion !== STRIPE_API_VERSION) throw new BillingConfigurationError("stripe-api-version-mismatch");
 
   const publishableKey = required(source, "STRIPE_PUBLISHABLE_KEY");
   const secretKey = required(source, "STRIPE_SECRET_KEY");
@@ -93,24 +115,33 @@ export function parseBillingConfiguration(source: EnvironmentSource): BillingCon
   const productId = required(source, "STRIPE_PRODUCT_TEACHER_PRO");
   const monthlyPriceId = required(source, "STRIPE_PRICE_TEACHER_PRO_MONTHLY");
   const annualPriceId = required(source, "STRIPE_PRICE_TEACHER_PRO_ANNUAL");
+  const portalConfigurationId = required(source, "STRIPE_PORTAL_CONFIGURATION_ID");
   validateProviderId(productId, "prod", "product-id-format");
   validateProviderId(monthlyPriceId, "price", "monthly-price-id-format");
   validateProviderId(annualPriceId, "price", "annual-price-id-format");
+  validateProviderId(portalConfigurationId, "bpc", "portal-configuration-id-format");
   if (monthlyPriceId === annualPriceId) throw new BillingConfigurationError("duplicate-plan-mapping");
 
   return Object.freeze({
     enabled: true,
     applicationEnvironment,
+    provider,
     stripeMode,
+    apiVersion: STRIPE_API_VERSION,
     publishableKey,
     secretKey,
     webhookSecret,
     productId,
+    portalConfigurationId,
     priceIds: Object.freeze({
       "teacher-pro-monthly": monthlyPriceId,
       "teacher-pro-annual": annualPriceId
     }),
-    applicationBaseUrl: validateBaseUrl(required(source, "BILLING_APP_BASE_URL"), applicationEnvironment)
+    applicationBaseUrl: validateBaseUrl(required(source, "BILLING_APP_BASE_URL"), applicationEnvironment),
+    checkoutEnabled: strictBoolean(source, "BILLING_CHECKOUT_ENABLED"),
+    portalEnabled: strictBoolean(source, "BILLING_PORTAL_ENABLED"),
+    webhookEnabled: strictBoolean(source, "BILLING_WEBHOOK_ENABLED"),
+    emergencyDefaultDeny: strictBoolean(source, "BILLING_EMERGENCY_DEFAULT_DENY")
   });
 }
 
@@ -118,3 +149,6 @@ export function getBillingConfiguration(): BillingConfiguration {
   return parseBillingConfiguration(process.env);
 }
 
+export function tryGetBillingConfiguration(): BillingConfiguration | null {
+  try { return getBillingConfiguration(); } catch { return null; }
+}

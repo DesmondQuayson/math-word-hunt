@@ -11,7 +11,7 @@ export type BillingEntitlementDecision = Readonly<{
   access: "allow" | "deny";
   disposition: "active" | "temporary-denial" | "revoked" | "manual-review";
   reason:
-    | "eligible-active-subscription" | "eligible-approved-trial" | "account-restricted"
+    | "eligible-active-subscription" | "account-restricted" | "emergency-default-deny"
     | "environment-mismatch" | "unapproved-plan" | "duplicate-subscription"
     | "missing-or-expired-period" | "trial-not-approved" | "payment-incomplete"
     | "payment-past-due" | "payment-unpaid" | "subscription-paused"
@@ -26,7 +26,7 @@ export type BillingEntitlementInput = Readonly<{
   subscriptionStatus: unknown;
   currentPeriodEnd: string | null;
   duplicateActiveSubscriptions: boolean;
-  trialEntitlementApproved?: boolean;
+  emergencyDefaultDeny?: boolean;
   now?: Date;
 }>;
 
@@ -41,6 +41,7 @@ function decision(disposition: BillingEntitlementDecision["disposition"], reason
 }
 
 export function deriveBillingEntitlement(input: BillingEntitlementInput): BillingEntitlementDecision {
+  if (input.emergencyDefaultDeny === true) return decision("revoked", "emergency-default-deny");
   if (input.accountStatus !== "active") return decision("revoked", "account-restricted");
   if (!input.environmentMatches) return decision("manual-review", "environment-mismatch");
   if (!input.planKey || !input.planApproved) return decision("manual-review", "unapproved-plan");
@@ -56,9 +57,7 @@ export function deriveBillingEntitlement(input: BillingEntitlementInput): Billin
     return validPeriod ? decision("active", "eligible-active-subscription", "allow") : decision("temporary-denial", "missing-or-expired-period");
   }
   if (status === "trialing") {
-    return validPeriod && input.trialEntitlementApproved === true
-      ? decision("active", "eligible-approved-trial", "allow")
-      : decision("temporary-denial", "trial-not-approved");
+    return decision("temporary-denial", "trial-not-approved");
   }
   if (status === "incomplete" || status === "incomplete_expired") return decision("temporary-denial", "payment-incomplete");
   if (status === "past_due") return decision("temporary-denial", "payment-past-due");

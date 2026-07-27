@@ -4,7 +4,7 @@ import { assertUniqueKeys } from "../catalog/types";
 import { BILLING_PLAN_KEYS, type BillingPlanKey } from "./plan-keys";
 
 export type BillingInterval = "none" | "month" | "year";
-export type BillingPricingStatus = "free" | "owner-decision-required";
+export type BillingPricingStatus = "free" | "test-mode-approved";
 
 export type BillingPlanDefinition = Readonly<{
   key: BillingPlanKey;
@@ -25,8 +25,11 @@ export function defineBillingCatalog(definitions: readonly BillingPlanDefinition
     if (definition.key === "free" && (definition.interval !== "none" || definition.amountMinorUnits !== 0)) {
       throw new Error("Free plan must not define a recurring charge");
     }
-    if (definition.key !== "free" && (definition.amountMinorUnits !== null || definition.currency !== null)) {
-      throw new Error("Paid pricing is not owner-approved");
+    if (definition.key !== "free" && (
+      definition.pricingStatus !== "test-mode-approved" || definition.currency !== "usd" ||
+      !Number.isInteger(definition.amountMinorUnits) || (definition.amountMinorUnits ?? 0) <= 0
+    )) {
+      throw new Error("Paid test pricing must be explicit");
     }
     assertUniqueKeys(definition.featureKeys, "billing feature");
   }
@@ -53,9 +56,9 @@ export const BILLING_CATALOG = defineBillingCatalog([
     productKey: PRODUCT_KEYS[0],
     displayName: "Teacher Pro Monthly",
     interval: "month",
-    currency: null,
-    amountMinorUnits: null,
-    pricingStatus: "owner-decision-required",
+    currency: "usd",
+    amountMinorUnits: 999,
+    pricingStatus: "test-mode-approved",
     lifecycle: "proposed",
     featureKeys: ["basic-play", "limited-content", "complete-library", "classroom-tools", "premium-game-modes"]
   },
@@ -64,9 +67,9 @@ export const BILLING_CATALOG = defineBillingCatalog([
     productKey: PRODUCT_KEYS[0],
     displayName: "Teacher Pro Annual",
     interval: "year",
-    currency: null,
-    amountMinorUnits: null,
-    pricingStatus: "owner-decision-required",
+    currency: "usd",
+    amountMinorUnits: 7999,
+    pricingStatus: "test-mode-approved",
     lifecycle: "proposed",
     featureKeys: ["basic-play", "limited-content", "complete-library", "classroom-tools", "premium-game-modes"]
   }

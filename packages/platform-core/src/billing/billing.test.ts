@@ -18,9 +18,9 @@ const eligible = {
 };
 
 describe("billing contracts", () => {
-  it("freezes only the restrained proposed catalog without inventing paid prices", () => {
+  it("freezes the authorized sandbox catalog", () => {
     expect(BILLING_CATALOG.map((plan) => plan.key)).toEqual(["free", "teacher-pro-monthly", "teacher-pro-annual"]);
-    expect(BILLING_CATALOG.filter((plan) => plan.key !== "free").every((plan) => plan.amountMinorUnits === null && plan.currency === null)).toBe(true);
+    expect(BILLING_CATALOG.map((plan) => plan.amountMinorUnits)).toEqual([0, 999, 7999]);
     expect(() => parseBillingPlanKey("district-enterprise")).toThrow("Unknown billing plan key");
   });
 
@@ -28,7 +28,7 @@ describe("billing contracts", () => {
     const free = BILLING_CATALOG[0]!;
     const monthly = BILLING_CATALOG[1]!;
     expect(() => defineBillingCatalog([free, free])).toThrow(/Duplicate billing plan/);
-    expect(() => defineBillingCatalog([{ ...monthly, amountMinorUnits: 999, currency: "usd" }])).toThrow("Paid pricing is not owner-approved");
+    expect(() => defineBillingCatalog([{ ...monthly, amountMinorUnits: null, currency: null }])).toThrow("Paid test pricing must be explicit");
   });
 
   it("allows only verified active state with a future period", () => {
@@ -40,9 +40,9 @@ describe("billing contracts", () => {
     expect(deriveBillingEntitlement({ ...eligible, subscriptionStatus: status }).access).toBe("deny");
   });
 
-  it("requires explicit trial approval and applies account overrides", () => {
+  it("denies trials and applies account and emergency overrides", () => {
     expect(deriveBillingEntitlement({ ...eligible, subscriptionStatus: "trialing" }).access).toBe("deny");
-    expect(deriveBillingEntitlement({ ...eligible, subscriptionStatus: "trialing", trialEntitlementApproved: true }).access).toBe("allow");
+    expect(deriveBillingEntitlement({ ...eligible, emergencyDefaultDeny: true }).reason).toBe("emergency-default-deny");
     expect(deriveBillingEntitlement({ ...eligible, accountStatus: "suspended" }).reason).toBe("account-restricted");
     expect(deriveBillingEntitlement({ ...eligible, accountStatus: "deletion-requested" }).access).toBe("deny");
   });

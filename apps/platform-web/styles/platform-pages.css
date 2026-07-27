@@ -122,6 +122,17 @@
   margin-top: var(--space-8);
 }
 
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.pricing-grid .card { display: flex; flex-direction: column; gap: var(--space-4); }
+.pricing-grid form { margin-top: auto; }
+
+@media (max-width: 56rem) { .pricing-grid { grid-template-columns: 1fr; } }
+
 .path-card article,
 .workspace-card article {
   height: 100%;

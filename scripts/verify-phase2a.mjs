@@ -8,5 +8,4 @@ for (const [command, args] of [
   const result = spawnSync(command, args, { stdio: "inherit", shell: process.platform === "win32" });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
-console.log("Phase 2A verification passed. Billing remains disabled and no provider resources were created.");
-
+console.log("Phase 2A contract-regression verification passed. Repository billing defaults remain disabled.");

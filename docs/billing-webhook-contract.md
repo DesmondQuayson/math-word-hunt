@@ -1,6 +1,6 @@
 # Webhook processing contract
 
-No endpoint exists in Phase 2A. The future endpoint must:
+Phase 2A originally froze this contract without an endpoint. Phase 2 implements it at `POST /api/billing/webhook`:
 
 1. Verify the signature over the unmodified body with an endpoint/environment secret and the SDK default five-minute tolerance unless reviewed clock evidence requires otherwise.
 2. Reject mode mismatch and non-allowlisted types before authority changes.
@@ -22,4 +22,3 @@ Logs contain correlation, type, mode, safe failure class, and hashed/truncated r
 | `invoice.payment_failed` | Trigger refresh/payment-issue state; projection controls denial. |
 
 Never grant from redirect, session creation, unverified body, or client ID. Unknown plan/owner/mode, contradictory objects, and duplicate current subscriptions deny and require review.
-

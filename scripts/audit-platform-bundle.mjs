@@ -7,7 +7,10 @@ const coreSourceRoot = resolve("packages/platform-core/src");
 
 const forbiddenBundlePatterns = [
   /SUPABASE_SERVICE_ROLE_KEY/i,
+  /SUPABASE_SECRET_KEY/i,
   /STRIPE_SECRET_KEY/i,
+  /STRIPE_WEBHOOK_SECRET/i,
+  /sk_test_[a-z0-9]+/i,
   /sk_live_[a-z0-9]+/i,
   /service_role["'=:]/i
 ];
