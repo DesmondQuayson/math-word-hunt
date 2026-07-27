@@ -1,0 +1,35 @@
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const gates = [
+  [npm, ["run", "phase4:verify"]],
+  [npm, ["run", "test:phase5:readiness"]],
+  [npm, ["run", "phase5:readiness"]],
+  [npm, ["run", "phase5:hosted:check"]],
+  [npm, ["run", "test:phase4"]],
+  [npm, ["run", "test:phase5:security"]],
+  [npm, ["run", "test:production-default"]],
+  [npm, ["run", "test:security"]],
+  [npm, ["run", "test:billing:security"]],
+  [npm, ["run", "test:capabilities:security"]],
+  [npm, ["run", "test:e2e:canonical"]],
+  [npm, ["run", "test:e2e", "--", "e2e/math-word-hunt-v5.spec.ts"]],
+  [npm, ["audit", "--audit-level=high"]],
+  ["git", ["diff", "--check"]],
+  ["git", ["diff", "--exit-code", "--", "docs/index.html", "docs/vocab.js", "math-word-hunt-v1.html", "math-word-hunt-v2.html", "math-word-hunt-v3.html", "math-word-hunt-v4.html", "math-word-hunt-v5.html", "docs/index-v5-backup.html", "docs/index-v6-backup.html"]]
+];
+for (const [command, args] of gates) {
+  const result = spawnSync(command, args, { stdio: "inherit", shell: process.platform === "win32" });
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
+const expected = new Map([
+  ["docs/index.html", "8f957f59720816fe490e27bfd0c8214eb53d13f26a76beb0176a4d8383319148"],
+  ["docs/vocab.js", "caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46"]
+]);
+for (const [path, digest] of expected) {
+  const actual = createHash("sha256").update(readFileSync(path)).digest("hex");
+  if (actual !== digest) throw new Error(`${path} changed: ${actual}`);
+}
+console.log("Phase 5 verification passed. Hosted-only checks remain explicitly pending without owner approval; no external resource was created or changed.");
