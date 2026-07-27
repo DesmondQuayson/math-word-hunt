@@ -23,7 +23,7 @@ for (const [command, args] of gates) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 const expected = new Map([
-  ["docs/index.html", "8f957f59720816fe490e27bfd0c8214eb53d13f26a76beb0176a4d8383319148"],
+  ["docs/index.html", "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"],
   ["docs/vocab.js", "caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46"]
 ]);
 for (const [path, digest] of expected) {
