@@ -64,3 +64,7 @@ export {
   type CapabilityEntitlementState
 } from "./capabilities/authorization";
 export { PRODUCT_PACKAGES, getProductPackage, type ProductPackage } from "./capabilities/packaging";
+export { PLATFORM_ENVIRONMENTS, parseEnvironmentRegistry, type PlatformEnvironment, type EnvironmentRegistry, type EnvironmentInput } from "./environment/registry";
+export { DELETION_STATES, canTransitionDeletion, planDeletion, type DeletionState, type DeletionPlan } from "./deletion/lifecycle";
+export { OBSERVABILITY_CATEGORIES, createSafeEvent, type ObservabilityCategory, type SafeEvent } from "./observability/events";
+export { renderEmailTemplate, type EmailTemplate, type EmailTemplateKey } from "./email/templates";

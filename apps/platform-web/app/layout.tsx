@@ -11,7 +11,8 @@ export const metadata: Metadata = {
     template: "%s · Math Vocabulary Hunt"
   },
   description:
-    "A teacher-led classroom game for building fluency with the language of mathematics."
+    "A teacher-led classroom game for building fluency with the language of mathematics.",
+  robots: { index: false, follow: false, noarchive: true, nocache: true }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
