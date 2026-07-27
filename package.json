@@ -23,7 +23,7 @@
     "test:e2e:visual": "node scripts/run-platform-e2e.mjs visual-regression.spec.ts",
     "test:e2e:phase1d": "node scripts/run-phase1d-e2e.mjs",
     "test:e2e:phase2": "node scripts/run-phase2-e2e.mjs",
-    "test:production-default": "node scripts/audit-production-default.mjs",
+    "test:production-default": "npm run build && node scripts/audit-production-default.mjs",
     "test:security": "node scripts/audit-platform-bundle.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",

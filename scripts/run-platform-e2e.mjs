@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { resolve } from "node:path";
+import { registerVerificationNextProcess, stopVerificationNextProcess } from "./verification-processes.mjs";
 
 const prototypeMode = process.argv.includes("--prototype");
 const playwrightArgs = process.argv.slice(2).filter((argument) => argument !== "--prototype");
@@ -31,6 +32,7 @@ const platformServer = spawn(
     stdio: ["ignore", "ignore", "inherit"]
   }
 );
+registerVerificationNextProcess(platformServer);
 
 async function waitFor(url, label) {
   const deadline = Date.now() + 30_000;
@@ -46,7 +48,8 @@ async function waitFor(url, label) {
   throw new Error(label + " did not become ready");
 }
 
-async function stopProcess(processToStop) {
+async function stopProcess(processToStop, isNext = false) {
+  if (isNext) return stopVerificationNextProcess(processToStop);
   processToStop.kill();
   if (processToStop.exitCode === null) {
     await Promise.race([
@@ -82,7 +85,7 @@ try {
   exitCode = code ?? 1;
 } finally {
   await Promise.all([
-    stopProcess(platformServer),
+    stopProcess(platformServer, true),
     stopProcess(staticServer)
   ]);
 }

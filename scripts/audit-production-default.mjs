@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { once } from "node:events";
 import { resolve } from "node:path";
+import { registerVerificationNextProcess, stopVerificationNextProcess } from "./verification-processes.mjs";
 
 const baseUrl = "http://127.0.0.1:4180";
 const routes = [
@@ -41,6 +41,7 @@ const platformServer = spawn(
     stdio: ["ignore", "inherit", "inherit"]
   }
 );
+registerVerificationNextProcess(platformServer);
 
 async function waitForServer() {
   const deadline = Date.now() + 30_000;
@@ -59,13 +60,7 @@ async function waitForServer() {
 }
 
 async function stopServer() {
-  platformServer.kill();
-  if (platformServer.exitCode === null) {
-    await Promise.race([
-      once(platformServer, "exit"),
-      new Promise((resolveWait) => setTimeout(resolveWait, 2_000))
-    ]);
-  }
+  await stopVerificationNextProcess(platformServer);
 }
 
 try {
