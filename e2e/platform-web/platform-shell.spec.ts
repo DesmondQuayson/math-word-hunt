@@ -167,12 +167,12 @@ test("reduced-motion preference removes meaningful transitions", async ({ page }
   expect(motion.scrollBehavior).toBe("auto");
 });
 
-test("teacher workspace is anonymous and premium access is denied", async ({ page }) => {
+test("teacher workspace is anonymous and cannot claim Pro access", async ({ page }) => {
   await page.goto("/teacher");
   await expect(page.getByText("Teacher accounts are not connected in this preview.")).toBeVisible();
   const access = page.getByTestId("premium-access-state");
   await expect(access).toHaveAttribute("data-access", "denied");
-  await expect(access).toHaveText("Not available");
+  await expect(access).toHaveText("Free plan");
 });
 
 test("teacher navigation exposes the complete future information architecture", async ({ page }) => {

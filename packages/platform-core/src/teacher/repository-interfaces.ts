@@ -49,6 +49,7 @@ export interface ActivityRepository {
   listByOwner(ownerTeacherId: UserId): Promise<TeacherResult<readonly ActivityDefinition[]>>;
   getById(ownerTeacherId: UserId, activityId: string): Promise<TeacherResult<ActivityDefinition>>;
   save(activity: ActivityDefinition): Promise<TeacherResult<ActivityDefinition>>;
+  archive(ownerTeacherId: UserId, activityId: string): Promise<TeacherResult<Readonly<{ activityId: string; archived: true }>>>;
 }
 
 export interface SessionRepository {

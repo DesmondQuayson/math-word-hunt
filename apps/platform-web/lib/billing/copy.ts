@@ -1,12 +1,17 @@
 import "server-only";
 
+import type { BillingPlanKey } from "@math-vocabulary-hunt/platform-core";
+
 import type { SubscriptionProjection } from "./repository";
 
 export type BillingAccountCopy = Readonly<{ title: string; message: string; tone: "information" | "success" | "warning" }>;
 
-export function billingAccountCopy(subscription: SubscriptionProjection | null, now = new Date()): BillingAccountCopy {
+export function billingAccountCopy(subscription: SubscriptionProjection | null, now = new Date(), verifiedPlanKey?: BillingPlanKey | null): BillingAccountCopy {
   if (!subscription) return { title: "Free account", message: "No verified paid subscription is active.", tone: "information" };
   const futurePeriod = subscription.periodEnd !== null && Number.isFinite(Date.parse(subscription.periodEnd)) && Date.parse(subscription.periodEnd) > now.getTime();
+  if (verifiedPlanKey !== undefined && subscription.status === "active" && futurePeriod && verifiedPlanKey !== subscription.planKey) {
+    return { title: "Billing review needed", message: "The subscription and verified product access do not match. Existing work is safe; premium capacity remains unavailable until reconciliation completes.", tone: "warning" };
+  }
   if (subscription.status === "active" && futurePeriod) return subscription.cancelAtPeriodEnd
     ? { title: "Teacher Pro ending at period end", message: "Verified access continues through the current paid period, then ends.", tone: "success" }
     : { title: "Teacher Pro active", message: "Access follows the verified internal entitlement.", tone: "success" };

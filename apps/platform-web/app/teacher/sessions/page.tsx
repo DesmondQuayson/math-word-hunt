@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/feedback/empty-state";
+import { FeatureAvailabilityBadge } from "@/components/capabilities/feature-availability-badge";
 import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { Notice } from "@/components/feedback/notice";
 import { PageHeader } from "@/components/layout/page-header";
@@ -8,11 +9,13 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
 
 export const metadata = { title: "Live sessions" };
 
-export default function SessionsPage() {
+export default async function SessionsPage() {
   const prototype = getTeacherPrototypeState();
+  const access = await getCapabilityAccessView();
 
   return (
     <TeacherShell currentPath="/teacher/sessions">
@@ -33,6 +36,7 @@ export default function SessionsPage() {
           <p className="card-kicker">Future managed workflow</p>
           <h2>Managed live session</h2>
           <p>Conceptual setup, ready, active, reconnect, and completed states. No remote devices can join.</p>
+          <FeatureAvailabilityBadge capabilityKey="managed_session.create" decision={access.decisions["managed_session.create"]} />
           <LinkButton href="/teacher/sessions/new" variant="secondary">Review session setup</LinkButton>
         </Card>
       </div>

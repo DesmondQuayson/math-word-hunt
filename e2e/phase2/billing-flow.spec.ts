@@ -44,14 +44,21 @@ test("allowlisted monthly Checkout ignores forged fields and redirect alone gran
   await page.goto("/pricing?checkout=canceled"); await expect(page.getByText("Checkout canceled")).toBeVisible();
 });
 
-test("open redirects and duplicate subscriptions fail closed while verified owner can open portal", async ({ page }) => {
+test("open redirects fail closed while verified Pro cannot start duplicate Checkout and can open portal", async ({ page }) => {
   await signIn(page, active); await page.goto("/pricing");
   const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Test annual Checkout" }) });
   await form.locator("input[name=returnDestination]").evaluate((input) => { (input as HTMLInputElement).value = "https://attacker.example"; });
   await page.getByRole("button", { name: "Test annual Checkout" }).click(); await expect(page).toHaveURL(/billing=unavailable/);
   const mapping = await admin.from("billing_customers").select("id, stripe_customer_id").eq("owner_teacher_id", active.id).single();
-  await admin.from("billing_subscriptions").insert({ owner_teacher_id: active.id, billing_customer_id: mapping.data!.id, stripe_environment: "test", stripe_subscription_id: `sub_${run.replace(/[^A-Za-z0-9]/g, "")}`, product_key: "math-vocabulary-hunt", plan_key: "teacher-pro-monthly", stripe_price_id: "price_monthly123", subscription_status: "active", current_period_start: new Date(Date.now() - 86400000).toISOString(), current_period_end: new Date(Date.now() + 86400000 * 30).toISOString(), latest_authoritative_event_created_at: new Date().toISOString() });
-  await page.goto("/pricing"); await page.getByRole("button", { name: "Test monthly Checkout" }).click(); await expect(page).toHaveURL(/billing=unavailable/);
+  const periodStart = new Date(Date.now() - 86400000).toISOString();
+  const periodEnd = new Date(Date.now() + 86400000 * 30).toISOString();
+  const insertedSubscription = await admin.from("billing_subscriptions").insert({ owner_teacher_id: active.id, billing_customer_id: mapping.data!.id, stripe_environment: "test", stripe_subscription_id: `sub_${run.replace(/[^A-Za-z0-9]/g, "")}`, product_key: "math-vocabulary-hunt", plan_key: "teacher-pro-monthly", stripe_price_id: "price_monthly123", subscription_status: "active", current_period_start: periodStart, current_period_end: periodEnd, latest_authoritative_event_created_at: new Date().toISOString() }).select("id, stripe_subscription_id").single();
+  expect(insertedSubscription.error).toBeNull();
+  const insertedEntitlement = await admin.from("product_entitlements").insert({ teacher_user_id: active.id, product_key: "math-vocabulary-hunt", scope: "feature", feature_key: "classroom-tools", status: "active", source: "subscription", source_reference: insertedSubscription.data!.stripe_subscription_id, billing_subscription_id: insertedSubscription.data!.id, starts_at: periodStart, expires_at: periodEnd });
+  expect(insertedEntitlement.error).toBeNull();
+  await page.goto("/pricing");
+  await expect(page.getByRole("button", { name: "Test monthly Checkout" })).toHaveCount(0);
+  await expect(page.getByText("Your verified Teacher Pro access is active")).toBeVisible();
   await page.goto("/account"); await expect(page.getByText("Teacher Pro active")).toBeVisible(); await page.getByRole("button", { name: "Manage billing" }).click(); await expect(page).toHaveURL(/billing=fixture-portal/);
   const mappingBeforeReview = await admin.from("billing_customers").select("stripe_customer_id").eq("owner_teacher_id", active.id).single();
   await admin.from("billing_customers").update({ stripe_customer_id: "cus_manualreview" }).eq("owner_teacher_id", active.id);

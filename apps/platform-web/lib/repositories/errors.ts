@@ -1,6 +1,6 @@
 import { teacherFailure, type TeacherResult } from "@math-vocabulary-hunt/platform-core";
 
-type ProviderError = Readonly<{ code?: string }> | null;
+type ProviderError = Readonly<{ code?: string; message?: string }> | null;
 
 export function normalizeTimestamp(value: unknown): unknown {
   if (typeof value !== "string") return value;
@@ -9,6 +9,12 @@ export function normalizeTimestamp(value: unknown): unknown {
 }
 
 export function mapProviderError(error: ProviderError, fallback = "The requested operation is unavailable."): TeacherResult<never> {
+  if (error?.code === "P0001" && error.message?.includes("capability_limit_reached:class.create")) {
+    return teacherFailure("conflict", "Your active class limit has been reached. Archive a class to restore capacity, or review Teacher Pro in the test sandbox.");
+  }
+  if (error?.code === "P0001" && error.message?.includes("capability_limit_reached:activity.create")) {
+    return teacherFailure("conflict", "Your active activity-draft limit has been reached. Existing work remains safe; review Teacher Pro in the test sandbox for more capacity.");
+  }
   if (error?.code === "23505") return teacherFailure("conflict", "That record already exists.");
   if (error?.code === "23503" || error?.code === "23514" || error?.code === "22P02") {
     return teacherFailure("validation", "The submitted information is invalid.");

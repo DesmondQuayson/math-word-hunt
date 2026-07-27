@@ -52,7 +52,7 @@ export class SupabaseActivityRepository implements ActivityRepository {
 
   async getById(ownerTeacherId: UserId, activityId: string): Promise<TeacherResult<ActivityDefinition>> {
     const { data, error } = await this.client.from("teacher_activities").select(selection)
-      .eq("owner_teacher_id", ownerTeacherId).eq("id", activityId).maybeSingle();
+      .eq("owner_teacher_id", ownerTeacherId).eq("id", activityId).neq("status", "archived").maybeSingle();
     if (error) return mapProviderError(error);
     return parseRow(data);
   }
@@ -72,23 +72,33 @@ export class SupabaseActivityRepository implements ActivityRepository {
       combine_mode_enabled: parsed.value.combineMode,
       status: parsed.value.status
     };
-    const query = existing.ok
-      ? this.client.from("teacher_activities").update(values)
-          .eq("id", parsed.value.activityId).eq("owner_teacher_id", parsed.value.ownerTeacherId)
-      : this.client.from("teacher_activities").insert({
-          id: parsed.value.activityId,
-          owner_teacher_id: parsed.value.ownerTeacherId,
-          class_id: values.class_id,
-          grade_level: values.grade_level,
-          topic_key: values.topic_key,
-          lesson_key: values.lesson_key,
-          game_mode_key: values.game_mode_key,
-          time_limit_minutes: values.time_limit_minutes,
-          team_count: values.team_count,
-          combine_mode_enabled: values.combine_mode_enabled
-        });
+    if (!existing.ok) {
+      const { error } = await this.client.rpc("create_teacher_activity", {
+        p_activity_id: parsed.value.activityId,
+        p_class_id: values.class_id,
+        p_grade_level: values.grade_level,
+        p_topic_key: values.topic_key,
+        p_lesson_key: values.lesson_key,
+        p_game_mode_key: values.game_mode_key,
+        p_time_limit_minutes: values.time_limit_minutes,
+        p_team_count: values.team_count,
+        p_combine_mode_enabled: values.combine_mode_enabled
+      });
+      if (error) return mapProviderError(error);
+      return this.getById(parsed.value.ownerTeacherId, parsed.value.activityId);
+    }
+    const query = this.client.from("teacher_activities").update(values)
+      .eq("id", parsed.value.activityId).eq("owner_teacher_id", parsed.value.ownerTeacherId);
     const { data, error } = await query.select(selection).maybeSingle();
     if (error) return mapProviderError(error);
     return parseRow(data);
+  }
+
+  async archive(ownerTeacherId: UserId, activityId: string): Promise<TeacherResult<Readonly<{ activityId: string; archived: true }>>> {
+    const { data, error } = await this.client.from("teacher_activities").update({ status: "archived" })
+      .eq("owner_teacher_id", ownerTeacherId).eq("id", activityId).neq("status", "archived").select("id").maybeSingle();
+    if (error) return mapProviderError(error);
+    if (!data?.id) return teacherFailure("not-found", "Activity was not found.");
+    return { ok: true, value: Object.freeze({ activityId: String(data.id), archived: true }) };
   }
 }

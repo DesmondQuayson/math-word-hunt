@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/feedback/empty-state";
+import { FeatureAvailabilityBadge } from "@/components/capabilities/feature-availability-badge";
 import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { Notice } from "@/components/feedback/notice";
 import { PageHeader } from "@/components/layout/page-header";
@@ -8,11 +9,13 @@ import { ReportTable } from "@/components/teacher/report-table";
 import { SummaryMetric } from "@/components/teacher/summary-metric";
 import { LinkButton } from "@/components/ui/link-button";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
 
 export const metadata = { title: "Reports" };
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
   const prototype = getTeacherPrototypeState();
+  const access = await getCapabilityAccessView();
 
   return (
     <TeacherShell currentPath="/teacher/reports">
@@ -60,6 +63,7 @@ export default function ReportsPage() {
       <Notice label="Reporting limits" tone="warning">
         <strong>No mastery or predictive claims.</strong>
         <p>This preview contains no standards claims, student-level tracking, ranking, or automated judgments about learners.</p>
+        <FeatureAvailabilityBadge capabilityKey="report.view_placeholder" decision={access.decisions["report.view_placeholder"]} />
       </Notice>
     </TeacherShell>
   );

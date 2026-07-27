@@ -1,4 +1,6 @@
 import { EmptyState } from "@/components/feedback/empty-state";
+import { UpgradePrompt } from "@/components/capabilities/upgrade-prompt";
+import { UsageLimitSummary } from "@/components/capabilities/usage-limit-summary";
 import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -6,7 +8,7 @@ import { TeacherShell } from "@/components/layout/teacher-shell";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { resolveTeacherContext } from "@/lib/auth/teacher-context";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 import { createServerRepositories } from "@/lib/repositories/server-repositories";
 
@@ -14,7 +16,8 @@ export const metadata = { title: "Activities" };
 
 export default async function ActivitiesPage() {
   const prototype = getTeacherPrototypeState();
-  const context = prototype.enabled ? null : await resolveTeacherContext();
+  const access = await getCapabilityAccessView();
+  const context = prototype.enabled ? null : access.context;
   const repositories = context?.status === "active" ? await createServerRepositories() : null;
   const result = repositories && context?.userId ? await repositories.activities.listByOwner(context.userId) : null;
   const activities = result?.ok ? result.value : [];
@@ -54,12 +57,16 @@ export default async function ActivitiesPage() {
           </section>
         </>
       ) : realMode ? (
+        <>
+        {access.usage ? <UsageLimitSummary label="Active activity drafts" current={access.usage.activeActivityCount} maximum={access.usage.activeActivityLimit} planLabel={access.usage.planKey === "free" ? "Free" : "Teacher Pro"} headingId="activity-capacity" /> : null}
+        {!access.decisions["activity.create"].allowed ? <UpgradePrompt decision={access.decisions["activity.create"]} /> : null}
         <section aria-labelledby="activity-list-heading" data-testid="real-activity-list">
-          <div className="section-heading-row"><SectionHeader eyebrow="Your saved records" title="Activity drafts" id="activity-list-heading" compact /><LinkButton href="/teacher/activities/new">Create activity draft</LinkButton></div>
+          <div className="section-heading-row"><SectionHeader eyebrow="Your saved records" title="Activity drafts" id="activity-list-heading" compact />{access.decisions["activity.create"].allowed ? <LinkButton href="/teacher/activities/new">Create activity draft</LinkButton> : null}</div>
           {activities.length ? <div className="record-grid">{activities.map((activity) => (
-            <article key={activity.activityId}><Card className="record-card"><div className="record-card-heading"><h3>{activity.lessonId}</h3><StatusBadge tone={activity.status === "ready" ? "success" : "warning"}>{activity.status}</StatusBadge></div><p>Grade {activity.grade} · {activity.topicId}</p><p><strong>Mode:</strong> Team vocabulary hunt</p><p>{activity.timeLimitMinutes} minutes · {activity.teamCount} teams</p><p className="record-disclaimer">Saved locally · Not assigned</p></Card></article>
-          ))}</div> : <EmptyState symbol="+" headingId="activities-empty-heading" title="No saved activity drafts" description="Create a supported local draft. Assignment delivery and managed sessions remain unavailable." action={<LinkButton href="/teacher/activities/new">Create activity draft</LinkButton>} />}
+            <article key={activity.activityId}><Card className="record-card"><div className="record-card-heading"><h3>{activity.lessonId}</h3><StatusBadge tone={activity.status === "ready" ? "success" : "warning"}>{activity.status}</StatusBadge></div><p>Grade {activity.grade} · {activity.topicId}</p><p><strong>Mode:</strong> Team vocabulary hunt</p><p>{activity.timeLimitMinutes} minutes · {activity.teamCount} teams</p><p className="record-disclaimer">Saved locally · Not assigned</p><Link href={`/teacher/activities/${activity.activityId}`}>View and edit draft</Link><form action={archiveActivityAction}><input type="hidden" name="activityId" value={activity.activityId} /><button className="button button-secondary" type="submit">Archive draft</button></form></Card></article>
+          ))}</div> : <EmptyState symbol="+" headingId="activities-empty-heading" title="No saved activity drafts" description="Create a supported local draft. Assignment delivery and managed sessions remain unavailable." action={access.decisions["activity.create"].allowed ? <LinkButton href="/teacher/activities/new">Create activity draft</LinkButton> : undefined} />}
         </section>
+        </>
       ) : (
         <EmptyState
           symbol="+"
@@ -82,3 +89,6 @@ export default async function ActivitiesPage() {
     </TeacherShell>
   );
 }
+import Link from "next/link";
+
+import { archiveActivityAction } from "@/app/teacher-actions";

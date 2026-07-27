@@ -58,20 +58,22 @@ export class SupabaseClassRepository implements ClassRepository {
     const parsed = parseClassRecord(record);
     if (!parsed.ok) return parsed;
     const existing = await this.getById(parsed.value.ownerTeacherId, parsed.value.classId);
-    const query = existing.ok
-      ? this.client.from("teacher_classes").update({
+    if (!existing.ok) {
+      const { error } = await this.client.rpc("create_teacher_class", {
+        p_class_id: parsed.value.classId,
+        p_class_name: parsed.value.className,
+        p_grade_level: parsed.value.grade,
+        p_period_or_section: parsed.value.periodOrSection
+      });
+      if (error) return mapProviderError(error);
+      return this.getById(parsed.value.ownerTeacherId, parsed.value.classId);
+    }
+    const query = this.client.from("teacher_classes").update({
           class_name: parsed.value.className,
           grade_level: parsed.value.grade,
           period_or_section: parsed.value.periodOrSection,
           status: parsed.value.status
-        }).eq("id", parsed.value.classId).eq("owner_teacher_id", parsed.value.ownerTeacherId)
-      : this.client.from("teacher_classes").insert({
-          id: parsed.value.classId,
-          owner_teacher_id: parsed.value.ownerTeacherId,
-          class_name: parsed.value.className,
-          grade_level: parsed.value.grade,
-          period_or_section: parsed.value.periodOrSection
-        });
+        }).eq("id", parsed.value.classId).eq("owner_teacher_id", parsed.value.ownerTeacherId);
     const { data, error } = await query.select(selection).maybeSingle();
     if (error) return mapProviderError(error);
     return parseRow(data);

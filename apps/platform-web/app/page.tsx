@@ -22,7 +22,7 @@ export default function HomePage() {
           <div className="button-row">
             <LinkButton href="/play">Launch the current game</LinkButton>
             <LinkButton variant="secondary" href="/teacher">
-              View teacher preview
+              Open teacher workspace
             </LinkButton>
           </div>
           <p className="truth-note">
@@ -72,14 +72,14 @@ export default function HomePage() {
             </article>
             <article>
               <Card variant="interactive" className="path-card">
-                <p className="card-kicker">Preview only</p>
+                <p className="card-kicker">Teacher account workspace</p>
                 <h3>Teacher workspace</h3>
                 <p>
-                  Explore the planned workspace structure. Accounts, saved classes,
-                  reports, and subscriptions are not connected.
+                  Sign in to save privacy-minimized classes and activity drafts.
+                  Managed sessions and reports remain clearly unavailable.
                 </p>
                 <Link className="text-link" href="/teacher">
-                  Explore the workspace <span aria-hidden="true">→</span>
+                  Open the workspace <span aria-hidden="true">→</span>
                 </Link>
               </Card>
             </article>
@@ -104,8 +104,8 @@ export default function HomePage() {
             <span>Keyboard, pointer, touch, and large displays remain first-class.</span>
           </li>
           <li>
-            <strong>Truthful preview</strong>
-            <span>Future tools are labeled clearly and never filled with invented data.</span>
+            <strong>Truthful availability</strong>
+            <span>Working tools and future ideas are separated and labeled clearly.</span>
           </li>
         </ul>
       </section>

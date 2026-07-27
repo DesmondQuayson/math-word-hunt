@@ -1,0 +1,7 @@
+# Phase 3 verification
+
+`npm run phase3:verify` is the official local gate. It first runs the complete Phase 2 verification chain, then runs capability-focused unit tests, resets the database from empty, executes all pgTAP tests, runs real browser concurrency and downgrade scenarios, audits capability boundaries, verifies production-default behavior, performs clean production builds through the established OneDrive-safe build utility, scans bundles/billing/secrets, audits dependencies, checks diffs, and verifies protected hashes.
+
+The Phase 3 browser matrix covers 320x568, 390x844, 667x375, 768x1024, 1024x768, 1366x768, 1440x900, 1920x1080, and 2560x1440. It also exercises keyboard activation, forced colors, reduced motion, one-h1 structure, minimum control sizes through the established platform suites, horizontal reflow, unavailable-feature language, provider-ID redaction, Free limits, Pro limits, concurrent creation, direct-insert denial, and downgrade preservation.
+
+External Stripe-hosted lifecycle testing is separate because it requires an owner-controlled authenticated test account. Follow `stripe-test-mode-setup.md`. Provisioning and operations reject live credentials. Until the external checklist is executed, monthly/annual hosted completion, portal payment-method and invoice screens, provider cancellation timing, and test-clock failure/end events must be reported as awaiting owner action, not passed.

@@ -1,10 +1,12 @@
 import { Notice } from "@/components/feedback/notice";
+import { FeatureAvailabilityBadge } from "@/components/capabilities/feature-availability-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { PageHeader } from "@/components/layout/page-header";
 import { TeacherShell } from "@/components/layout/teacher-shell";
 import { WorkflowStepper } from "@/components/teacher/workflow-stepper";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
 
 export const metadata = { title: "Review live-session setup" };
 
@@ -15,7 +17,8 @@ const steps = [
   { label: "Complete", description: "Future aggregate summary" }
 ] as const;
 
-export default function NewSessionPage() {
+export default async function NewSessionPage() {
+  const access = await getCapabilityAccessView();
   return (
     <TeacherShell currentPath="/teacher/sessions/new">
       <Breadcrumbs items={[
@@ -53,6 +56,7 @@ export default function NewSessionPage() {
           <p className="card-kicker">Unavailable action</p>
           <h2>Create managed session</h2>
           <p>Saving, live connection, recovery, and completion records are not available.</p>
+          <FeatureAvailabilityBadge capabilityKey="managed_session.create" decision={access.decisions["managed_session.create"]} />
           <button className="button button-secondary" type="button" disabled aria-describedby="managed-session-disabled">
             Create managed session
           </button>

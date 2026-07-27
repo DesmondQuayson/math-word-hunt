@@ -50,6 +50,12 @@ continues to publish directly from docs without a build step.
 - npm run phase2a:verify runs that full gate plus billing secret and live-marker checks.
 - npm run test:e2e:phase2 runs deterministic local Checkout, portal, account-state, responsive, and accessibility flows.
 - npm run phase2:verify runs the complete Phase 2 local release gate, including reset-from-empty, billing integration, bundle/security scans, dependency audit, and protected hashes.
+- npm run test:capabilities runs the provider-independent capability registry,
+  authorization engine, copy, and server usage-contract tests.
+- npm run test:e2e:phase3 validates Free/Pro limits, real concurrent creation,
+  downgrade preservation, and the nine-viewport accessibility matrix.
+- npm run phase3:verify runs the complete Phase 2 gate followed by every new
+  capability, database, browser, security, clean-build, and preservation gate.
 - npm run build creates the isolated Next.js production build.
 - npm run test:security inspects production client assets and platform-core
   source for secret markers or forbidden dependencies.
@@ -107,6 +113,17 @@ billing; no production resource, deployment, real charge, or final production
 price is approved. Start with `docs/phase-2-implementation.md`,
 `docs/stripe-test-mode-setup.md`, `docs/billing-operations-runbook.md`, and
 `docs/phase-2-verification.md`.
+
+Phase 3 connects the existing teacher workspace to one provider-independent
+capability registry and server authorization engine. Free teachers may keep two
+active classes and three active activity drafts; verified Teacher Pro raises
+those reversible test defaults to 25 and 100. Creation is transactionally
+enforced by local Supabase, while downgrade preserves owned work and permits
+safe edits and archiving. Managed sessions, reports, students, and production
+billing remain unavailable. Start with `docs/phase-3-capability-audit.md`,
+`docs/phase-3-packaging-and-downgrade.md`,
+`docs/phase-3-operations-runbook.md`, and
+`docs/phase-3-owner-decisions.md`.
 
 ## Preservation rules
 

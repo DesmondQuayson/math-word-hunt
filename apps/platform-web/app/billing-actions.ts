@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { resolveTeacherContext } from "@/lib/auth/teacher-context";
+import { authorizeOwnedCapability } from "@/lib/capabilities/server";
 import { parseCheckoutIntent } from "@/lib/billing/contracts";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { createBillingProvider } from "@/lib/billing/provider-factory";
@@ -15,6 +16,8 @@ export async function startCheckoutAction(formData: FormData) {
     const intent = parseCheckoutIntent({ planKey: formData.get("planKey"), returnDestination: formData.get("returnDestination") });
     const context = await resolveTeacherContext();
     if (context.status === "anonymous" || context.status === "unconfigured") redirect(`/sign-in?next=${encodeURIComponent(intent.returnDestination)}`);
+    const authorization = await authorizeOwnedCapability("billing.checkout");
+    if (!authorization.decision.allowed) throw new Error("capability-denied");
     const repository = createBillingRepository();
     if (!repository) throw new Error("unavailable");
     const result = await createHostedCheckout({ context, config, provider: createBillingProvider(config), repository, ...intent });
@@ -29,6 +32,8 @@ export async function openBillingPortalAction() {
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/account?billing=unavailable");
   try {
+    const authorization = await authorizeOwnedCapability("billing.portal");
+    if (!authorization.decision.allowed) throw new Error("capability-denied");
     const context = await resolveTeacherContext();
     const repository = createBillingRepository();
     if (!repository) throw new Error("unavailable");
@@ -39,4 +44,3 @@ export async function openBillingPortalAction() {
     redirect("/account?billing=unavailable");
   }
 }
-

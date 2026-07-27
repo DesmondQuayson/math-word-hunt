@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { EmptyState } from "@/components/feedback/empty-state";
+import { UpgradePrompt } from "@/components/capabilities/upgrade-prompt";
+import { UsageLimitSummary } from "@/components/capabilities/usage-limit-summary";
 import { PrototypeDataNotice } from "@/components/feedback/prototype-data-notice";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -9,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { archiveClassAction } from "@/app/teacher-actions";
-import { resolveTeacherContext } from "@/lib/auth/teacher-context";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
 import { getTeacherPrototypeState } from "@/lib/prototype/teacher-fixtures.server";
 import { createServerRepositories } from "@/lib/repositories/server-repositories";
 
@@ -17,7 +19,8 @@ export const metadata = { title: "Classes" };
 
 export default async function ClassesPage() {
   const prototype = getTeacherPrototypeState();
-  const context = prototype.enabled ? null : await resolveTeacherContext();
+  const access = await getCapabilityAccessView();
+  const context = prototype.enabled ? null : access.context;
   const repositories = context?.status === "active" ? await createServerRepositories() : null;
   const result = repositories && context?.userId ? await repositories.classes.listByOwner(context.userId) : null;
   const classes = result?.ok ? result.value : [];
@@ -28,7 +31,7 @@ export default async function ClassesPage() {
       <PageHeader
         eyebrow="Teacher workspace · Classes"
         title="Organize the room without identifying students"
-        description="A future class will keep a teacher’s activities and aggregate live-session history together. It will not require student accounts or a roster."
+        description={realMode ? "A saved class keeps a teacher-recognizable label and activity-draft context together. It does not require student accounts or a roster." : "A future class will keep a teacher’s activities and aggregate live-session history together. It will not require student accounts or a roster."}
       />
 
       {prototype.enabled ? (
@@ -67,10 +70,13 @@ export default async function ClassesPage() {
           </section>
         </>
       ) : realMode ? (
+        <>
+        {access.usage ? <UsageLimitSummary label="Active classes" current={access.usage.activeClassCount} maximum={access.usage.activeClassLimit} planLabel={access.usage.planKey === "free" ? "Free" : "Teacher Pro"} headingId="class-capacity" /> : null}
+        {!access.decisions["class.create"].allowed ? <UpgradePrompt decision={access.decisions["class.create"]} /> : null}
         <section aria-labelledby="class-list-heading" data-testid="real-class-list">
           <div className="section-heading-row">
             <SectionHeader eyebrow="Your saved records" title="Classes" id="class-list-heading" compact />
-            <LinkButton href="/teacher/classes/new">Create class</LinkButton>
+            {access.decisions["class.create"].allowed ? <LinkButton href="/teacher/classes/new">Create class</LinkButton> : null}
           </div>
           {classes.length ? <div className="record-grid">{classes.map((classRecord) => (
             <article key={classRecord.classId}><Card variant="interactive" className="record-card">
@@ -79,8 +85,9 @@ export default async function ClassesPage() {
               <Link href={`/teacher/classes/${classRecord.classId}`}>View class</Link>
               {classRecord.status === "active" ? <form action={archiveClassAction}><input type="hidden" name="classId" value={classRecord.classId} /><button className="button button-secondary" type="submit">Archive class</button></form> : null}
             </Card></article>
-          ))}</div> : <EmptyState symbol="Aa" headingId="classes-empty-heading" title="No saved classes" description="Create a privacy-minimized class label. Do not enter student names." action={<LinkButton href="/teacher/classes/new">Create class</LinkButton>} />}
+          ))}</div> : <EmptyState symbol="Aa" headingId="classes-empty-heading" title="No saved classes" description="Create a privacy-minimized class label. Do not enter student names." action={access.decisions["class.create"].allowed ? <LinkButton href="/teacher/classes/new">Create class</LinkButton> : undefined} />}
         </section>
+        </>
       ) : (
         <EmptyState
           symbol="Aa"

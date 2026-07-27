@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
+import type { ActivityDefinition, ClassRecord } from "@math-vocabulary-hunt/platform-core";
 
 import {
   createActivityAction,
   createClassAction,
+  updateActivityAction,
+  updateClassAction,
   requestAccountDeletionAction,
   updateProfileAction
 } from "@/app/teacher-actions";
@@ -41,6 +44,19 @@ export function RealClassForm() {
   </form>;
 }
 
+export function EditClassForm({ record }: Readonly<{ record: ClassRecord }>) {
+  const [state, action, pending] = useActionState(updateClassAction, initialTeacherFormState);
+  const resultRef = useResultFocus(state);
+  return <form className="prototype-form" action={action} noValidate>
+    <Result state={state} resultRef={resultRef} />
+    <input type="hidden" name="classId" value={record.classId} />
+    <TextField id="edit-class-name" name="className" label="Class name" defaultValue={record.className} required maxLength={80} error={state.fieldErrors?.className} />
+    <SelectField id="edit-class-grade" name="grade" label="Grade level" options={ACTIVITY_CURRICULUM_OPTIONS.grades} defaultValue={record.grade ?? ""} emptyLabel="No grade selected" error={state.fieldErrors?.grade} />
+    <TextField id="edit-class-section" name="section" label="Period or section" defaultValue={record.periodOrSection ?? ""} maxLength={40} error={state.fieldErrors?.periodOrSection} />
+    <div className="form-actions"><Button type="submit" loading={pending}>Save class changes</Button><Link href="/teacher/classes">Return to classes</Link></div>
+  </form>;
+}
+
 type ActivityFormProps = Readonly<{ classOptions: readonly SelectOption[] }>;
 const timeOptions = [5, 10, 15, 20, 30, 45, 60].map((value) => ({ value: String(value), label: `${value} minutes` }));
 const teamOptions = [2, 3, 4, 5, 6, 7, 8].map((value) => ({ value: String(value), label: `${value} teams` }));
@@ -59,6 +75,23 @@ export function RealActivityForm({ classOptions }: ActivityFormProps) {
     <SelectField id="activity-teams" name="teamCount" label="Team count" options={teamOptions} required error={state.fieldErrors?.teamCount} />
     <label className="checkbox-field" htmlFor="activity-combine"><input id="activity-combine" name="combineMode" type="checkbox" /><span><strong>Use Combine Mode</strong><small>Recommended when a lesson has fewer than four placeable terms.</small></span></label>
     <div className="form-actions"><Button type="submit" loading={pending}>Save activity draft</Button><Link href="/teacher/activities">Cancel and return to activities</Link></div>
+  </form>;
+}
+
+export function EditActivityForm({ activity, classOptions }: Readonly<{ activity: ActivityDefinition; classOptions: readonly SelectOption[] }>) {
+  const [state, action, pending] = useActionState(updateActivityAction, initialTeacherFormState);
+  const resultRef = useResultFocus(state);
+  return <form className="prototype-form" action={action} noValidate>
+    <Result state={state} resultRef={resultRef} />
+    <input type="hidden" name="activityId" value={activity.activityId} />
+    <SelectField id="edit-activity-class" name="classId" label="Class" options={classOptions} defaultValue={activity.classId ?? ""} emptyLabel="No class selected" />
+    <SelectField id="edit-activity-grade" name="grade" label="Grade" options={ACTIVITY_CURRICULUM_OPTIONS.grades} defaultValue={activity.grade} required error={state.fieldErrors?.grade} />
+    <SelectField id="edit-activity-topic" name="topic" label="Topic" options={ACTIVITY_CURRICULUM_OPTIONS.topics} defaultValue={activity.topicId} required error={state.fieldErrors?.topicId} />
+    <SelectField id="edit-activity-lesson" name="lesson" label="Lesson" options={ACTIVITY_CURRICULUM_OPTIONS.lessons} defaultValue={activity.lessonId} required error={state.fieldErrors?.lessonId} />
+    <SelectField id="edit-activity-time" name="timeLimit" label="Time limit" options={timeOptions} defaultValue={String(activity.timeLimitMinutes)} required error={state.fieldErrors?.timeLimitMinutes} />
+    <SelectField id="edit-activity-teams" name="teamCount" label="Team count" options={teamOptions} defaultValue={String(activity.teamCount)} required error={state.fieldErrors?.teamCount} />
+    <label className="checkbox-field" htmlFor="edit-activity-combine"><input id="edit-activity-combine" name="combineMode" type="checkbox" defaultChecked={activity.combineMode} /><span><strong>Use Combine Mode</strong><small>Recommended when a lesson has fewer than four placeable terms.</small></span></label>
+    <div className="form-actions"><Button type="submit" loading={pending}>Save activity changes</Button><Link href="/teacher/activities">Return to activities</Link></div>
   </form>;
 }
 

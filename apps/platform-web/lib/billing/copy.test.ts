@@ -12,4 +12,8 @@ describe("teacher-facing billing copy", () => {
     expect(JSON.stringify(states)).not.toMatch(/cus_|sub_|price_|evt_/);
   });
   it("treats an expired active projection as ended", () => expect(billingAccountCopy({ ...base, periodEnd: "2028-01-01T00:00:00.000Z" }, now).title).toBe("Subscription ended"));
+  it("requires the subscription projection to match verified product access", () => {
+    expect(billingAccountCopy(base, now, "free").title).toBe("Billing review needed");
+    expect(billingAccountCopy(base, now, "teacher-pro-monthly").title).toBe("Teacher Pro active");
+  });
 });

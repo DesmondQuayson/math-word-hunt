@@ -51,9 +51,15 @@ select results_eq($$select count(*)::bigint from public.teacher_profiles$$, $$va
 select results_eq($$select count(*)::bigint from public.teacher_classes$$, $$values (1::bigint)$$, 'teacher A reads only own class');
 select results_eq($$select count(*)::bigint from public.teacher_activities$$, $$values (1::bigint)$$, 'teacher A reads only own activity');
 select results_eq($$select count(*)::bigint from public.product_entitlements$$, $$values (1::bigint)$$, 'teacher A reads only own entitlement');
-select lives_ok(
+select throws_ok(
   $$insert into public.teacher_classes (owner_teacher_id, class_name, grade_level) values ('20000000-0000-0000-0000-000000000001', 'Teacher A New Class', '6')$$,
-  'active teacher can create own class'
+  '42501',
+  null,
+  'direct class insert cannot bypass transactional capability enforcement'
+);
+select lives_ok(
+  $$select public.create_teacher_class('21000000-0000-0000-0000-000000000004', 'Teacher A New Class', '6', null)$$,
+  'active teacher can create an owned class through the constrained function'
 );
 select results_eq(
   $$with changed as (update public.teacher_classes set class_name = 'Forbidden' where id = '21000000-0000-0000-0000-000000000002' returning 1) select count(*)::bigint from changed$$,
@@ -84,9 +90,21 @@ select throws_ok(
   null,
   'activity cannot reference another teacher class'
 );
-select lives_ok(
+select throws_ok(
   $$insert into public.teacher_activities (owner_teacher_id, class_id, grade_level, topic_key, lesson_key, game_mode_key, time_limit_minutes, team_count) values ('20000000-0000-0000-0000-000000000001', '21000000-0000-0000-0000-000000000001', '6', 'g6-expressions', 'g6-3-6', 'team-hunt', 15, 4)$$,
-  'teacher can create activity for own class'
+  '42501',
+  null,
+  'direct activity insert cannot bypass transactional capability enforcement'
+);
+select throws_ok(
+  $$select public.create_teacher_activity('22000000-0000-0000-0000-000000000003', '21000000-0000-0000-0000-000000000002', '7', 'g7-probability', 'g7-7-3', 'team-hunt', 15, 4, false)$$,
+  '42501',
+  'Owned active class required',
+  'activity function rejects another teacher class'
+);
+select lives_ok(
+  $$select public.create_teacher_activity('22000000-0000-0000-0000-000000000004', '21000000-0000-0000-0000-000000000001', '6', 'g6-expressions', 'g6-3-6', 'team-hunt', 15, 4, false)$$,
+  'teacher can create an activity through the constrained function'
 );
 select throws_ok($$update public.products set display_name = 'Changed'$$, '42501', null, 'ordinary teacher cannot write products');
 select throws_ok(

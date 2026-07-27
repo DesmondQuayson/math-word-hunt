@@ -42,3 +42,25 @@ export { BILLING_PLAN_KEYS, isBillingPlanKey, parseBillingPlanKey, type BillingP
 export { BILLING_CATALOG, defineBillingCatalog, type BillingInterval, type BillingPlanDefinition, type BillingPricingStatus } from "./billing/catalog";
 export { BILLING_SUBSCRIPTION_STATUSES, deriveBillingEntitlement, normalizeBillingSubscriptionStatus, type BillingEntitlementDecision, type BillingEntitlementInput, type BillingSubscriptionStatus } from "./billing/subscription-state";
 export { BILLING_UI_COPY, BILLING_UI_STATES, type BillingUiCopy, type BillingUiState } from "./billing/ui-state";
+export { CAPABILITY_KEYS, isCapabilityKey, parseCapabilityKey, type CapabilityKey } from "./capabilities/keys";
+export {
+  CAPABILITIES_BY_KEY,
+  CAPABILITY_REGISTRY,
+  defineCapabilityRegistry,
+  parseCapabilityDefinition,
+  type CapabilityAllowance,
+  type CapabilityAvailability,
+  type CapabilityCategory,
+  type CapabilityDefinition,
+  type CapabilityLifecycle,
+  type UsageLimitUnit
+} from "./capabilities/registry";
+export {
+  CAPABILITY_DECISION_REASONS,
+  decideCapability,
+  type CapabilityDecision,
+  type CapabilityDecisionInput,
+  type CapabilityDecisionReason,
+  type CapabilityEntitlementState
+} from "./capabilities/authorization";
+export { PRODUCT_PACKAGES, getProductPackage, type ProductPackage } from "./capabilities/packaging";
