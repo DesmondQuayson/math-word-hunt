@@ -19,6 +19,9 @@ describe("platform-core public API", () => {
       "DELETION_STATES",
       "FEATURE_KEYS",
       "OBSERVABILITY_CATEGORIES",
+      "PILOT_CHECKLIST_KEYS",
+      "PILOT_EVENT_CODES",
+      "PILOT_READINESS_STATES",
       "PLATFORM_ENVIRONMENTS",
       "PRODUCT_CATALOG",
       "PRODUCT_KEYS",
@@ -26,14 +29,19 @@ describe("platform-core public API", () => {
       "SESSION_STATUSES",
       "assertUniqueKeys",
       "canTransitionDeletion",
+      "createEmptyPilotChecklist",
       "createEntitlementPolicy",
+      "createPilotEvent",
       "createSafeEvent",
+      "createSyntheticPilotFixture",
       "decideCapability",
       "defineBillingCatalog",
       "defineCapabilityRegistry",
       "defineProductCatalog",
       "denyTeacherOperation",
       "deriveBillingEntitlement",
+      "evaluatePilotPolicy",
+      "evaluatePilotReadiness",
       "getProductPackage",
       "isBillingPlanKey",
       "isCapabilityKey",
@@ -50,6 +58,7 @@ describe("platform-core public API", () => {
       "parseEntitlement",
       "parseEnvironmentRegistry",
       "parseFeatureKey",
+      "parsePilotCorrelationId",
       "parseProductKey",
       "parseSessionRecord",
       "parseTeacherDashboard",
@@ -58,7 +67,8 @@ describe("platform-core public API", () => {
       "planDeletion",
       "renderEmailTemplate",
       "teacherFailure",
-      "teacherSuccess"
+      "teacherSuccess",
+      "verifySyntheticFixtureCleanup"
     ]);
   });
 

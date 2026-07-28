@@ -68,3 +68,18 @@ export { PLATFORM_ENVIRONMENTS, parseEnvironmentRegistry, type PlatformEnvironme
 export { DELETION_STATES, canTransitionDeletion, planDeletion, type DeletionState, type DeletionPlan } from "./deletion/lifecycle";
 export { OBSERVABILITY_CATEGORIES, createSafeEvent, type ObservabilityCategory, type SafeEvent } from "./observability/events";
 export { renderEmailTemplate, type EmailTemplate, type EmailTemplateKey } from "./email/templates";
+export {
+  PILOT_CHECKLIST_KEYS,
+  PILOT_READINESS_STATES,
+  createEmptyPilotChecklist,
+  evaluatePilotPolicy,
+  evaluatePilotReadiness,
+  type PilotChecklist,
+  type PilotChecklistKey,
+  type PilotPolicy,
+  type PilotPolicyInput,
+  type PilotReadinessEvaluation,
+  type PilotReadinessState
+} from "./pilot/policy";
+export { createSyntheticPilotFixture, verifySyntheticFixtureCleanup, type SyntheticFixtureCounts, type SyntheticPilotFixture } from "./pilot/fixtures";
+export { PILOT_EVENT_CODES, createPilotEvent, parsePilotCorrelationId, type PilotEnvironmentClass, type PilotEventCode, type PilotRouteCategory } from "./pilot/operations";

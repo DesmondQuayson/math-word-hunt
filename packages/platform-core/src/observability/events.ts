@@ -1,4 +1,4 @@
-export const OBSERVABILITY_CATEGORIES = ["authentication", "authorization", "capability", "billing", "database", "deletion", "environment", "health"] as const;
+export const OBSERVABILITY_CATEGORIES = ["authentication", "authorization", "capability", "billing", "database", "deletion", "environment", "health", "pilot"] as const;
 export type ObservabilityCategory = (typeof OBSERVABILITY_CATEGORIES)[number];
 export type SafeEvent = Readonly<{ category: ObservabilityCategory; severity: "info" | "warning" | "error" | "critical"; code: string; correlationId: string; detail?: Readonly<Record<string, string | number | boolean | null>> }>;
 const forbidden = /(password|token|secret|authorization|cookie|email|service.?role)/i;
