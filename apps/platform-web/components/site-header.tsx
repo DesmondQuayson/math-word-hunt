@@ -6,6 +6,7 @@ import { NavigationItem } from "@/components/layout/navigation-item";
 const navigation = [
   { href: "/play", label: "Play" },
   { href: "/teacher", label: "Teacher" },
+  { href: "/pilot", label: "Pilot" },
   { href: "/account", label: "Account" }
 ] as const;
 

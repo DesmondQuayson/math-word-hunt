@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { resolveTeacherContext } from "@/lib/auth/teacher-context";
 import { capabilityDecisionMessage } from "@/lib/capabilities/copy";
 import { authorizeOwnedCapability } from "@/lib/capabilities/server";
+import { planningLabelError } from "@/lib/pilot/content-safety";
 import { createServerRepositories } from "@/lib/repositories/server-repositories";
 import type { TeacherFormState } from "@/lib/teacher/form-state";
 
@@ -33,13 +34,21 @@ export async function createClassAction(_previous: TeacherFormState, formData: F
   if (!authorization.decision.allowed) return unavailable(capabilityDecisionMessage(authorization.decision));
   const resources = await activeResources();
   if (!resources) return unavailable();
+  const className = field(formData, "className");
+  const periodOrSection = field(formData, "section");
+  const fieldErrors: Record<string, string> = {};
+  const classNameSafetyError = planningLabelError(className);
+  const sectionSafetyError = periodOrSection ? planningLabelError(periodOrSection) : null;
+  if (classNameSafetyError) fieldErrors.className = classNameSafetyError;
+  if (sectionSafetyError) fieldErrors.periodOrSection = sectionSafetyError;
+  if (Object.keys(fieldErrors).length > 0) return { status: "error", message: "Remove prohibited information from the class labels.", fieldErrors };
   const now = new Date().toISOString();
   const parsed = parseClassRecord({
     classId: crypto.randomUUID(),
     ownerTeacherId: resources.context.userId,
-    className: field(formData, "className"),
+    className,
     grade: field(formData, "grade") || null,
-    periodOrSection: field(formData, "section") || null,
+    periodOrSection: periodOrSection || null,
     status: "active",
     archivedAt: null,
     createdAt: now,
@@ -73,11 +82,19 @@ export async function updateClassAction(_previous: TeacherFormState, formData: F
   if (!existing.ok) return { status: "error", message: existing.error.message };
   const authorization = await authorizeOwnedCapability("class.edit", existing.value.ownerTeacherId);
   if (!authorization.decision.allowed) return unavailable(capabilityDecisionMessage(authorization.decision));
+  const className = field(formData, "className");
+  const periodOrSection = field(formData, "section");
+  const fieldErrors: Record<string, string> = {};
+  const classNameSafetyError = planningLabelError(className);
+  const sectionSafetyError = periodOrSection ? planningLabelError(periodOrSection) : null;
+  if (classNameSafetyError) fieldErrors.className = classNameSafetyError;
+  if (sectionSafetyError) fieldErrors.periodOrSection = sectionSafetyError;
+  if (Object.keys(fieldErrors).length > 0) return { status: "error", message: "Remove prohibited information from the class labels.", fieldErrors };
   const parsed = parseClassRecord({
     ...existing.value,
-    className: field(formData, "className"),
+    className,
     grade: field(formData, "grade") || null,
-    periodOrSection: field(formData, "section") || null,
+    periodOrSection: periodOrSection || null,
     updatedAt: new Date().toISOString()
   });
   if (!parsed.ok) return { status: "error", message: parsed.error.message, fieldErrors: parsed.error.field ? { [parsed.error.field]: parsed.error.message } : undefined };

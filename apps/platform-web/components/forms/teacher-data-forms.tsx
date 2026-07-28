@@ -39,7 +39,7 @@ export function RealClassForm() {
     <Result state={state} resultRef={resultRef} />
     <TextField id="class-name" name="className" label="Class name" description="Use a teacher-recognizable label. Do not enter student names." required maxLength={80} error={state.fieldErrors?.className} />
     <SelectField id="class-grade" name="grade" label="Grade level" options={ACTIVITY_CURRICULUM_OPTIONS.grades} emptyLabel="No grade selected" error={state.fieldErrors?.grade} />
-    <TextField id="class-section" name="section" label="Period or section" description="Optional. Examples: Period 2 or Block A." maxLength={40} error={state.fieldErrors?.periodOrSection} />
+    <TextField id="class-section" name="section" label="Period or section" description="Optional. Use a general label such as Period 2 or Block A; do not enter a student name or identifier." maxLength={40} error={state.fieldErrors?.periodOrSection} />
     <div className="form-actions"><Button type="submit" loading={pending}>Save class</Button><Link href="/teacher/classes">Cancel and return to classes</Link></div>
   </form>;
 }
@@ -50,9 +50,9 @@ export function EditClassForm({ record }: Readonly<{ record: ClassRecord }>) {
   return <form className="prototype-form" action={action} noValidate>
     <Result state={state} resultRef={resultRef} />
     <input type="hidden" name="classId" value={record.classId} />
-    <TextField id="edit-class-name" name="className" label="Class name" defaultValue={record.className} required maxLength={80} error={state.fieldErrors?.className} />
+    <TextField id="edit-class-name" name="className" label="Class name" description="Use a general teacher-recognizable label without student names or identifiers." defaultValue={record.className} required maxLength={80} error={state.fieldErrors?.className} />
     <SelectField id="edit-class-grade" name="grade" label="Grade level" options={ACTIVITY_CURRICULUM_OPTIONS.grades} defaultValue={record.grade ?? ""} emptyLabel="No grade selected" error={state.fieldErrors?.grade} />
-    <TextField id="edit-class-section" name="section" label="Period or section" defaultValue={record.periodOrSection ?? ""} maxLength={40} error={state.fieldErrors?.periodOrSection} />
+    <TextField id="edit-class-section" name="section" label="Period or section" description="Optional. Do not enter a student name, email, ID, or roster information." defaultValue={record.periodOrSection ?? ""} maxLength={40} error={state.fieldErrors?.periodOrSection} />
     <div className="form-actions"><Button type="submit" loading={pending}>Save class changes</Button><Link href="/teacher/classes">Return to classes</Link></div>
   </form>;
 }

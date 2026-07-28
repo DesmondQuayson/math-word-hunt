@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { planningLabelError } from "@/lib/pilot/content-safety";
 
 import { SelectField } from "./select-field";
 import { TextField } from "./text-field";
 
 type ClassFormErrors = {
   className?: string;
+  periodOrSection?: string;
 };
 
 const gradeOptions = [
@@ -31,6 +33,7 @@ export function ClassFormPrototype() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const className = String(formData.get("className") ?? "").trim();
+    const periodOrSection = String(formData.get("section") ?? "").trim();
     const nextErrors: ClassFormErrors = {};
 
     if (className.length === 0) {
@@ -39,6 +42,13 @@ export function ClassFormPrototype() {
       nextErrors.className = "Class name must contain at least 2 characters.";
     } else if (className.length > 80) {
       nextErrors.className = "Class name must contain no more than 80 characters.";
+    } else {
+      const safetyError = planningLabelError(className);
+      if (safetyError) nextErrors.className = safetyError;
+    }
+    if (periodOrSection) {
+      const safetyError = planningLabelError(periodOrSection);
+      if (safetyError) nextErrors.periodOrSection = safetyError;
     }
 
     setErrors(nextErrors);
@@ -56,7 +66,8 @@ export function ClassFormPrototype() {
           data-testid="error-summary"
         >
           <strong>Check the class information.</strong>
-          <a href="#class-name">Class name needs attention.</a>
+          {errors.className ? <a href="#class-name">Class name needs attention.</a> : null}
+          {errors.periodOrSection ? <a href="#class-section">Period or section needs attention.</a> : null}
         </div>
       ) : null}
 
@@ -90,6 +101,7 @@ export function ClassFormPrototype() {
         label="Period or section"
         description="Optional. Examples: Period 2 or Block A."
         maxLength={40}
+        error={errors.periodOrSection}
       />
 
       <div className="form-actions">

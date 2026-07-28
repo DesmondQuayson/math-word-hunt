@@ -10,7 +10,10 @@ export function SiteFooter() {
           Platform preview. The current classroom game remains the active
           experience.
         </p>
-        <Link href="/play">Go to the game gateway</Link>
+        <div className="footer-links">
+          <Link href="/pilot/privacy">Pilot privacy</Link>
+          <Link href="/play">Go to the game gateway</Link>
+        </div>
       </Container>
     </footer>
   );
