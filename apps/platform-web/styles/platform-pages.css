@@ -754,6 +754,7 @@
   background: var(--color-brand-secondary);
   color: var(--color-text-primary);
   font-size: var(--font-size-label);
+  line-height: 1.3125rem;
 }
 
 .pilot-status-banner strong {
@@ -843,6 +844,18 @@
 
 .pilot-hero h1 {
   max-width: 14ch;
+  overflow-wrap: anywhere;
+}
+
+.pilot-hero > *,
+.pilot-stamp,
+.pilot-readiness-path li,
+.pilot-card-grid > *,
+.pilot-ledger-columns > *,
+.pilot-rule-grid > *,
+.pilot-support-card > *,
+.pilot-exit-steps li > * {
+  min-width: 0;
 }
 
 .pilot-hero .lede {
@@ -850,6 +863,8 @@
 }
 
 .pilot-stamp {
+  width: 100%;
+  max-width: 18rem;
   padding: var(--space-6);
   border: var(--border-width-strong) double var(--color-accent);
   border-radius: 50% 50% var(--radius-large) var(--radius-large);
@@ -857,6 +872,7 @@
   box-shadow: var(--shadow-offset-accent);
   text-align: center;
   transform: rotate(1deg);
+  overflow-wrap: anywhere;
 }
 
 .pilot-stamp span,
@@ -994,6 +1010,13 @@
 
 .pilot-acknowledgment > * + * {
   margin-top: var(--space-4);
+}
+
+.pilot-acknowledgment .checkbox-field input {
+  width: var(--size-target-min);
+  height: var(--size-target-min);
+  flex: 0 0 var(--size-target-min);
+  margin-top: 0;
 }
 
 .pilot-inline-status,
@@ -1150,11 +1173,51 @@
   }
 
   .pilot-stamp {
-    max-width: 18rem;
+    max-width: min(18rem, 100%);
   }
 }
 
 @media (max-width: 40rem) {
+  .pilot-shell,
+  .pilot-shell > *,
+  .pilot-shell section,
+  .pilot-shell section > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pilot-shell .section-heading-row > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pilot-shell .notice-content,
+  .pilot-feedback-form .form-field,
+  .pilot-feedback-form input,
+  .pilot-feedback-form select,
+  .pilot-feedback-form textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pilot-feedback-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  :where(.pilot-shell h1, .pilot-shell h2, .pilot-shell h3, .pilot-shell p, .pilot-shell li, .pilot-shell strong, .pilot-shell small, .pilot-shell a, .pilot-shell span) {
+    overflow-wrap: anywhere;
+  }
+
+  .nav-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav-list li {
+    min-width: 0;
+  }
+
   .pilot-status-banner {
     align-items: stretch;
     flex-direction: column;

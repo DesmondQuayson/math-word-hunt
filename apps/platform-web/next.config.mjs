@@ -5,6 +5,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   transpilePackages: ["@math-vocabulary-hunt/platform-core"],
   turbopack: {
     root: repositoryRoot

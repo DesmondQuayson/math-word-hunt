@@ -159,3 +159,32 @@ tables are service-only, reconciliation must be idempotent/order-independent,
 and account restrictions override payment. Paid prices and commercial policies
 remain unapproved. No provider resource, endpoint, payment, or deployment was
 created. See `phase-2a-decisions.md`.
+
+## Recorded on 2026-07-28 during Phase 6
+
+### Pilot readiness is not authorization
+
+Status: accepted as an implementation boundary, pending owner activation
+decisions. PilotPolicy is provider- and framework-independent, defaults to
+inactive, treats missing/malformed/unsupported configuration as inactive, and
+distinguishes local readiness from activation. It is not a role, entitlement,
+ownership marker, browser flag, or RLS input. Consequence: no Phase 6 value can
+grant database or product access, and Phase 6B requires separate approval.
+
+### Local, non-persistent pilot feedback
+
+Status: accepted for readiness evaluation. The pilot form holds its draft in
+component memory, prepares a reviewed plain-text summary, and optionally copies
+it after an explicit action. It has no server persistence, third-party service,
+analytics, session replay, upload, or delivery address. Consequence: the owner
+must choose a final feedback channel before activation, and the UI makes no
+delivery or support-time promise.
+
+### Adult-teacher-only data minimization
+
+Status: accepted as a hard pilot boundary. Student participation and student
+names, emails, IDs, rosters, work, grades, IEP information, behavioral records,
+and sensitive school data are prohibited. Accessible validation catches only
+obvious patterns and does not claim perfect detection or silently inspect other
+content. Consequence: any student-data entry is an immediate stop, restriction,
+incident-review, and cleanup event.

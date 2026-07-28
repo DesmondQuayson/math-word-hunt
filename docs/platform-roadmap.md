@@ -54,6 +54,22 @@ email, billing, domain, or pilot work.
 - real email and password-recovery delivery, live billing, pilot invitations,
   custom domain, and Production launch remain deliberately deferred
 
+## Phase 6 - controlled teacher pilot governance and readiness (owner decision pending)
+
+- prepare governance, privacy/acceptable-use drafts, retention choices,
+  support/incident operations, participant runbooks, evidence, and one
+  consolidated owner-decision register
+- add a polished local pilot field guide with persistent restricted/inactive,
+  adult-teacher-only, no-student-data, no-billing, and unsupported-feature copy
+- add provider-independent default-inactive PilotPolicy, readiness evaluation,
+  sanitized operations, synthetic fixtures, and cleanup verification without
+  changing RLS, identity, ownership, or entitlements
+- rehearse the complete journey with disposable local adult-teacher identities
+  and require reciprocal cross-account denial plus zero final fixture counts
+- use [`phase-6-verification.md`](phase-6-verification.md) as the readiness gate
+- Phase 6B activation, participant accounts/invitations, real email/recovery,
+  provider mutation, billing, public access, and Production remain unapproved
+
 ## Later platform work
 
 Organizations, school or district licensing, multiple products, rostering, SSO,

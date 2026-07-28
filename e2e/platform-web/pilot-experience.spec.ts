@@ -84,14 +84,60 @@ test("authentication and exit copy remain honest", async ({ page }) => {
 
 test("pilot routes reflow across the required local viewport matrix", async ({ page }) => {
   const viewports = [
-    { width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 },
-    { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }
+    { width: 320, height: 568 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 412, height: 915 },
+    { width: 844, height: 390 }, { width: 768, height: 1024 }, { width: 1024, height: 768 },
+    { width: 1280, height: 720 }, { width: 1366, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }
   ];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     for (const [route] of pilotRoutes) {
       await page.goto(route);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+  }
+});
+
+test("pilot controls preserve visible focus and minimum target size", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/pilot");
+  const targets = await page.locator(".pilot-status-banner a:visible, .pilot-shell a:visible, .pilot-shell button:visible, .pilot-shell input:visible").evaluateAll((elements) => elements.map((element) => {
+    const rect = element.getBoundingClientRect(); return { height: rect.height, width: rect.width, label: element.textContent || element.getAttribute("aria-label") };
+  }));
+  for (const target of targets) expect.soft(target.height, target.label ?? "pilot target").toBeGreaterThanOrEqual(44);
+  const privacyLink = page.getByRole("navigation", { name: "Pilot readiness" }).getByRole("link", { name: "Privacy" });
+  await privacyLink.focus();
+  const focus = await privacyLink.evaluate((element) => ({ width: parseFloat(getComputedStyle(element).outlineWidth), style: getComputedStyle(element).outlineStyle }));
+  expect(focus.style).not.toBe("none"); expect(focus.width).toBeGreaterThanOrEqual(3);
+});
+
+test("pilot routes respect reduced motion and forced colors", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
+  await page.goto("/pilot");
+  const result = await page.getByRole("navigation", { name: "Pilot readiness" }).evaluate((element) => ({
+    transition: parseFloat(getComputedStyle(element).transitionDuration || "0"),
+    scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+    borderStyle: getComputedStyle(element).borderStyle
+  }));
+  expect(result.transition).toBeLessThanOrEqual(0.001);
+  expect(result.scrollBehavior).toBe("auto");
+  expect(result.borderStyle).not.toBe("none");
+});
+
+test("pilot content withstands text spacing, 200 percent scaling, and 400-percent-equivalent reflow", async ({ page }) => {
+  for (const [width, fontSize] of [[640, "200%"], [320, "200%"]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of ["/pilot", "/pilot/feedback", "/pilot/exit"]) {
+      await page.goto(route);
+      await page.addStyleTag({ content: `*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}html{font-size:${fontSize}!important}` });
+      const layout = await page.evaluate(() => ({
+        contained: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        offenders: Array.from(document.querySelectorAll<HTMLElement>("body *")).map((element) => {
+          const rect = element.getBoundingClientRect(); return { tag: element.tagName, className: element.className, text: element.textContent?.trim().slice(0, 60), left: rect.left, right: rect.right, width: rect.width };
+        }).filter((item) => item.right > document.documentElement.clientWidth + 1 || item.left < -1).slice(0, 8)
+      }));
+      expect(layout.contained, `${route} at ${width}px: ${JSON.stringify(layout)}`).toBe(true);
     }
   }
 });
