@@ -45,6 +45,7 @@
     "test:phase4": "npm run test --workspace @math-vocabulary-hunt/platform-core -- src/environment src/deletion src/observability src/email && npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/environment lib/observability",
     "test:phase4:security": "node scripts/audit-phase4-security.mjs",
     "test:e2e:phase4": "node scripts/run-phase4-e2e.mjs",
+    "test:e2e:phase6": "node scripts/run-phase6-e2e.mjs",
     "phase4:verify": "node scripts/verify-phase4.mjs",
     "test:phase5:readiness": "node --test scripts/phase5-readiness-contract.test.mjs",
     "phase5:readiness": "node scripts/validate-phase5-readiness.mjs",
