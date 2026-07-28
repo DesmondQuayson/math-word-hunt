@@ -1,7 +1,8 @@
 # Platform Roadmap
 
-Everything below this heading is future work. Phase 1A does not implement any
-framework, account, database, entitlement, or billing service.
+This roadmap records the original platform sequence and its accepted status.
+Completed checkpoints do not authorize deliberately deferred Production,
+email, billing, domain, or pilot work.
 
 ## Phase 1A — repository normalization
 
@@ -43,12 +44,15 @@ framework, account, database, entitlement, or billing service.
 - add accessible Account, Subscription, Upgrade, and Manage Billing interfaces
 - handle active, trialing, recovery, cancellation, and failed-payment states
 
-## Phase 5 — controlled launch
+## Phase 5 — protected hosted Preview verification (complete)
 
-- complete privacy, terms, refund, tax, and curriculum reviews
-- run accessibility and physical classroom testing
-- validate production monitoring and rollback
-- perform a controlled owner-approved launch
+- owner-accepted completion recorded on 2026-07-28
+- protected Preview, hosted authentication and session behavior, reciprocal
+  cross-account RLS, responsive behavior, and accessibility evidence verified
+- all synthetic hosted fixtures and Auth users removed after verification
+- authoritative evidence: [`phase-5-completion.md`](phase-5-completion.md)
+- real email and password-recovery delivery, live billing, pilot invitations,
+  custom domain, and Production launch remain deliberately deferred
 
 ## Later platform work
 
