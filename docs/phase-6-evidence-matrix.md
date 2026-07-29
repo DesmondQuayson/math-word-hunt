@@ -1,21 +1,29 @@
 # Phase 6 evidence matrix
 
-Status: working readiness record. A pass means locally verified, not activated.
+Status: **technical readiness accepted and governance decisions recorded;
+Phase 6B remains NO-GO**. A pass is evidence, not activation authority.
 
-| Area | Required evidence | Readiness state |
+| Area | Recorded evidence | Current state |
 | --- | --- | --- |
-| Phase 5 baseline | complete `npm run phase5:verify` | required before implementation and inside final gate |
-| Governance | charter, data inventory, draft policy, retention choices, support and runbooks | owner approval pending |
-| Pilot policy | default/missing/malformed inactive; readiness distinct from activation | automated unit tests required |
-| Pilot UI | persistent disclosure; onboarding, privacy, support, feedback, exit routes | local browser evidence required |
-| Data minimization | no student fields; obvious prohibited patterns rejected; no feedback persistence | static, unit, and browser evidence required |
-| Identity/authorization | signed-out and restricted denial; generic auth errors; reciprocal cross-account denial | existing and Phase 6 harnesses required |
-| Gameplay | gateway, canonical keyboard, canonical Pointer Events, historical v5 | protected suites required |
-| Accessibility | landmarks, h1, keyboard, focus, 44px, reduced motion, forced colors, spacing, zoom/reflow, viewport matrix | browser evidence required; not a conformance claim |
-| Operations | safe events/correlation IDs, restriction rehearsal, cleanup to zero | deterministic tests required |
-| External boundaries | no email delivery, analytics, session replay, live billing, deployment, or provider mutation | negative scans and run record required |
-| Security | bundle/tracked secret scans, production-default audit, dependency audit | final verification required |
-| Integrity | protected hashes, historical diff, `git diff --check`, production build | final verification required |
+| Phase 5 baseline | Complete baseline included in `npm run phase6:verify` | passed |
+| Governance | Charter, data inventory, retention, support, runbooks, owner decisions, and stop rules | readiness decisions approved |
+| Pilot dates and identities | Start deferred; end is start plus 21 days; identities stay in a private owner record | Phase 6B blocker |
+| Pilot scope | Three initial and no more than five approved adult teachers; three weeks; organization labels disabled | approved for readiness only |
+| Pilot policy | Missing, malformed, unknown, and requested-active values stay inactive | passed |
+| Pilot UI | Persistent inactive/restricted, adult-teacher-only, no-student-data, no-billing, support, feedback, and exit disclosure | passed locally |
+| Data minimization | Minimum permitted inventory, prohibited-data validation, no feedback persistence, 14-day maximum post-pilot review window | approved and tested locally |
+| Identity/authorization | Signed-out and restricted denial, generic auth errors, session restoration, reciprocal cross-account RLS denial | passed |
+| Gameplay | Canonical v7 keyboard and Pointer Events plus historical v5 | passed |
+| Accessibility | Landmarks, keyboard, focus, 44px, reduced motion, forced colors, spacing, zoom/reflow, and viewport matrix | passed; not a conformance claim |
+| Operations | Safe events, restriction, revocation, withdrawal, cleanup responsibilities, and zero synthetic counts | passed locally; activation operators must be reconfirmed |
+| Support and incidents | Owner-controlled private channel, one-business-day acknowledgement, owner incident authority, immediate stop rules | policy approved; channel not supplied/tested |
+| Email and recovery | Real-email negative boundary preserved | provider unselected; confirmation and recovery remain blockers |
+| Privacy/policy | Existing language approved as readiness drafts | final appropriate review remains a blocker |
+| External boundaries | No provider mutation, hosted participant, real email, live billing, public access, or Production deployment | preserved |
+| Security | Bundle/tracked-secret, production-default, billing, capability, student-data, dependency, and negative scans | passed |
+| Integrity | Production builds, `git diff --check`, historical protection, protected SHA-256 hashes | passed |
+| Activation authority | Project owner | current decision: NO-GO |
 
-Evidence must record command, result, date, commit, and any warning without
-including personal data, secrets, bypass values, or provider sessions.
+Evidence must continue to omit identities, personal email addresses, private
+contact details, secrets, bypass values, provider sessions, screenshots, and
+raw payloads.

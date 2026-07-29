@@ -1,14 +1,18 @@
 # Phase 6 pilot charter
 
-Status: draft for owner review. It is not legal advice, an invitation, or
-approval to activate a pilot.
+Status: readiness charter approved by the owner; **Phase 6B remains NO-GO**.
+It is not legal advice, an invitation, or authorization to activate a pilot.
 
 ## Proposed pilot
 
-- Cohort: 3-5 approved adult teachers.
-- Duration: 2-4 weeks, with exact dates and duration undecided.
+- Cohort: three approved adult teachers initially, with a hard cap of five.
+- Duration: three weeks; the start is deferred and the end will be exactly 21
+  calendar days after a separately approved start date.
 - Environment: restricted Preview only.
-- Participants: adult educators only; no student participation.
+- Participants: approved adult educators only; no students, minors, shared
+  accounts, or unapproved users. Identities remain in a private owner record.
+- Organization labels: disabled; do not enter real school, district,
+  classroom, or organization names.
 - Commercial status: no payment, billing, or subscription activity.
 - Release status: no Production activation or public launch.
 
@@ -45,6 +49,9 @@ Operational success additionally requires zero student information collected,
 zero cross-account exposure, complete synthetic-fixture cleanup, successful
 account restriction, and evidence for every activation checklist item.
 
+The owner approved these criteria without weakening privacy, security, RLS,
+cleanup, authentication, gameplay, support, or accessibility requirements.
+
 ## Immediate stop criteria
 
 Stop access and begin incident handling for any student data entry,
@@ -55,3 +62,9 @@ workflow, inability to restrict access, or inability to remove pilot fixtures.
 The pilot coordinator uses the access-revocation runbook immediately. No
 participant activity resumes until the incident owner and owner approve a
 verified recovery.
+
+The project owner approved all stop criteria and retains final pause,
+recovery, reopening, rollback, and go/no-go authority. Exact dates, the private
+participant list, an operating support channel, reviewed email delivery,
+privacy/policy review, a hosted Phase 6B plan, and a separate explicit GO
+decision remain prerequisites.

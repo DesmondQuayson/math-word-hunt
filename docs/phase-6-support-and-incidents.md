@@ -1,7 +1,8 @@
 # Phase 6 support and incident operations
 
-Status: draft operational procedure. Contact channels, security contact,
-incident owner, and response expectations require owner approval.
+Status: readiness procedure approved by the owner; **Phase 6B remains NO-GO**.
+The operating support address, email provider, and delivery configuration have
+not been supplied or approved.
 
 ## Support workflow
 
@@ -14,7 +15,10 @@ incident owner, and response expectations require owner approval.
 4. The coordinator records a sanitized event and safe correlation ID, confirms
    scope, and routes security/privacy issues to the approved incident owner.
 
-No 24/7 availability or response-time guarantee is offered.
+Use one dedicated, tested, owner-controlled private support channel. Its exact
+address remains private and must not be invented in this repository. Acknowledge
+pilot support requests within one business day. No 24/7 availability or
+guaranteed resolution time is offered.
 
 ## Severity
 
@@ -47,10 +51,17 @@ cross-account, authentication, accessibility, and cleanup tests.
 
 ## Responsibilities
 
-The owner approves incident declaration, participant communication, retention,
-and resumption. The technical responder contains the issue, collects sanitized
-evidence, verifies authorization and cleanup, and never places secrets or
-personal data in tickets. Exact people and channels remain undecided.
+The project owner is the security contact, incident owner, rollback owner, and
+final go/no-go authority; private contact details stay outside the repository.
+A designated technical operator may contain an issue, collect sanitized
+evidence, perform cleanup, and verify authorization and record counts. The
+project owner approves incident declaration, participant communication,
+retention, recovery, and resumption.
+
+Serious privacy, security, RLS, authorization, secret-exposure, public-access,
+student-data, cleanup, or critical-accessibility incidents require an immediate
+pause of affected access. Access resumes only after verified correction and an
+explicit owner decision.
 
 ## Communication template
 

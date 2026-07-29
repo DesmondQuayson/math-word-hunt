@@ -1,7 +1,7 @@
 # Phase 6 retention and deletion decision framework
 
-Status: proposed choices for owner review. No final retention duration is
-approved, and permanent deletion remains disabled.
+Status: owner-approved readiness policy; **Phase 6B remains NO-GO** and
+permanent deletion remains disabled.
 
 ## Categories and current treatment
 
@@ -13,21 +13,19 @@ approved, and permanent deletion remains disabled.
 | Sanitized operational evidence | retain only stable codes, safe correlation IDs, and minimum incident facts |
 | Synthetic fixtures | remove at the end of every rehearsal and verify zero final counts |
 
-## Retention decision
+## Approved retention decision
 
-The owner must select and approve a duration before activation:
+- While a participant is active, keep only the minimum permitted records in
+  [`phase-6-data-inventory.md`](phase-6-data-inventory.md).
+- Restrict access immediately after withdrawal, revocation, or a qualifying
+  incident.
+- After the pilot ends, retain minimum permitted pilot data for no more than
+  14 calendar days, then conduct and record a cleanup review.
+- A designated technical operator performs cleanup. The project owner verifies
+  record counts and evidence.
 
-1. **Recommended: short fixed post-pilot window.** Keeps a bounded period for
-   participant follow-up and incident review, then requires reviewed cleanup.
-   It balances support with data minimization but creates a scheduled owner task.
-2. **Delete eligible participant planning data at confirmed exit.** Minimizes
-   data fastest but leaves less time to resolve mistaken exit or support issues.
-3. **Retain through a longer evaluation window.** Supports extended comparison
-   but increases privacy exposure and operational responsibility; select only
-   with a documented purpose and end date.
-
-The decision must separately cover profiles/planning data, sanitized support
-evidence, Auth identity, backups, and any legal/incident hold.
+Any category-specific legal or incident hold requires appropriate review and a
+documented owner decision. It must not silently become indefinite retention.
 
 ## Procedures
 
@@ -44,3 +42,6 @@ evidence, Auth identity, backups, and any legal/incident hold.
   and owned records, and prove final counts are zero.
 
 Failure to restrict access or clean up a fixture is an immediate pilot stop.
+Withdrawal and the 14-day review do not authorize or promise automatic
+permanent deletion. Application and provider deletion remain separate,
+disabled checkpoints.
