@@ -1,6 +1,6 @@
 import "server-only";
 
-export type BillingApplicationEnvironment = "local" | "test" | "preview" | "production";
+export type BillingApplicationEnvironment = "local" | "test" | "preview" | "production" | "production-public";
 export type StripeMode = "test" | "live";
 export type BillingProvider = "stripe" | "fixture";
 export const STRIPE_API_VERSION = "2026-02-25.clover" as const;
@@ -46,7 +46,7 @@ function required(source: EnvironmentSource, name: string): string {
 }
 
 function parseApplicationEnvironment(value: string | undefined): BillingApplicationEnvironment {
-  if (value === "local" || value === "test" || value === "preview" || value === "production") return value;
+  if (value === "local" || value === "test" || value === "preview" || value === "production" || value === "production-public") return value;
   throw new BillingConfigurationError("invalid-application-environment");
 }
 
@@ -89,6 +89,7 @@ export function parseBillingConfiguration(source: EnvironmentSource): BillingCon
     if (source.BILLING_ENABLED?.trim() !== "false") throw new BillingConfigurationError("invalid-enabled-flag");
     return Object.freeze({ enabled: false, applicationEnvironment });
   }
+  if (applicationEnvironment === "production-public") throw new BillingConfigurationError("public-production-billing-disabled");
 
   const stripeMode = required(source, "STRIPE_MODE");
   if (stripeMode !== "test" && stripeMode !== "live") throw new BillingConfigurationError("invalid-stripe-mode");

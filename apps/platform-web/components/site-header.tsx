@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/layout/container";
 import { NavigationItem } from "@/components/layout/navigation-item";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 
 const navigation = [
   { href: "/play", label: "Play" },
@@ -10,11 +11,20 @@ const navigation = [
   { href: "/account", label: "Account" }
 ] as const;
 
+const publicNavigation = [
+  { href: "/play", label: "Play" },
+  { href: "/about", label: "About" },
+  { href: "/help", label: "Help" },
+  { href: "/accessibility", label: "Accessibility" }
+] as const;
+
 export function SiteHeader() {
+  const publicProduction = isProductionPublicMode();
+  const items = publicProduction ? publicNavigation : navigation;
   return (
     <header className="site-header">
       <Container className="header-inner">
-        <Link className="brand" href="/" aria-label="Math Vocabulary Hunt home">
+        <Link className="brand" href="/" aria-label={publicProduction ? "MathNexa home" : "Math Vocabulary Hunt home"}>
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" focusable="false">
               <path
@@ -35,13 +45,11 @@ export function SiteHeader() {
               <circle cx="23.5" cy="8.5" r="2.4" fill="currentColor" />
             </svg>
           </span>
-          <span className="brand-name">
-            Math Vocabulary <strong>Hunt</strong>
-          </span>
+          <span className="brand-name">{publicProduction ? <>Math<strong>Nexa</strong></> : <>Math Vocabulary <strong>Hunt</strong></>}</span>
         </Link>
         <nav aria-label="Primary navigation">
           <ul className="nav-list">
-            {navigation.map((item) => (
+            {items.map((item) => (
               <li key={item.href}>
                 <NavigationItem href={item.href} label={item.label} />
               </li>

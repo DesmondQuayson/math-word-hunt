@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { AuthFormState } from "@/lib/auth/form-state";
 import { getAppBaseUrl } from "@/lib/auth/safe-redirect";
 import { getAuthEmailExperience } from "@/lib/email/server";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function field(formData: FormData, name: string): string {
@@ -25,6 +26,7 @@ const unavailable: AuthFormState = {
 };
 
 export async function signUpAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  if (isProductionPublicMode()) return unavailable;
   const email = field(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("passwordConfirmation") ?? "");
@@ -61,6 +63,7 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
 }
 
 export async function signInAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  if (isProductionPublicMode()) return unavailable;
   const email = field(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!validEmail(email) || password.length === 0) {
@@ -74,6 +77,7 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
 }
 
 export async function forgotPasswordAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  if (isProductionPublicMode()) return unavailable;
   const email = field(formData, "email").toLowerCase();
   if (!validEmail(email)) return { status: "error", message: "Enter a valid email address.", fieldErrors: { email: "Enter a valid email address." } };
   const supabase = await createServerSupabaseClient();
@@ -85,6 +89,7 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
 }
 
 export async function updatePasswordAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  if (isProductionPublicMode()) return unavailable;
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("passwordConfirmation") ?? "");
   const fieldErrors: Record<string, string> = {};
@@ -101,6 +106,7 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
 }
 
 export async function signOutAction(): Promise<void> {
+  if (isProductionPublicMode()) redirect("/");
   const supabase = await createServerSupabaseClient();
   if (supabase) await supabase.auth.signOut();
   redirect("/sign-in?signedOut=1");

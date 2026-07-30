@@ -5,9 +5,11 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { getProductCatalogView } from "@/lib/adapters/catalog";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 
 export default function HomePage() {
   const catalog = getProductCatalogView();
+  const publicProduction = isProductionPublicMode();
 
   return (
     <>
@@ -21,9 +23,7 @@ export default function HomePage() {
           </p>
           <div className="button-row">
             <LinkButton href="/play">Launch the current game</LinkButton>
-            <LinkButton variant="secondary" href="/teacher">
-              Open teacher workspace
-            </LinkButton>
+            <LinkButton variant="secondary" href={publicProduction ? "/about" : "/teacher"}>{publicProduction ? "About MathNexa" : "Open teacher workspace"}</LinkButton>
           </div>
           <p className="truth-note">
             No account is required for the current classroom game.
@@ -72,6 +72,12 @@ export default function HomePage() {
             </article>
             <article>
               <Card variant="interactive" className="path-card">
+                {publicProduction ? <>
+                  <p className="card-kicker">Public guidance</p>
+                  <h3>Use it with confidence</h3>
+                  <p>Review gameplay help, accessibility behavior, privacy boundaries, and curriculum readiness without creating an account.</p>
+                  <Link className="text-link" href="/help">Open public help <span aria-hidden="true">→</span></Link>
+                </> : <>
                 <p className="card-kicker">Teacher account workspace</p>
                 <h3>Teacher workspace</h3>
                 <p>
@@ -81,6 +87,7 @@ export default function HomePage() {
                 <Link className="text-link" href="/teacher">
                   Open the workspace <span aria-hidden="true">→</span>
                 </Link>
+                </>}
               </Card>
             </article>
           </div>

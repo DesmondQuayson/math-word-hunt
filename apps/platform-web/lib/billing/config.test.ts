@@ -62,6 +62,11 @@ describe("billing configuration", () => {
     expect(parseBillingConfiguration({ ...production, BILLING_LIVE_ACTIVATION: "owner-approved" })).toMatchObject({ stripeMode: "live" });
   });
 
+  it("allows only explicitly disabled billing in public Production", () => {
+    expect(parseBillingConfiguration({ BILLING_ENABLED: "false", BILLING_ENVIRONMENT: "production-public" })).toEqual({ enabled: false, applicationEnvironment: "production-public" });
+    expect(() => parseBillingConfiguration({ BILLING_ENABLED: "true", BILLING_ENVIRONMENT: "production-public" })).toThrow(/public-production-billing-disabled/);
+  });
+
   it("never includes a supplied secret value in an error", () => {
     const marker = "do-not-echo-this-value";
     try {

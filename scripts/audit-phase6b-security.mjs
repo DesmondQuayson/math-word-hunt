@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-function source(path) { return readFileSync(path, "utf8"); }
+function source(path) { return readFileSync(path, "utf8").replace(/\r\n/g, "\n"); }
 function requireAll(path, values) {
   const text = source(path);
   for (const value of values) if (!text.includes(value)) throw new Error(path + " is missing required Phase 6B control: " + value);

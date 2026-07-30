@@ -13,6 +13,7 @@ function validUrl(value: string): boolean {
 }
 
 export function getSupabasePublicConfig(): SupabasePublicConfig | null {
+  if (isProductionPublicMode()) return null;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
   if (!validUrl(url) || publishableKey.length < 20) return null;
@@ -22,3 +23,4 @@ export function getSupabasePublicConfig(): SupabasePublicConfig | null {
 export function isSupabaseConfigured(): boolean {
   return getSupabasePublicConfig() !== null;
 }
+import { isProductionPublicMode } from "@/lib/environment/production-public";

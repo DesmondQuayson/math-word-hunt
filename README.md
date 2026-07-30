@@ -4,6 +4,13 @@ Math Vocabulary Hunt is a classroom word-search game for middle-school math
 vocabulary. The current product is a static HTML, CSS, and JavaScript
 application designed for projectors, classroom displays, tablets, and phones.
 
+MathNexa public Production uses the explicit provider-free `production-public`
+contract documented in `docs/production-public-architecture.md`. It exposes
+public information and the canonical game only. Supabase/Auth, teacher
+accounts, pilot participation, invitations, billing, student data,
+organization labels, fixtures, deletion, and administrative operations remain
+unavailable. The authenticated platform Preview stays separate and protected.
+
 ## Canonical application
 
 - Playable deployment file: docs/index.html

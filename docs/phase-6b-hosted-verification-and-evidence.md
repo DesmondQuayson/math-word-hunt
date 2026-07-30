@@ -95,3 +95,18 @@ Noncritical launch follow-up:
 - update the installed Supabase CLI after compatibility review; the verified repository version remains pinned for reproducibility
 - replace deprecated Node child-process `shell: true` argument handling in a future verification-infrastructure maintenance change without weakening the gates
 - on Windows systems where the default Supabase `5432x` ports fall inside a dynamic exclusion range, use a temporary local-only port remap and restore `supabase/config.toml` before commit
+
+## Public Production separation
+
+The later public MathNexa release does not activate or expose Phase 6B. It uses
+a separate Vercel project and the provider-free `production-public` contract.
+Production has no Supabase/Auth, teacher accounts, recovery, pilot
+participation, invitations, billing, transactional email, fixtures, deletion,
+student data, or organization labels. The protected Preview and its inactive
+pilot remain unchanged.
+
+Previous-password rejection, new-password authentication, and unknown-account
+recovery privacy equivalence remain owner-accepted deferred risks and are not
+recorded as passed. They are irrelevant to the public-only runtime because Auth
+is disabled, but remain required evidence before any future authenticated
+Production architecture.

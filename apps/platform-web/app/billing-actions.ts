@@ -8,8 +8,10 @@ import { parseCheckoutIntent } from "@/lib/billing/contracts";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { createBillingProvider } from "@/lib/billing/provider-factory";
 import { createBillingRepository, createHostedCheckout, createHostedPortal } from "@/lib/billing/service";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 
 export async function startCheckoutAction(formData: FormData) {
+  if (isProductionPublicMode()) redirect("/not-launched");
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/pricing?billing=unavailable");
   try {
@@ -29,6 +31,7 @@ export async function startCheckoutAction(formData: FormData) {
 }
 
 export async function openBillingPortalAction() {
+  if (isProductionPublicMode()) redirect("/not-launched");
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/account?billing=unavailable");
   try {

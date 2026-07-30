@@ -18,7 +18,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       <SkipLink />
       {environment.previewBanner ? <EnvironmentBanner /> : null}
-      <PilotStatusBanner />
+      {!environment.publicProduction ? <PilotStatusBanner /> : null}
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
         {children}
