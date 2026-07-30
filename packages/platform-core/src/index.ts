@@ -69,6 +69,12 @@ export { DELETION_STATES, canTransitionDeletion, planDeletion, type DeletionStat
 export { OBSERVABILITY_CATEGORIES, createSafeEvent, type ObservabilityCategory, type SafeEvent } from "./observability/events";
 export { renderEmailTemplate, type EmailTemplate, type EmailTemplateKey } from "./email/templates";
 export {
+  AUTH_EMAIL_DELIVERY_STATES,
+  isTransactionalAuthEmailVerified,
+  parseAuthEmailDeliveryState,
+  type AuthEmailDeliveryState
+} from "./email/delivery-state";
+export {
   PILOT_CHECKLIST_KEYS,
   PILOT_READINESS_STATES,
   createEmptyPilotChecklist,
@@ -83,3 +89,15 @@ export {
 } from "./pilot/policy";
 export { createSyntheticPilotFixture, verifySyntheticFixtureCleanup, type SyntheticFixtureCounts, type SyntheticPilotFixture } from "./pilot/fixtures";
 export { PILOT_EVENT_CODES, createPilotEvent, parsePilotCorrelationId, type PilotEnvironmentClass, type PilotEventCode, type PilotRouteCategory } from "./pilot/operations";
+export {
+  CONTROLLED_PILOT_STATES,
+  PILOT_ACTIVATION_PREREQUISITES,
+  createIncompletePilotPrerequisites,
+  evaluatePilotActivation,
+  type ControlledPilotState,
+  type PilotActivationInput,
+  type PilotActivationPolicy,
+  type PilotActivationPrerequisite,
+  type PilotActivationPrerequisites,
+  type PilotPrerequisiteState
+} from "./pilot/activation";

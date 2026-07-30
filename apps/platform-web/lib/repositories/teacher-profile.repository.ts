@@ -40,8 +40,7 @@ export class SupabaseTeacherProfileRepository implements TeacherProfileRepositor
     const parsed = parseTeacherProfile(profile);
     if (!parsed.ok) return parsed;
     const { data, error } = await this.client.from("teacher_profiles").update({
-      display_name: parsed.value.displayName,
-      school_or_organization_label: parsed.value.organizationLabel
+      display_name: parsed.value.displayName
     }).eq("user_id", parsed.value.teacherId).select(
       "user_id, display_name, school_or_organization_label, account_status, created_at, updated_at"
     ).maybeSingle();

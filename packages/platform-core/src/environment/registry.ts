@@ -1,6 +1,8 @@
+import { parseAuthEmailDeliveryState, type AuthEmailDeliveryState } from "../email/delivery-state";
+
 export const PLATFORM_ENVIRONMENTS = ["local", "preview", "production"] as const;
 export type PlatformEnvironment = (typeof PLATFORM_ENVIRONMENTS)[number];
-export type DeliveryMode = "capture" | "disabled";
+export type DeliveryMode = AuthEmailDeliveryState;
 export type MonitoringMode = "console" | "disabled";
 export type DeletionMode = "dry-run" | "disabled";
 
@@ -40,7 +42,7 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
   const applicationOrigin = origin(input.applicationOrigin);
   const projectRef = input.dataProjectIdentity?.trim();
   const paymentMode = exact(input.paymentMode, ["test", "disabled"]) as "test" | "disabled" | null;
-  const emailDelivery = exact(input.emailDelivery, ["capture", "disabled"]) as DeliveryMode | null;
+  const emailDelivery = parseAuthEmailDeliveryState(input.emailDelivery);
   const monitoring = exact(input.monitoringMode, ["console", "disabled"]) as MonitoringMode | null;
   const fixturePolicy = exact(input.fixturePolicy, ["allowed", "forbidden"]) as "allowed" | "forbidden" | null;
   const deletionMode = exact(input.deletionMode, ["dry-run", "disabled"]) as DeletionMode | null;

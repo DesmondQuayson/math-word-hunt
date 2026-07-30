@@ -213,10 +213,10 @@ export async function updateProfileAction(_previous: TeacherFormState, formData:
   if (!authorization.decision.allowed) return unavailable(capabilityDecisionMessage(authorization.decision));
   const resources = await activeResources();
   if (!resources) return unavailable("Only an active teacher account can update profile information.");
+  if (field(formData, "schoolLabel")) return { status: "error", message: "School and organization labels cannot be saved during the controlled pilot." };
   const parsed = {
     ...resources.context.profile,
     displayName: field(formData, "displayName"),
-    organizationLabel: field(formData, "schoolLabel") || null,
     updatedAt: new Date().toISOString()
   };
   const saved = await resources.repositories.profiles.save(parsed);

@@ -767,6 +767,16 @@
   text-transform: uppercase;
 }
 
+.pilot-status-banner[data-pilot-tone="attention"] strong {
+  color: var(--color-warning);
+  background: var(--color-surface-elevated);
+}
+
+.pilot-status-banner[data-pilot-tone="positive"] strong {
+  color: var(--color-success);
+  background: var(--color-surface-elevated);
+}
+
 .pilot-status-banner span:not(:last-of-type)::after {
   margin-left: var(--space-4);
   content: "·";
@@ -860,6 +870,55 @@
 
 .pilot-hero .lede {
   margin-top: var(--space-5);
+}
+
+.pilot-window {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, auto);
+  align-items: center;
+  gap: var(--space-6);
+  padding: clamp(var(--space-5), 4vw, var(--space-8));
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-left: 0.5rem solid var(--color-accent);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+}
+
+.pilot-window > *,
+.pilot-window dl,
+.pilot-window dl > div {
+  min-width: 0;
+}
+
+.pilot-window h2,
+.pilot-window p,
+.pilot-window dl {
+  margin: 0;
+}
+
+.pilot-window dl {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pilot-window dl > div {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.pilot-window dt {
+  color: var(--color-text-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pilot-window dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 800;
 }
 
 .pilot-stamp {
@@ -1162,6 +1221,7 @@
 @media (max-width: 54rem) {
   .pilot-navigation,
   .pilot-hero,
+  .pilot-window,
   .pilot-boundary-ledger,
   .pilot-rule-grid,
   .pilot-support-card {

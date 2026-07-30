@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import type { AuthFormState } from "@/lib/auth/form-state";
 import { getAppBaseUrl } from "@/lib/auth/safe-redirect";
+import { getAuthEmailExperience } from "@/lib/email/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function field(formData: FormData, name: string): string {
@@ -34,7 +35,12 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   if (!validPassword(password)) fieldErrors.password = "Use 8 to 128 characters with at least one letter and one number.";
   if (password !== confirmation) fieldErrors.passwordConfirmation = "Passwords must match.";
   if (displayName.length < 1 || displayName.length > 80) fieldErrors.displayName = "Display name must contain 1 to 80 characters.";
-  if (schoolLabel.length > 120) fieldErrors.schoolLabel = "School or organization must contain no more than 120 characters.";
+  if (schoolLabel.length > 0) fieldErrors.schoolLabel = "School and organization labels are not accepted during the controlled pilot.";
+  if (schoolLabel.length > 0) return {
+    status: "error",
+    message: "School and organization labels are not accepted during the controlled pilot.",
+    fieldErrors
+  };
   if (Object.keys(fieldErrors).length > 0) return { status: "error", message: "Check the highlighted account information.", fieldErrors };
 
   const supabase = await createServerSupabaseClient();
@@ -46,13 +52,12 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
     options: {
       emailRedirectTo: callback,
       data: {
-        display_name: displayName,
-        school_or_organization_label: schoolLabel || null
+        display_name: displayName
       }
     }
   });
   if (error) return { status: "error", message: "The account could not be created. Check the information and try again." };
-  return { status: "success", message: "Check the local email inbox to verify the address before signing in." };
+  return { status: "success", message: getAuthEmailExperience().signUpResponse };
 }
 
 export async function signInAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -76,7 +81,7 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppBaseUrl()}/auth/callback?next=/update-password`
   });
-  return { status: "success", message: "If that teacher account exists, a recovery message is available in the local email inbox." };
+  return { status: "success", message: getAuthEmailExperience().recoveryResponse };
 }
 
 export async function updatePasswordAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {

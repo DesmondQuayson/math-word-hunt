@@ -27,6 +27,8 @@ const platformServer = spawn(
     env: {
       ...process.env,
       LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html",
+      MVH_EMAIL_DELIVERY: "disabled",
+      MVH_PILOT_STATE: "inactive",
       ...(prototypeMode ? { MVH_TEACHER_PROTOTYPE_MODE: "enabled" } : {})
     },
     stdio: ["ignore", "ignore", "inherit"]
@@ -76,6 +78,8 @@ try {
     {
       env: {
         ...process.env,
+        MVH_EMAIL_DELIVERY: "disabled",
+        MVH_PILOT_STATE: "inactive",
         ...(prototypeMode ? { MVH_TEACHER_PROTOTYPE_TEST: "enabled" } : {})
       },
       stdio: "inherit"

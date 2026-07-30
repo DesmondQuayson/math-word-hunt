@@ -47,7 +47,7 @@ export function SignUpForm({ configured }: AuthFormProps) {
       <FormMessage state={state} messageRef={messageRef} />
       <TextField id="signup-email" name="email" type="email" autoComplete="email" label="Email address" required error={state.fieldErrors?.email} />
       <TextField id="signup-display-name" name="displayName" autoComplete="name" label="Display name" description="Use the teacher name you want shown in the workspace." required maxLength={80} error={state.fieldErrors?.displayName} />
-      <TextField id="signup-school" name="schoolLabel" autoComplete="organization" label="School or organization" description="Optional. Do not enter student information." maxLength={120} error={state.fieldErrors?.schoolLabel} />
+      <p className="form-field-note">Do not enter a school, district, classroom, institution, or organization name. Organization labels are disabled for this controlled pilot.</p>
       <TextField id="signup-password" name="password" type="password" autoComplete="new-password" label="Password" description="Use at least 8 characters with a letter and number." required error={state.fieldErrors?.password} />
       <TextField id="signup-password-confirmation" name="passwordConfirmation" type="password" autoComplete="new-password" label="Confirm password" required error={state.fieldErrors?.passwordConfirmation} />
       <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>Create teacher account</Button><Link href="/sign-in">Already have an account?</Link></div>

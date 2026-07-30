@@ -18,16 +18,26 @@ const environment = {
   LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html",
   MVH_APP_ENVIRONMENT: "preview",
   MVH_APPLICATION_ORIGIN: "http://127.0.0.1:3000",
-  MVH_SUPABASE_PROJECT_REF: "local-phase6-preview",
+  MVH_SUPABASE_PROJECT_REF: "local-phase6b-preview",
   MVH_STRIPE_MODE: "test",
   MVH_EMAIL_DELIVERY: "local-capture",
   MVH_MONITORING_MODE: "console",
   MVH_FIXTURE_POLICY: "allowed",
   MVH_DELETION_MODE: "dry-run",
-  MVH_BUILD_ID: "phase6-rehearsal",
-  MVH_PILOT_STATE: "inactive",
+  MVH_BUILD_ID: "phase6b-rehearsal",
+  MVH_PILOT_STATE: "active",
   MVH_PILOT_START_AT: "2026-09-01T14:00:00-05:00",
   MVH_PILOT_END_AT: "2026-09-22T14:00:00-05:00",
+  MVH_PILOT_OWNER_GO: "complete",
+  MVH_PILOT_DATES_APPROVED: "complete",
+  MVH_PILOT_SUPPORT_CHANNEL: "complete",
+  MVH_PILOT_AUTH_EMAIL_VERIFIED: "complete",
+  MVH_PILOT_CONFIRMATION_FLOW: "complete",
+  MVH_PILOT_RECOVERY_FLOW: "complete",
+  MVH_PILOT_HUMAN_ACCESS: "complete",
+  MVH_PILOT_PRIVACY_POLICY: "complete",
+  MVH_PILOT_INCIDENT_OPERATOR: "complete",
+  MVH_PILOT_ROLLBACK_OPERATOR: "complete",
   BILLING_ENABLED: "false",
   BILLING_CHECKOUT_ENABLED: "false",
   BILLING_PORTAL_ENABLED: "false",
@@ -42,7 +52,7 @@ registerVerificationNextProcess(app);
 async function waitFor(url, label) {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
-    try { if ((await fetch(url)).ok) return; } catch { /* local server is starting */ }
+    try { if ((await fetch(url)).ok) return; } catch { /* server is starting */ }
     await new Promise((done) => setTimeout(done, 200));
   }
   throw new Error(`${label} did not become ready.`);
@@ -57,7 +67,7 @@ async function stop(child, isNext = false) {
 let exitCode = 1;
 try {
   await Promise.all([waitFor("http://127.0.0.1:4173/docs/index.html", "Canonical game"), waitFor("http://127.0.0.1:3000/pilot", "Platform")]);
-  const tests = spawn(process.execPath, [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.phase6.config.mjs"], {
+  const tests = spawn(process.execPath, [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.phase6b.config.mjs"], {
     env: { ...environment, SUPABASE_TEST_URL: status.API_URL, SUPABASE_TEST_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY, SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY },
     stdio: "inherit"
   });

@@ -95,13 +95,13 @@ export function EditActivityForm({ activity, classOptions }: Readonly<{ activity
   </form>;
 }
 
-export function ProfileForm({ displayName, schoolLabel }: { displayName: string; schoolLabel: string }) {
+export function ProfileForm({ displayName }: { displayName: string }) {
   const [state, action, pending] = useActionState(updateProfileAction, initialTeacherFormState);
   const resultRef = useResultFocus(state);
   return <form className="prototype-form" action={action} noValidate>
     <Result state={state} resultRef={resultRef} />
     <TextField id="profile-display-name" name="displayName" label="Display name" defaultValue={displayName} required maxLength={80} />
-    <TextField id="profile-school" name="schoolLabel" label="School or organization" defaultValue={schoolLabel} maxLength={120} description="Optional. Do not enter student information." />
+    <p className="form-field-note">School, district, classroom, institution, and organization labels cannot be added or changed during the controlled pilot.</p>
     <Button type="submit" loading={pending}>Update profile</Button>
   </form>;
 }

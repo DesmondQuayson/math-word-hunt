@@ -71,7 +71,7 @@ test("complete local synthetic adult-teacher pilot rehearsal", async ({ page }) 
 
   await page.goto("/pilot?pilot=active#active");
   const banner = page.getByLabel("Restricted pilot status");
-  await expect(banner).toHaveAttribute("data-pilot-readiness", "ready-for-owner-decision");
+  await expect(banner).toHaveAttribute("data-pilot-readiness", "not-ready");
   await expect(banner).toHaveAttribute("data-pilot-activation", "inactive");
   await expect(page.getByText("Adult teachers only", { exact: true })).toBeVisible();
   await expect(page.getByText("No student data", { exact: true })).toBeVisible();
@@ -149,7 +149,10 @@ test("complete local synthetic adult-teacher pilot rehearsal", async ({ page }) 
   await page.goto("/pilot/support"); await expect(page.getByText(/Contact the pilot coordinator using the channel/)).toBeVisible();
   await page.goto("/pilot/exit"); await expect(page.getByText(/Permanent deletion is not automatic/)).toBeVisible();
 
-  await page.goto("/account"); await page.getByRole("button", { name: "Sign out" }).click();
+  await page.goto("/account");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/sign-in\?signedOut=1$/);
+  await expect(page.getByText("You are signed out.")).toBeVisible();
   await page.goto("/teacher/classes/new"); await expect(page.getByRole("button", { name: "Save class" })).toHaveCount(0);
   const restricted = await admin.from("teacher_profiles").update({ account_status: "suspended" }).eq("user_id", teacherB!.id);
   expect(restricted.error).toBeNull();

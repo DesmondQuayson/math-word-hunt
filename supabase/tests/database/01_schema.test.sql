@@ -58,8 +58,8 @@ insert into auth.users (
 
 select results_eq(
   $$select display_name, school_or_organization_label, account_status from public.teacher_profiles where user_id = '10000000-0000-0000-0000-000000000001'$$,
-  $$values ('Schema Teacher'::text, 'Example School'::text, 'active'::text)$$,
-  'signup provisions only safe profile fields and hard-codes active status'
+  $$values ('Schema Teacher'::text, null::text, 'active'::text)$$,
+  'signup provisions the minimum controlled-pilot profile and hard-codes active status'
 );
 select results_eq(
   $$select count(*)::bigint from public.teacher_profiles where user_id = '10000000-0000-0000-0000-000000000001'$$,

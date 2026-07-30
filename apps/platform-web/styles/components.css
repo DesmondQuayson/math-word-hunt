@@ -1022,3 +1022,11 @@
 @media (max-width: 360px) {
   .environment-banner > span:last-child { flex-basis: 100%; }
 }
+.form-field-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: var(--border-width-strong) solid var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface-elevated));
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+}

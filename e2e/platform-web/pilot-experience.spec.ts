@@ -74,9 +74,10 @@ test("feedback and class labels reject obvious prohibited student or secret data
 
 test("authentication and exit copy remain honest", async ({ page }) => {
   await page.goto("/sign-in");
-  await expect(page.getByText(/Password-recovery email delivery is not active/)).toBeVisible();
+  await expect(page.getByText(/Confirmation and recovery delivery are unavailable/)).toBeVisible();
   await page.goto("/forgot-password");
-  await expect(page.getByText(/does not promise that an email will be delivered/)).toBeVisible();
+  await expect(page.getByText(/Do not rely on email delivery/)).toBeVisible();
+  await expect(page.getByText(/result never confirms whether an email address belongs/)).toBeVisible();
   await page.goto("/pilot/exit");
   await expect(page.getByText(/Permanent deletion is not automatic/)).toBeVisible();
   await expect(page.getByText(/permanent deletion execution remains separately controlled and disabled/i)).toBeVisible();

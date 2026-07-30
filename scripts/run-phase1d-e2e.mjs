@@ -74,7 +74,8 @@ const publicEnvironment = {
   SUPABASE_URL: status.API_URL,
   SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY,
   APP_BASE_URL: "http://127.0.0.1:3000",
-  LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html"
+  LEGACY_GAME_URL: "http://127.0.0.1:4173/docs/index.html",
+  MVH_EMAIL_DELIVERY: "local-capture"
 };
 const staticServer = spawn(process.execPath, [resolve("scripts/serve-static.mjs"), "--port", String(staticPort)], {
   cwd: repositoryRoot,

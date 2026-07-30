@@ -10,16 +10,19 @@ describe("platform-core public API", () => {
       "BILLING_SUBSCRIPTION_STATUSES",
       "BILLING_UI_COPY",
       "BILLING_UI_STATES",
+      "AUTH_EMAIL_DELIVERY_STATES",
       "CAPABILITIES_BY_KEY",
       "CAPABILITY_DECISION_REASONS",
       "CAPABILITY_KEYS",
       "CAPABILITY_REGISTRY",
+      "CONTROLLED_PILOT_STATES",
       "CLASS_GRADES",
       "CURRICULUM_STATUSES",
       "DELETION_STATES",
       "FEATURE_KEYS",
       "OBSERVABILITY_CATEGORIES",
       "PILOT_CHECKLIST_KEYS",
+      "PILOT_ACTIVATION_PREREQUISITES",
       "PILOT_EVENT_CODES",
       "PILOT_READINESS_STATES",
       "PLATFORM_ENVIRONMENTS",
@@ -30,6 +33,7 @@ describe("platform-core public API", () => {
       "assertUniqueKeys",
       "canTransitionDeletion",
       "createEmptyPilotChecklist",
+      "createIncompletePilotPrerequisites",
       "createEntitlementPolicy",
       "createPilotEvent",
       "createSafeEvent",
@@ -41,11 +45,13 @@ describe("platform-core public API", () => {
       "denyTeacherOperation",
       "deriveBillingEntitlement",
       "evaluatePilotPolicy",
+      "evaluatePilotActivation",
       "evaluatePilotReadiness",
       "getProductPackage",
       "isBillingPlanKey",
       "isCapabilityKey",
       "isFeatureKey",
+      "isTransactionalAuthEmailVerified",
       "isProductKey",
       "normalizeBillingSubscriptionStatus",
       "parseActivityDefinition",
@@ -57,6 +63,7 @@ describe("platform-core public API", () => {
       "parseCurriculumSummary",
       "parseEntitlement",
       "parseEnvironmentRegistry",
+      "parseAuthEmailDeliveryState",
       "parseFeatureKey",
       "parsePilotCorrelationId",
       "parseProductKey",
@@ -69,7 +76,7 @@ describe("platform-core public API", () => {
       "teacherFailure",
       "teacherSuccess",
       "verifySyntheticFixtureCleanup"
-    ]);
+    ].sort());
   });
 
   it("preserves default-deny guards through the package entry point", () => {
