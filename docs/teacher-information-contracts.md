@@ -23,7 +23,7 @@ in a public record.
 
 ## Frozen information
 
-- Teacher profile: ID, display name, optional organization label, account
+- Teacher profile: ID, display name, legacy nullable organization column, account
   status, created timestamp, updated timestamp.
 - Class: ID, teacher owner, name, optional grade, optional period/section,
   active/archived status, archive timestamp, created/updated timestamps.
@@ -39,7 +39,9 @@ in a public record.
   display information and never authorization authority.
 
 The game-mode field is structurally frozen as a validated key, but the final
-enumeration is deliberately not frozen because the owner has not approved the
+Phase 6B does not collect organization labels: forms hide the field, server
+actions and repositories reject or omit it, and database controls deny writes.
+Enumeration is deliberately not frozen because the owner has not approved the
 initial mode list.
 
 ## Validation and denial

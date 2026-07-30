@@ -6,7 +6,7 @@ does not authorize participant data collection.
 | Category | Existing or potential field | Purpose | Access and minimization |
 | --- | --- | --- | --- |
 | Authentication | teacher email | Supabase identity, verification, and sign-in | Provider-managed; do not copy into domain records or logs |
-| Teacher profile | user ID, display name, optional organization label | identify the adult teacher and provide recognizable UI | Owner-scoped; organization label remains optional and needs pilot policy approval |
+| Teacher profile | user ID and display name; legacy organization column remains nullable | identify the adult teacher and provide recognizable UI | Owner-scoped; Phase 6B hides and server-rejects organization labels |
 | Planning | class name, optional grade, optional period/section | teacher-owned organization without a roster | Labels only; prohibit student names and sensitive class information |
 | Activity draft | curriculum references, mode, time limit, team count, Combine Mode, optional class reference | prepare a teacher-led game | No student response, work, or progress fields |
 | Account lifecycle | active, suspended, deletion requested, closed; request state/timestamps | fail-closed access and staged exit | Browser cannot set lifecycle authority |

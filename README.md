@@ -125,6 +125,19 @@ billing remain unavailable. Start with `docs/phase-3-capability-audit.md`,
 `docs/phase-3-operations-runbook.md`, and
 `docs/phase-3-owner-decisions.md`.
 
+Phase 6B adds a fail-closed, server-owned controlled-pilot contract without
+activating the pilot. It represents inactive, preparing, ready, active, paused,
+and ended states; distinguishes four truthful Auth email delivery states; and
+removes and database-denies organization labels for the initial pilot. Run
+`npm run phase6b:verify` for the inherited Phase 6 gate plus Phase 6B database,
+browser, cleanup, security, build, hash, and diff checks. Start with
+`docs/phase-6b-implementation-and-activation.md`,
+`docs/phase-6b-participant-and-support-operations.md`,
+`docs/phase-6b-hosted-verification-and-evidence.md`, and
+`docs/phase-6b-owner-actions-invitation-and-go.md`. Hosted configuration,
+participant invitations, activation, Production, and billing remain separately
+controlled.
+
 ## Preservation rules
 
 - Do not replace docs/index.html in place without an explicit release decision.

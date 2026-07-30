@@ -1,0 +1,60 @@
+# Phase 6B hosted verification and evidence
+
+## Human Preview access requirements
+
+Standard Protection remains enabled. Participant access must be an approved human method that does not expose or reuse the automation bypass. No public exception, custom domain, paid seat, add-on, hidden trial, or automatic charge is allowed without separate owner approval.
+
+Anonymous access must be challenged. Each approved adult teacher uses an individual identity. The existing automation bypass remains test-only and is never included in an invitation, screenshot, log, browser diagnostic, or participant record.
+
+## Hosted verification matrix
+
+| Area | Required evidence | Stop condition |
+| --- | --- | --- |
+| Deployment | Preview target, Ready status, exact commit, stable alias, rollback deployment | Production or wrong commit |
+| Protection | Standard Protection, anonymous challenge, human access, one test-only bypass | Public access or bypass exposure |
+| Auth email | sender, SPF, DKIM, DMARC review, tracking off, confirmation and recovery | delivery or redirect failure |
+| Sessions | confirmed login, refresh, restoration, logout, signed-out denial | session or account-status bypass |
+| Authorization | own access, reciprocal denial, direct route, RPC, restricted account | cross-account exposure |
+| Data minimization | organization write denial, no student persistence, generic responses | prohibited data persists |
+| Gameplay | gateway, v7, vocabulary, pointer, keyboard, new puzzle | canonical regression |
+| Accessibility | focus, landmarks, headings, 44px, reduced motion, forced colors, spacing, zoom and reflow | unresolved critical failure |
+| Network | no console/page errors, mixed content, CSP failure, secret response, unexpected request | security-bearing failure |
+| Cleanup | two synthetic Auth users and every application fixture count at zero | any failed deletion |
+
+Viewports cover phone portrait and landscape, tablet, desktop, and Smart Board dimensions.
+
+## Evidence matrix
+
+Evidence is sanitized and records:
+
+- timestamp and operating timezone
+- deployed commit and build identifier
+- deployment and rollback references held in the private operator record
+- pass, fail, not-run, or blocked status
+- test command or visible provider check
+- sanitized observation
+- cleanup count
+- operator role, never personal identity
+
+Repository evidence must not contain participant identities, private contacts, raw provider IDs, DNS secret values, SMTP credentials, confirmation or recovery links, cookies, tokens, sessions, or automation bypass values.
+
+## Local verification
+
+Run npm run phase6b:verify. It inherits the complete Phase 6 gate and adds Phase 6B core and web tests, migration reset, pgTAP, controlled browser rehearsal, cleanup-to-zero verification, Phase 6B security scans, production-default and bundle audits, dependency audit, final production build, protected hashes, and git diff checking.
+
+Local Auth email remains local-capture. Passing local verification never claims external delivery or hosted readiness.
+
+## Synthetic cleanup checklist
+
+- delete both synthetic Auth users
+- confirm profiles equal zero
+- confirm classes equal zero
+- confirm activities equal zero
+- confirm entitlements equal zero
+- confirm deletion requests equal zero
+- confirm billing customers, subscriptions, and webhook records equal zero
+- remove synthetic messages where provider controls allow it
+- confirm no real participant account exists
+- retain only sanitized evidence
+
+Do not proceed when any count is nonzero or provider cleanup is uncertain.
