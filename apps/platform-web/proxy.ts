@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getProductionPublicConfigurationErrors, isProductionPublicMode, isProductionPublicRestrictedPath } from "@/lib/environment/production-public";
+import { getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, isProductionPublicMode, isProductionPublicRestrictedPath } from "@/lib/environment/production-public";
 import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -9,6 +9,8 @@ export async function proxy(request: NextRequest) {
     if (errors.length > 0) {
       return new NextResponse("Public Production configuration unavailable.", { status: 503, headers: { "Cache-Control": "no-store" } });
     }
+    const canonicalRedirect = getProductionPublicCanonicalRedirectUrl(request.url, request.headers.get("host"));
+    if (canonicalRedirect) return NextResponse.redirect(canonicalRedirect, 308);
     if (isProductionPublicRestrictedPath(request.nextUrl.pathname)) {
       if (request.nextUrl.pathname.startsWith("/api/")) {
         return Response.json({ error: "not-found" }, { status: 404, headers: { "Cache-Control": "no-store" } });

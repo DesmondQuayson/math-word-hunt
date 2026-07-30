@@ -1,4 +1,6 @@
 export const PRODUCTION_PUBLIC_ENVIRONMENT = "production-public" as const;
+export const PRODUCTION_PUBLIC_CANONICAL_HOST = "mathnexa.com" as const;
+export const PRODUCTION_PUBLIC_WWW_HOST = "www.mathnexa.com" as const;
 
 const RESTRICTED_PROVIDER_VARIABLES = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -42,6 +44,16 @@ export function hasRestrictedProviderConfiguration(source: EnvironmentSource = p
 
 export function isProductionPublicRestrictedPath(pathname: string): boolean {
   return PRODUCTION_PUBLIC_RESTRICTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+export function getProductionPublicCanonicalRedirectUrl(requestUrl: string, hostHeader: string | null): URL | null {
+  const host = hostHeader?.split(":", 1)[0]?.trim().toLowerCase();
+  if (host !== PRODUCTION_PUBLIC_WWW_HOST) return null;
+  const destination = new URL(requestUrl);
+  destination.protocol = "https:";
+  destination.hostname = PRODUCTION_PUBLIC_CANONICAL_HOST;
+  destination.port = "";
+  return destination;
 }
 
 export function getProductionPublicConfigurationErrors(source: EnvironmentSource = process.env): readonly string[] {

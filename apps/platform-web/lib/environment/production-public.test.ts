@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getProductionPublicConfigurationErrors, hasRestrictedProviderConfiguration, isProductionPublicRestrictedPath } from "./production-public";
+import { getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, hasRestrictedProviderConfiguration, isProductionPublicRestrictedPath } from "./production-public";
 
 const safe = { MVH_APP_ENVIRONMENT: "production-public", BILLING_ENABLED: "false", MVH_PILOT_STATE: "inactive", MVH_INVITATIONS_ENABLED: "false" };
 
@@ -24,5 +24,11 @@ describe("public Production boundary", () => {
     for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "MVH_SUPABASE_PROJECT_REF", "STRIPE_SECRET_KEY", "RESEND_API_KEY", "VERCEL_AUTOMATION_BYPASS_SECRET"]) {
       expect(hasRestrictedProviderConfiguration({ [name]: "configured" }), name).toBe(true);
     }
+  });
+
+  it("redirects only the www Production host to the canonical HTTPS origin", () => {
+    expect(getProductionPublicCanonicalRedirectUrl("https://www.mathnexa.com/play?grade=6", "www.mathnexa.com")?.toString()).toBe("https://mathnexa.com/play?grade=6");
+    expect(getProductionPublicCanonicalRedirectUrl("https://mathnexa.com/play", "mathnexa.com")).toBeNull();
+    expect(getProductionPublicCanonicalRedirectUrl("https://preview.example.test/play", "preview.example.test")).toBeNull();
   });
 });
