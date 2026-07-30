@@ -63,4 +63,18 @@ The final version must add privately held dates and access instructions without 
 - invitation and privacy language are reviewed
 - incident and rollback operators are assigned
 
+## 2026-07-30 protected Preview release decision
+
+The owner authorized repository completion and a Standard-Protected Vercel Preview release. Production, public-domain access, participant invitations, billing, student-data functionality, and pilot activation remain unauthorized.
+
+The owner accepted these three deferred risks without recording them as passes:
+
+- previous-password rejection after recovery
+- new-password authentication after recovery
+- unknown-account recovery privacy equivalence for synthetic alias B
+
+Confirmation delivery and link handling, confirmed-account sign-in, session persistence, teacher workspace access, organization-label denial, inactive-pilot safeguards, recovery delivery and password update, and final cleanup-to-zero passed. The final hosted inventory found zero Auth users and zero rows in all eight application collections.
+
+This release decision does not satisfy or replace the exact pilot-activation phrase. Until that separate authority exists, the correct operational state is **NO-GO — REMAIN INACTIVE**.
+
 Only the exact owner phrase GO FOR PHASE 6B PILOT ACTIVATION authorizes activation and invitations. NO-GO — REMAIN INACTIVE keeps the fail-closed state. No other wording is activation authority.

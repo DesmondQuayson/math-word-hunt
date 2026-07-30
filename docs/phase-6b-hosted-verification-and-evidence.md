@@ -58,3 +58,40 @@ Local Auth email remains local-capture. Passing local verification never claims 
 - retain only sanitized evidence
 
 Do not proceed when any count is nonzero or provider cleanup is uncertain.
+
+## 2026-07-30 protected Preview release record
+
+The owner approved a protected Vercel Preview release while explicitly keeping the pilot inactive. This approval is not pilot activation authority and does not authorize participants, invitations, billing, Production, public access, or student data.
+
+Verified release gates:
+
+- `npm run phase6b:verify` passed in full, including the inherited Phase 6 through Phase 1D gates, unit and integration tests, production builds, canonical and historical gameplay checks, database reset, 182 pgTAP tests, RLS and authorization tests, accessibility and responsive-browser coverage, security audits, dependency audit, protected hashes, and repository integrity checks
+- `npm run phase6b:hosted:check` passed all five account-free protected Preview tests; anonymous access returned an HTTP 302 protection challenge
+- the final read-only hosted inventory verified Auth users and all eight application collections at zero
+- Standard Protection remained enabled, the existing automation bypass remained test-only, and the pilot remained inactive
+- canonical SHA-256 values remained `10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e` for `docs/index.html` and `caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46` for `docs/vocab.js`; historical and backup files remained unchanged
+
+Manual operator verification actually completed:
+
+- transactional confirmation email delivery and confirmation link
+- confirmed-account sign-in
+- authenticated session persistence
+- expected teacher workspace access
+- organization-label denial and inactive-pilot safeguards
+- transactional recovery email delivery and password update
+- targeted Auth Admin cleanup followed by server-side cleanup-to-zero across all nine collections
+
+The following are **OWNER-ACCEPTED DEFERRED RISKS** and are not recorded as passed:
+
+- previous-password rejection after recovery
+- new-password authentication after recovery
+- unknown-account recovery privacy equivalence for synthetic alias B
+
+The owner accepts that ordinary functional bugs may be discovered and corrected during controlled use. These deferrals do not waive any security, RLS, privacy, data-integrity, protection, or cleanup stop condition. The protected Preview release may proceed, but the pilot remains inactive and no participant may be invited until separately authorized.
+
+Noncritical launch follow-up:
+
+- complete the three deferred manual checks during the next owner-controlled verification window
+- update the installed Supabase CLI after compatibility review; the verified repository version remains pinned for reproducibility
+- replace deprecated Node child-process `shell: true` argument handling in a future verification-infrastructure maintenance change without weakening the gates
+- on Windows systems where the default Supabase `5432x` ports fall inside a dynamic exclusion range, use a temporary local-only port remap and restore `supabase/config.toml` before commit
