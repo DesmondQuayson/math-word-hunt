@@ -8,6 +8,7 @@ qa-artifacts/
 dist/
 dist2/
 .next/
+.vercel/
 .verification-next-pids.json
 *.tsbuildinfo
 *.log
