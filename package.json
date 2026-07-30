@@ -59,6 +59,7 @@
     "test:e2e:phase6b": "node scripts/run-phase6b-e2e.mjs",
     "test:phase6b:cleanup": "node scripts/verify-phase6b-local-cleanup.mjs",
     "test:phase6b:security": "node scripts/audit-phase6b-security.mjs",
+    "phase6b:hosted:check": "node scripts/run-phase6b-hosted-checks.mjs",
     "phase6b:verify": "node scripts/verify-phase6b.mjs",
     "deletion:plan": "node scripts/deletion-ops.mjs",
     "billing:provision:test:dry-run": "node scripts/provision-stripe-test.mjs --dry-run",
