@@ -73,6 +73,7 @@
     "test:e2e:phase7c": "node scripts/run-phase7c-e2e.mjs",
     "build:phase7c": "node scripts/run-phase7c-build.mjs",
     "test:phase7c:security": "node scripts/audit-phase7c-security.mjs",
+    "test:stripe:provisioning-contract": "node --test scripts/stripe-sandbox-provisioning-contract.test.mjs",
     "phase7c:verify": "node scripts/verify-phase7c.mjs",
     "deletion:plan": "node scripts/deletion-ops.mjs",
     "billing:provision:test:dry-run": "node scripts/provision-stripe-test.mjs --dry-run",

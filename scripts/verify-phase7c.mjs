@@ -16,6 +16,7 @@ const gates = [
   [npm, ["run", "db:test"]],
   [npm, ["run", "test:e2e:phase7c"]],
   [npm, ["run", "build:phase7c"]],
+  [npm, ["run", "test:stripe:provisioning-contract"]],
   [npm, ["run", "test:phase7c:security"]],
   [npm, ["run", "test:security"]],
   [npm, ["audit", "--audit-level=high"]],

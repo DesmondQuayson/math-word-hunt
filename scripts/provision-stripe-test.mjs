@@ -1,6 +1,21 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import Stripe from "stripe";
 
+import {
+  buildPortalConfigurationPayload,
+  hasCanonicalSandboxMetadata,
+  isMonthlyPriceContract,
+  isOwnedSandboxResource,
+  portalConfigurationMatchesContract,
+  requireSingleCandidate,
+  STRIPE_SANDBOX_LEGACY_MONTHLY_LOOKUP_KEY,
+  STRIPE_SANDBOX_LEGACY_PRODUCT_NAME,
+  STRIPE_SANDBOX_METADATA,
+  STRIPE_SANDBOX_MONTHLY_AMOUNT,
+  STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY,
+  STRIPE_SANDBOX_PRODUCT_NAME
+} from "./stripe-sandbox-provisioning-contract.mjs";
+
 const API_VERSION = "2026-02-25.clover";
 const dryRun = process.argv.includes("--dry-run");
 const writeEnv = process.argv.includes("--write-env");
@@ -11,55 +26,116 @@ if (!key) {
 }
 if (!key.startsWith("sk_test_")) throw new Error("Test provisioning rejected a non-test Stripe key");
 const stripe = new Stripe(key, { apiVersion: API_VERSION });
-const metadata = { mathnexa_internal_product: "game-subscription", mathnexa_environment: "test" };
 
-const products = await stripe.products.list({ active: true, limit: 100 });
-let product = products.data.find((item) =>
-  item.metadata.mathnexa_internal_product === metadata.mathnexa_internal_product &&
-  item.metadata.mathnexa_environment === "test"
-);
-if (product?.livemode) throw new Error("Provisioning rejected a live Product");
-if (!product && !dryRun) {
-  product = await stripe.products.create({
-    name: "MathNexa (Test)",
-    description: "Test-mode monthly MathNexa game subscription.",
-    metadata
-  }, { idempotencyKey: "mathnexa-test-product-v1" });
-}
-
-async function ensurePrice(lookupKey, amount, interval) {
-  const found = (await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 10 })).data[0];
-  if (found) {
-    if (found.livemode || !found.active || found.currency !== "usd" || found.unit_amount !== amount || found.recurring?.interval !== interval || found.recurring.interval_count !== 1 || found.recurring.usage_type !== "licensed" || found.product !== product?.id) throw new Error(`Existing ${interval} test Price does not match the frozen contract`);
-    return found;
-  }
-  if (dryRun || !product) return null;
-  return stripe.prices.create({ product: product.id, currency: "usd", unit_amount: amount, recurring: { interval }, lookup_key: lookupKey, metadata }, { idempotencyKey: `mathnexa-${lookupKey}` });
-}
-const monthly = await ensurePrice("mathnexa_monthly_test_v1", 599, "month");
-
-const configurations = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
-let portal = configurations.data.find((item) =>
-  item.metadata?.mathnexa_internal_product === metadata.mathnexa_internal_product &&
-  item.metadata?.mathnexa_environment === "test"
-);
-if (portal && (portal.livemode || !portal.active || !portal.features.invoice_history.enabled || !portal.features.payment_method_update.enabled || !portal.features.subscription_cancel.enabled || portal.features.subscription_cancel.mode !== "at_period_end" || portal.features.subscription_update.enabled)) throw new Error("Existing test portal configuration does not match the frozen contract");
-if (!portal && !dryRun) portal = await stripe.billingPortal.configurations.create({
-  business_profile: { headline: "MathNexa test billing" },
-  features: {
-    customer_update: { enabled: false, allowed_updates: [] },
-    invoice_history: { enabled: true }, payment_method_update: { enabled: true },
-    subscription_cancel: { enabled: true, mode: "at_period_end", cancellation_reason: { enabled: false, options: [] } },
-    subscription_update: { enabled: false, default_allowed_updates: [], products: [] }
-  }, metadata
+// Complete all discovery before issuing any create or update call.
+const productsResponse = await stripe.products.list({ active: true, limit: 100 });
+const lookupPricesResponse = await stripe.prices.list({
+  active: true,
+  lookup_keys: [STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY, STRIPE_SANDBOX_LEGACY_MONTHLY_LOOKUP_KEY],
+  limit: 100
 });
+const portalResponse = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+
+const ownedProducts = productsResponse.data.filter(isOwnedSandboxResource);
+const unmanagedNamedProducts = productsResponse.data.filter((item) =>
+  !isOwnedSandboxResource(item) &&
+  [STRIPE_SANDBOX_PRODUCT_NAME, STRIPE_SANDBOX_LEGACY_PRODUCT_NAME].includes(item.name)
+);
+if (unmanagedNamedProducts.length > 0) {
+  throw new Error(`Conflicting unmanaged MathNexa Sandbox Product resources: ${unmanagedNamedProducts.map(({ id }) => id).join(", ")}`);
+}
+let product = requireSingleCandidate(ownedProducts, "Product");
+
+let productPrices = [];
+if (product) {
+  productPrices = (await stripe.prices.list({ active: true, product: product.id, type: "recurring", limit: 100 })).data;
+}
+
+const lookupPriceCandidates = lookupPricesResponse.data.filter((item) =>
+  [STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY, STRIPE_SANDBOX_LEGACY_MONTHLY_LOOKUP_KEY].includes(item.lookup_key)
+);
+if (lookupPriceCandidates.some((item) => product && item.product !== product.id)) {
+  throw new Error(`Conflicting MathNexa Sandbox Price lookup key ownership: ${lookupPriceCandidates.map(({ id }) => id).join(", ")}`);
+}
+
+const priceCandidates = [...lookupPriceCandidates, ...productPrices.filter((item) =>
+  isOwnedSandboxResource(item) || isMonthlyPriceContract(item, product?.id)
+)];
+let monthly = requireSingleCandidate(priceCandidates, "monthly Price");
+if (monthly && !product) {
+  throw new Error(`Conflicting MathNexa Sandbox Price without an owned Product: ${monthly.id}`);
+}
+if (monthly && !isMonthlyPriceContract(monthly, product.id)) {
+  throw new Error(`Existing MathNexa Sandbox monthly Price does not match the USD 5.99 monthly contract: ${monthly.id}`);
+}
+
+const ownedPortals = portalResponse.data.filter(isOwnedSandboxResource);
+let portal = requireSingleCandidate(ownedPortals, "Customer Portal configuration");
+
+const actions = { product: product ? "reused" : "created", monthly: monthly ? "reused" : "created", portal: portal ? "reused" : "created" };
 
 if (dryRun) {
-  console.log(`Stripe test provisioning dry run: product=${product ? "reuse" : "create"}, monthly=${monthly ? "reuse" : "create"}, portal=${portal ? "reuse" : "create"}.`);
+  console.log(`Stripe test provisioning dry run: product=${actions.product}, monthly=${actions.monthly}, portal=${actions.portal}.`);
   process.exit(0);
 }
-if (!product || !monthly || !portal || product.livemode || monthly.livemode || portal.livemode) throw new Error("Test resource provisioning failed closed");
-console.log(`Stripe test resources ready: product=${product.id}, monthly=${monthly.id}, portal=${portal.id}`);
+
+if (!product) {
+  product = await stripe.products.create({
+    name: STRIPE_SANDBOX_PRODUCT_NAME,
+    description: "MathNexa monthly game subscription (Stripe Sandbox).",
+    metadata: STRIPE_SANDBOX_METADATA
+  }, { idempotencyKey: "mathnexa-sandbox-product-v1" });
+} else if (
+  product.name !== STRIPE_SANDBOX_PRODUCT_NAME ||
+  !hasCanonicalSandboxMetadata(product)
+) {
+  product = await stripe.products.update(product.id, {
+    name: STRIPE_SANDBOX_PRODUCT_NAME,
+    description: "MathNexa monthly game subscription (Stripe Sandbox).",
+    metadata: STRIPE_SANDBOX_METADATA
+  });
+}
+
+if (!monthly) {
+  monthly = await stripe.prices.create({
+    product: product.id,
+    currency: "usd",
+    unit_amount: STRIPE_SANDBOX_MONTHLY_AMOUNT,
+    recurring: { interval: "month" },
+    lookup_key: STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY,
+    metadata: STRIPE_SANDBOX_METADATA
+  }, { idempotencyKey: `mathnexa-${STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY}` });
+} else if (
+  monthly.lookup_key !== STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY ||
+  !hasCanonicalSandboxMetadata(monthly)
+) {
+  monthly = await stripe.prices.update(monthly.id, {
+    lookup_key: STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY,
+    transfer_lookup_key: true,
+    metadata: STRIPE_SANDBOX_METADATA
+  });
+}
+
+const portalPayload = buildPortalConfigurationPayload();
+if (!portal) {
+  portal = await stripe.billingPortal.configurations.create(portalPayload, {
+    idempotencyKey: "mathnexa-sandbox-portal-v1"
+  });
+} else if (!portalConfigurationMatchesContract(portal) || !hasCanonicalSandboxMetadata(portal)) {
+  portal = await stripe.billingPortal.configurations.update(portal.id, portalPayload);
+}
+
+if (
+  !product || !monthly || !portal ||
+  product.livemode || monthly.livemode || portal.livemode ||
+  !isMonthlyPriceContract(monthly, product.id) ||
+  monthly.lookup_key !== STRIPE_SANDBOX_MONTHLY_LOOKUP_KEY ||
+  !portalConfigurationMatchesContract(portal)
+) {
+  throw new Error("Test resource provisioning failed closed");
+}
+
+console.log(`Stripe test resources ready: product=${product.id} (${actions.product}), monthly=${monthly.id} (${actions.monthly}), portal=${portal.id} (${actions.portal})`);
 if (writeEnv) {
   const path = ".env.billing.local";
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
