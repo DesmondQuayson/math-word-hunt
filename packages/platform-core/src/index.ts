@@ -75,6 +75,17 @@ export {
   type AuthEmailDeliveryState
 } from "./email/delivery-state";
 export {
+  GAME_ENTITLEMENT_STATES,
+  decideGameAccess,
+  isTrialEligible,
+  parseGameEntitlementEvidence,
+  type ConsumerAccountStatus,
+  type GameAccessDecision,
+  type GameAccessNextAction,
+  type GameEntitlementEvidence,
+  type GameEntitlementState
+} from "./game-access/entitlement";
+export {
   PILOT_CHECKLIST_KEYS,
   PILOT_READINESS_STATES,
   createEmptyPilotChecklist,

@@ -7,6 +7,9 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const nextConfig = {
   devIndicators: false,
   transpilePackages: ["@math-vocabulary-hunt/platform-core"],
+  outputFileTracingIncludes: {
+    "/game/runtime/*": ["../../docs/index.html", "../../docs/vocab.js"]
+  },
   turbopack: {
     root: repositoryRoot
   }

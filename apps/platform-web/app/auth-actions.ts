@@ -3,9 +3,10 @@
 import { redirect } from "next/navigation";
 
 import type { AuthFormState } from "@/lib/auth/form-state";
-import { getAppBaseUrl } from "@/lib/auth/safe-redirect";
+import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function field(formData: FormData, name: string): string {
@@ -25,18 +26,27 @@ const unavailable: AuthFormState = {
   message: "Local teacher accounts are not configured. Start the local Supabase stack and use the local platform command."
 };
 
+const prohibitedConsumerFields = [
+  "displayName", "schoolLabel", "organization", "role", "grade", "class",
+  "roster", "student", "assignment", "progress"
+] as const;
+
 export async function signUpAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
   if (isProductionPublicMode()) return unavailable;
   const email = field(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("passwordConfirmation") ?? "");
+  const consumerMode = isProductionPlatformMode();
   const displayName = field(formData, "displayName");
   const schoolLabel = field(formData, "schoolLabel");
   const fieldErrors: Record<string, string> = {};
   if (!validEmail(email)) fieldErrors.email = "Enter a valid email address.";
   if (!validPassword(password)) fieldErrors.password = "Use 8 to 128 characters with at least one letter and one number.";
   if (password !== confirmation) fieldErrors.passwordConfirmation = "Passwords must match.";
-  if (displayName.length < 1 || displayName.length > 80) fieldErrors.displayName = "Display name must contain 1 to 80 characters.";
+  if (!consumerMode && (displayName.length < 1 || displayName.length > 80)) fieldErrors.displayName = "Display name must contain 1 to 80 characters.";
+  if (consumerMode && prohibitedConsumerFields.some((name) => field(formData, name).length > 0)) {
+    return { status: "error", message: "Only email and password are accepted for a MathNexa account." };
+  }
   if (schoolLabel.length > 0) fieldErrors.schoolLabel = "School and organization labels are not accepted during the controlled pilot.";
   if (schoolLabel.length > 0) return {
     status: "error",
@@ -47,25 +57,24 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
-  const callback = `${getAppBaseUrl()}/auth/callback?next=/teacher`;
+  const callback = `${getAppBaseUrl()}/auth/callback?next=${consumerMode ? "/account" : "/teacher"}`;
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: callback,
-      data: {
-        display_name: displayName
-      }
+      data: consumerMode ? {} : { display_name: displayName }
     }
   });
   if (error) return { status: "error", message: "The account could not be created. Check the information and try again." };
-  return { status: "success", message: getAuthEmailExperience().signUpResponse };
+  return { status: "success", message: getAuthEmailExperience(process.env, consumerMode ? "consumer" : "teacher").signUpResponse };
 }
 
 export async function signInAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
   if (isProductionPublicMode()) return unavailable;
   const email = field(formData, "email").toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const consumerMode = isProductionPlatformMode();
   if (!validEmail(email) || password.length === 0) {
     return { status: "error", message: "Enter a valid email address and password." };
   }
@@ -73,7 +82,10 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
   if (!supabase) return unavailable;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { status: "error", message: "The email or password was not accepted." };
-  redirect("/teacher");
+  const destination = consumerMode
+    ? safeInternalRedirect(field(formData, "next"), "/account")
+    : "/teacher";
+  redirect(destination);
 }
 
 export async function forgotPasswordAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -85,7 +97,7 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppBaseUrl()}/auth/callback?next=/update-password`
   });
-  return { status: "success", message: getAuthEmailExperience().recoveryResponse };
+  return { status: "success", message: getAuthEmailExperience(process.env, isProductionPlatformMode() ? "consumer" : "teacher").recoveryResponse };
 }
 
 export async function updatePasswordAction(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {

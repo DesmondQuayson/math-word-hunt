@@ -1,7 +1,10 @@
 const allowedDestinations = new Set([
   "/teacher",
   "/account",
-  "/update-password"
+  "/update-password",
+  "/subscription",
+  "/game-access",
+  "/play"
 ]);
 
 export function safeInternalRedirect(value: string | null | undefined, fallback = "/teacher"): string {

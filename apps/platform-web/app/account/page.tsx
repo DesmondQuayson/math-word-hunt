@@ -21,10 +21,13 @@ import { billingAccountCopy } from "@/lib/billing/copy";
 import { AuthEmailStatus } from "@/components/auth-email-status";
 import type { SubscriptionProjection } from "@/lib/billing/repository";
 import { createBillingRepository } from "@/lib/billing/service";
+import { ConsumerAccountPage } from "@/components/consumer/consumer-account-page";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 
-export const metadata = { title: "Teacher account" };
+export const metadata = { title: isProductionPlatformMode() ? "Account" : "Teacher account" };
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ deletion?: string }> }) {
+  if (isProductionPlatformMode()) return <ConsumerAccountPage searchParams={searchParams} />;
   const prototype = getTeacherPrototypeState();
   const configured = isSupabaseConfigured();
   const [session, access] = await Promise.all([getTeacherSession(), getCapabilityAccessView()]);

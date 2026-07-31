@@ -10,6 +10,7 @@ export type AuthEmailExperience = Readonly<{
   signUpResponse: string;
   recoveryResponse: string;
 }>;
+export type AuthEmailAudience = "teacher" | "consumer";
 
 const copy: Record<AuthEmailDeliveryState, AuthEmailExperience> = {
   disabled: {
@@ -38,6 +39,18 @@ const copy: Record<AuthEmailDeliveryState, AuthEmailExperience> = {
   }
 };
 
-export function getAuthEmailExperience(source: Readonly<Record<string, string | undefined>> = process.env): AuthEmailExperience {
-  return copy[parseAuthEmailDeliveryState(source.MVH_EMAIL_DELIVERY) ?? "disabled"];
+export function getAuthEmailExperience(
+  source: Readonly<Record<string, string | undefined>> = process.env,
+  audience: AuthEmailAudience = "teacher"
+): AuthEmailExperience {
+  const experience = copy[parseAuthEmailDeliveryState(source.MVH_EMAIL_DELIVERY) ?? "disabled"];
+  if (audience === "teacher") return experience;
+  return Object.freeze({
+    ...experience,
+    description: experience.description
+      .replace("Pilot access", "Account access")
+      .replace("Real participant invitations", "Production account activation")
+      .replace("the protected Math Vocabulary Hunt Preview", "the approved MathNexa account origin"),
+    recoveryResponse: experience.recoveryResponse.replace("that teacher account", "that account")
+  });
 }

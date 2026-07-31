@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, isProductionPublicMode, isProductionPublicRestrictedPath } from "@/lib/environment/production-public";
+import { getServerEnvironment } from "@/lib/environment/server";
+import { isProductionPlatformDeferredBillingPath, isProductionPlatformMode, isProductionPlatformRestrictedPath } from "@/lib/environment/production-platform";
 import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -21,6 +23,30 @@ export async function proxy(request: NextRequest) {
       return NextResponse.rewrite(destination, { status: 404 });
     }
     return NextResponse.next({ request });
+  }
+  if (isProductionPlatformMode()) {
+    const environment = getServerEnvironment();
+    if (!environment || environment.identity !== "production-platform") {
+      return new NextResponse("Production account configuration unavailable.", { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    const pathname = request.nextUrl.pathname;
+    if (isProductionPlatformRestrictedPath(pathname) || isProductionPlatformDeferredBillingPath(pathname)) {
+      if (pathname.startsWith("/api/")) {
+        return Response.json({ error: "not-found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+      }
+      return new NextResponse(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Not found · MathNexa</title></head><body><main><h1>This feature has not launched</h1><p>The requested MathNexa route is unavailable.</p><p><a href=\"/\">Return to MathNexa</a></p></main></body></html>",
+        {
+          status: 404,
+          headers: {
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "default-src 'none'; style-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Content-Type-Options": "nosniff"
+          }
+        }
+      );
+    }
   }
   return refreshSupabaseSession(request);
 }

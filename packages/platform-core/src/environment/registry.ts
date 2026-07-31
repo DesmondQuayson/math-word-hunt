@@ -1,6 +1,6 @@
 import { parseAuthEmailDeliveryState, type AuthEmailDeliveryState } from "../email/delivery-state";
 
-export const PLATFORM_ENVIRONMENTS = ["local", "preview", "production-public"] as const;
+export const PLATFORM_ENVIRONMENTS = ["local", "preview", "production-public", "production-platform"] as const;
 export type PlatformEnvironment = (typeof PLATFORM_ENVIRONMENTS)[number];
 export type DeliveryMode = AuthEmailDeliveryState;
 export type MonitoringMode = "console" | "disabled";
@@ -22,6 +22,9 @@ export type EnvironmentRegistry = Readonly<{
   sensitiveOperationsAllowed: boolean;
   authenticationAvailable: boolean;
   teacherToolsAvailable: boolean;
+  consumerAccountsAvailable: boolean;
+  gameEntitlementRequired: boolean;
+  accountModel: "none" | "legacy-teacher" | "consumer";
   pilotAvailable: boolean;
   invitationsAvailable: boolean;
 }>;
@@ -39,6 +42,12 @@ export type EnvironmentInput = Readonly<{
   billingEnabled?: string | undefined;
   pilotState?: string | undefined;
   invitationsEnabled?: string | undefined;
+  identityModel?: string | undefined;
+  productionDataProjectIdentity?: string | undefined;
+  previewDataProjectIdentity?: string | undefined;
+  identityProviderConfigurationPresent?: boolean | undefined;
+  previewCredentialCollision?: boolean | undefined;
+  allowInsecureLoopback?: boolean | undefined;
 }>;
 
 function exact(value: string | undefined, allowed: readonly string[]) {
@@ -92,6 +101,53 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
       sensitiveOperationsAllowed: false,
       authenticationAvailable: false,
       teacherToolsAvailable: false,
+      consumerAccountsAvailable: false,
+      gameEntitlementRequired: false,
+      accountModel: "none",
+      pilotAvailable: false,
+      invitationsAvailable: false
+    });
+  }
+  if (identity === "production-platform") {
+    const productionRef = input.productionDataProjectIdentity?.trim() || null;
+    const previewRef = input.previewDataProjectIdentity?.trim() || null;
+    const localRehearsalOrigin = input.allowInsecureLoopback === true &&
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(applicationOrigin);
+    const validPlatformContract = (applicationOrigin.startsWith("https://") || localRehearsalOrigin) &&
+      projectRef !== null &&
+      productionRef === projectRef &&
+      previewRef !== null &&
+      previewRef !== projectRef &&
+      input.identityModel === "consumer-v1" &&
+      input.identityProviderConfigurationPresent === true &&
+      input.previewCredentialCollision !== true &&
+      paymentMode === "disabled" &&
+      emailDelivery !== "disabled" &&
+      fixturePolicy === "forbidden" &&
+      deletionMode === "dry-run" &&
+      input.billingEnabled === "false" &&
+      input.pilotState === "inactive" &&
+      input.invitationsEnabled === "false";
+    if (!validPlatformContract) return null;
+    return Object.freeze({
+      identity,
+      applicationOrigin,
+      dataProjectIdentity: projectRef,
+      paymentMode,
+      billingAvailable: false,
+      emailDelivery,
+      monitoring,
+      fixturePolicy,
+      deletionMode,
+      supportContactVisible: false,
+      previewBanner: false,
+      searchIndexingAllowed: false,
+      sensitiveOperationsAllowed: true,
+      authenticationAvailable: true,
+      teacherToolsAvailable: false,
+      consumerAccountsAvailable: true,
+      gameEntitlementRequired: true,
+      accountModel: "consumer",
       pilotAvailable: false,
       invitationsAvailable: false
     });
@@ -115,6 +171,9 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
     sensitiveOperationsAllowed: true,
     authenticationAvailable: true,
     teacherToolsAvailable: true,
+    consumerAccountsAvailable: false,
+    gameEntitlementRequired: false,
+    accountModel: "legacy-teacher",
     pilotAvailable: identity === "preview",
     invitationsAvailable: false
   });

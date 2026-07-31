@@ -4,10 +4,27 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { getLegacyGameDestination } from "@/lib/legacy-game";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { getGameAccessView } from "@/lib/game-access/server";
+import { GameAccessStatus } from "@/components/consumer/game-access-status";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Play" };
 
-export default function PlayPage() {
+async function ConsumerPlayPage() {
+  const access = await getGameAccessView();
+  if (access.context.status === "anonymous" || access.context.status === "unconfigured") redirect("/sign-in?next=/play");
+  if (!access.decision.allowed) {
+    return <Container className="page-stack" width="compact"><PageHeader eyebrow="Protected game gateway" title="Game access required" description="The canonical game is available only after a server-verified trial or active subscription."/><GameAccessStatus decision={access.decision} /></Container>;
+  }
+  return <Container className="page-stack" width="compact">
+    <PageHeader eyebrow="Protected game gateway" title="Game access verified" description="The server permits this launch only through the verified entitlement end." />
+    <Notice label="Private asset delivery" tone="success"><strong>Launch authorized.</strong><p>The unchanged canonical HTML and vocabulary file are streamed from server-only source. Direct public asset URLs are not part of the final commercial architecture.</p></Notice>
+    <LinkButton href="/game/runtime/index.html" className="launch-button" data-testid="protected-game-launch">Launch MathNexa game</LinkButton>
+  </Container>;
+}
+
+function LegacyPlayPage() {
   const legacyGameUrl = getLegacyGameDestination();
 
   return (
@@ -75,4 +92,8 @@ export default function PlayPage() {
       </section>
     </Container>
   );
+}
+
+export default function PlayPage() {
+  return isProductionPlatformMode() ? <ConsumerPlayPage /> : <LegacyPlayPage />;
 }

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { getCapabilityAccessView } from "@/lib/capabilities/server";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 
 export const metadata = { title: "Pricing" };
 
@@ -22,7 +23,27 @@ function money(amount: number | null, currency: string | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
 }
 
+function ConsumerPricingPage() {
+  return <Container width="compact" className="page-stack">
+    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="The game itself is the subscription product. There is no role-based or annual plan." />
+    <Card variant="highlighted">
+      <p className="card-kicker">One monthly subscription</p>
+      <h2>$5.99 USD / month</h2>
+      <ul>
+        <li>Stripe-hosted payment-method collection before access</li>
+        <li>One full, non-renewable 24-hour trial per eligible account</li>
+        <li>Automatic monthly billing after the trial</li>
+        <li>Game access only during a verified trial or active subscription</li>
+      </ul>
+      <LinkButton href="/sign-up">Create an account</LinkButton>
+    </Card>
+    <Notice label="Phase 7B availability" tone="information"><strong>Checkout is not active yet.</strong><p>No payment method, trial, subscription, or charge can be created in this repository-only phase.</p></Notice>
+    <Notice label="Data boundary" tone="information"><strong>No education or gameplay-progress profile.</strong><p>Only minimum account, security, subscription, entitlement, support, and deletion data is permitted.</p></Notice>
+  </Container>;
+}
+
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
+  if (isProductionPlatformMode()) return <ConsumerPricingPage />;
   const [params, access] = await Promise.all([searchParams, getCapabilityAccessView()]);
   const config = tryGetBillingConfiguration();
   const sandbox = config?.enabled && config.stripeMode === "test" && config.applicationEnvironment !== "production";
