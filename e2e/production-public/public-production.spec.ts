@@ -41,6 +41,45 @@ test("the gateway opens the preserved canonical game", async ({ page }) => {
   await game.close();
 });
 
+test("the game launch CTA preserves its accessible premium visual treatment", async ({ page }) => {
+  await page.goto("/play");
+  const launch = page.getByTestId("legacy-game-launch");
+  await expect(launch).toBeVisible();
+
+  const baseStyles = await launch.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      backgroundImage: styles.backgroundImage,
+      color: styles.color,
+      fontSize: Number.parseFloat(styles.fontSize),
+      fontWeight: styles.fontWeight,
+      letterSpacing: Number.parseFloat(styles.letterSpacing),
+      textShadow: styles.textShadow,
+      transitionDuration: styles.transitionDuration,
+    };
+  });
+
+  expect(baseStyles.backgroundImage).toContain("linear-gradient");
+  expect(baseStyles.color).toBe("rgb(255, 255, 255)");
+  expect(baseStyles.fontSize).toBeGreaterThanOrEqual(17);
+  expect(Number(baseStyles.fontWeight)).toBeGreaterThanOrEqual(800);
+  expect(baseStyles.letterSpacing).toBeGreaterThan(0);
+  expect(baseStyles.textShadow).toContain("rgba(0, 0, 0, 0.35)");
+  expect(baseStyles.transitionDuration).toContain("0.18s");
+
+  await launch.hover();
+  await expect.poll(() => launch.evaluate((element) => getComputedStyle(element).filter)).toBe("brightness(1.08)");
+  await expect.poll(() => launch.evaluate((element) => getComputedStyle(element).transform)).not.toBe("none");
+  await expect.poll(() => launch.evaluate((element) => getComputedStyle(element).boxShadow)).toContain("rgba(245, 197, 66, 0.24)");
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  const mobileBox = await launch.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.height).toBeGreaterThanOrEqual(44);
+  expect(mobileBox!.x).toBeGreaterThanOrEqual(0);
+  expect(mobileBox!.x + mobileBox!.width).toBeLessThanOrEqual(320);
+});
+
 test("public pages preserve keyboard focus, mobile reflow, reduced motion, and forced colors", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   for (const route of publicRoutes) {
