@@ -83,8 +83,7 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         metadata: metadata(input.userId),
         setup_intent_data: { metadata: metadata(input.userId) },
         success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
-        expires_at: Math.floor(Date.now() / 1000) + 30 * 60
+        cancel_url: input.cancelUrl
       }, { idempotencyKey: input.idempotencyKey });
       return this.normalizeSetup(session);
     } catch {

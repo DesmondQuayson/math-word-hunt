@@ -36,6 +36,7 @@ describe("Stripe Sandbox consumer provider", () => {
     }), { idempotencyKey: "mvh-consumer-setup-key" });
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("subscription_data");
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("line_items");
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("expires_at");
   });
 
   it("creates the monthly subscription server-side with the exact supplied trial end", async () => {

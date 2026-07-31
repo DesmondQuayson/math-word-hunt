@@ -176,6 +176,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
       priceId: config.priceId,
       trialEndsAt: trialEnd
     }));
+    expect(Date.parse(trialEnd) - Date.parse(createdAt)).toBe(86_400 * 1000);
   });
 
   it("does not grant a second introductory trial", async () => {
