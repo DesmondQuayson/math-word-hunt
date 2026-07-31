@@ -113,6 +113,11 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
     const previewRef = input.previewDataProjectIdentity?.trim() || null;
     const localRehearsalOrigin = input.allowInsecureLoopback === true &&
       /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(applicationOrigin);
+    const billingContractValid = (
+      paymentMode === "disabled" && input.billingEnabled === "false"
+    ) || (
+      paymentMode === "test" && input.billingEnabled === "true"
+    );
     const validPlatformContract = (applicationOrigin.startsWith("https://") || localRehearsalOrigin) &&
       projectRef !== null &&
       productionRef === projectRef &&
@@ -121,11 +126,10 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
       input.identityModel === "consumer-v1" &&
       input.identityProviderConfigurationPresent === true &&
       input.previewCredentialCollision !== true &&
-      paymentMode === "disabled" &&
+      billingContractValid &&
       emailDelivery !== "disabled" &&
       fixturePolicy === "forbidden" &&
       deletionMode === "dry-run" &&
-      input.billingEnabled === "false" &&
       input.pilotState === "inactive" &&
       input.invitationsEnabled === "false";
     if (!validPlatformContract) return null;
@@ -134,7 +138,7 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
       applicationOrigin,
       dataProjectIdentity: projectRef,
       paymentMode,
-      billingAvailable: false,
+      billingAvailable: paymentMode === "test",
       emailDelivery,
       monitoring,
       fixturePolicy,

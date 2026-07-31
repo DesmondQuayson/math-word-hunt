@@ -11,7 +11,7 @@ export class SupabaseConsumerEntitlementRepository {
   async getEvidence(account: ConsumerAccountRecord): Promise<GameEntitlementEvidence | Record<string, never>> {
     const { data, error } = await this.client
       .from("consumer_game_entitlements")
-      .select("entitlement_state, trial_started_at, trial_ends_at, current_period_ends_at")
+      .select("entitlement_state, trial_started_at, trial_ends_at, current_period_ends_at, grace_ends_at")
       .eq("user_id", account.userId)
       .maybeSingle();
     if (error) return {};
@@ -31,6 +31,13 @@ export class SupabaseConsumerEntitlementRepository {
     }
     if (data.entitlement_state === "subscription-past-due") {
       return { state: "subscription-past-due", periodEndsAt: data.current_period_ends_at };
+    }
+    if (data.entitlement_state === "subscription-grace-period" && data.current_period_ends_at && data.grace_ends_at) {
+      return {
+        state: "subscription-grace-period",
+        periodEndsAt: data.current_period_ends_at,
+        graceEndsAt: data.grace_ends_at
+      };
     }
     if (data.entitlement_state === "subscription-canceled-through-period-end" && data.current_period_ends_at) {
       return { state: "subscription-canceled-through-period-end", periodEndsAt: data.current_period_ends_at };

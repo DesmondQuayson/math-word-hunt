@@ -58,14 +58,26 @@ describe("environment registry", () => {
       accountModel: "consumer"
     });
   });
+  it("accepts isolated Stripe Sandbox billing for the consumer Production platform", () => {
+    expect(parseEnvironmentRegistry({
+      ...productionPlatform,
+      paymentMode: "test",
+      billingEnabled: "true"
+    })).toMatchObject({
+      identity: "production-platform",
+      paymentMode: "test",
+      billingAvailable: true,
+      accountModel: "consumer"
+    });
+  });
   it.each([
     ["missing identity provider", { identityProviderConfigurationPresent: false }],
     ["Preview project", { dataProjectIdentity: "mathnexa-preview" }],
     ["project mismatch", { productionDataProjectIdentity: "other-production" }],
     ["Preview collision", { previewCredentialCollision: true }],
     ["teacher identity", { identityModel: "legacy-teacher" }],
-    ["billing", { billingEnabled: "true" }],
-    ["Stripe", { paymentMode: "test" }],
+    ["billing without Stripe", { billingEnabled: "true" }],
+    ["Stripe without billing", { paymentMode: "test" }],
     ["pilot", { pilotState: "active" }],
     ["invitations", { invitationsEnabled: "true" }],
     ["fixtures", { fixturePolicy: "allowed" }],

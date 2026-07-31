@@ -32,7 +32,7 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
       <div><dt>Game access</dt><dd>{access.decision.allowed ? "Available" : "Unavailable"}</dd></div>
     </dl>
     <Notice label="Data boundary" tone="information"><strong>No learning profile is stored.</strong><p>MathNexa does not save school, class, roster, assignment, result, score, lesson history, or gameplay progress data.</p></Notice>
-    <div className="button-row"><LinkButton href="/subscription">Subscription status</LinkButton><LinkButton href="/game-access" variant="secondary">Game-access decision</LinkButton></div>
+    <div className="button-row"><LinkButton href="/subscription">Subscription and billing</LinkButton><LinkButton href="/game-access" variant="secondary">Game-access decision</LinkButton></div>
     {context.status === "active" ? <form action={requestConsumerDeletionAction}><button className="button button-secondary" type="submit">Request account deletion</button></form> : null}
     <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
   </Container>;

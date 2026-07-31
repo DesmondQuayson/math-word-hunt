@@ -10,6 +10,9 @@ import { LinkButton } from "@/components/ui/link-button";
 import { getCapabilityAccessView } from "@/lib/capabilities/server";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
+import { getGameAccessView } from "@/lib/game-access/server";
 
 export const metadata = { title: "Pricing" };
 
@@ -23,27 +26,45 @@ function money(amount: number | null, currency: string | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
 }
 
-function ConsumerPricingPage() {
+async function ConsumerPricingPage({ checkout, billing }: { checkout?: string; billing?: string }) {
+  const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
+  const config = tryGetConsumerBillingConfiguration();
+  const canCheckout = context.status === "active" && !access.decision.allowed &&
+    (access.decision.nextAction === "start-checkout" || access.decision.nextAction === "manage-subscription") &&
+    config?.checkoutEnabled === true;
   return <Container width="compact" className="page-stack">
-    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="The game itself is the subscription product. There is no role-based or annual plan." />
+    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly game subscription. No annual plan and no permanent free gameplay tier." />
+    {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
+    {billing === "unavailable" ? <Notice label="Billing status" tone="warning" live><strong>Billing is temporarily unavailable.</strong><p>No access or subscription change was made. Try again later.</p></Notice> : null}
     <Card variant="highlighted">
-      <p className="card-kicker">One monthly subscription</p>
+      <p className="card-kicker">Stripe Sandbox subscription</p>
       <h2>$5.99 USD / month</h2>
       <ul>
-        <li>Stripe-hosted payment-method collection before access</li>
-        <li>One full, non-renewable 24-hour trial per eligible account</li>
-        <li>Automatic monthly billing after the trial</li>
-        <li>Game access only during a verified trial or active subscription</li>
+        <li>A payment method is required in Stripe-hosted Checkout before trial activation.</li>
+        <li>Eligible accounts receive one full, non-renewable 24-hour trial, timed exactly by the server.</li>
+        <li>The first $5.99 charge occurs exactly 24 hours after successful setup; the server displays that exact time after completion.</li>
+        <li>The subscription renews automatically for $5.99 monthly until canceled.</li>
+        <li>Cancel before the verified trial end to prevent the first charge.</li>
       </ul>
-      <LinkButton href="/sign-up">Create an account</LinkButton>
+      {context.status === "anonymous" || context.status === "unconfigured"
+        ? <LinkButton href="/sign-up">Create an account</LinkButton>
+        : canCheckout
+          ? <form action={startCheckoutAction}><button className="button button-primary" type="submit">Add payment method and start trial</button></form>
+          : access.decision.allowed
+            ? <LinkButton href="/play">Continue playing</LinkButton>
+            : <LinkButton href="/subscription">Review subscription status</LinkButton>}
     </Card>
-    <Notice label="Phase 7B availability" tone="information"><strong>Checkout is not active yet.</strong><p>No payment method, trial, subscription, or charge can be created in this repository-only phase.</p></Notice>
+    {!config ? <Notice label="Sandbox availability" tone="warning"><strong>Checkout is not active yet.</strong><p>Stripe Sandbox is not configured, so Checkout remains safely unavailable. No key or browser value can activate billing.</p></Notice> : null}
+    <Notice label="Refund policy" tone="information"><strong>Manual review only.</strong><p>First-charge refund requests may be reviewed by the owner within 7 days. MathNexa issues no automatic refunds.</p></Notice>
     <Notice label="Data boundary" tone="information"><strong>No education or gameplay-progress profile.</strong><p>Only minimum account, security, subscription, entitlement, support, and deletion data is permitted.</p></Notice>
   </Container>;
 }
 
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
-  if (isProductionPlatformMode()) return <ConsumerPricingPage />;
+  if (isProductionPlatformMode()) {
+    const params = await searchParams;
+    return <ConsumerPricingPage checkout={params.checkout} billing={params.billing} />;
+  }
   const [params, access] = await Promise.all([searchParams, getCapabilityAccessView()]);
   const config = tryGetBillingConfiguration();
   const sandbox = config?.enabled && config.stripeMode === "test" && config.applicationEnvironment !== "production";

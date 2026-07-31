@@ -9,9 +9,40 @@ import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { createBillingProvider } from "@/lib/billing/provider-factory";
 import { createBillingRepository, createHostedCheckout, createHostedPortal } from "@/lib/billing/service";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
+import { createConsumerBillingProvider } from "@/lib/billing/consumer-provider-factory";
+import {
+  createConsumerBillingRepository,
+  createConsumerPortal,
+  createConsumerSetupCheckout
+} from "@/lib/billing/consumer-service";
 
 export async function startCheckoutAction(formData: FormData) {
   if (isProductionPublicMode()) redirect("/not-launched");
+  if (isProductionPlatformMode()) {
+    const config = tryGetConsumerBillingConfiguration();
+    if (!config) redirect("/pricing?billing=unavailable");
+    try {
+      const context = await resolveConsumerContext();
+      if (context.status === "anonymous" || context.status === "unconfigured") {
+        redirect("/sign-in?next=/pricing");
+      }
+      const repository = createConsumerBillingRepository();
+      if (!repository) throw new Error("unavailable");
+      const result = await createConsumerSetupCheckout({
+        context,
+        config,
+        provider: createConsumerBillingProvider(config),
+        repository
+      });
+      redirect(result.url);
+    } catch (error) {
+      if (error && typeof error === "object" && "digest" in error) throw error;
+      redirect("/pricing?billing=unavailable");
+    }
+  }
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/pricing?billing=unavailable");
   try {
@@ -32,6 +63,25 @@ export async function startCheckoutAction(formData: FormData) {
 
 export async function openBillingPortalAction() {
   if (isProductionPublicMode()) redirect("/not-launched");
+  if (isProductionPlatformMode()) {
+    const config = tryGetConsumerBillingConfiguration();
+    if (!config) redirect("/subscription?billing=unavailable");
+    try {
+      const context = await resolveConsumerContext();
+      const repository = createConsumerBillingRepository();
+      if (!repository) throw new Error("unavailable");
+      const result = await createConsumerPortal({
+        context,
+        config,
+        provider: createConsumerBillingProvider(config),
+        repository
+      });
+      redirect(result.url);
+    } catch (error) {
+      if (error && typeof error === "object" && "digest" in error) throw error;
+      redirect("/subscription?billing=unavailable");
+    }
+  }
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/account?billing=unavailable");
   try {

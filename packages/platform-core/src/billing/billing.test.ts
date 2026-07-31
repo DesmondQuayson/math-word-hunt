@@ -19,8 +19,8 @@ const eligible = {
 
 describe("billing contracts", () => {
   it("freezes the authorized sandbox catalog", () => {
-    expect(BILLING_CATALOG.map((plan) => plan.key)).toEqual(["free", "teacher-pro-monthly", "teacher-pro-annual"]);
-    expect(BILLING_CATALOG.map((plan) => plan.amountMinorUnits)).toEqual([0, 999, 7999]);
+    expect(BILLING_CATALOG.map((plan) => plan.key)).toEqual(["free", "teacher-pro-monthly", "teacher-pro-annual", "mathnexa-monthly"]);
+    expect(BILLING_CATALOG.map((plan) => plan.amountMinorUnits)).toEqual([0, 999, 7999, 599]);
     expect(() => parseBillingPlanKey("district-enterprise")).toThrow("Unknown billing plan key");
   });
 

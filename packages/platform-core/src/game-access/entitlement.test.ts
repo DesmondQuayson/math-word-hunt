@@ -49,6 +49,22 @@ describe("general-public game entitlement", () => {
     expect(decideGameAccess({ authenticated: true, accountStatus: "deletion-pending", emailConfirmed: true, evidence: { state: "subscription-active", periodEndsAt: "2026-09-01T00:00:00.000Z" }, serverNow: now }).state).toBe("account-deletion-pending");
   });
 
+  it("allows a verified renewal grace period only until its authoritative end", () => {
+    const evidence = {
+      state: "subscription-grace-period",
+      periodEndsAt: "2026-08-01T00:00:00.000Z",
+      graceEndsAt: "2026-08-08T00:00:00.000Z"
+    } as const;
+    expect(decideGameAccess({
+      authenticated: true, accountStatus: "active", emailConfirmed: true, evidence,
+      serverNow: new Date("2026-08-04T00:00:00.000Z")
+    })).toMatchObject({ allowed: true, reason: "renewal-grace-active", accessEndsAt: evidence.graceEndsAt });
+    expect(decideGameAccess({
+      authenticated: true, accountStatus: "active", emailConfirmed: true, evidence,
+      serverNow: new Date(evidence.graceEndsAt)
+    })).toMatchObject({ allowed: false, state: "subscription-expired" });
+  });
+
   it("rejects browser-style extra fields and forged timestamp shapes", () => {
     expect(parseGameEntitlementEvidence({ state: "no-entitlement", trialRedeemedAt: null, premium: true })).toBeNull();
     expect(parseGameEntitlementEvidence({ state: "trial-active", trialRedeemedAt: redeemed, startsAt: redeemed, endsAt: "forever" })).toBeNull();

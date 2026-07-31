@@ -30,7 +30,8 @@ export async function proxy(request: NextRequest) {
       return new NextResponse("Production account configuration unavailable.", { status: 503, headers: { "Cache-Control": "no-store" } });
     }
     const pathname = request.nextUrl.pathname;
-    if (isProductionPlatformRestrictedPath(pathname) || isProductionPlatformDeferredBillingPath(pathname)) {
+    if (isProductionPlatformRestrictedPath(pathname) ||
+      (isProductionPlatformDeferredBillingPath(pathname) && !environment.billingAvailable)) {
       if (pathname.startsWith("/api/")) {
         return Response.json({ error: "not-found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
       }

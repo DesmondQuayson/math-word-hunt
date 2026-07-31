@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+const platformOrigin = new URL(
+  process.env.MVH_PLATFORM_TEST_BASE_URL ?? "http://127.0.0.1:4180"
+).origin;
+
 const pilotRoutes = [
   ["/pilot", "Evaluate the teacher experience without bringing student data."],
   ["/pilot/privacy", "Bring teacher planning—not student records."],
@@ -38,7 +42,7 @@ test("feedback prepares a sanitized local summary without persistence or deliver
   const externalRequests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (url.origin !== "http://127.0.0.1:4180") externalRequests.push(request.url());
+    if (url.origin !== platformOrigin) externalRequests.push(request.url());
   });
   await page.goto("/pilot/feedback");
   await page.getByLabel(/Workflow being tested/).fill("Launch the canonical game");

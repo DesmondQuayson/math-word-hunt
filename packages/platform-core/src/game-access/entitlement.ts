@@ -5,6 +5,7 @@ export const GAME_ENTITLEMENT_STATES = [
   "trial-expired",
   "subscription-active",
   "subscription-past-due",
+  "subscription-grace-period",
   "subscription-canceled-through-period-end",
   "subscription-expired",
   "account-suspended",
@@ -30,6 +31,7 @@ export type GameEntitlementEvidence =
   | Readonly<{ state: "trial-expired"; trialRedeemedAt: string; endedAt: string }>
   | Readonly<{ state: "subscription-active"; periodEndsAt: string }>
   | Readonly<{ state: "subscription-past-due"; periodEndsAt: string | null }>
+  | Readonly<{ state: "subscription-grace-period"; periodEndsAt: string; graceEndsAt: string }>
   | Readonly<{ state: "subscription-canceled-through-period-end"; periodEndsAt: string }>
   | Readonly<{ state: "subscription-expired"; endedAt: string }>;
 
@@ -45,6 +47,7 @@ export type GameAccessDecision = Readonly<{
     | "trial-ended"
     | "subscription-access-active"
     | "payment-past-due"
+    | "renewal-grace-active"
     | "canceled-access-active"
     | "subscription-ended"
     | "account-suspended"
@@ -108,6 +111,13 @@ export function parseGameEntitlementEvidence(value: unknown): GameEntitlementEvi
     const periodEndsAt = timestamp(value.periodEndsAt);
     return periodEndsAt ? Object.freeze({ state: value.state, periodEndsAt }) : null;
   }
+  if (value.state === "subscription-grace-period" && exact(value, ["state", "periodEndsAt", "graceEndsAt"])) {
+    const periodEndsAt = timestamp(value.periodEndsAt);
+    const graceEndsAt = timestamp(value.graceEndsAt);
+    return periodEndsAt && graceEndsAt && Date.parse(graceEndsAt) > Date.parse(periodEndsAt)
+      ? Object.freeze({ state: value.state, periodEndsAt, graceEndsAt })
+      : null;
+  }
   if (value.state === "subscription-canceled-through-period-end" && exact(value, ["state", "periodEndsAt"])) {
     const periodEndsAt = timestamp(value.periodEndsAt);
     return periodEndsAt ? Object.freeze({ state: value.state, periodEndsAt }) : null;
@@ -161,6 +171,10 @@ export function decideGameAccess(input: DecisionInput): GameAccessDecision {
   }
   if (evidence.state === "subscription-past-due") {
     return decision(false, evidence.state, "payment-past-due", "manage-subscription");
+  }
+  if (evidence.state === "subscription-grace-period") {
+    if (nowMs >= Date.parse(evidence.graceEndsAt)) return decision(false, "subscription-expired", "subscription-ended", "manage-subscription");
+    return decision(true, evidence.state, "renewal-grace-active", "manage-subscription", evidence.graceEndsAt);
   }
   if (evidence.state === "subscription-canceled-through-period-end") {
     if (nowMs >= Date.parse(evidence.periodEndsAt)) return decision(false, "subscription-expired", "subscription-ended", "manage-subscription");

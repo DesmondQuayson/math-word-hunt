@@ -1,10 +1,36 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { createServer } from "node:net";
 import { resolve } from "node:path";
-import { registerVerificationNextProcess, stopVerificationNextProcess } from "./verification-processes.mjs";
+import {
+  registerVerificationNextProcess,
+  stopRegisteredVerificationNextProcesses,
+  stopVerificationNextProcess
+} from "./verification-processes.mjs";
 
 const prototypeMode = process.argv.includes("--prototype");
 const playwrightArgs = process.argv.slice(2).filter((argument) => argument !== "--prototype");
+
+await stopRegisteredVerificationNextProcesses();
+
+async function getFreeLoopbackPort() {
+  const reservation = createServer();
+  reservation.unref();
+  reservation.listen(0, "127.0.0.1");
+  await once(reservation, "listening");
+  const address = reservation.address();
+  if (!address || typeof address === "string") {
+    reservation.close();
+    throw new Error("Could not reserve a loopback port for platform verification");
+  }
+  const port = address.port;
+  reservation.close();
+  await once(reservation, "close");
+  return port;
+}
+
+const platformPort = await getFreeLoopbackPort();
+const platformBaseUrl = `http://127.0.0.1:${platformPort}`;
 
 const staticServer = spawn(
   process.execPath,
@@ -21,7 +47,7 @@ const platformServer = spawn(
     "--hostname",
     "127.0.0.1",
     "--port",
-    "4180"
+    String(platformPort)
   ],
   {
     env: {
@@ -36,12 +62,17 @@ const platformServer = spawn(
 );
 registerVerificationNextProcess(platformServer);
 
-async function waitFor(url, label) {
+async function waitFor(url, label, requiredMarker = null) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
+    if (platformServer.exitCode !== null) {
+      throw new Error(`${label} process exited before readiness`);
+    }
     try {
       const response = await fetch(url);
-      if (response.ok) return;
+      if (response.ok) {
+        if (requiredMarker === null || (await response.text()).includes(requiredMarker)) return;
+      }
     } catch {
       // The server may still be starting.
     }
@@ -65,7 +96,11 @@ let exitCode;
 try {
   await Promise.all([
     waitFor("http://127.0.0.1:4173/docs/index.html", "Static game server"),
-    waitFor("http://127.0.0.1:4180", "Platform server")
+    waitFor(
+      prototypeMode ? `${platformBaseUrl}/teacher` : platformBaseUrl,
+      "Platform server",
+      prototypeMode ? "Demonstration data" : null
+    )
   ]);
   const playwright = spawn(
     process.execPath,
@@ -80,6 +115,7 @@ try {
         ...process.env,
         MVH_EMAIL_DELIVERY: "disabled",
         MVH_PILOT_STATE: "inactive",
+        MVH_PLATFORM_TEST_BASE_URL: platformBaseUrl,
         ...(prototypeMode ? { MVH_TEACHER_PROTOTYPE_TEST: "enabled" } : {})
       },
       stdio: "inherit"
