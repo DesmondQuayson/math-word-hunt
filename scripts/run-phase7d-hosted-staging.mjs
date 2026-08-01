@@ -10,6 +10,7 @@ import Stripe from "stripe";
 
 import {
   buildPhase7dEnvironment,
+  buildVercelPreviewEnvironmentPayloads,
   isVercelStandardProtectionScope,
   PHASE7D_BASELINE,
   PHASE7D_PROTECTED_HASHES,
@@ -237,16 +238,12 @@ function getVercelProject(name, allowMissing = false) {
 }
 
 function upsertVercelEnvironment(values) {
-  const payload = Object.entries(values).map(([key, value]) => ({
-    key,
-    value,
-    type: "sensitive",
-    target: ["preview"]
-  }));
-  vercel([
-    "api", `/v10/projects/${PHASE7D_VERCEL_PROJECT_NAME}/env?upsert=true`,
-    "--method", "POST", "--input", "-", "--silent"
-  ], { input: payload });
+  for (const payload of buildVercelPreviewEnvironmentPayloads(values)) {
+    vercel([
+      "api", `/v10/projects/${PHASE7D_VERCEL_PROJECT_NAME}/env?upsert=true`,
+      "--method", "POST", "--input", "-", "--silent"
+    ], { input: payload });
+  }
 }
 
 function findSecret(value) {

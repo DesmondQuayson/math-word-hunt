@@ -140,3 +140,12 @@ export function recoverVercelAutomationBypassSecret(protectionBypass) {
   );
   return matches.length === 1 ? matches[0][0] : null;
 }
+
+export function buildVercelPreviewEnvironmentPayloads(values) {
+  return Object.entries(values).map(([key, value]) => Object.freeze({
+    key,
+    value,
+    type: "sensitive",
+    target: Object.freeze(["preview"])
+  }));
+}

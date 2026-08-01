@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildPhase7dEnvironment,
+  buildVercelPreviewEnvironmentPayloads,
   isSafePhase7dOrigin,
   isVercelStandardProtectionScope,
   PHASE7D_PREVIEW_SUPABASE_REF,
@@ -51,6 +52,17 @@ test("Phase 7D recovers exactly one metadata-bound automation bypass without amb
   assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, scope: "shareable-link" } }), null);
   assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, isEnvVar: false } }), null);
   assert.equal(recoverVercelAutomationBypassSecret(null), null);
+});
+
+test("Phase 7D sends staging variables as individual sensitive Preview payloads", () => {
+  const payloads = buildVercelPreviewEnvironmentPayloads({ FIRST: "one", SECOND: "two" });
+  assert.deepEqual(payloads, [
+    { key: "FIRST", value: "one", type: "sensitive", target: ["preview"] },
+    { key: "SECOND", value: "two", type: "sensitive", target: ["preview"] }
+  ]);
+  assert.equal(new Set(payloads.map(({ key }) => key)).size, payloads.length);
+  assert.equal(Object.isFrozen(payloads[0]), true);
+  assert.equal(Object.isFrozen(payloads[0].target), true);
 });
 
 test("Phase 7D environment is consumer-only, non-indexable, test-billing configuration", () => {
