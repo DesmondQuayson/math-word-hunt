@@ -131,13 +131,22 @@ async function validateProviderAuthentication() {
     env: process.env
   });
   if (vercelIdentity.status !== 0 || !vercelIdentity.stdout.trim()) throw new Error("vercel-authentication-unavailable");
-  const [projects, domains, product, price, portal] = await Promise.all([
-    supabaseJson("/v1/projects"),
-    resendJson("/domains"),
-    stripe.products.retrieve(PHASE7D_STRIPE_PRODUCT_ID),
-    stripe.prices.retrieve(PHASE7D_STRIPE_PRICE_ID),
-    stripe.billingPortal.configurations.retrieve(PHASE7D_STRIPE_PORTAL_ID)
-  ]);
+  let projects;
+  let domains;
+  let product;
+  let price;
+  let portal;
+  try { projects = await supabaseJson("/v1/projects"); }
+  catch { throw new Error("supabase-authentication-rejected"); }
+  try { domains = await resendJson("/domains"); }
+  catch { throw new Error("resend-authentication-rejected"); }
+  try {
+    [product, price, portal] = await Promise.all([
+      stripe.products.retrieve(PHASE7D_STRIPE_PRODUCT_ID),
+      stripe.prices.retrieve(PHASE7D_STRIPE_PRICE_ID),
+      stripe.billingPortal.configurations.retrieve(PHASE7D_STRIPE_PORTAL_ID)
+    ]);
+  } catch { throw new Error("stripe-sandbox-authentication-rejected"); }
   if (!Array.isArray(projects) || (!Array.isArray(domains?.data) && !Array.isArray(domains)) ||
     product.livemode || price.livemode || portal.livemode) {
     throw new Error("phase7d-provider-authentication-verification");
