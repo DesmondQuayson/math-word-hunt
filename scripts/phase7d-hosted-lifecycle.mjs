@@ -99,6 +99,12 @@ async function querySingle(admin, table, select, column, value) {
   return result.data;
 }
 
+async function requireSuccessfulFormOutcome(page, code) {
+  const outcome = page.locator('[role="status"], [role="alert"]').first();
+  await outcome.waitFor({ state: "visible" });
+  assert(await outcome.getAttribute("role") === "status", code);
+}
+
 async function completeStripeSetup(page) {
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 });
   const card = page.locator('input[name="number"], input[autocomplete="cc-number"]').first();
@@ -148,7 +154,7 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     assert(passwordLabels.length === 2 && passwordLabels.every((item) => item.labelled), "signup-password-label-association");
     const confirmationRequestedAt = Date.now();
     await page.getByRole("button", { name: "Create account" }).click();
-    await page.getByRole("status").waitFor({ state: "visible" });
+    await requireSuccessfulFormOutcome(page, "signup-form-rejected");
     const confirmation = await waitForEmail(input.resendApiKey, confirmationRequestedAt, /confirm/i);
     assert(["sent", "delivered"].includes(confirmation.last_event), "confirmation-email-not-delivered");
     await page.goto(confirmationLink(confirmation.html), { waitUntil: "domcontentloaded" });
@@ -176,7 +182,7 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     await page.locator('input[name="email"]').fill(PHASE7D_RESEND_TEST_RECIPIENT);
     const recoveryRequestedAt = Date.now();
     await page.getByRole("button", { name: "Send recovery message" }).click();
-    await page.getByRole("status").waitFor({ state: "visible" });
+    await requireSuccessfulFormOutcome(page, "recovery-form-rejected");
     const recovery = await waitForEmail(input.resendApiKey, recoveryRequestedAt, /recover|reset/i);
     assert(["sent", "delivered"].includes(recovery.last_event), "recovery-email-not-delivered");
     await page.goto(confirmationLink(recovery.html), { waitUntil: "domcontentloaded" });

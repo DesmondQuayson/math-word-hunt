@@ -143,6 +143,13 @@ test("Phase 7D runner cannot start lifecycle before the application access-lock 
   assert.doesNotMatch(source, /vercel\(\["alias", "set"/);
 });
 
+test("Phase 7D lifecycle distinguishes accessible success and error outcomes without copy-dependent locators", () => {
+  const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
+  assert.match(source, /\[role="status"\], \[role="alert"\]/);
+  assert.match(source, /getAttribute\("role"\) === "status"/);
+  assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
+});
+
 test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixture cleanup", () => {
   const sql = buildPhase7dHostedStateVerificationSql();
   assert.match(sql, /identity_model[\s\S]*consumer-v1/);
