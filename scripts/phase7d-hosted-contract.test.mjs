@@ -146,6 +146,7 @@ test("Phase 7D runner cannot start lifecycle before the application access-lock 
 test("Phase 7D lifecycle distinguishes accessible success and error outcomes without copy-dependent locators", () => {
   const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
   assert.match(source, /\[role="status"\], \[role="alert"\]/);
+  assert.match(source, /page\.locator\("form"\)\.first\(\)/);
   assert.match(source, /getAttribute\("role"\) === "status"/);
   assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
 });
