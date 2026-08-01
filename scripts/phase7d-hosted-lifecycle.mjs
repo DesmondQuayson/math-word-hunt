@@ -116,6 +116,8 @@ async function completeStripeSetup(page) {
   if (await name.count()) await name.fill("MathNexa Staging");
   const country = page.locator('select[name="country"], select[autocomplete="country"]').first();
   if (await country.count()) await country.selectOption("US");
+  const postalCode = page.locator('input[name="postalCode"], input[autocomplete="postal-code"]').first();
+  if (await postalCode.count()) await postalCode.fill("42424");
   await page.locator('button[type="submit"]').last().click();
   await page.waitForURL(new RegExp(`^${PHASE7D_STAGING_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/checkout/status`), {
     timeout: 120_000

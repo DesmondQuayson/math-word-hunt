@@ -162,6 +162,12 @@ test("Phase 7D waits for authoritative Resend delivery instead of message-body a
   assert.match(source, /recovery-email-not-delivered/);
 });
 
+test("Phase 7D completes the conditional Stripe Checkout postal-code field", () => {
+  const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
+  assert.match(source, /input\[name="postalCode"\], input\[autocomplete="postal-code"\]/);
+  assert.match(source, /postalCode\.count\(\)\) await postalCode\.fill\("42424"\)/);
+});
+
 test("Phase 7D uses the directly verified Resend STARTTLS transport", () => {
   const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
   assert.match(source, /smtp_host: "smtp\.resend\.com"/);
