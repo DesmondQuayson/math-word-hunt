@@ -10,6 +10,7 @@ import Stripe from "stripe";
 
 import {
   buildPhase7dEnvironment,
+  isVercelStandardProtectionScope,
   PHASE7D_BASELINE,
   PHASE7D_PROTECTED_HASHES,
   PHASE7D_RESEND_DOMAIN,
@@ -440,7 +441,9 @@ async function provisionVercel(state) {
   } });
   vercel(["project", "protection", "enable", PHASE7D_VERCEL_PROJECT_NAME, "--sso", "--json"]);
   project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME);
-  if (project.ssoProtection?.deploymentType !== "all_except_custom_domains") throw new Error("vercel-standard-protection-not-enabled");
+  if (!isVercelStandardProtectionScope(project.ssoProtection?.deploymentType)) {
+    throw new Error("vercel-standard-protection-not-enabled");
+  }
 
   let bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "";
   const bypassEntries = Object.keys(project.protectionBypass ?? {});

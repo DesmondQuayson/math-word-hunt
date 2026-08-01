@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildPhase7dEnvironment,
   isSafePhase7dOrigin,
+  isVercelStandardProtectionScope,
   PHASE7D_PREVIEW_SUPABASE_REF,
   PHASE7D_STAGING_ORIGIN,
   PHASE7D_STRIPE_API_VERSION,
@@ -29,6 +30,14 @@ const input = {
 test("Phase 7D uses the isolated protected staging origin and never the public domain", () => {
   assert.equal(isSafePhase7dOrigin(PHASE7D_STAGING_ORIGIN), true);
   assert.equal(isSafePhase7dOrigin("https://mathnexa.com"), false);
+});
+
+test("Phase 7D recognizes current and legacy Standard Protection API scopes", () => {
+  assert.equal(isVercelStandardProtectionScope("prod_deployment_urls_and_all_previews"), true);
+  assert.equal(isVercelStandardProtectionScope("all_except_custom_domains"), true);
+  assert.equal(isVercelStandardProtectionScope("preview"), false);
+  assert.equal(isVercelStandardProtectionScope("all"), false);
+  assert.equal(isVercelStandardProtectionScope(undefined), false);
 });
 
 test("Phase 7D environment is consumer-only, non-indexable, test-billing configuration", () => {

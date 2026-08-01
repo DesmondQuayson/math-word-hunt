@@ -18,6 +18,11 @@ export const PHASE7D_STRIPE_API_VERSION = "2026-07-29.dahlia";
 export const PHASE7D_TRIAL_SECONDS = 86_400;
 export const PHASE7D_RENEWAL_GRACE_DAYS = 7;
 
+const VERCEL_STANDARD_PROTECTION_SCOPES = new Set([
+  "all_except_custom_domains",
+  "prod_deployment_urls_and_all_previews"
+]);
+
 export const PHASE7D_PROTECTED_HASHES = Object.freeze({
   "docs/index.html": "10D0E49CD5DECF316615A10F6BDE37DC89796B2D8817EB1CF5D9EE25D263747E",
   "docs/vocab.js": "CAEB8FBB590FFFD8CBC169F88F174A38C26DE2D16A7E1B0C1CF5E83AC9F01C46"
@@ -117,4 +122,8 @@ export function redactPhase7dText(value, secrets = []) {
 
 export function isSafePhase7dOrigin(value) {
   return value === PHASE7D_STAGING_ORIGIN && value !== "https://mathnexa.com";
+}
+
+export function isVercelStandardProtectionScope(value) {
+  return VERCEL_STANDARD_PROTECTION_SCOPES.has(value);
 }
