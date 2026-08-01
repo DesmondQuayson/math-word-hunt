@@ -9,8 +9,8 @@ $plain = $env:PHASE7D_VAULT_SECRET_VALUE
 if ([string]::IsNullOrWhiteSpace($plain)) { throw 'Phase 7D vault update value is unavailable.' }
 $secure = ConvertTo-SecureString $plain -AsPlainText -Force
 try {
-  $vault = Get-Content -LiteralPath $VaultPath -Raw | ConvertFrom-Json -AsHashtable
-  $vault.values[$Name] = $secure | ConvertFrom-SecureString
+  $vault = Get-Content -LiteralPath $VaultPath -Raw | ConvertFrom-Json
+  $vault.values | Add-Member -MemberType NoteProperty -Name $Name -Value ($secure | ConvertFrom-SecureString) -Force
   $vault | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $VaultPath -Encoding UTF8
 } finally {
   $secure.Dispose()

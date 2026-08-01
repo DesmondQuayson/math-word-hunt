@@ -73,7 +73,7 @@ $vault = [ordered]@{
 $pendingPath = "$VaultPath.pending"
 try {
   $vault | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $pendingPath -Encoding UTF8
-  $stored = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json -AsHashtable
+  $stored = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json
   Test-DpapiValue $stored.values.SUPABASE_ACCESS_TOKEN { param($value) $value -match '^sbp_[A-Za-z0-9_\-]{16,}$' }
   Test-DpapiValue $stored.values.SUPABASE_DB_PASSWORD { param($value) $value.Length -ge 32 }
   Test-DpapiValue $stored.values.RESEND_API_KEY { param($value) $value -match '^re_[A-Za-z0-9_\-]{16,}$' }

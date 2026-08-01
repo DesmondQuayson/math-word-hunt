@@ -17,10 +17,10 @@ function Open-DpapiValue {
   }
 }
 
-$vault = Get-Content -LiteralPath $VaultPath -Raw | ConvertFrom-Json -AsHashtable
+$vault = Get-Content -LiteralPath $VaultPath -Raw | ConvertFrom-Json
 try {
-  foreach ($entry in $vault.values.GetEnumerator()) {
-    [Environment]::SetEnvironmentVariable($entry.Key, (Open-DpapiValue $entry.Value), 'Process')
+  foreach ($entry in $vault.values.PSObject.Properties) {
+    [Environment]::SetEnvironmentVariable($entry.Name, (Open-DpapiValue $entry.Value), 'Process')
   }
   $env:PHASE7D_VAULT_PATH = $VaultPath
   $env:PHASE7D_VAULT_UPDATE_SCRIPT = Join-Path $PSScriptRoot 'update-phase7d-vault.ps1'

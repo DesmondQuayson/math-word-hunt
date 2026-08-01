@@ -47,6 +47,9 @@ if (/Set-Content[^\r\n]+\$(?:plain|databasePasswordPlain)/i.test(sources)) {
 if (/RandomNumberGenerator\]::Fill\(/.test(sources)) {
   throw new Error("Phase 7D credential prompt uses an API unavailable in Windows PowerShell 5.1.");
 }
+if (/ConvertFrom-Json\s+-AsHashtable/.test(sources)) {
+  throw new Error("Phase 7D vault scripts use a JSON option unavailable in Windows PowerShell 5.1.");
+}
 for (const [path, expected] of Object.entries(PHASE7D_PROTECTED_HASHES)) {
   const actual = createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
   if (actual !== expected) throw new Error(`${path} changed: ${actual}`);
