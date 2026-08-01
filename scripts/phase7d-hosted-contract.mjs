@@ -127,3 +127,16 @@ export function isSafePhase7dOrigin(value) {
 export function isVercelStandardProtectionScope(value) {
   return VERCEL_STANDARD_PROTECTION_SCOPES.has(value);
 }
+
+export function recoverVercelAutomationBypassSecret(protectionBypass) {
+  if (!protectionBypass || typeof protectionBypass !== "object" || Array.isArray(protectionBypass)) {
+    return null;
+  }
+  const matches = Object.entries(protectionBypass).filter(([candidate, metadata]) =>
+    /^[A-Za-z0-9_-]{24,}$/.test(candidate) &&
+    metadata && typeof metadata === "object" &&
+    metadata.scope === "automation-bypass" &&
+    metadata.isEnvVar === true
+  );
+  return matches.length === 1 ? matches[0][0] : null;
+}

@@ -12,6 +12,7 @@ import {
   PHASE7D_STRIPE_PRICE_ID,
   PHASE7D_STRIPE_PRODUCT_ID,
   PHASE7D_TRIAL_SECONDS,
+  recoverVercelAutomationBypassSecret,
   redactPhase7dText
 } from "./phase7d-hosted-contract.mjs";
 
@@ -38,6 +39,18 @@ test("Phase 7D recognizes current and legacy Standard Protection API scopes", ()
   assert.equal(isVercelStandardProtectionScope("preview"), false);
   assert.equal(isVercelStandardProtectionScope("all"), false);
   assert.equal(isVercelStandardProtectionScope(undefined), false);
+});
+
+test("Phase 7D recovers exactly one metadata-bound automation bypass without ambiguity", () => {
+  const first = "a".repeat(32);
+  const second = "b".repeat(32);
+  const metadata = { scope: "automation-bypass", isEnvVar: true };
+  assert.equal(recoverVercelAutomationBypassSecret({ [first]: metadata }), first);
+  assert.equal(recoverVercelAutomationBypassSecret({ [first]: metadata, [second]: metadata }), null);
+  assert.equal(recoverVercelAutomationBypassSecret({ short: metadata }), null);
+  assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, scope: "shareable-link" } }), null);
+  assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, isEnvVar: false } }), null);
+  assert.equal(recoverVercelAutomationBypassSecret(null), null);
 });
 
 test("Phase 7D environment is consumer-only, non-indexable, test-billing configuration", () => {

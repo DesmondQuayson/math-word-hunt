@@ -27,6 +27,7 @@ import {
   PHASE7D_SYNTHETIC_TABLES,
   PHASE7D_VERCEL_PROJECT_NAME,
   PHASE7D_VERCEL_SCOPE,
+  recoverVercelAutomationBypassSecret,
   redactPhase7dText
 } from "./phase7d-hosted-contract.mjs";
 import { runPhase7dHostedLifecycle } from "./phase7d-hosted-lifecycle.mjs";
@@ -448,18 +449,24 @@ async function provisionVercel(state) {
   let bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "";
   const bypassEntries = Object.keys(project.protectionBypass ?? {});
   if (!bypass) {
-    if (bypassEntries.length > 0) throw new Error("vercel-bypass-secret-unrecoverable");
-    const created = vercel([
-      "project", "protection", "enable", PHASE7D_VERCEL_PROJECT_NAME,
-      "--protection-bypass", "--json"
-    ]);
-    const parsed = parseJsonOutput(created.stdout, "vercel-bypass-response-invalid");
-    bypass = findSecret(parsed) ?? "";
+    if (bypassEntries.length > 1) throw new Error("vercel-bypass-resource-conflict");
+    bypass = recoverVercelAutomationBypassSecret(project.protectionBypass) ?? "";
+    if (!bypass && bypassEntries.length === 0) {
+      const created = vercel([
+        "project", "protection", "enable", PHASE7D_VERCEL_PROJECT_NAME,
+        "--protection-bypass", "--json"
+      ]);
+      const parsed = parseJsonOutput(created.stdout, "vercel-bypass-response-invalid");
+      bypass = findSecret(parsed) ??
+        recoverVercelAutomationBypassSecret(parsed.protectionBypass ?? parsed) ?? "";
+    }
     if (bypass.length < 24) throw new Error("vercel-bypass-secret-unavailable");
+    secrets.push(bypass);
     saveVaultSecret("VERCEL_AUTOMATION_BYPASS_SECRET", bypass);
   } else if (bypassEntries.length !== 1) {
     throw new Error("vercel-bypass-resource-conflict");
   }
+  if (!secrets.includes(bypass)) secrets.push(bypass);
   state.vercel = {
     action,
     projectId: project.id,
