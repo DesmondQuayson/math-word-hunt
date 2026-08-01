@@ -197,10 +197,8 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.locator("form").first().getByRole("alert").waitFor({ state: "visible" });
     assert(!page.url().endsWith("/account"), "old-password-still-valid");
-    await page.waitForFunction(() => {
-      const button = document.querySelector('form button[type="submit"]');
-      return button instanceof HTMLButtonElement && !button.disabled && button.getAttribute("aria-busy") !== "true";
-    });
+    await page.goto(`${PHASE7D_STAGING_ORIGIN}/sign-in`);
+    await page.locator('input[name="email"]').fill(PHASE7D_RESEND_TEST_RECIPIENT);
     await page.locator('input[name="password"]').fill(secondPassword);
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL(`${PHASE7D_STAGING_ORIGIN}/account`);

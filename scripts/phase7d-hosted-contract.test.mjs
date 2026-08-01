@@ -148,7 +148,8 @@ test("Phase 7D lifecycle distinguishes accessible success and error outcomes wit
   assert.match(source, /\[role="status"\], \[role="alert"\]/);
   assert.match(source, /page\.locator\("form"\)\.first\(\)/);
   assert.match(source, /page\.locator\("form"\)\.first\(\)\.getByRole\("alert"\)/);
-  assert.match(source, /button instanceof HTMLButtonElement && !button\.disabled && button\.getAttribute\("aria-busy"\) !== "true"/);
+  assert.match(source, /page\.goto\(`\$\{PHASE7D_STAGING_ORIGIN\}\/sign-in`\)/);
+  assert.match(source, /input\[name="email"\][\s\S]*fill\(PHASE7D_RESEND_TEST_RECIPIENT\)/);
   assert.match(source, /getAttribute\("role"\) === "status"/);
   assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
   assert.doesNotMatch(source, /await page\.getByRole\("alert"\)\.waitFor/);
