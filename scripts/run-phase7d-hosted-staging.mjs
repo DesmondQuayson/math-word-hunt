@@ -116,6 +116,24 @@ async function resendJson(path) {
   });
 }
 
+async function validateProviderAuthentication() {
+  const stripe = new Stripe(stripeSecretKey, { apiVersion: PHASE7D_STRIPE_API_VERSION });
+  const vercelIdentity = vercel(["whoami"]);
+  if (!vercelIdentity.stdout.trim()) throw new Error("vercel-authentication-unavailable");
+  const [projects, domains, product, price, portal] = await Promise.all([
+    supabaseJson("/v1/projects"),
+    resendJson("/domains"),
+    stripe.products.retrieve(PHASE7D_STRIPE_PRODUCT_ID),
+    stripe.prices.retrieve(PHASE7D_STRIPE_PRICE_ID),
+    stripe.billingPortal.configurations.retrieve(PHASE7D_STRIPE_PORTAL_ID)
+  ]);
+  if (!Array.isArray(projects) || (!Array.isArray(domains?.data) && !Array.isArray(domains)) ||
+    product.livemode || price.livemode || portal.livemode) {
+    throw new Error("phase7d-provider-authentication-verification");
+  }
+  log("Phase 7D provider credentials authenticated read-only; mutations remain disabled until vault validation.");
+}
+
 function vercel(args, { input = null, allowFailure = false } = {}) {
   const result = spawnSync(vercelCli, [...args, "--scope", PHASE7D_VERCEL_SCOPE], {
     cwd: repositoryRoot,
@@ -558,6 +576,7 @@ async function main() {
   state.status = "running";
   saveState(state);
 
+  await validateProviderAuthentication();
   const supabase = await provisionSupabase(state);
   await verifyResend(state);
   const vercelResource = await provisionVercel(state);

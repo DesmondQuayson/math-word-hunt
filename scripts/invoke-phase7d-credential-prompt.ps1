@@ -1,5 +1,5 @@
 param(
-  [string]$VaultPath = (Join-Path $env:LOCALAPPDATA 'MathNexa\phase7d-staging-vault.json')
+  [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,26 +11,47 @@ function Read-RequiredSecret {
   try {
     $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
     if (-not (& $Validate $plain)) { throw 'Credential validation failed.' }
-    return $secure | ConvertFrom-SecureString
+    return $secure
+  } catch {
+    $secure.Dispose()
+    throw
   } finally {
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
-    $secure.Dispose()
     $plain = $null
   }
 }
 
-function Test-DpapiValue {
-  param([string]$Cipher, [scriptblock]$Validate)
-  $secure = ConvertTo-SecureString $Cipher
-  $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+function Assert-ImportedSecret {
+  param(
+    [Security.SecureString]$Secure,
+    [scriptblock]$Validate,
+    [string]$SerializedVault
+  )
+  if ($null -eq $Secure) { throw 'Encrypted credential is unavailable.' }
+  $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
   try {
     $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
     if (-not (& $Validate $plain)) { throw 'Encrypted credential validation failed.' }
+    if ($SerializedVault.Contains($plain)) { throw 'Encrypted vault contains plaintext credential data.' }
   } finally {
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
-    $secure.Dispose()
     $plain = $null
   }
+}
+
+function Set-CurrentUserOnlyAcl {
+  param([string]$Path)
+  $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+  $acl = Get-Acl -LiteralPath $Path
+  $acl.SetAccessRuleProtection($true, $false)
+  foreach ($rule in @($acl.Access)) { [void]$acl.RemoveAccessRuleAll($rule) }
+  $access = New-Object Security.AccessControl.FileSystemAccessRule(
+    $identity,
+    [Security.AccessControl.FileSystemRights]::FullControl,
+    [Security.AccessControl.AccessControlType]::Allow
+  )
+  [void]$acl.AddAccessRule($access)
+  Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
 if (Test-Path -LiteralPath $VaultPath) {
@@ -40,6 +61,7 @@ if (Test-Path -LiteralPath $VaultPath) {
 
 $parent = Split-Path -Parent $VaultPath
 New-Item -ItemType Directory -Path $parent -Force | Out-Null
+$pendingPath = "$VaultPath.pending"
 
 $supabase = Read-RequiredSecret 'Supabase access token' { param($value) $value -match '^sbp_[A-Za-z0-9_\-]{16,}$' }
 $resend = Read-RequiredSecret 'Resend API key' { param($value) $value -match '^re_[A-Za-z0-9_\-]{16,}$' }
@@ -52,17 +74,17 @@ $random = [Security.Cryptography.RandomNumberGenerator]::Create()
 try {
   $random.GetBytes($bytes)
   $databasePasswordPlain = -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
-  $databasePassword = ConvertTo-SecureString $databasePasswordPlain -AsPlainText -Force | ConvertFrom-SecureString
+  $databasePassword = ConvertTo-SecureString $databasePasswordPlain -AsPlainText -Force
 } finally {
   $random.Dispose()
   [Array]::Clear($bytes, 0, $bytes.Length)
   $databasePasswordPlain = $null
 }
 
-$vault = [ordered]@{
-  version = 1
-  createdAt = (Get-Date).ToUniversalTime().ToString('o')
-  values = [ordered]@{
+$vault = [pscustomobject]@{
+  Version = 1
+  CreatedAt = (Get-Date).ToUniversalTime().ToString('o')
+  Values = [pscustomobject]@{
     SUPABASE_ACCESS_TOKEN = $supabase
     SUPABASE_DB_PASSWORD = $databasePassword
     RESEND_API_KEY = $resend
@@ -70,20 +92,33 @@ $vault = [ordered]@{
     STRIPE_SECRET_KEY = $stripe
   }
 }
-$pendingPath = "$VaultPath.pending"
+
+$stored = $null
 try {
-  $vault | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $pendingPath -Encoding UTF8
-  $stored = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json
-  Test-DpapiValue $stored.values.SUPABASE_ACCESS_TOKEN { param($value) $value -match '^sbp_[A-Za-z0-9_\-]{16,}$' }
-  Test-DpapiValue $stored.values.SUPABASE_DB_PASSWORD { param($value) $value.Length -ge 32 }
-  Test-DpapiValue $stored.values.RESEND_API_KEY { param($value) $value -match '^re_[A-Za-z0-9_\-]{16,}$' }
-  Test-DpapiValue $stored.values.STRIPE_PUBLISHABLE_KEY { param($value) $value -match '^pk_test_[A-Za-z0-9_]{8,}$' }
-  Test-DpapiValue $stored.values.STRIPE_SECRET_KEY { param($value) $value -match '^sk_test_[A-Za-z0-9_]{8,}$' }
+  $vault | Export-Clixml -LiteralPath $pendingPath
   Move-Item -LiteralPath $pendingPath -Destination $VaultPath
+  Set-CurrentUserOnlyAcl $VaultPath
+  $stored = Import-Clixml -LiteralPath $VaultPath
+  $serialized = Get-Content -LiteralPath $VaultPath -Raw
+  Assert-ImportedSecret $stored.Values.SUPABASE_ACCESS_TOKEN { param($value) $value -match '^sbp_[A-Za-z0-9_\-]{16,}$' } $serialized
+  Assert-ImportedSecret $stored.Values.SUPABASE_DB_PASSWORD { param($value) $value.Length -ge 32 } $serialized
+  Assert-ImportedSecret $stored.Values.RESEND_API_KEY { param($value) $value -match '^re_[A-Za-z0-9_\-]{16,}$' } $serialized
+  Assert-ImportedSecret $stored.Values.STRIPE_PUBLISHABLE_KEY { param($value) $value -match '^pk_test_[A-Za-z0-9_]{8,}$' } $serialized
+  Assert-ImportedSecret $stored.Values.STRIPE_SECRET_KEY { param($value) $value -match '^sk_test_[A-Za-z0-9_]{8,}$' } $serialized
+} catch {
+  Remove-Item -LiteralPath $VaultPath -Force -ErrorAction SilentlyContinue
+  throw
 } finally {
   Remove-Item -LiteralPath $pendingPath -Force -ErrorAction SilentlyContinue
+  if ($null -ne $stored) {
+    foreach ($entry in $stored.Values.PSObject.Properties) { $entry.Value.Dispose() }
+  }
+  foreach ($secret in @($supabase, $resend, $publishable, $stripe, $databasePassword)) {
+    if ($null -ne $secret) { $secret.Dispose() }
+  }
+  $serialized = $null
   $stored = $null
   $vault = $null
-  $supabase = $resend = $publishable = $stripe = $databasePassword = $null
 }
+
 Write-Host 'PHASE 7D CREDENTIALS ACCEPTED'

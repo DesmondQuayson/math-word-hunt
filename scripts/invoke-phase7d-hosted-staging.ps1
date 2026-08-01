@@ -1,26 +1,24 @@
 param(
-  [string]$VaultPath = (Join-Path $env:LOCALAPPDATA 'MathNexa\phase7d-staging-vault.json')
+  [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Phase 7D credential vault is unavailable.' }
 
-function Open-DpapiValue {
-  param([string]$Cipher)
-  $secure = ConvertTo-SecureString $Cipher
-  $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+function Open-SecureValue {
+  param([Security.SecureString]$Secure)
+  $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
   try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
-  finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
-    $secure.Dispose()
-  }
+  finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
 }
 
-$vault = Get-Content -LiteralPath $VaultPath -Raw | ConvertFrom-Json
+$vault = Import-Clixml -LiteralPath $VaultPath
 try {
-  foreach ($entry in $vault.values.PSObject.Properties) {
-    [Environment]::SetEnvironmentVariable($entry.Name, (Open-DpapiValue $entry.Value), 'Process')
+  foreach ($entry in $vault.Values.PSObject.Properties) {
+    $plain = Open-SecureValue $entry.Value
+    try { [Environment]::SetEnvironmentVariable($entry.Name, $plain, 'Process') }
+    finally { $plain = $null }
   }
   $env:PHASE7D_VAULT_PATH = $VaultPath
   $env:PHASE7D_VAULT_UPDATE_SCRIPT = Join-Path $PSScriptRoot 'update-phase7d-vault.ps1'
@@ -38,5 +36,6 @@ try {
     'STRIPE_WEBHOOK_SECRET','VERCEL_AUTOMATION_BYPASS_SECRET','PHASE7D_VAULT_PATH',
     'PHASE7D_VAULT_UPDATE_SCRIPT','PHASE7D_VERCEL_CLI'
   )) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($entry in $vault.Values.PSObject.Properties) { $entry.Value.Dispose() }
   $vault = $null
 }

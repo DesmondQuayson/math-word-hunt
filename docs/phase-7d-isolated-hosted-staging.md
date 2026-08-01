@@ -13,7 +13,7 @@ Status: implementation and owner-authorized hosted rehearsal in progress. This p
 
 ## Credential handling
 
-One foreground PowerShell prompt reads the Supabase access token, Resend API key, and Stripe Sandbox publishable and secret keys with `Read-Host -AsSecureString`. Windows DPAPI encrypts them for the current Windows user outside the repository. The runner decrypts values only into its process, adds provider-generated webhook and automation-bypass secrets back to the DPAPI vault, and clears every process variable at exit. Source, logs, command arguments, test artifacts, and Git never receive plaintext credentials.
+One foreground Windows PowerShell 5.1 prompt reads the Supabase access token, Resend API key, and Stripe Sandbox publishable and secret keys with `Read-Host -AsSecureString`. `Export-Clixml` stores those `SecureString` values under Windows DPAPI protection at `%USERPROFILE%\.mathnexa-secrets\phase7d-credentials.clixml`; `Import-Clixml` immediately verifies that the current Windows user can reopen every value, and the file ACL allows only that user. The runner converts values to plaintext only in process memory, adds provider-generated webhook and automation-bypass secrets back through the same native CLIXML path, and clears every temporary environment value and unmanaged buffer. Source, logs, command arguments, test artifacts, and Git never receive plaintext credentials.
 
 ## Hosted verification
 
