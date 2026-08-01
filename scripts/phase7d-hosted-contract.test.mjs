@@ -18,6 +18,7 @@ import {
   PHASE7D_PREVIEW_SUPABASE_REF,
   PHASE7D_SECRET_NAMES,
   PHASE7D_STAGING_ORIGIN,
+  PHASE7D_SYNTHETIC_TABLES,
   PHASE7D_STRIPE_API_VERSION,
   PHASE7D_STRIPE_PORTAL_ID,
   PHASE7D_STRIPE_PRICE_ID,
@@ -148,6 +149,11 @@ test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixtur
   assert.match(sql, /auth\.users[\s\S]*example\.invalid/);
   assert.match(sql, /billing_webhook_events/);
   assert.doesNotMatch(sql, /set_platform_identity_model|\binsert\s+into\b|\bupdate\s+public\b|\bdelete\s+from\b/i);
+});
+
+test("Phase 7D cleanup inventories the canonical consumer deletion-request table", () => {
+  assert.equal(PHASE7D_SYNTHETIC_TABLES.includes("consumer_account_deletion_requests"), true);
+  assert.equal(PHASE7D_SYNTHETIC_TABLES.includes("consumer_deletion_requests"), false);
 });
 
 test("Phase 7D environment is consumer-only, locked, test-billing configuration", () => {

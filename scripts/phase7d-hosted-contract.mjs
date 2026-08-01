@@ -51,7 +51,7 @@ export const PHASE7D_FORBIDDEN_DATA_TABLES = Object.freeze([
 export const PHASE7D_SYNTHETIC_TABLES = Object.freeze([
   "consumer_accounts",
   "consumer_game_entitlements",
-  "consumer_deletion_requests",
+  "consumer_account_deletion_requests",
   "billing_customers",
   "billing_subscriptions",
   "billing_webhook_events",
