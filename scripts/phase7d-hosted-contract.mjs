@@ -3,6 +3,7 @@ export const PHASE7D_SUPABASE_PROJECT_NAME = "mathnexa-platform-staging";
 export const PHASE7D_SUPABASE_ORGANIZATION_ID = "mtavaeztjyxasjeovfka";
 export const PHASE7D_SUPABASE_REGION = "us-east-2";
 export const PHASE7D_VERCEL_PROJECT_NAME = "mathnexa-platform-staging";
+export const PHASE7D_VERCEL_PROJECT_ID = "prj_O61Cyx9WMjc0jljpM9erCiSXsJA0";
 export const PHASE7D_VERCEL_SCOPE = "bright-path-ed-tech";
 export const PHASE7D_VERCEL_TEAM_ID = "team_qhdZ6TvnEA6BYjjfAiwJBAp9";
 export const PHASE7D_STAGING_ORIGIN =
@@ -148,6 +149,95 @@ export function buildVercelPreviewEnvironmentPayloads(values) {
     type: "sensitive",
     target: Object.freeze(["preview"])
   }));
+}
+
+export const PHASE7D_VERCEL_DEPLOYMENT_GATES = Object.freeze([
+  "preflight",
+  "deploy",
+  "target",
+  "environment",
+  "protection",
+  "alias",
+  "lifecycle"
+]);
+
+export function buildPhase7dVercelDeployArgs() {
+  return Object.freeze([
+    "deploy",
+    ".",
+    "--project",
+    PHASE7D_VERCEL_PROJECT_NAME,
+    "--yes",
+    "--json"
+  ]);
+}
+
+export function isPhase7dVercelLocalLink(link) {
+  return link?.projectId === PHASE7D_VERCEL_PROJECT_ID &&
+    link?.projectName === PHASE7D_VERCEL_PROJECT_NAME &&
+    link?.orgId === PHASE7D_VERCEL_TEAM_ID;
+}
+
+export function inspectPhase7dVercelEnvironment(entries, requiredNames) {
+  const expected = new Set(requiredNames);
+  const seen = new Set();
+  let productionCount = 0;
+  let invalidScopeCount = 0;
+  let invalidTypeCount = 0;
+  let duplicateCount = 0;
+  for (const entry of entries) {
+    const targets = Array.isArray(entry?.target) ? entry.target : [];
+    if (targets.includes("production")) productionCount += 1;
+    if (targets.length !== 1 || targets[0] !== "preview") invalidScopeCount += 1;
+    if (entry?.type !== "sensitive") invalidTypeCount += 1;
+    if (seen.has(entry?.key)) duplicateCount += 1;
+    seen.add(entry?.key);
+  }
+  const missing = [...expected].filter((name) => !seen.has(name));
+  const unexpected = [...seen].filter((name) => !expected.has(name));
+  return Object.freeze({
+    valid: missing.length === 0 && unexpected.length === 0 && productionCount === 0 &&
+      invalidScopeCount === 0 && invalidTypeCount === 0 && duplicateCount === 0,
+    missing: Object.freeze(missing),
+    unexpected: Object.freeze(unexpected),
+    productionCount,
+    invalidScopeCount,
+    invalidTypeCount,
+    duplicateCount
+  });
+}
+
+export function phase7dVercelDeploymentTarget(deployment) {
+  const explicit = String(deployment?.environment ?? deployment?.target ?? "").toLowerCase();
+  if (explicit === "preview") return "preview";
+  if (explicit === "production") return "production";
+  // Vercel's deployment API represents a default non-production deployment
+  // with a null target. The deploy command is independently constrained to
+  // omit production/target flags. The runner separately rejects any alias
+  // observed before the authoritative target gate passes.
+  if (deployment?.target === null) return "preview";
+  return "unknown";
+}
+
+export function evaluatePhase7dVercelDeployment({
+  deployment,
+  environmentVerified = false,
+  protectionVerified = false,
+  aliasAttached = false,
+  aliasProtectionVerified = false
+}) {
+  const target = phase7dVercelDeploymentTarget(deployment);
+  const targetVerified = target === "preview";
+  const ready = deployment?.readyState === "READY" || deployment?.state === "READY";
+  const aliasAllowed = targetVerified && ready && environmentVerified && protectionVerified;
+  return Object.freeze({
+    target,
+    targetVerified,
+    ready,
+    deleteRequired: !targetVerified,
+    aliasAllowed,
+    lifecycleAllowed: aliasAllowed && aliasAttached && aliasProtectionVerified
+  });
 }
 
 export function buildPhase7dHostedStateVerificationSql() {
