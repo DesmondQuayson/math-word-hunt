@@ -72,7 +72,7 @@ async function waitForEmail(apiKey, after, subjectPattern) {
     });
     if (!match) return null;
     return resendRequest(apiKey, `/emails/${encodeURIComponent(match.id)}`);
-  }, (value) => Boolean(value?.html));
+  }, (value) => Boolean(value?.html) && ["sent", "delivered"].includes(value?.last_event));
 }
 
 async function signedHostedEvent(input, event) {

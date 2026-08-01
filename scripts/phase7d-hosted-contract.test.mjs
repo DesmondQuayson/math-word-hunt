@@ -151,6 +151,13 @@ test("Phase 7D lifecycle distinguishes accessible success and error outcomes wit
   assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
 });
 
+test("Phase 7D waits for authoritative Resend delivery instead of message-body availability alone", () => {
+  const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
+  assert.match(source, /Boolean\(value\?\.html\) && \["sent", "delivered"\]\.includes\(value\?\.last_event\)/);
+  assert.match(source, /confirmation-email-not-delivered/);
+  assert.match(source, /recovery-email-not-delivered/);
+});
+
 test("Phase 7D uses the directly verified Resend STARTTLS transport", () => {
   const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
   assert.match(source, /smtp_host: "smtp\.resend\.com"/);
