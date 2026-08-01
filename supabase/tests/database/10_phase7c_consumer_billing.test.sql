@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'consumer-v1'
+\ir ../helpers/select-identity-model.psql
 
 select has_column('public', 'billing_customers', 'owner_consumer_id', 'billing customers support isolated consumer ownership');
 select has_column('public', 'billing_subscriptions', 'owner_consumer_id', 'subscriptions support isolated consumer ownership');
@@ -351,3 +353,4 @@ reset role;
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

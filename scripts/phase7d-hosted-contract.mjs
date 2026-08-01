@@ -149,3 +149,40 @@ export function buildVercelPreviewEnvironmentPayloads(values) {
     target: Object.freeze(["preview"])
   }));
 }
+
+export function buildPhase7dHostedStateVerificationSql() {
+  return `begin;
+create extension if not exists pgtap with schema extensions;
+select plan(3);
+select is(
+  (select identity_model from private.platform_identity_policy where singleton),
+  'consumer-v1'::text,
+  'hosted identity remains consumer-v1 after complete pgTAP runs'
+);
+select is(
+  (select count(*)::bigint from auth.users where email like '%@example.invalid'),
+  0::bigint,
+  'no pgTAP fixture Auth users persist after the complete suite'
+);
+select is(
+  (select sum(row_count)::bigint from (
+    select count(*)::bigint as row_count from public.teacher_profiles
+    union all select count(*)::bigint from public.teacher_classes
+    union all select count(*)::bigint from public.teacher_activities
+    union all select count(*)::bigint from public.product_entitlements
+    union all select count(*)::bigint from public.account_deletion_requests
+    union all select count(*)::bigint from private.account_deletion_audit
+    union all select count(*)::bigint from public.consumer_accounts
+    union all select count(*)::bigint from public.consumer_game_entitlements
+    union all select count(*)::bigint from public.consumer_account_deletion_requests
+    union all select count(*)::bigint from public.billing_customers
+    union all select count(*)::bigint from public.billing_subscriptions
+    union all select count(*)::bigint from public.billing_webhook_events
+  ) fixture_rows),
+  0::bigint,
+  'no pgTAP application fixture rows persist after the complete suite'
+);
+select * from finish();
+rollback;
+`;
+}

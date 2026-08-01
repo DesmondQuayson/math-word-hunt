@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'consumer-v1'
+\ir ../helpers/select-identity-model.psql
 
 select has_table('public', 'consumer_accounts', 'minimal consumer accounts exist');
 select has_table('public', 'consumer_game_entitlements', 'server-owned game entitlements exist');
@@ -11,8 +13,8 @@ select hasnt_column('public', 'consumer_accounts', 'role', 'consumer account has
 select hasnt_column('public', 'consumer_accounts', 'school_or_organization_label', 'consumer account has no organization label');
 select results_eq(
   $$select identity_model from private.platform_identity_policy where singleton$$,
-  $$values ('legacy-preview'::text)$$,
-  'existing Preview behavior is the safe migration default'
+  $$values ('consumer-v1'::text)$$,
+  'consumer entitlement fixtures explicitly select the consumer identity model'
 );
 
 set local role service_role;
@@ -115,3 +117,4 @@ reset role;
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

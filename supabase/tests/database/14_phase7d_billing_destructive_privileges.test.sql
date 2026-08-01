@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'legacy-preview'
+\ir ../helpers/select-identity-model.psql
 
 select results_eq(
   $$select has_table_privilege('service_role', 'public.billing_webhook_events', privilege)
@@ -168,3 +170,4 @@ reset role;
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

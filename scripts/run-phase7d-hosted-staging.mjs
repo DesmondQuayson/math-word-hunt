@@ -10,6 +10,7 @@ import Stripe from "stripe";
 
 import {
   buildPhase7dEnvironment,
+  buildPhase7dHostedStateVerificationSql,
   buildVercelPreviewEnvironmentPayloads,
   isVercelStandardProtectionScope,
   PHASE7D_BASELINE,
@@ -330,7 +331,21 @@ async function provisionSupabase(state) {
   supabaseCommand(["link", "--project-ref", projectRef]);
   const migrationOutput = supabaseCommand(["db", "push", "--linked", "--include-all"]);
   const lintOutput = supabaseCommand(["db", "lint", "--linked"]);
-  const tapOutput = supabaseCommand(["test", "db", "--linked"]);
+  const tapOutputs = [
+    supabaseCommand(["test", "db", "--linked"]),
+    supabaseCommand(["test", "db", "--linked"])
+  ];
+  const hostedStatePath = resolve(
+    supabaseWorkRoot,
+    "supabase/tests/phase7d-hosted-state.test.sql"
+  );
+  writeFileSync(hostedStatePath, buildPhase7dHostedStateVerificationSql(), "utf8");
+  let hostedStateOutput;
+  try {
+    hostedStateOutput = supabaseCommand(["test", "db", "--linked", hostedStatePath]);
+  } finally {
+    rmSync(hostedStatePath, { force: true });
+  }
   state.supabase = {
     action,
     projectRef,
@@ -339,11 +354,17 @@ async function provisionSupabase(state) {
     migrationsFromEmpty: action === "created",
     migrationGate: /Finished supabase db push|up to date|Applied migration/i.test(migrationOutput),
     lintGate: !/error:/i.test(lintOutput),
-    pgTapGate: /Result: PASS|All tests successful|Files=\d+, Tests=\d+/i.test(tapOutput),
-    pgTapSummary: (tapOutput.match(/Files=\d+, Tests=\d+[^\r\n]*/i) ?? ["passed"])[0]
+    pgTapGate: tapOutputs.every((output) =>
+      /Result: PASS|All tests successful|Files=\d+, Tests=\d+/i.test(output)
+    ),
+    pgTapRuns: 2,
+    pgTapSummaries: tapOutputs.map((output) =>
+      (output.match(/Files=\d+, Tests=\d+[^\r\n]*/i) ?? ["passed"])[0]
+    ),
+    hostedStateGate: /Result: PASS|All tests successful|Files=\d+, Tests=\d+/i.test(hostedStateOutput)
   };
   saveState(state);
-  log(`Phase 7D Supabase ${action}; migrations, lint, and pgTAP passed.`);
+  log(`Phase 7D Supabase ${action}; migrations, lint, two pgTAP runs, consumer identity, and fixture cleanup passed.`);
   return { publishableKey, secretKey, url: `https://${projectRef}.supabase.co` };
 }
 

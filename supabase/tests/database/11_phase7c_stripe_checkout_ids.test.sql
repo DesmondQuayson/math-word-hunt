@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'consumer-v1'
+\ir ../helpers/select-identity-model.psql
 
 select lives_ok(
   $$insert into public.billing_webhook_events (
@@ -61,3 +63,4 @@ select throws_ok(
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

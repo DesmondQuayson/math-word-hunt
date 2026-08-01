@@ -1,0 +1,19 @@
+\set ON_ERROR_STOP on
+
+-- The fixture transaction has already rolled back. Compare the durable model
+-- with the value captured before the test-local override.
+begin;
+select set_config(
+  'mathnexa.pgtap_expected_persisted_identity_model',
+  :'phase7d_persisted_identity_model',
+  true
+);
+do $$
+begin
+  if (select identity_model from private.platform_identity_policy where singleton)
+     is distinct from current_setting('mathnexa.pgtap_expected_persisted_identity_model', true) then
+    raise exception using errcode = 'P0001', message = 'pgtap_identity_model_not_restored';
+  end if;
+end;
+$$;
+rollback;

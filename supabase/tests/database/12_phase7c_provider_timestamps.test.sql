@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'consumer-v1'
+\ir ../helpers/select-identity-model.psql
 
 set local role service_role;
 select public.set_platform_identity_model('consumer-v1');
@@ -51,3 +53,4 @@ select throws_ok(
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

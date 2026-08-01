@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'legacy-preview'
+\ir ../helpers/select-identity-model.psql
 
 select has_table('public', 'billing_customers', 'billing customers projection exists');
 select has_table('public', 'billing_subscriptions', 'billing subscriptions projection exists');
@@ -91,3 +93,4 @@ select throws_ok(
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildPhase7dEnvironment,
+  buildPhase7dHostedStateVerificationSql,
   buildVercelPreviewEnvironmentPayloads,
   isSafePhase7dOrigin,
   isVercelStandardProtectionScope,
@@ -63,6 +64,15 @@ test("Phase 7D sends staging variables as individual sensitive Preview payloads"
   assert.equal(new Set(payloads.map(({ key }) => key)).size, payloads.length);
   assert.equal(Object.isFrozen(payloads[0]), true);
   assert.equal(Object.isFrozen(payloads[0].target), true);
+});
+
+test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixture cleanup", () => {
+  const sql = buildPhase7dHostedStateVerificationSql();
+  assert.match(sql, /identity_model[\s\S]*consumer-v1/);
+  assert.match(sql, /auth\.users[\s\S]*example\.invalid/);
+  assert.match(sql, /consumer_account_deletion_requests/);
+  assert.match(sql, /billing_webhook_events/);
+  assert.doesNotMatch(sql, /set_platform_identity_model|\binsert\s+into\b|\bupdate\s+public\b|\bdelete\s+from\b/i);
 });
 
 test("Phase 7D environment is consumer-only, non-indexable, test-billing configuration", () => {
