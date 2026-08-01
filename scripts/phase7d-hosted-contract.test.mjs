@@ -150,6 +150,15 @@ test("Phase 7D lifecycle distinguishes accessible success and error outcomes wit
   assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
 });
 
+test("Phase 7D uses the directly verified Resend STARTTLS transport", () => {
+  const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
+  assert.match(source, /smtp_host: "smtp\.resend\.com"/);
+  assert.match(source, /smtp_port: "587"/);
+  assert.match(source, /smtp_user: "resend"/);
+  assert.match(source, /smtpSecurity: "STARTTLS"/);
+  assert.doesNotMatch(source, /smtp_port: "465"/);
+});
+
 test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixture cleanup", () => {
   const sql = buildPhase7dHostedStateVerificationSql();
   assert.match(sql, /identity_model[\s\S]*consumer-v1/);

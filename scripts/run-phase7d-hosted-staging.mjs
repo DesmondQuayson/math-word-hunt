@@ -637,7 +637,7 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
       jwt_exp: 3600,
       smtp_admin_email: PHASE7D_RESEND_SENDER,
       smtp_host: "smtp.resend.com",
-      smtp_port: "465",
+      smtp_port: "587",
       smtp_user: "resend",
       smtp_pass: resendRuntimeApiKey,
       smtp_sender_name: "MathNexa",
@@ -649,7 +649,9 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
   const auth = await supabaseJson(`/v1/projects/${projectRef}/config/auth`);
   if (auth.site_url !== PHASE7D_STAGING_ORIGIN || auth.mailer_autoconfirm !== false ||
     auth.external_email_enabled !== true || auth.external_anonymous_users_enabled === true ||
-    auth.smtp_host !== "smtp.resend.com" || auth.smtp_admin_email !== PHASE7D_RESEND_SENDER) {
+    auth.smtp_host !== "smtp.resend.com" || String(auth.smtp_port) !== "587" ||
+    auth.smtp_user !== "resend" || auth.smtp_admin_email !== PHASE7D_RESEND_SENDER ||
+    auth.smtp_sender_name !== "MathNexa") {
     throw new Error("supabase-auth-configuration-verification");
   }
   const admin = createClient(supabase.url, supabase.secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -662,6 +664,9 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
     anonymous: false,
     phone: false,
     sender: PHASE7D_RESEND_SENDER,
+    smtpHost: "smtp.resend.com",
+    smtpPort: 587,
+    smtpSecurity: "STARTTLS",
     identityModel: "consumer-v1"
   };
   saveState(state);

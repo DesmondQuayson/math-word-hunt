@@ -18,7 +18,7 @@ One foreground Windows PowerShell 5.1 prompt reads provider credentials with `Re
 
 Credential rotation uses a separate masked refresh prompt. It removes retired values from the encrypted vault before input, preserves the already-validated Supabase and Sandbox publishable credentials, requests only the replacement Resend and Stripe Sandbox secret keys, and atomically promotes the refreshed CLIXML only after import, format, and plaintext-absence checks pass.
 
-Resend provisioning uses one temporary Full-access key only long enough to validate the verified sender domain, create a `sending_access` runtime key restricted to that domain, and collect confirmation/recovery delivery evidence. Supabase SMTP receives only the restricted runtime key. After hosted email verification and synthetic cleanup pass, the runner deletes the temporary Full-access key through Resend and removes it from CLIXML; the restricted runtime key remains encrypted for staging SMTP.
+Resend provisioning uses one temporary Full-access key only long enough to validate the verified sender domain, create a `sending_access` runtime key restricted to that domain, and collect confirmation/recovery delivery evidence. Supabase SMTP receives only the restricted runtime key and uses `smtp.resend.com:587` with STARTTLS, the transport proven by direct provider delivery. After hosted email verification and synthetic cleanup pass, the runner deletes the temporary Full-access key through Resend and removes it from CLIXML; the restricted runtime key remains encrypted for staging SMTP.
 
 ## Hosted verification
 
