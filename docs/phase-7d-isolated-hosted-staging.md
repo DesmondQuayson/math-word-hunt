@@ -17,6 +17,8 @@ One foreground Windows PowerShell 5.1 prompt reads the Supabase access token, Re
 
 Credential rotation uses a separate masked refresh prompt. It removes retired values from the encrypted vault before input, preserves the already-validated Supabase and Sandbox publishable credentials, requests only the replacement Resend and Stripe Sandbox secret keys, and atomically promotes the refreshed CLIXML only after import, format, and plaintext-absence checks pass.
 
+Resend provisioning uses one temporary Full-access key only long enough to validate the verified sender domain, create a `sending_access` runtime key restricted to that domain, and collect confirmation/recovery delivery evidence. Supabase SMTP receives only the restricted runtime key. After hosted email verification and synthetic cleanup pass, the runner deletes the temporary Full-access key through Resend and removes it from CLIXML; the restricted runtime key remains encrypted for staging SMTP.
+
 ## Hosted verification
 
 The hosted runner provisions or reconciles resources idempotently, migrates Supabase from empty, runs remote database lint and pgTAP, configures email/password Auth with required confirmation, and deploys the exact clean feature-branch commit. It then verifies signup, confirmation, sign-in/out, recovery with old-password rejection, Setup Checkout, exactly one 86,400-second trial, USD 599 monthly billing, entitlement-protected canonical assets, Portal ownership, cancellation, renewal failure, one non-extending seven-day grace period, recovery, period-end expiry, webhook signature/replay/stale-event controls, prohibited-data absence, and cleanup-to-zero.

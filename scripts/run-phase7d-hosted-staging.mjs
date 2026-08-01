@@ -42,6 +42,7 @@ const secrets = [];
 let lifecycle = null;
 let projectRef = null;
 let supabaseWorkRoot = null;
+let resendProvisioningKeyId = null;
 
 function required(name, pattern) {
   const value = process.env[name]?.trim() ?? "";
@@ -52,7 +53,7 @@ function required(name, pattern) {
 
 const supabaseAccessToken = required("SUPABASE_ACCESS_TOKEN", /^sbp_[A-Za-z0-9_-]{16,}$/);
 const databasePassword = required("SUPABASE_DB_PASSWORD", /^.{32,}$/);
-const resendApiKey = required("RESEND_API_KEY", /^re_[A-Za-z0-9_-]{16,}$/);
+let resendProvisioningApiKey = required("RESEND_PROVISIONING_API_KEY", /^re_[A-Za-z0-9_-]{16,}$/);
 const stripePublishableKey = required("STRIPE_PUBLISHABLE_KEY", /^pk_test_[A-Za-z0-9_]{8,}$/);
 const stripeSecretKey = required("STRIPE_SECRET_KEY", /^sk_test_[A-Za-z0-9_]{8,}$/);
 if (!vercelCli || !existsSync(vercelCli)) throw new Error("authenticated-vercel-cli-unavailable");
@@ -92,6 +93,19 @@ function saveVaultSecret(name, value) {
   process.env[name] = value;
 }
 
+function removeVaultSecret(name) {
+  const script = process.env.PHASE7D_VAULT_REMOVE_SCRIPT ?? "";
+  if (!script || !existsSync(script)) throw new Error("phase7d-vault-remove-unavailable");
+  const result = spawnSync(powershell, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Name", name], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    env: process.env,
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  if (result.status !== 0) throw new Error(`phase7d-vault-remove-${name.toLowerCase()}`);
+  delete process.env[name];
+}
+
 async function providerJson(url, options = {}) {
   const response = await fetch(url, options);
   const text = await response.text();
@@ -116,10 +130,33 @@ async function supabaseJson(path, options = {}) {
   });
 }
 
-async function resendJson(path) {
-  return providerJson(`https://api.resend.com${path}`, {
-    headers: { Authorization: `Bearer ${resendApiKey}`, Accept: "application/json" }
+const resendErrorTypes = new Set([
+  "invalid_idempotency_key", "validation_error", "missing_api_key", "restricted_api_key", "invalid_api_key",
+  "not_found", "method_not_allowed", "invalid_idempotent_request", "concurrent_idempotent_requests",
+  "invalid_attachment", "invalid_from_address", "invalid_access", "invalid_parameter", "invalid_region",
+  "missing_required_field", "monthly_quota_exceeded", "daily_quota_exceeded", "rate_limit_exceeded",
+  "security_error", "application_error", "internal_server_error"
+]);
+
+async function resendJson(path, options = {}) {
+  const response = await fetch(`https://api.resend.com${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${resendProvisioningApiKey}`,
+      Accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "MathNexa-Phase7D/1.0",
+      ...(options.headers ?? {})
+    }
   });
+  const text = await response.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch { /* The status and documented type gate remain authoritative. */ }
+  if (!response.ok) {
+    const candidate = String(body?.name ?? body?.type ?? "application_error");
+    throw new Error(`resend-error:${resendErrorTypes.has(candidate) ? candidate : "application_error"}`);
+  }
+  return body;
 }
 
 async function validateProviderAuthentication() {
@@ -138,8 +175,24 @@ async function validateProviderAuthentication() {
   let portal;
   try { projects = await supabaseJson("/v1/projects"); }
   catch { throw new Error("supabase-authentication-rejected"); }
-  try { domains = await resendJson("/domains"); }
-  catch { throw new Error("resend-authentication-rejected"); }
+  const resendValidationStarted = Date.now() - 5_000;
+  try {
+    domains = await resendJson("/domains");
+    const key = await waitFor("resend-provisioning-key-identity", async () => {
+      const response = await resendJson("/api-keys");
+      const candidates = (response?.data ?? []).filter((item) =>
+        item.last_used_at && Date.parse(item.last_used_at) >= resendValidationStarted
+      );
+      if (candidates.length > 1) throw new Error("resend-provisioning-key-identity-conflict");
+      return candidates[0] ?? null;
+    }, Boolean, 30_000);
+    resendProvisioningKeyId = key.id;
+  } catch (error) {
+    const type = error instanceof Error && error.message.startsWith("resend-error:")
+      ? error.message.slice("resend-error:".length)
+      : null;
+    throw new Error(type && resendErrorTypes.has(type) ? type : "application_error");
+  }
   try {
     [product, price, portal] = await Promise.all([
       stripe.products.retrieve(PHASE7D_STRIPE_PRODUCT_ID),
@@ -295,16 +348,74 @@ async function provisionSupabase(state) {
   return { publishableKey, secretKey, url: `https://${projectRef}.supabase.co` };
 }
 
-async function verifyResend(state) {
+async function provisionResend(state) {
   const response = await resendJson("/domains");
   const domains = Array.isArray(response.data) ? response.data : Array.isArray(response) ? response : [];
   const matches = domains.filter((domain) => domain.name === PHASE7D_RESEND_DOMAIN);
   if (matches.length !== 1) throw new Error(matches.length === 0 ? "resend-sender-domain-unavailable" : "duplicate-resend-sender-domain");
   const domain = matches[0];
   if (domain.status !== "verified") throw new Error("resend-sender-domain-not-verified");
-  state.email = { domainId: domain.id, domain: domain.name, action: "reused", status: "verified", sender: PHASE7D_RESEND_SENDER };
+  const keys = await resendJson("/api-keys");
+  const stableName = "MathNexa Phase 7D staging SMTP";
+  const named = (keys?.data ?? []).filter((key) => key.name === stableName);
+  let runtimeApiKey = process.env.RESEND_RUNTIME_API_KEY ?? "";
+  let runtimeKeyId = state.email?.runtimeKeyId ?? null;
+  let runtimeAction = "reused";
+  if (runtimeApiKey && runtimeKeyId) {
+    if (!named.some((key) => key.id === runtimeKeyId)) throw new Error("resend-runtime-key-resource-conflict");
+  } else {
+    if (runtimeApiKey || runtimeKeyId || named.length > 0) throw new Error("resend-runtime-key-unrecoverable");
+    const created = await resendJson("/api-keys", {
+      method: "POST",
+      body: JSON.stringify({
+        name: stableName,
+        permission: "sending_access",
+        domain_id: domain.id
+      })
+    });
+    runtimeKeyId = created?.id ?? null;
+    runtimeApiKey = created?.token ?? "";
+    if (!runtimeKeyId || !runtimeApiKey.startsWith("re_")) throw new Error("resend-runtime-key-creation-invalid");
+    try { saveVaultSecret("RESEND_RUNTIME_API_KEY", runtimeApiKey); }
+    catch (error) {
+      await resendJson(`/api-keys/${encodeURIComponent(runtimeKeyId)}`, { method: "DELETE" }).catch(() => {});
+      throw error;
+    }
+    runtimeAction = "created";
+  }
+  if (!resendProvisioningKeyId) throw new Error("resend-provisioning-key-identity-unavailable");
+  state.email = {
+    domainId: domain.id,
+    domain: domain.name,
+    action: "reused",
+    status: "verified",
+    sender: PHASE7D_RESEND_SENDER,
+    provisioningKeyId: resendProvisioningKeyId,
+    provisioningKeyRevoked: false,
+    runtimeKeyId,
+    runtimeKeyAction: runtimeAction,
+    runtimePermission: "sending_access",
+    runtimeDomainRestricted: true
+  };
   saveState(state);
-  log("Phase 7D transactional sender domain reconciled and verified.");
+  log(`Phase 7D transactional sender domain verified; restricted SMTP runtime key ${runtimeAction}.`);
+  return { runtimeApiKey };
+}
+
+async function revokeResendProvisioningKey(state) {
+  const keyId = state.email?.provisioningKeyId;
+  if (!keyId) throw new Error("resend-provisioning-key-identity-unavailable");
+  await resendJson(`/api-keys/${encodeURIComponent(keyId)}`, { method: "DELETE" });
+  removeVaultSecret("RESEND_PROVISIONING_API_KEY");
+  const retired = resendProvisioningApiKey;
+  resendProvisioningApiKey = null;
+  for (let index = 0; index < secrets.length; index += 1) {
+    if (secrets[index] === retired) secrets[index] = "[RETIRED]";
+  }
+  state.email.provisioningKeyRevoked = true;
+  state.email.provisioningKeyId = null;
+  saveState(state);
+  log("Phase 7D temporary Resend Full-access provisioning key revoked and removed from the encrypted vault.");
 }
 
 async function provisionVercel(state) {
@@ -418,7 +529,7 @@ async function provisionStripe(state, bypass) {
   return { webhookSecret };
 }
 
-async function configureSupabaseAuth(supabase, state) {
+async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
   const allowed = [
     `${PHASE7D_STAGING_ORIGIN}/auth/callback`,
     `${PHASE7D_STAGING_ORIGIN}/auth/callback?next=/account`,
@@ -443,7 +554,7 @@ async function configureSupabaseAuth(supabase, state) {
       smtp_host: "smtp.resend.com",
       smtp_port: "465",
       smtp_user: "resend",
-      smtp_pass: resendApiKey,
+      smtp_pass: resendRuntimeApiKey,
       smtp_sender_name: "MathNexa",
       smtp_max_frequency: 60,
       mailer_subjects_confirmation: "Confirm your MathNexa account",
@@ -598,10 +709,10 @@ async function main() {
 
   await validateProviderAuthentication();
   const supabase = await provisionSupabase(state);
-  await verifyResend(state);
+  const resendResource = await provisionResend(state);
   const vercelResource = await provisionVercel(state);
   const stripeResource = await provisionStripe(state, vercelResource.bypass);
-  await configureSupabaseAuth({ ...supabase, secretKey: supabase.secretKey }, state);
+  await configureSupabaseAuth({ ...supabase, secretKey: supabase.secretKey }, state, resendResource.runtimeApiKey);
   const environment = buildPhase7dEnvironment({
     supabaseUrl: supabase.url,
     supabasePublishableKey: supabase.publishableKey,
@@ -626,7 +737,7 @@ async function main() {
       stripeSecretKey,
       webhookSecret: stripeResource.webhookSecret,
       bypassSecret: vercelResource.bypass,
-      resendApiKey
+      resendApiKey: resendProvisioningApiKey
     });
     state.lifecycle = lifecycle.evidence;
     saveState(state);
@@ -636,6 +747,8 @@ async function main() {
   } finally {
     await cleanupHosted(state, lifecycleError);
   }
+
+  await revokeResendProvisioningKey(state);
 
   upsertVercelEnvironment(buildPhase7dEnvironment({
     supabaseUrl: supabase.url,
@@ -685,7 +798,8 @@ try {
   process.exitCode = 1;
 } finally {
   for (const name of [
-    "SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "RESEND_API_KEY",
+    "SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "RESEND_API_KEY", "RESEND_PROVISIONING_API_KEY",
+    "RESEND_RUNTIME_API_KEY",
     "STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY", "SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "VERCEL_AUTOMATION_BYPASS_SECRET"
   ]) delete process.env[name];

@@ -1,5 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)][ValidateSet('SUPABASE_PUBLISHABLE_KEY','SUPABASE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','VERCEL_AUTOMATION_BYPASS_SECRET')][string]$Name,
+  [Parameter(Mandatory = $true)][ValidateSet('SUPABASE_PUBLISHABLE_KEY','SUPABASE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','VERCEL_AUTOMATION_BYPASS_SECRET','RESEND_RUNTIME_API_KEY')][string]$Name,
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 
