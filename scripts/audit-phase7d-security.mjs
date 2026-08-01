@@ -24,6 +24,8 @@ for (const required of [
   "ZeroFreeBSTR",
   "RandomNumberGenerator]::Create()",
   "$random.GetBytes($bytes)",
+  "Test-DpapiValue",
+  "Move-Item -LiteralPath $pendingPath -Destination $VaultPath",
   "SUPABASE_ACCESS_TOKEN",
   "STRIPE_WEBHOOK_SECRET",
   "VERCEL_AUTOMATION_BYPASS_SECRET",

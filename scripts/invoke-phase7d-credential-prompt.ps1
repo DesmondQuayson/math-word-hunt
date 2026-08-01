@@ -19,6 +19,20 @@ function Read-RequiredSecret {
   }
 }
 
+function Test-DpapiValue {
+  param([string]$Cipher, [scriptblock]$Validate)
+  $secure = ConvertTo-SecureString $Cipher
+  $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try {
+    $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
+    if (-not (& $Validate $plain)) { throw 'Encrypted credential validation failed.' }
+  } finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
+    $secure.Dispose()
+    $plain = $null
+  }
+}
+
 if (Test-Path -LiteralPath $VaultPath) {
   Write-Host 'PHASE 7D CREDENTIAL VAULT ALREADY AVAILABLE'
   exit 0
@@ -56,6 +70,20 @@ $vault = [ordered]@{
     STRIPE_SECRET_KEY = $stripe
   }
 }
-$vault | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $VaultPath -Encoding UTF8
-$supabase = $resend = $publishable = $stripe = $databasePassword = $null
+$pendingPath = "$VaultPath.pending"
+try {
+  $vault | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $pendingPath -Encoding UTF8
+  $stored = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json -AsHashtable
+  Test-DpapiValue $stored.values.SUPABASE_ACCESS_TOKEN { param($value) $value -match '^sbp_[A-Za-z0-9_\-]{16,}$' }
+  Test-DpapiValue $stored.values.SUPABASE_DB_PASSWORD { param($value) $value.Length -ge 32 }
+  Test-DpapiValue $stored.values.RESEND_API_KEY { param($value) $value -match '^re_[A-Za-z0-9_\-]{16,}$' }
+  Test-DpapiValue $stored.values.STRIPE_PUBLISHABLE_KEY { param($value) $value -match '^pk_test_[A-Za-z0-9_]{8,}$' }
+  Test-DpapiValue $stored.values.STRIPE_SECRET_KEY { param($value) $value -match '^sk_test_[A-Za-z0-9_]{8,}$' }
+  Move-Item -LiteralPath $pendingPath -Destination $VaultPath
+} finally {
+  Remove-Item -LiteralPath $pendingPath -Force -ErrorAction SilentlyContinue
+  $stored = $null
+  $vault = $null
+  $supabase = $resend = $publishable = $stripe = $databasePassword = $null
+}
 Write-Host 'PHASE 7D CREDENTIALS ACCEPTED'
