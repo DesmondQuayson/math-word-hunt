@@ -77,6 +77,7 @@
     "test:stripe:sandbox-lifecycle": "node scripts/run-phase7c-sandbox-lifecycle.mjs",
     "phase7c:verify": "node scripts/verify-phase7c.mjs",
     "test:phase7d:contract": "node --test scripts/phase7d-hosted-contract.test.mjs",
+    "test:phase7d:access": "npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/staging-access",
     "test:phase7d:security": "node scripts/audit-phase7d-security.mjs",
     "build:phase7d": "node scripts/run-phase7d-build.mjs",
     "phase7d:verify": "node scripts/verify-phase7d.mjs",

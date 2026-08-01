@@ -5,6 +5,7 @@ import { PHASE7D_PROTECTED_HASHES } from "./phase7d-hosted-contract.mjs";
 
 const vaultFiles = [
   "scripts/invoke-phase7d-credential-prompt.ps1",
+  "scripts/ensure-phase7d-staging-access-token.ps1",
   "scripts/invoke-phase7d-hosted-staging.ps1",
   "scripts/refresh-phase7d-resend-provisioning-key.ps1",
   "scripts/refresh-phase7d-required-credentials.ps1",
@@ -12,6 +13,10 @@ const vaultFiles = [
   "scripts/update-phase7d-vault.ps1"
 ];
 const files = [
+  "apps/platform-web/proxy.ts",
+  "apps/platform-web/lib/staging-access/server.ts",
+  "apps/platform-web/app/api/internal/staging-access/bootstrap/route.ts",
+  "apps/platform-web/app/api/billing/webhook/route.ts",
   "scripts/phase7d-hosted-contract.mjs",
   "scripts/phase7d-hosted-lifecycle.mjs",
   "scripts/run-phase7d-hosted-staging.mjs",
@@ -23,7 +28,7 @@ const runnerSource = readFileSync("scripts/run-phase7d-hosted-staging.mjs", "utf
 const refreshSource = readFileSync("scripts/refresh-phase7d-required-credentials.ps1", "utf8");
 const resendRefreshSource = readFileSync("scripts/refresh-phase7d-resend-provisioning-key.ps1", "utf8");
 for (const prohibited of [
-  "sk_live_", "pk_live_", "STRIPE_LIVE", "--prod", "mathnexa-production",
+  "sk_live_", "pk_live_", "STRIPE_LIVE", "mathnexa-production",
   "student_email", "school_name", "organization_id=", "learning_progress"
 ]) {
   if (sources.includes(prohibited)) throw new Error(`Phase 7D source contains prohibited marker: ${prohibited}`);
@@ -42,6 +47,11 @@ for (const required of [
   "SUPABASE_ACCESS_TOKEN",
   "STRIPE_WEBHOOK_SECRET",
   "VERCEL_AUTOMATION_BYPASS_SECRET",
+  "MVH_STAGING_ACCESS_TOKEN",
+  "__Host-mvh-staging-access",
+  "timingSafeEqual",
+  "Authorization: `Bearer ${token}`",
+  "stagingAccessNotFoundResponse",
   "RESEND_RUNTIME_API_KEY",
   "PHASE7D_VAULT_REMOVE_SCRIPT",
   "x-vercel-protection-bypass",
@@ -61,6 +71,15 @@ if (/Set-Content[^\r\n]+\$(?:plain|databasePasswordPlain)/i.test(sources)) {
 }
 if (/RandomNumberGenerator\]::Fill\(/.test(sources)) {
   throw new Error("Phase 7D credential prompt uses an API unavailable in Windows PowerShell 5.1.");
+}
+if (!sources.includes('"--prod"') || runnerSource.includes('"--target"') ||
+  /vercel\(\["alias",\s*"set"/.test(runnerSource) ||
+  /"project",\s*"protection",\s*"enable"/.test(runnerSource)) {
+  throw new Error("Phase 7D must use one explicit isolated Production deployment without target, alias, or protection experiments.");
+}
+if (/MVH_STAGING_ACCESS_TOKEN[^\r\n]*(?:URL|url|query|searchParams)/.test(sources) ||
+  /x-mvh-staging-access-token/i.test(sources)) {
+  throw new Error("Phase 7D staging access token may not be placed in a URL, query string, or custom transport header.");
 }
 if (/Convert(?:To|From)-Json|ConvertFrom-SecureString|\.json\b/i.test(vaultSources)) {
   throw new Error("Phase 7D vault scripts must use only native SecureString CLIXML serialization.");

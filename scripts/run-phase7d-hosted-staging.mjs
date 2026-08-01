@@ -12,13 +12,18 @@ import {
   buildPhase7dEnvironment,
   buildPhase7dHostedStateVerificationSql,
   buildPhase7dVercelDeployArgs,
-  buildVercelPreviewEnvironmentPayloads,
+  buildVercelProductionEnvironmentPayloads,
   evaluatePhase7dVercelDeployment,
+  hasNoPhase7dCustomDomains,
   inspectPhase7dVercelEnvironment,
+  isPhase7dVercelDeploymentSource,
   isPhase7dVercelLocalLink,
   isVercelStandardProtectionScope,
   PHASE7D_BASELINE,
+  PHASE7D_BRANCH,
+  PHASE7D_PROTECTED_PREVIEW_VERCEL_PROJECT_ID,
   PHASE7D_PROTECTED_HASHES,
+  PHASE7D_PUBLIC_VERCEL_PROJECT_ID,
   PHASE7D_RESEND_DOMAIN,
   PHASE7D_RESEND_SENDER,
   PHASE7D_STAGING_ORIGIN,
@@ -66,6 +71,7 @@ const databasePassword = required("SUPABASE_DB_PASSWORD", /^.{32,}$/);
 let resendProvisioningApiKey = required("RESEND_PROVISIONING_API_KEY", /^re_[A-Za-z0-9_-]{16,}$/);
 const stripePublishableKey = required("STRIPE_PUBLISHABLE_KEY", /^pk_test_[A-Za-z0-9_]{8,}$/);
 const stripeSecretKey = required("STRIPE_SECRET_KEY", /^sk_test_[A-Za-z0-9_]{8,}$/);
+const stagingAccessToken = required("MVH_STAGING_ACCESS_TOKEN", /^[A-Za-z0-9_-]{43}$/);
 if (!vercelCli || !existsSync(vercelCli)) throw new Error("authenticated-vercel-cli-unavailable");
 
 function log(message) {
@@ -245,7 +251,7 @@ function getVercelProject(name, allowMissing = false) {
 }
 
 function upsertVercelEnvironment(values) {
-  for (const payload of buildVercelPreviewEnvironmentPayloads(values)) {
+  for (const payload of buildVercelProductionEnvironmentPayloads(values)) {
     vercel([
       "api", `/v10/projects/${PHASE7D_VERCEL_PROJECT_NAME}/env?upsert=true`,
       "--method", "POST", "--input", "-", "--silent"
@@ -264,18 +270,46 @@ function getVercelEnvironmentEntries() {
   throw new Error("vercel-environment-response-invalid");
 }
 
-function listVercelDeployments() {
+function listVercelDeployments(projectId = PHASE7D_VERCEL_PROJECT_ID) {
   const result = vercel([
-    "api", `/v6/deployments?projectId=${PHASE7D_VERCEL_PROJECT_ID}`, "--raw"
+    "api", `/v6/deployments?projectId=${projectId}`, "--raw"
   ]);
   const parsed = parseJsonOutput(result.stdout, "vercel-deployments-response-invalid");
   if (!Array.isArray(parsed.deployments)) throw new Error("vercel-deployments-response-invalid");
   return parsed.deployments;
 }
 
+function getVercelProjectDomains() {
+  const result = vercel(["api", `/v9/projects/${PHASE7D_VERCEL_PROJECT_ID}/domains`, "--raw"]);
+  const parsed = parseJsonOutput(result.stdout, "vercel-project-domains-response-invalid");
+  return Array.isArray(parsed) ? parsed : Array.isArray(parsed.domains) ? parsed.domains : [];
+}
+
 function getVercelDeployment(id) {
   const result = vercel(["api", `/v13/deployments/${encodeURIComponent(id)}`, "--raw"]);
   return parseJsonOutput(result.stdout, "vercel-deployment-metadata-invalid");
+}
+
+async function captureExternalIsolationBaseline() {
+  const publicDeployment = listVercelDeployments(PHASE7D_PUBLIC_VERCEL_PROJECT_ID)[0];
+  const previewDeployment = listVercelDeployments(PHASE7D_PROTECTED_PREVIEW_VERCEL_PROJECT_ID)[0];
+  if (!publicDeployment || !previewDeployment) throw new Error("phase7d-isolation-baseline-unavailable");
+  const publicResponse = await fetch("https://mathnexa.com", { redirect: "manual", cache: "no-store" });
+  if (publicResponse.status !== 200) throw new Error("phase7d-public-production-baseline-unhealthy");
+  return Object.freeze({
+    publicDeploymentId: publicDeployment.uid ?? publicDeployment.id,
+    protectedPreviewDeploymentId: previewDeployment.uid ?? previewDeployment.id,
+    publicStatus: publicResponse.status
+  });
+}
+
+async function verifyExternalIsolationBaseline(baseline) {
+  const current = await captureExternalIsolationBaseline();
+  if (current.publicDeploymentId !== baseline.publicDeploymentId ||
+    current.protectedPreviewDeploymentId !== baseline.protectedPreviewDeploymentId) {
+    throw new Error("phase7d-external-project-isolation-changed");
+  }
+  return current;
 }
 
 function verifyVercelDeploymentPreflight(environment, commit) {
@@ -290,8 +324,12 @@ function verifyVercelDeploymentPreflight(environment, commit) {
     throw new Error("vercel-local-link-not-isolated-staging");
   }
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
+  const branch = execFileSync("git", ["branch", "--show-current"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
+  const upstream = execFileSync("git", ["rev-parse", "@{u}"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   const status = execFileSync("git", ["status", "--porcelain"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
-  if (head !== commit || status) throw new Error("vercel-deployment-source-not-verified-clean-commit");
+  if (head !== commit || upstream !== commit || branch !== PHASE7D_BRANCH || status) {
+    throw new Error("vercel-deployment-source-not-verified-clean-pushed-commit");
+  }
   const project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME);
   if (project.id !== PHASE7D_VERCEL_PROJECT_ID || project.name !== PHASE7D_VERCEL_PROJECT_NAME ||
     project.accountId !== PHASE7D_VERCEL_TEAM_ID) {
@@ -303,21 +341,9 @@ function verifyVercelDeploymentPreflight(environment, commit) {
   const inventory = inspectPhase7dVercelEnvironment(
     getVercelEnvironmentEntries(), Object.keys(environment)
   );
-  if (!inventory.valid) throw new Error("vercel-preview-environment-inventory-mismatch");
+  if (!inventory.valid) throw new Error("vercel-production-environment-inventory-mismatch");
+  if (!hasNoPhase7dCustomDomains(getVercelProjectDomains())) throw new Error("vercel-staging-custom-domain-present");
   return { project, inventory };
-}
-
-function findSecret(value) {
-  if (typeof value === "string" && /^[A-Za-z0-9]{24,}$/.test(value)) return value;
-  if (!value || typeof value !== "object") return null;
-  for (const [key, child] of Object.entries(value)) {
-    if (/secret/i.test(key) && typeof child === "string" && child.length >= 24) return child;
-  }
-  for (const child of Object.values(value)) {
-    const found = findSecret(child);
-    if (found) return found;
-  }
-  return null;
 }
 
 function supabaseCommand(args) {
@@ -499,57 +525,24 @@ async function revokeResendProvisioningKey(state) {
 }
 
 async function provisionVercel(state) {
-  let project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME, true);
-  let action = "reused";
-  if (!project) {
-    vercel(["project", "add", PHASE7D_VERCEL_PROJECT_NAME]);
-    action = "created";
-    project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME);
-  }
-  if (project.name !== PHASE7D_VERCEL_PROJECT_NAME) throw new Error("vercel-staging-project-mismatch");
-  vercel([
-    "api", `/v9/projects/${PHASE7D_VERCEL_PROJECT_NAME}`,
-    "--method", "PATCH", "--input", "-", "--silent"
-  ], { input: {
-    framework: "nextjs",
-    rootDirectory: "apps/platform-web",
-    sourceFilesOutsideRootDirectory: true,
-    nodeVersion: "24.x",
-    gitForkProtection: true,
-    autoExposeSystemEnvs: true
-  } });
-  vercel(["project", "protection", "enable", PHASE7D_VERCEL_PROJECT_NAME, "--sso", "--json"]);
-  project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME);
+  const project = getVercelProject(PHASE7D_VERCEL_PROJECT_NAME);
+  const action = "reused";
+  if (project.id !== PHASE7D_VERCEL_PROJECT_ID || project.name !== PHASE7D_VERCEL_PROJECT_NAME ||
+    project.accountId !== PHASE7D_VERCEL_TEAM_ID) throw new Error("vercel-staging-project-mismatch");
   if (!isVercelStandardProtectionScope(project.ssoProtection?.deploymentType)) {
     throw new Error("vercel-standard-protection-not-enabled");
   }
 
-  let bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "";
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "";
   const bypassEntries = Object.keys(project.protectionBypass ?? {});
-  if (!bypass) {
-    if (bypassEntries.length > 1) throw new Error("vercel-bypass-resource-conflict");
-    bypass = recoverVercelAutomationBypassSecret(project.protectionBypass) ?? "";
-    if (!bypass && bypassEntries.length === 0) {
-      const created = vercel([
-        "project", "protection", "enable", PHASE7D_VERCEL_PROJECT_NAME,
-        "--protection-bypass", "--json"
-      ]);
-      const parsed = parseJsonOutput(created.stdout, "vercel-bypass-response-invalid");
-      bypass = findSecret(parsed) ??
-        recoverVercelAutomationBypassSecret(parsed.protectionBypass ?? parsed) ?? "";
-    }
-    if (bypass.length < 24) throw new Error("vercel-bypass-secret-unavailable");
-    secrets.push(bypass);
-    saveVaultSecret("VERCEL_AUTOMATION_BYPASS_SECRET", bypass);
-  } else if (bypassEntries.length !== 1) {
-    throw new Error("vercel-bypass-resource-conflict");
-  }
+  const recovered = recoverVercelAutomationBypassSecret(project.protectionBypass);
+  if (bypass.length < 24 || bypassEntries.length !== 1 || recovered !== bypass) throw new Error("vercel-bypass-resource-conflict");
   if (!secrets.includes(bypass)) secrets.push(bypass);
   state.vercel = {
     action,
     projectId: project.id,
     projectName: project.name,
-    environment: "preview",
+    environment: "production-staging",
     standardProtection: true,
     bypassCount: 1,
     origin: PHASE7D_STAGING_ORIGIN
@@ -559,7 +552,7 @@ async function provisionVercel(state) {
   return { bypass, projectId: project.id };
 }
 
-async function provisionStripe(state, bypass) {
+async function provisionStripe(state) {
   const stripe = new Stripe(stripeSecretKey, { apiVersion: PHASE7D_STRIPE_API_VERSION });
   const [product, price, portal] = await Promise.all([
     stripe.products.retrieve(PHASE7D_STRIPE_PRODUCT_ID),
@@ -571,7 +564,7 @@ async function provisionStripe(state, bypass) {
     price.recurring?.interval !== "month" || price.recurring.interval_count !== 1) {
     throw new Error("stripe-sandbox-resource-contract-mismatch");
   }
-  const url = `${PHASE7D_STAGING_ORIGIN}/api/billing/webhook?x-vercel-protection-bypass=${encodeURIComponent(bypass)}`;
+  const url = `${PHASE7D_STAGING_ORIGIN}/api/billing/webhook`;
   const endpoints = await stripe.webhookEndpoints.list({ limit: 100 });
   const matches = endpoints.data.filter((endpoint) =>
     endpoint.metadata?.application === "mathnexa" && endpoint.metadata?.environment === "staging" && endpoint.metadata?.phase === "7d"
@@ -581,8 +574,12 @@ async function provisionStripe(state, bypass) {
   let action = "reused";
   let webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   if (endpoint) {
-    if (endpoint.url !== url || endpoint.livemode || endpoint.status !== "enabled") throw new Error("stripe-staging-webhook-conflict");
+    if (endpoint.livemode || endpoint.status !== "enabled") throw new Error("stripe-staging-webhook-conflict");
     if (!webhookSecret) throw new Error("stripe-staging-webhook-secret-unrecoverable");
+    if (endpoint.url !== url || PHASE7D_STRIPE_EVENTS.some((event) => !new Set(endpoint.enabled_events).has(event))) {
+      endpoint = await stripe.webhookEndpoints.update(endpoint.id, { url, enabled_events: PHASE7D_STRIPE_EVENTS });
+      action = "updated";
+    }
   } else {
     endpoint = await stripe.webhookEndpoints.create({
       url,
@@ -678,18 +675,50 @@ function deleteRejectedVercelDeployment(id) {
   }
 }
 
-async function verifyVercelProtectionAt(origin, bypass) {
-  const anonymous = await fetch(origin, { redirect: "manual" });
-  if (![302, 307, 401, 403].includes(anonymous.status)) throw new Error("vercel-staging-anonymous-access-not-protected");
-  const automated = await fetch(origin, {
-    headers: { "x-vercel-protection-bypass": bypass }, redirect: "manual"
+async function verifyStagingAccessLockAt(origin, bypass, token) {
+  const anonymous = await fetch(origin, { redirect: "manual", cache: "no-store" });
+  const anonymousBody = await anonymous.text();
+  const anonymousLocked = anonymous.status === 404 && anonymousBody === "" &&
+    anonymous.headers.get("cache-control") === "no-store" &&
+    anonymous.headers.get("x-robots-tag") === "noindex, nofollow";
+  if (!anonymousLocked) throw new Error("vercel-staging-application-lock-not-enforced");
+
+  const invalid = await fetch(`${origin}/api/internal/staging-access/bootstrap`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${"x".repeat(43)}`, "x-vercel-protection-bypass": bypass },
+    redirect: "manual"
   });
-  if (automated.status !== 200) throw new Error("vercel-staging-automation-bypass-failed");
-  return true;
+  if (invalid.status !== 404 || await invalid.text() !== "") throw new Error("staging-bootstrap-invalid-token-accepted");
+
+  const bootstrap = await fetch(`${origin}/api/internal/staging-access/bootstrap`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "x-vercel-protection-bypass": bypass },
+    redirect: "manual"
+  });
+  const cookieHeader = bootstrap.headers.get("set-cookie") ?? "";
+  const cookie = cookieHeader.split(";", 1)[0];
+  const validCookie = /^__Host-mvh-staging-access=v1\.[A-Za-z0-9_-]{43}$/.test(cookie) &&
+    /;\s*Path=\//i.test(cookieHeader) && /;\s*HttpOnly/i.test(cookieHeader) &&
+    /;\s*Secure/i.test(cookieHeader) && /;\s*SameSite=Lax/i.test(cookieHeader) &&
+    !/;\s*Domain=/i.test(cookieHeader) && !cookieHeader.includes(token);
+  if (bootstrap.status !== 204 || !validCookie || await bootstrap.text() !== "") {
+    throw new Error("staging-bootstrap-cookie-contract-failed");
+  }
+  const authorized = await fetch(origin, {
+    headers: { Cookie: cookie, "x-vercel-protection-bypass": bypass },
+    redirect: "manual",
+    cache: "no-store"
+  });
+  const authorizedBody = await authorized.text();
+  if (authorized.status !== 200 || authorizedBody.includes(token) ||
+    (authorized.headers.get("location") ?? "").includes(token)) {
+    throw new Error("staging-bootstrap-authorized-access-failed");
+  }
+  return { anonymousLocked: true, authorizedAccess: true, cookie };
 }
 
 async function deployVercel(state, environment, bypass, commit) {
-  verifyVercelDeploymentPreflight(environment, commit);
+  const preflight = verifyVercelDeploymentPreflight(environment, commit);
   const before = new Set(listVercelDeployments().map((deployment) => deployment.uid ?? deployment.id));
   vercel(buildPhase7dVercelDeployArgs());
   const created = await waitFor("vercel-new-deployment", async () => {
@@ -698,56 +727,56 @@ async function deployVercel(state, environment, bypass, commit) {
     return matches[0] ?? null;
   }, Boolean);
   const deploymentId = created.uid ?? created.id;
-  let metadata = getVercelDeployment(deploymentId);
-  const initial = evaluatePhase7dVercelDeployment({ deployment: metadata });
-  if (initial.deleteRequired) {
-    deleteRejectedVercelDeployment(deploymentId);
-    throw new Error(`vercel-deployment-target-not-preview:${initial.target}`);
-  }
-  if ((metadata.alias ?? []).length > 0) {
-    deleteRejectedVercelDeployment(deploymentId);
-    throw new Error("vercel-deployment-has-alias-before-verification");
-  }
-  metadata = await waitFor("vercel-preview-ready", async () => {
+  let metadata = await waitFor("vercel-staging-production-ready", async () => {
     const value = getVercelDeployment(deploymentId);
     if (["ERROR", "CANCELED"].includes(value.readyState ?? value.state)) {
-      throw new Error("vercel-preview-deployment-not-ready");
+      throw new Error("vercel-staging-deployment-not-ready");
     }
     return value;
   }, (value) => value.readyState === "READY" || value.state === "READY", 600_000);
-  const deploymentUrl = `https://${String(metadata.url ?? created.url ?? "").replace(/^https?:\/\//, "")}`;
-  if (!deploymentUrl.endsWith(".vercel.app")) throw new Error("vercel-deployment-url-invalid");
+  const targetGate = evaluatePhase7dVercelDeployment({ deployment: metadata, anonymousLocked: true });
+  if (!targetGate.targetVerified) {
+    deleteRejectedVercelDeployment(deploymentId);
+    throw new Error(`vercel-deployment-target-not-production:${targetGate.target}`);
+  }
+  const sourceVerified = isPhase7dVercelDeploymentSource(metadata, commit);
+  const noCustomDomains = hasNoPhase7dCustomDomains(getVercelProjectDomains());
   const environmentVerified = inspectPhase7dVercelEnvironment(
     getVercelEnvironmentEntries(), Object.keys(environment)
   ).valid;
-  const protectionVerified = await verifyVercelProtectionAt(deploymentUrl, bypass);
-  const beforeAlias = evaluatePhase7dVercelDeployment({
-    deployment: metadata,
-    environmentVerified,
-    protectionVerified
-  });
-  if (!beforeAlias.aliasAllowed) throw new Error("vercel-alias-gate-not-satisfied");
-  const aliasHost = new URL(PHASE7D_STAGING_ORIGIN).hostname;
-  vercel(["alias", "set", deploymentUrl, aliasHost]);
-  metadata = getVercelDeployment(deploymentId);
-  if (!(metadata.alias ?? []).includes(aliasHost)) throw new Error("vercel-staging-alias-not-ready");
-  const aliasProtectionVerified = await verifyVercelProtectionAt(PHASE7D_STAGING_ORIGIN, bypass);
+  if (!sourceVerified || !noCustomDomains || !environmentVerified) {
+    deleteRejectedVercelDeployment(deploymentId);
+    throw new Error("vercel-staging-deployment-metadata-gate-failed");
+  }
+  const deploymentUrl = `https://${String(metadata.url ?? created.url ?? "").replace(/^https?:\/\//, "")}`;
+  if (!deploymentUrl.endsWith(".vercel.app")) throw new Error("vercel-deployment-url-invalid");
+  let access;
+  try {
+    access = await verifyStagingAccessLockAt(PHASE7D_STAGING_ORIGIN, bypass, stagingAccessToken);
+  } catch (error) {
+    deleteRejectedVercelDeployment(deploymentId);
+    throw error;
+  }
   const finalGate = evaluatePhase7dVercelDeployment({
     deployment: metadata,
     environmentVerified,
-    protectionVerified,
-    aliasAttached: true,
-    aliasProtectionVerified
+    sourceVerified,
+    noCustomDomains,
+    anonymousLocked: access.anonymousLocked,
+    authorizedAccess: access.authorizedAccess
   });
   if (!finalGate.lifecycleAllowed) throw new Error("vercel-lifecycle-gate-not-satisfied");
   state.vercel.deploymentId = deploymentId;
   state.vercel.deploymentUrl = deploymentUrl;
   state.vercel.deploymentTarget = finalGate.target;
-  state.vercel.alias = PHASE7D_STAGING_ORIGIN;
-  state.vercel.previewEnvironmentCount = Object.keys(environment).length;
-  state.vercel.productionEnvironmentCount = 0;
+  state.vercel.automaticAlias = PHASE7D_STAGING_ORIGIN;
+  state.vercel.productionEnvironmentCount = preflight.inventory.productionCount;
+  state.vercel.previewEnvironmentCount = preflight.inventory.previewCount;
+  state.vercel.noCustomDomains = true;
+  state.vercel.anonymousHard404 = true;
+  state.vercel.authorizedAccess = true;
   saveState(state);
-  return finalGate;
+  return { ...finalGate, deploymentUrl };
 }
 
 async function cleanupHosted(state, lifecycleError = null) {
@@ -845,11 +874,14 @@ async function main() {
   state.status = "running";
   saveState(state);
 
+  const isolationBaseline = await captureExternalIsolationBaseline();
+  state.isolation = { ...isolationBaseline, unchanged: null };
+  saveState(state);
   await validateProviderAuthentication();
   const supabase = await provisionSupabase(state);
   const resendResource = await provisionResend(state);
   const vercelResource = await provisionVercel(state);
-  const stripeResource = await provisionStripe(state, vercelResource.bypass);
+  const stripeResource = await provisionStripe(state);
   await configureSupabaseAuth({ ...supabase, secretKey: supabase.secretKey }, state, resendResource.runtimeApiKey);
   const environment = buildPhase7dEnvironment({
     supabaseUrl: supabase.url,
@@ -859,6 +891,7 @@ async function main() {
     stripePublishableKey,
     stripeSecretKey,
     stripeWebhookSecret: stripeResource.webhookSecret,
+    stagingAccessToken,
     buildId: commit.slice(0, 40),
     emailVerified: false
   });
@@ -874,6 +907,7 @@ async function main() {
       stripeSecretKey,
       webhookSecret: stripeResource.webhookSecret,
       bypassSecret: vercelResource.bypass,
+      stagingAccessToken,
       resendApiKey: resendProvisioningApiKey
     });
     state.lifecycle = lifecycle.evidence;
@@ -895,11 +929,13 @@ async function main() {
     stripePublishableKey,
     stripeSecretKey,
     stripeWebhookSecret: stripeResource.webhookSecret,
+    stagingAccessToken,
     buildId: commit.slice(0, 40),
     emailVerified: true
   });
   upsertVercelEnvironment(verifiedEmailEnvironment);
-  await deployVercel(state, verifiedEmailEnvironment, vercelResource.bypass, commit);
+  await verifyExternalIsolationBaseline(isolationBaseline);
+  state.isolation.unchanged = true;
   protectedHashes();
   state.status = "passed";
   state.completedAt = new Date().toISOString();
@@ -917,6 +953,7 @@ async function main() {
     stripe: state.stripe,
     lifecycle: state.lifecycle,
     cleanup: state.cleanup,
+    isolation: state.isolation,
     protectedHashes: PHASE7D_PROTECTED_HASHES
   }, null, 2)}\n`, "utf8");
   log("Phase 7D hosted staging verification passed. Public Production and protected Preview were not changed.");
@@ -938,7 +975,8 @@ try {
     "SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "RESEND_API_KEY", "RESEND_PROVISIONING_API_KEY",
     "RESEND_RUNTIME_API_KEY",
     "STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY", "SUPABASE_PUBLISHABLE_KEY",
-    "SUPABASE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "VERCEL_AUTOMATION_BYPASS_SECRET"
+    "SUPABASE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "VERCEL_AUTOMATION_BYPASS_SECRET",
+    "MVH_STAGING_ACCESS_TOKEN"
   ]) delete process.env[name];
   rmSync(workRoot, { recursive: true, force: true });
 }

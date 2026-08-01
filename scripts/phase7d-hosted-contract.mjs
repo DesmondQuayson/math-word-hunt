@@ -1,4 +1,5 @@
 export const PHASE7D_BASELINE = "5b558ece7ca6ee902e2f1c6d257e3591a26ef8fa";
+export const PHASE7D_BRANCH = "codex/phase-7d-isolated-hosted-subscription-staging";
 export const PHASE7D_SUPABASE_PROJECT_NAME = "mathnexa-platform-staging";
 export const PHASE7D_SUPABASE_ORGANIZATION_ID = "mtavaeztjyxasjeovfka";
 export const PHASE7D_SUPABASE_REGION = "us-east-2";
@@ -6,8 +7,10 @@ export const PHASE7D_VERCEL_PROJECT_NAME = "mathnexa-platform-staging";
 export const PHASE7D_VERCEL_PROJECT_ID = "prj_O61Cyx9WMjc0jljpM9erCiSXsJA0";
 export const PHASE7D_VERCEL_SCOPE = "bright-path-ed-tech";
 export const PHASE7D_VERCEL_TEAM_ID = "team_qhdZ6TvnEA6BYjjfAiwJBAp9";
+export const PHASE7D_PUBLIC_VERCEL_PROJECT_ID = "prj_a0TfwIbvPEce311pOhrIJyENJiIB";
+export const PHASE7D_PROTECTED_PREVIEW_VERCEL_PROJECT_ID = "prj_TGTZDiSvEq42cQRWnslboP9MNHOZ";
 export const PHASE7D_STAGING_ORIGIN =
-  "https://mathnexa-platform-staging-desmondquayson-bright-path-ed-tech.vercel.app";
+  "https://mathnexa-platform-staging.vercel.app";
 export const PHASE7D_PREVIEW_SUPABASE_REF = "ioodoktlxvvmghyvevgn";
 export const PHASE7D_RESEND_DOMAIN = "auth.mathnexa.com";
 export const PHASE7D_RESEND_SENDER = "no-reply@auth.mathnexa.com";
@@ -64,7 +67,8 @@ export const PHASE7D_SECRET_NAMES = Object.freeze([
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "VERCEL_AUTOMATION_BYPASS_SECRET"
+  "VERCEL_AUTOMATION_BYPASS_SECRET",
+  "MVH_STAGING_ACCESS_TOKEN"
 ]);
 
 export function buildPhase7dEnvironment(input) {
@@ -89,6 +93,8 @@ export function buildPhase7dEnvironment(input) {
     MVH_BUILD_ID: input.buildId,
     MVH_PILOT_STATE: "inactive",
     MVH_INVITATIONS_ENABLED: "false",
+    MVH_STAGING_ACCESS_REQUIRED: "true",
+    MVH_STAGING_ACCESS_TOKEN: input.stagingAccessToken,
     BILLING_ENABLED: "true",
     BILLING_ENVIRONMENT: "preview",
     BILLING_PROVIDER: "stripe",
@@ -142,22 +148,23 @@ export function recoverVercelAutomationBypassSecret(protectionBypass) {
   return matches.length === 1 ? matches[0][0] : null;
 }
 
-export function buildVercelPreviewEnvironmentPayloads(values) {
+export function buildVercelProductionEnvironmentPayloads(values) {
   return Object.entries(values).map(([key, value]) => Object.freeze({
     key,
     value,
     type: "sensitive",
-    target: Object.freeze(["preview"])
+    target: Object.freeze(["production"])
   }));
 }
 
 export const PHASE7D_VERCEL_DEPLOYMENT_GATES = Object.freeze([
   "preflight",
+  "environment",
   "deploy",
   "target",
-  "environment",
-  "protection",
-  "alias",
+  "source",
+  "domains",
+  "access-lock",
   "lifecycle"
 ]);
 
@@ -167,6 +174,7 @@ export function buildPhase7dVercelDeployArgs() {
     ".",
     "--project",
     PHASE7D_VERCEL_PROJECT_NAME,
+    "--prod",
     "--yes",
     "--json"
   ]);
@@ -178,17 +186,35 @@ export function isPhase7dVercelLocalLink(link) {
     link?.orgId === PHASE7D_VERCEL_TEAM_ID;
 }
 
+export function isPhase7dVercelDeploymentSource(deployment, commit, branch = PHASE7D_BRANCH) {
+  const metadata = deployment?.meta ?? {};
+  const source = deployment?.gitSource ?? {};
+  const sourceCommit = source.sha ?? metadata.githubCommitSha ?? metadata.gitCommitSha ?? null;
+  const sourceBranch = source.ref ?? metadata.githubCommitRef ?? metadata.gitCommitRef ?? null;
+  return sourceCommit === commit && sourceBranch === branch;
+}
+
+export function hasNoPhase7dCustomDomains(domains) {
+  return Array.isArray(domains) && domains.every((domain) => {
+    const name = typeof domain === "string" ? domain : domain?.name;
+    return typeof name === "string" && name.endsWith(".vercel.app");
+  });
+}
+
 export function inspectPhase7dVercelEnvironment(entries, requiredNames) {
   const expected = new Set(requiredNames);
   const seen = new Set();
   let productionCount = 0;
-  let invalidScopeCount = 0;
+  let previewCount = 0;
+  let invalidProductionScopeCount = 0;
   let invalidTypeCount = 0;
   let duplicateCount = 0;
   for (const entry of entries) {
     const targets = Array.isArray(entry?.target) ? entry.target : [];
-    if (targets.includes("production")) productionCount += 1;
-    if (targets.length !== 1 || targets[0] !== "preview") invalidScopeCount += 1;
+    if (targets.includes("preview")) previewCount += 1;
+    if (!targets.includes("production")) continue;
+    productionCount += 1;
+    if (targets.length !== 1 || targets[0] !== "production") invalidProductionScopeCount += 1;
     if (entry?.type !== "sensitive") invalidTypeCount += 1;
     if (seen.has(entry?.key)) duplicateCount += 1;
     seen.add(entry?.key);
@@ -196,12 +222,13 @@ export function inspectPhase7dVercelEnvironment(entries, requiredNames) {
   const missing = [...expected].filter((name) => !seen.has(name));
   const unexpected = [...seen].filter((name) => !expected.has(name));
   return Object.freeze({
-    valid: missing.length === 0 && unexpected.length === 0 && productionCount === 0 &&
-      invalidScopeCount === 0 && invalidTypeCount === 0 && duplicateCount === 0,
+    valid: missing.length === 0 && unexpected.length === 0 && productionCount === expected.size &&
+      invalidProductionScopeCount === 0 && invalidTypeCount === 0 && duplicateCount === 0,
     missing: Object.freeze(missing),
     unexpected: Object.freeze(unexpected),
     productionCount,
-    invalidScopeCount,
+    previewCount,
+    invalidProductionScopeCount,
     invalidTypeCount,
     duplicateCount
   });
@@ -211,32 +238,27 @@ export function phase7dVercelDeploymentTarget(deployment) {
   const explicit = String(deployment?.environment ?? deployment?.target ?? "").toLowerCase();
   if (explicit === "preview") return "preview";
   if (explicit === "production") return "production";
-  // Vercel's deployment API represents a default non-production deployment
-  // with a null target. The deploy command is independently constrained to
-  // omit production/target flags. The runner separately rejects any alias
-  // observed before the authoritative target gate passes.
-  if (deployment?.target === null) return "preview";
   return "unknown";
 }
 
 export function evaluatePhase7dVercelDeployment({
   deployment,
   environmentVerified = false,
-  protectionVerified = false,
-  aliasAttached = false,
-  aliasProtectionVerified = false
+  sourceVerified = false,
+  noCustomDomains = false,
+  anonymousLocked = false,
+  authorizedAccess = false
 }) {
   const target = phase7dVercelDeploymentTarget(deployment);
-  const targetVerified = target === "preview";
+  const targetVerified = target === "production";
   const ready = deployment?.readyState === "READY" || deployment?.state === "READY";
-  const aliasAllowed = targetVerified && ready && environmentVerified && protectionVerified;
   return Object.freeze({
     target,
     targetVerified,
     ready,
-    deleteRequired: !targetVerified,
-    aliasAllowed,
-    lifecycleAllowed: aliasAllowed && aliasAttached && aliasProtectionVerified
+    deleteRequired: !targetVerified || (ready && !anonymousLocked),
+    lifecycleAllowed: targetVerified && ready && environmentVerified && sourceVerified &&
+      noCustomDomains && anonymousLocked && authorizedAccess
   });
 }
 

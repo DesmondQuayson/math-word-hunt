@@ -15,6 +15,7 @@ const gates = [
   [npm, ["run", "lint"]],
   [npm, ["run", "typecheck"]],
   [npm, ["run", "test:phase7d:contract"]],
+  [npm, ["run", "test:phase7d:access"]],
   [npm, ["run", "build:phase7d"]],
   [npm, ["run", "test:phase7d:security"]],
   [npm, ["run", "test:security"]],

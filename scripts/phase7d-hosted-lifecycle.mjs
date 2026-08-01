@@ -127,9 +127,17 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
   let customerId = null;
   let subscriptionId = null;
   try {
-    await page.goto(`${PHASE7D_STAGING_ORIGIN}/?x-vercel-protection-bypass=${encodeURIComponent(input.bypassSecret)}&x-vercel-set-bypass-cookie=true`, {
-      waitUntil: "domcontentloaded"
+    const bootstrap = await context.request.post(`${PHASE7D_STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, {
+      headers: {
+        Authorization: `Bearer ${input.stagingAccessToken}`,
+        "x-vercel-protection-bypass": input.bypassSecret
+      }
     });
+    assert(bootstrap.status() === 204, "staging-browser-bootstrap-failed");
+    const stagingCookie = (await context.cookies(PHASE7D_STAGING_ORIGIN)).find((cookie) =>
+      cookie.name === "__Host-mvh-staging-access"
+    );
+    assert(stagingCookie?.httpOnly && stagingCookie.secure && stagingCookie.sameSite === "Lax", "staging-browser-cookie-contract");
     await page.goto(`${PHASE7D_STAGING_ORIGIN}/sign-up`);
     await page.locator('input[name="email"]').fill(PHASE7D_RESEND_TEST_RECIPIENT);
     await page.locator('input[name="password"]').fill(firstPassword);
@@ -254,7 +262,7 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     const forged = await fetch(`${PHASE7D_STAGING_ORIGIN}/play?access=active&trialEndsAt=2099-01-01`, {
       headers: { "x-vercel-protection-bypass": input.bypassSecret }, redirect: "manual"
     });
-    assert(forged.status === 307 || forged.status === 302, "anonymous-browser-forgery-not-denied");
+    assert(forged.status === 404 && forged.headers.get("cache-control") === "no-store", "anonymous-browser-forgery-not-denied");
     evidence.browserForgeryDenied = true;
   } finally {
     await context.close().catch(() => {});

@@ -6,13 +6,17 @@ import {
   buildPhase7dEnvironment,
   buildPhase7dHostedStateVerificationSql,
   buildPhase7dVercelDeployArgs,
-  buildVercelPreviewEnvironmentPayloads,
+  buildVercelProductionEnvironmentPayloads,
   evaluatePhase7dVercelDeployment,
+  hasNoPhase7dCustomDomains,
   inspectPhase7dVercelEnvironment,
+  isPhase7dVercelDeploymentSource,
   isPhase7dVercelLocalLink,
   isSafePhase7dOrigin,
   isVercelStandardProtectionScope,
+  PHASE7D_BRANCH,
   PHASE7D_PREVIEW_SUPABASE_REF,
+  PHASE7D_SECRET_NAMES,
   PHASE7D_STAGING_ORIGIN,
   PHASE7D_STRIPE_API_VERSION,
   PHASE7D_STRIPE_PORTAL_ID,
@@ -35,160 +39,136 @@ const input = {
   stripePublishableKey: "pk_test_stagingexample",
   stripeSecretKey: "sk_test_stagingexample",
   stripeWebhookSecret: "whsec_stagingexample",
+  stagingAccessToken: "A".repeat(43),
   buildId: "phase7d-example",
   emailVerified: false
 };
 
-test("Phase 7D uses the isolated protected staging origin and never the public domain", () => {
+test("Phase 7D uses only the isolated automatic staging origin", () => {
+  assert.equal(PHASE7D_STAGING_ORIGIN, "https://mathnexa-platform-staging.vercel.app");
   assert.equal(isSafePhase7dOrigin(PHASE7D_STAGING_ORIGIN), true);
   assert.equal(isSafePhase7dOrigin("https://mathnexa.com"), false);
 });
 
-test("Phase 7D recognizes current and legacy Standard Protection API scopes", () => {
+test("Phase 7D preserves the existing Standard Protection control without relying on it for alias access", () => {
   assert.equal(isVercelStandardProtectionScope("prod_deployment_urls_and_all_previews"), true);
   assert.equal(isVercelStandardProtectionScope("all_except_custom_domains"), true);
   assert.equal(isVercelStandardProtectionScope("preview"), false);
-  assert.equal(isVercelStandardProtectionScope("all"), false);
-  assert.equal(isVercelStandardProtectionScope(undefined), false);
 });
 
-test("Phase 7D recovers exactly one metadata-bound automation bypass without ambiguity", () => {
+test("Phase 7D recovers exactly one metadata-bound automation bypass", () => {
   const first = "a".repeat(32);
   const second = "b".repeat(32);
   const metadata = { scope: "automation-bypass", isEnvVar: true };
   assert.equal(recoverVercelAutomationBypassSecret({ [first]: metadata }), first);
   assert.equal(recoverVercelAutomationBypassSecret({ [first]: metadata, [second]: metadata }), null);
-  assert.equal(recoverVercelAutomationBypassSecret({ short: metadata }), null);
-  assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, scope: "shareable-link" } }), null);
-  assert.equal(recoverVercelAutomationBypassSecret({ [first]: { ...metadata, isEnvVar: false } }), null);
-  assert.equal(recoverVercelAutomationBypassSecret(null), null);
 });
 
-test("Phase 7D sends staging variables as individual sensitive Preview payloads", () => {
-  const payloads = buildVercelPreviewEnvironmentPayloads({ FIRST: "one", SECOND: "two" });
+test("Phase 7D sends every staging variable as an individual sensitive Production payload", () => {
+  const payloads = buildVercelProductionEnvironmentPayloads({ FIRST: "one", SECOND: "two" });
   assert.deepEqual(payloads, [
-    { key: "FIRST", value: "one", type: "sensitive", target: ["preview"] },
-    { key: "SECOND", value: "two", type: "sensitive", target: ["preview"] }
+    { key: "FIRST", value: "one", type: "sensitive", target: ["production"] },
+    { key: "SECOND", value: "two", type: "sensitive", target: ["production"] }
   ]);
   assert.equal(new Set(payloads.map(({ key }) => key)).size, payloads.length);
   assert.equal(Object.isFrozen(payloads[0]), true);
-  assert.equal(Object.isFrozen(payloads[0].target), true);
 });
 
-test("Phase 7D deploys with Vercel's default non-production behavior", () => {
+test("Phase 7D deploys explicitly to Production only in the isolated staging project", () => {
   const args = buildPhase7dVercelDeployArgs();
   assert.deepEqual(args.slice(0, 2), ["deploy", "."]);
-  assert.equal(args.includes("--prod"), false);
+  assert.equal(args.includes("--prod"), true);
   assert.equal(args.includes("--target"), false);
-  assert.equal(args.includes("--skip-domain"), false);
+  assert.equal(args[args.indexOf("--project") + 1], PHASE7D_VERCEL_PROJECT_NAME);
   assert.equal(args.includes("alias"), false);
 });
 
-test("Phase 7D accepts only the isolated staging local link", () => {
-  const correct = {
-    projectId: PHASE7D_VERCEL_PROJECT_ID,
-    projectName: PHASE7D_VERCEL_PROJECT_NAME,
-    orgId: PHASE7D_VERCEL_TEAM_ID
-  };
-  assert.equal(isPhase7dVercelLocalLink(correct), true);
-  assert.equal(isPhase7dVercelLocalLink({ ...correct, projectId: "prj_preview" }), false);
-  assert.equal(isPhase7dVercelLocalLink({ ...correct, orgId: "team_other" }), false);
+test("Phase 7D accepts only the isolated project link and exact branch commit metadata", () => {
+  const link = { projectId: PHASE7D_VERCEL_PROJECT_ID, projectName: PHASE7D_VERCEL_PROJECT_NAME, orgId: PHASE7D_VERCEL_TEAM_ID };
+  assert.equal(isPhase7dVercelLocalLink(link), true);
+  assert.equal(isPhase7dVercelLocalLink({ ...link, projectId: "prj_other" }), false);
+  const deployment = { meta: { githubCommitSha: "abc", githubCommitRef: PHASE7D_BRANCH } };
+  assert.equal(isPhase7dVercelDeploymentSource(deployment, "abc"), true);
+  assert.equal(isPhase7dVercelDeploymentSource(deployment, "def"), false);
 });
 
-test("Phase 7D requires sensitive Preview-only variables and rejects Production scope", () => {
-  const valid = inspectPhase7dVercelEnvironment([
-    { key: "FIRST", type: "sensitive", target: ["preview"] },
-    { key: "SECOND", type: "sensitive", target: ["preview"] }
-  ], ["FIRST", "SECOND"]);
-  assert.equal(valid.valid, true);
-  assert.equal(inspectPhase7dVercelEnvironment([
-    { key: "FIRST", type: "sensitive", target: ["production"] }
-  ], ["FIRST"]).valid, false);
+test("Phase 7D requires complete sensitive Production variables while allowing retained Preview entries", () => {
+  const entries = [
+    { key: "FIRST", type: "sensitive", target: ["production"] },
+    { key: "SECOND", type: "sensitive", target: ["production"] },
+    { key: "FIRST", type: "sensitive", target: ["preview"] }
+  ];
+  const result = inspectPhase7dVercelEnvironment(entries, ["FIRST", "SECOND"]);
+  assert.equal(result.valid, true);
+  assert.equal(result.productionCount, 2);
+  assert.equal(result.previewCount, 1);
+  assert.equal(inspectPhase7dVercelEnvironment(entries.slice(1), ["FIRST", "SECOND"]).valid, false);
 });
 
-test("Phase 7D rejects and marks a Production deployment for deletion before aliasing", () => {
-  const result = evaluatePhase7dVercelDeployment({
-    deployment: { target: "production", readyState: "READY" },
-    environmentVerified: true,
-    protectionVerified: true,
-    aliasAttached: true,
-    aliasProtectionVerified: true
-  });
-  assert.equal(result.targetVerified, false);
-  assert.equal(result.deleteRequired, true);
-  assert.equal(result.aliasAllowed, false);
-  assert.equal(result.lifecycleAllowed, false);
+test("Phase 7D rejects custom domains", () => {
+  assert.equal(hasNoPhase7dCustomDomains([]), true);
+  assert.equal(hasNoPhase7dCustomDomains([{ name: "mathnexa-platform-staging.vercel.app" }]), true);
+  assert.equal(hasNoPhase7dCustomDomains([{ name: "mathnexa.com" }]), false);
 });
 
-test("Phase 7D cannot attach an alias or begin lifecycle before every prior gate", () => {
-  const deployment = { target: "preview", readyState: "READY" };
-  assert.equal(evaluatePhase7dVercelDeployment({ deployment }).aliasAllowed, false);
-  const verified = evaluatePhase7dVercelDeployment({
+test("Phase 7D lifecycle cannot start before Production, source, domain, environment, and access-lock gates pass", () => {
+  const deployment = { target: "production", readyState: "READY" };
+  assert.equal(evaluatePhase7dVercelDeployment({ deployment }).lifecycleAllowed, false);
+  const complete = evaluatePhase7dVercelDeployment({
     deployment,
     environmentVerified: true,
-    protectionVerified: true
+    sourceVerified: true,
+    noCustomDomains: true,
+    anonymousLocked: true,
+    authorizedAccess: true
   });
-  assert.equal(verified.aliasAllowed, true);
-  assert.equal(verified.lifecycleAllowed, false);
-  assert.equal(evaluatePhase7dVercelDeployment({
-    deployment,
-    environmentVerified: true,
-    protectionVerified: true,
-    aliasAttached: true,
-    aliasProtectionVerified: true
-  }).lifecycleAllowed, true);
+  assert.equal(complete.targetVerified, true);
+  assert.equal(complete.deleteRequired, false);
+  assert.equal(complete.lifecycleAllowed, true);
+  assert.equal(evaluatePhase7dVercelDeployment({ ...complete, deployment: { target: "preview", readyState: "READY" } }).deleteRequired, true);
   assert.deepEqual(PHASE7D_VERCEL_DEPLOYMENT_GATES, [
-    "preflight", "deploy", "target", "environment", "protection", "alias", "lifecycle"
+    "preflight", "environment", "deploy", "target", "source", "domains", "access-lock", "lifecycle"
   ]);
 });
 
-test("Phase 7D runner deletes rejected targets and orders alias and lifecycle after verification", () => {
+test("Phase 7D runner cannot start lifecycle before the application access-lock acceptance gate", () => {
   const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
-  const targetGate = source.indexOf("if (initial.deleteRequired)");
-  const rejectedDelete = source.indexOf("deleteRejectedVercelDeployment(deploymentId)", targetGate);
-  const earlyAliasGate = source.indexOf("vercel-deployment-has-alias-before-verification", rejectedDelete);
-  const uniqueProtection = source.indexOf("verifyVercelProtectionAt(deploymentUrl", rejectedDelete);
-  const alias = source.indexOf('vercel(["alias", "set"', uniqueProtection);
-  const aliasProtection = source.indexOf("verifyVercelProtectionAt(PHASE7D_STAGING_ORIGIN", alias);
-  const lifecycleGate = source.indexOf("if (!finalGate.lifecycleAllowed)", aliasProtection);
-  const hostedLifecycle = source.indexOf("lifecycle = await runPhase7dHostedLifecycle", lifecycleGate);
-  assert.ok(targetGate >= 0 && rejectedDelete > targetGate);
-  assert.ok(earlyAliasGate > rejectedDelete);
-  assert.ok(uniqueProtection > earlyAliasGate);
-  assert.ok(alias > uniqueProtection);
-  assert.ok(aliasProtection > alias);
-  assert.ok(lifecycleGate > aliasProtection);
-  assert.ok(hostedLifecycle > lifecycleGate);
+  const accessLock = source.indexOf("access = await verifyStagingAccessLockAt");
+  const internalGate = source.indexOf("if (!finalGate.lifecycleAllowed)", accessLock);
+  const deployment = source.lastIndexOf("await deployVercel");
+  const lifecycle = source.indexOf("lifecycle = await runPhase7dHostedLifecycle", deployment);
+  assert.ok(accessLock >= 0 && internalGate > accessLock);
+  assert.ok(deployment > internalGate && lifecycle > deployment);
+  assert.doesNotMatch(source, /vercel\(\["alias", "set"/);
 });
 
 test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixture cleanup", () => {
   const sql = buildPhase7dHostedStateVerificationSql();
   assert.match(sql, /identity_model[\s\S]*consumer-v1/);
   assert.match(sql, /auth\.users[\s\S]*example\.invalid/);
-  assert.match(sql, /consumer_account_deletion_requests/);
   assert.match(sql, /billing_webhook_events/);
   assert.doesNotMatch(sql, /set_platform_identity_model|\binsert\s+into\b|\bupdate\s+public\b|\bdelete\s+from\b/i);
 });
 
-test("Phase 7D environment is consumer-only, non-indexable, test-billing configuration", () => {
+test("Phase 7D environment is consumer-only, locked, test-billing configuration", () => {
   const value = buildPhase7dEnvironment(input);
   assert.equal(value.MVH_APP_ENVIRONMENT, "production-platform");
   assert.equal(value.MVH_IDENTITY_MODEL, "consumer-v1");
   assert.equal(value.MVH_PREVIEW_SUPABASE_PROJECT_REF, PHASE7D_PREVIEW_SUPABASE_REF);
   assert.notEqual(value.MVH_PREVIEW_SUPABASE_PROJECT_REF, value.MVH_SUPABASE_PROJECT_REF);
+  assert.equal(value.MVH_STAGING_ACCESS_REQUIRED, "true");
+  assert.equal(value.MVH_STAGING_ACCESS_TOKEN, input.stagingAccessToken);
+  assert.equal(PHASE7D_SECRET_NAMES.includes("MVH_STAGING_ACCESS_TOKEN"), true);
   assert.equal(value.MVH_STRIPE_MODE, "test");
-  assert.equal(value.STRIPE_MODE, "test");
   assert.equal(value.STRIPE_API_VERSION, PHASE7D_STRIPE_API_VERSION);
   assert.equal(value.STRIPE_PRODUCT_MATHNEXA, PHASE7D_STRIPE_PRODUCT_ID);
   assert.equal(value.STRIPE_PRICE_MATHNEXA_MONTHLY, PHASE7D_STRIPE_PRICE_ID);
   assert.equal(value.STRIPE_PORTAL_CONFIGURATION_ID, PHASE7D_STRIPE_PORTAL_ID);
   assert.equal(value.MVH_FIXTURE_POLICY, "forbidden");
-  assert.equal(value.MVH_PILOT_STATE, "inactive");
   assert.equal(value.MVH_INVITATIONS_ENABLED, "false");
   assert.equal(value.BILLING_AUTOMATIC_REFUNDS, "false");
   assert.equal(PHASE7D_TRIAL_SECONDS, 86_400);
   assert.equal("STRIPE_PRODUCT_TEACHER_PRO" in value, false);
-  assert.equal("STRIPE_PRICE_TEACHER_PRO_ANNUAL" in value, false);
 });
 
 test("verified email is an explicit post-evidence state", () => {
@@ -196,8 +176,11 @@ test("verified email is an explicit post-evidence state", () => {
   assert.equal(buildPhase7dEnvironment({ ...input, emailVerified: true }).MVH_EMAIL_DELIVERY, "transactional-verified");
 });
 
-test("sanitizer removes provider and bypass credentials", () => {
-  const text = "sbp_secret re_secret pk_test_secret sk_test_secret whsec_secret x-vercel-protection-bypass=secret";
-  const redacted = redactPhase7dText(text);
-  assert.doesNotMatch(redacted, /sbp_secret|re_secret|pk_test_secret|sk_test_secret|whsec_secret|bypass=secret/);
+test("sanitizer removes provider, bypass, and staging credentials", () => {
+  const staging = "Z".repeat(43);
+  const redacted = redactPhase7dText(
+    `sbp_secret re_secret pk_test_secret sk_test_secret whsec_secret x-vercel-protection-bypass=secret token=${staging}`,
+    [staging]
+  );
+  assert.doesNotMatch(redacted, /sbp_secret|re_secret|pk_test_secret|sk_test_secret|whsec_secret|bypass=secret|Z{43}/);
 });

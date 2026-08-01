@@ -12,6 +12,7 @@ const environment = buildPhase7dEnvironment({
   stripePublishableKey: "pk_test_phase7dbuild12345",
   stripeSecretKey: "sk_test_phase7dbuild12345",
   stripeWebhookSecret: "whsec_phase7dbuild12345",
+  stagingAccessToken: "A".repeat(43),
   buildId: "phase7d-staging-build",
   emailVerified: false
 });
