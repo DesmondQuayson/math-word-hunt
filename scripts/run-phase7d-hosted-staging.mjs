@@ -61,6 +61,12 @@ function log(message) {
   process.stdout.write(`${message}\n`);
 }
 
+function spawnVercel(args, options = {}) {
+  const executable = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : vercelCli;
+  const invocation = process.platform === "win32" ? ["/d", "/s", "/c", vercelCli, ...args] : args;
+  return spawnSync(executable, invocation, options);
+}
+
 function loadState() {
   if (!existsSync(statePath)) return { version: 1 };
   try { return JSON.parse(readFileSync(statePath, "utf8")); }
@@ -118,7 +124,7 @@ async function resendJson(path) {
 
 async function validateProviderAuthentication() {
   const stripe = new Stripe(stripeSecretKey, { apiVersion: PHASE7D_STRIPE_API_VERSION });
-  const vercelIdentity = spawnSync(vercelCli, ["whoami"], {
+  const vercelIdentity = spawnVercel(["whoami"], {
     cwd: repositoryRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -140,7 +146,7 @@ async function validateProviderAuthentication() {
 }
 
 function vercel(args, { input = null, allowFailure = false } = {}) {
-  const result = spawnSync(vercelCli, [...args, "--scope", PHASE7D_VERCEL_SCOPE], {
+  const result = spawnVercel([...args, "--scope", PHASE7D_VERCEL_SCOPE], {
     cwd: repositoryRoot,
     encoding: "utf8",
     input: input === null ? undefined : JSON.stringify(input),
