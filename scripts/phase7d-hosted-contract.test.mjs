@@ -147,8 +147,10 @@ test("Phase 7D lifecycle distinguishes accessible success and error outcomes wit
   const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
   assert.match(source, /\[role="status"\], \[role="alert"\]/);
   assert.match(source, /page\.locator\("form"\)\.first\(\)/);
+  assert.match(source, /page\.locator\("form"\)\.first\(\)\.getByRole\("alert"\)/);
   assert.match(source, /getAttribute\("role"\) === "status"/);
   assert.doesNotMatch(source, /getByRole\("status"\)\.waitFor/);
+  assert.doesNotMatch(source, /await page\.getByRole\("alert"\)\.waitFor/);
 });
 
 test("Phase 7D waits for authoritative Resend delivery instead of message-body availability alone", () => {

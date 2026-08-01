@@ -195,7 +195,7 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     await page.locator('input[name="email"]').fill(PHASE7D_RESEND_TEST_RECIPIENT);
     await page.locator('input[name="password"]').fill(firstPassword);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await page.getByRole("alert").waitFor({ state: "visible" });
+    await page.locator("form").first().getByRole("alert").waitFor({ state: "visible" });
     assert(!page.url().endsWith("/account"), "old-password-still-valid");
     await page.locator('input[name="password"]').fill(secondPassword);
     await page.getByRole("button", { name: "Sign in" }).click();
