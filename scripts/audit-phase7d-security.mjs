@@ -22,6 +22,8 @@ for (const required of [
   "Read-Host -Prompt $Prompt -AsSecureString",
   "ConvertFrom-SecureString",
   "ZeroFreeBSTR",
+  "RandomNumberGenerator]::Create()",
+  "$random.GetBytes($bytes)",
   "SUPABASE_ACCESS_TOKEN",
   "STRIPE_WEBHOOK_SECRET",
   "VERCEL_AUTOMATION_BYPASS_SECRET",
@@ -39,6 +41,9 @@ if (/Write-(?:Host|Output)\s+\$(?:supabase|resend|publishable|stripe|plain|secre
 }
 if (/Set-Content[^\r\n]+\$(?:plain|databasePasswordPlain)/i.test(sources)) {
   throw new Error("Phase 7D credential prompt may persist plaintext.");
+}
+if (/RandomNumberGenerator\]::Fill\(/.test(sources)) {
+  throw new Error("Phase 7D credential prompt uses an API unavailable in Windows PowerShell 5.1.");
 }
 for (const [path, expected] of Object.entries(PHASE7D_PROTECTED_HASHES)) {
   const actual = createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();

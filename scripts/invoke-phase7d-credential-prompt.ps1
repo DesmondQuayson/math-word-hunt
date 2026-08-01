@@ -34,11 +34,16 @@ $stripe = Read-RequiredSecret 'Stripe Sandbox secret key' { param($value) $value
 
 $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%_-'
 $bytes = New-Object byte[] 48
-[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-$databasePasswordPlain = -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
-$databasePassword = ConvertTo-SecureString $databasePasswordPlain -AsPlainText -Force | ConvertFrom-SecureString
-[Array]::Clear($bytes, 0, $bytes.Length)
-$databasePasswordPlain = $null
+$random = [Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+  $random.GetBytes($bytes)
+  $databasePasswordPlain = -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
+  $databasePassword = ConvertTo-SecureString $databasePasswordPlain -AsPlainText -Force | ConvertFrom-SecureString
+} finally {
+  $random.Dispose()
+  [Array]::Clear($bytes, 0, $bytes.Length)
+  $databasePasswordPlain = $null
+}
 
 $vault = [ordered]@{
   version = 1
