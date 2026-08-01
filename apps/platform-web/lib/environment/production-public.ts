@@ -24,10 +24,10 @@ export const PRODUCTION_PUBLIC_RESTRICTED_PREFIXES = [
   "/checkout",
   "/forgot-password",
   "/pilot",
-  "/pricing",
   "/sign-in",
   "/sign-up",
   "/status",
+  "/subscription",
   "/teacher",
   "/update-password"
 ] as const;

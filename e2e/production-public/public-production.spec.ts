@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-const publicRoutes = ["/", "/play", "/about", "/help", "/privacy", "/accessibility"];
-const restrictedRoutes = ["/account", "/sign-in", "/sign-up", "/forgot-password", "/update-password", "/teacher", "/teacher/classes", "/pilot", "/pricing", "/checkout/status", "/auth/callback"];
+const publicRoutes = ["/", "/play", "/about", "/help", "/privacy", "/terms", "/pricing", "/accessibility"];
+const sitemapRoutes = ["/", "/pricing", "/help", "/privacy", "/terms"];
+const restrictedRoutes = ["/account", "/sign-in", "/sign-up", "/forgot-password", "/update-password", "/teacher", "/teacher/classes", "/pilot", "/subscription", "/checkout/status", "/auth/callback"];
+const canonicalUrl = (route: string) => route === "/" ? "https://mathnexa.com" : `https://mathnexa.com${route}`;
 
 test("public pages are available without restricted navigation or data-entry forms", async ({ page }) => {
   for (const route of publicRoutes) {
@@ -9,6 +11,8 @@ test("public pages are available without restricted navigation or data-entry for
     expect(response?.status(), route).toBe(200);
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator('input[type="email"], input[name*="school" i], input[name*="student" i], input[name*="organization" i], form[action*="billing" i]')).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /index/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", canonicalUrl(route));
   }
   await page.goto("/");
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).not.toContainText(/Teacher|Pilot|Account|Pricing/);
@@ -21,6 +25,7 @@ test("account, teacher, pilot, billing, recovery, and internal routes are delibe
     expect([200, 404], route).toContain(response?.status());
     await expect(page.getByRole("heading", { name: "This feature has not launched" })).toBeVisible();
     await expect(page.locator("form, input, textarea, select")).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   }
   for (const route of ["/api/health", "/api/billing/webhook"]) {
     const response = await request.get(route);
@@ -112,10 +117,51 @@ test("HTML and client assets expose no provider secrets or Preview configuration
 });
 
 test("robots and sitemap expose only the intended public surface", async ({ request }) => {
-  const robots = await (await request.get("/robots.txt")).text();
+  const robotsResponse = await request.get("/robots.txt");
+  expect(robotsResponse.status()).toBe(200);
+  expect(robotsResponse.headers()["content-type"]).toContain("text/plain");
+  const robots = await robotsResponse.text();
   expect(robots).toContain("Allow: /");
   expect(robots).toContain("Disallow: /not-launched");
-  const sitemap = await (await request.get("/sitemap.xml")).text();
-  for (const route of publicRoutes) expect(sitemap).toContain(`https://mathnexa.com${route === "/" ? "" : route}`);
-  expect(sitemap).not.toMatch(/teacher|pilot|account|pricing|sign-in|sign-up/);
+  const sitemapResponse = await request.get("/sitemap.xml");
+  expect(sitemapResponse.status()).toBe(200);
+  expect(sitemapResponse.headers()["content-type"]).toMatch(/application\/xml|text\/xml/);
+  const sitemap = await sitemapResponse.text();
+  for (const route of sitemapRoutes) expect(sitemap).toContain(`<loc>https://mathnexa.com${route === "/" ? "/" : route}</loc>`);
+  expect(sitemap).not.toMatch(/teacher|pilot|account|subscription|checkout|sign-in|sign-up|forgot-password|update-password|\/api\//);
+  expect((sitemap.match(/<loc>/g) ?? []).length).toBe(sitemapRoutes.length);
+});
+
+test("public metadata is unique, canonical, structured, and shareable", async ({ page, request }) => {
+  const titles = new Set<string>();
+  const descriptions = new Set<string>();
+  for (const route of publicRoutes) {
+    await page.goto(route);
+    titles.add(await page.title());
+    descriptions.add(await page.locator('meta[name="description"]').getAttribute("content") ?? "");
+    await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "MathNexa");
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", canonicalUrl(route));
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+  }
+  expect(titles.size).toBe(publicRoutes.length);
+  expect(descriptions.size).toBe(publicRoutes.length);
+
+  await page.goto("/");
+  const structuredData = await page.locator('script[type="application/ld+json"]').textContent();
+  const entries = JSON.parse(structuredData ?? "[]") as Array<{ "@type": string }>;
+  expect(entries.map((entry) => entry["@type"])).toEqual(["WebSite", "Organization"]);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg/);
+  const image = await request.get("/opengraph-image");
+  expect(image.status()).toBe(200);
+  expect(image.headers()["content-type"]).toContain("image/png");
+});
+
+test("sitemap is well-formed XML", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const xml = await (await fetch("/sitemap.xml")).text();
+    const document = new DOMParser().parseFromString(xml, "application/xml");
+    return { parserErrors: document.querySelectorAll("parsererror").length, locations: document.querySelectorAll("url > loc").length };
+  });
+  expect(result).toEqual({ parserErrors: 0, locations: sitemapRoutes.length });
 });

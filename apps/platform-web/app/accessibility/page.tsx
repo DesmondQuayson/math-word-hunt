@@ -1,8 +1,9 @@
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Accessibility" };
+export const metadata = getPublicPageMetadata("accessibility");
 
 export default function AccessibilityPage() {
   return <Container className="page-stack"><PageHeader eyebrow="Accessibility" title="Multiple ways to navigate and play" description="MathNexa preserves keyboard, Pointer Events, responsive reflow, visible focus, reduced-motion behavior, and audio fallback in the canonical game." />

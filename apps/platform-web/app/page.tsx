@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { getProductCatalogView } from "@/lib/adapters/catalog";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { getPublicPageMetadata } from "@/lib/seo";
+
+export const metadata = getPublicPageMetadata("home");
 
 export default function HomePage() {
   const catalog = getProductCatalogView();

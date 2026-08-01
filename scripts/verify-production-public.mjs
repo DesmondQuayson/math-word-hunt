@@ -5,6 +5,7 @@ const gates = [
   [npm, ["run", "phase6b:verify"]],
   [npm, ["run", "test:production-public"]],
   [npm, ["run", "test:production-public:security"]],
+  [npm, ["run", "test:seo"]],
   [npm, ["run", "test:e2e:production-public"]],
   ["git", ["diff", "--check"]],
   ["git", ["diff", "--exit-code", "--", "docs/index.html", "docs/vocab.js", "math-word-hunt-v1.html", "math-word-hunt-v2.html", "math-word-hunt-v3.html", "math-word-hunt-v4.html", "math-word-hunt-v5.html", "docs/index-v5-backup.html", "docs/index-v6-backup.html"]]

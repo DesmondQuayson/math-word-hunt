@@ -1,10 +1,50 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { resolve } from "node:path";
-import { registerVerificationNextProcess, stopVerificationNextProcess } from "./verification-processes.mjs";
+import { existsSync, realpathSync, rmSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
+import {
+  registerVerificationNextProcess,
+  stopRegisteredVerificationNextProcesses,
+  stopVerificationNextProcess
+} from "./verification-processes.mjs";
 
 const prototypeMode = process.argv.includes("--prototype");
 const playwrightArgs = process.argv.slice(2).filter((argument) => argument !== "--prototype");
+const repositoryRoot = realpathSync(resolve(import.meta.dirname, ".."));
+const appRoot = realpathSync(resolve(repositoryRoot, "apps/platform-web"));
+const buildRoot = resolve(appRoot, ".next");
+
+if (dirname(buildRoot) !== appRoot || basename(buildRoot) !== ".next") {
+  throw new Error("Refusing unsafe platform browser generated-state cleanup target.");
+}
+
+async function removeGeneratedNextState() {
+  if (process.platform === "win32") {
+    const cleanupScript = [
+      "$ErrorActionPreference = 'Stop'",
+      "$target = $env:MATH_HUNT_PLATFORM_BUILD_ROOT",
+      "$deadline = (Get-Date).AddSeconds(30)",
+      "while (Test-Path -LiteralPath $target) {",
+      "  try { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop }",
+      "  catch { if ((Get-Date) -ge $deadline) { throw }; Start-Sleep -Milliseconds 500 }",
+      "  if ((Test-Path -LiteralPath $target) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }",
+      "}"
+    ].join("\n");
+    const cleanup = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", cleanupScript], {
+      env: { ...process.env, MATH_HUNT_PLATFORM_BUILD_ROOT: buildRoot },
+      stdio: "inherit",
+      windowsHide: true
+    });
+    const [cleanupExitCode] = await once(cleanup, "exit");
+    if (cleanupExitCode !== 0) throw new Error("Platform browser generated Next state could not be removed.");
+  } else {
+    rmSync(buildRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+  }
+  if (existsSync(buildRoot)) throw new Error("Platform browser generated Next state still exists after cleanup.");
+}
+
+await stopRegisteredVerificationNextProcesses();
+await removeGeneratedNextState();
 
 const staticServer = spawn(
   process.execPath,

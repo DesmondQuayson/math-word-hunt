@@ -1,8 +1,9 @@
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Help" };
+export const metadata = getPublicPageMetadata("help");
 
 export default function HelpPage() {
   return <Container className="page-stack"><PageHeader eyebrow="Public help" title="Start a Math Vocabulary Hunt" description="The game runs without an account and keeps classroom play on the teacher-led shared screen." />

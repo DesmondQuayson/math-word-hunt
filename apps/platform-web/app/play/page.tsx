@@ -4,8 +4,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { getLegacyGameDestination } from "@/lib/legacy-game";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Play" };
+export const metadata = getPublicPageMetadata("play");
 
 export default function PlayPage() {
   const legacyGameUrl = getLegacyGameDestination();

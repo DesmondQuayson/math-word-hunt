@@ -1,8 +1,9 @@
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Privacy" };
+export const metadata = getPublicPageMetadata("privacy");
 
 export default function PrivacyPage() {
   return <Container className="page-stack"><PageHeader eyebrow="Public privacy boundary" title="Play without creating an account" description="The initial public MathNexa site provides information and launches Math Vocabulary Hunt without Production authentication or saved teacher data." />

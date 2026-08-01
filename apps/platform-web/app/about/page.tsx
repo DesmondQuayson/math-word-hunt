@@ -2,8 +2,9 @@ import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "About" };
+export const metadata = getPublicPageMetadata("about");
 
 export default function AboutPage() {
   return <Container className="page-stack"><PageHeader eyebrow="About MathNexa" title="Language practice for mathematical thinking" description="MathNexa makes the preserved Math Vocabulary Hunt available as a public, teacher-led classroom resource." />

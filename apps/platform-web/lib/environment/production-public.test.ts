@@ -6,10 +6,10 @@ const safe = { MVH_APP_ENVIRONMENT: "production-public", BILLING_ENABLED: "false
 
 describe("public Production boundary", () => {
   it("recognizes every restricted route family", () => {
-    for (const route of ["/account", "/api/health", "/auth/callback", "/checkout/status", "/forgot-password", "/pilot/privacy", "/pricing", "/sign-in", "/sign-up", "/status", "/teacher/classes", "/update-password"]) {
+    for (const route of ["/account", "/api/health", "/auth/callback", "/checkout/status", "/forgot-password", "/pilot/privacy", "/sign-in", "/sign-up", "/status", "/subscription", "/teacher/classes", "/update-password"]) {
       expect(isProductionPublicRestrictedPath(route), route).toBe(true);
     }
-    for (const route of ["/", "/play", "/about", "/help", "/privacy", "/accessibility"]) expect(isProductionPublicRestrictedPath(route), route).toBe(false);
+    for (const route of ["/", "/play", "/about", "/help", "/privacy", "/terms", "/pricing", "/accessibility"]) expect(isProductionPublicRestrictedPath(route), route).toBe(false);
   });
 
   it("rejects provider, billing, pilot, and invitation configuration", () => {

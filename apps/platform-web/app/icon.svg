@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MathNexa">
+  <rect width="64" height="64" rx="14" fill="#0d3b57"/>
+  <g fill="none" stroke="#f5c542" stroke-width="2" opacity=".58">
+    <path d="M13 17h38M13 32h38M13 47h38M17 13v38M32 13v38M47 13v38"/>
+  </g>
+  <path d="M17 47 32 32l15-15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+  <circle cx="47" cy="17" r="5" fill="#f5c542"/>
+</svg>

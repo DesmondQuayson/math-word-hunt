@@ -7,10 +7,14 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
-import { getCapabilityAccessView } from "@/lib/capabilities/server";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
+import { getCapabilityAccessView } from "@/lib/capabilities/server";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { getPublicPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Pricing" };
+import { PublicPricingPage } from "./public-pricing";
+
+export const metadata = getPublicPageMetadata("pricing");
 
 const freePackage = getProductPackage("free");
 const monthlyPackage = getProductPackage("teacher-pro-monthly");
@@ -22,7 +26,7 @@ function money(amount: number | null, currency: string | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
 }
 
-export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
+async function PlatformPricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
   const [params, access] = await Promise.all([searchParams, getCapabilityAccessView()]);
   const config = tryGetBillingConfiguration();
   const sandbox = config?.enabled && config.stripeMode === "test" && config.applicationEnvironment !== "production";
@@ -75,4 +79,9 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
     <Notice label="Not included" tone="information"><strong>Planned features are not part of either plan.</strong><p>Managed sessions, remote participation, real reports, student accounts, assignments, analytics, and school or district administration remain unavailable.</p></Notice>
     {access.context.userId ? <LinkButton href="/account" variant="secondary">View account and billing status</LinkButton> : null}
   </Container>;
+}
+
+export default function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
+  if (isProductionPublicMode()) return <PublicPricingPage />;
+  return <PlatformPricingPage searchParams={searchParams} />;
 }

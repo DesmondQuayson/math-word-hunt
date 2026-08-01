@@ -19,10 +19,17 @@ requireAll("apps/platform-web/app/billing-actions.ts", ["isProductionPublicMode"
 const unavailable = requireAll("apps/platform-web/app/not-launched/page.tsx", ["This feature has not launched", "No account or personal information is accepted here"]);
 if (/<form|<input|<textarea|<select/i.test(unavailable)) throw new Error("Unavailable Production page contains an interactive data form.");
 
-for (const path of ["apps/platform-web/app/about/page.tsx", "apps/platform-web/app/help/page.tsx", "apps/platform-web/app/privacy/page.tsx", "apps/platform-web/app/accessibility/page.tsx"]) {
+for (const path of ["apps/platform-web/app/about/page.tsx", "apps/platform-web/app/help/page.tsx", "apps/platform-web/app/privacy/page.tsx", "apps/platform-web/app/terms/page.tsx", "apps/platform-web/app/pricing/public-pricing.tsx", "apps/platform-web/app/accessibility/page.tsx"]) {
   const source = readFileSync(path, "utf8");
   if (/<form|<input|<textarea|<select/i.test(source)) throw new Error(`${path} contains a restricted data form.`);
 }
+
+requireAll("apps/platform-web/lib/seo.ts", [
+  'MATHNEXA_ORIGIN = "https://mathnexa.com"',
+  'PUBLIC_SITEMAP_PATHS = ["/", "/pricing", "/help", "/privacy", "/terms"]',
+  '"@type": "WebSite"',
+  '"@type": "Organization"'
+]);
 
 const expected = new Map([
   ["docs/index.html", "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"],
