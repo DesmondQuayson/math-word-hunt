@@ -118,8 +118,13 @@ async function resendJson(path) {
 
 async function validateProviderAuthentication() {
   const stripe = new Stripe(stripeSecretKey, { apiVersion: PHASE7D_STRIPE_API_VERSION });
-  const vercelIdentity = vercel(["whoami"]);
-  if (!vercelIdentity.stdout.trim()) throw new Error("vercel-authentication-unavailable");
+  const vercelIdentity = spawnSync(vercelCli, ["whoami"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: process.env
+  });
+  if (vercelIdentity.status !== 0 || !vercelIdentity.stdout.trim()) throw new Error("vercel-authentication-unavailable");
   const [projects, domains, product, price, portal] = await Promise.all([
     supabaseJson("/v1/projects"),
     resendJson("/domains"),
