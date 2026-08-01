@@ -16,7 +16,7 @@ import {
   STRIPE_SANDBOX_PRODUCT_NAME
 } from "./stripe-sandbox-provisioning-contract.mjs";
 
-const API_VERSION = "2026-02-25.clover";
+const API_VERSION = "2026-07-29.dahlia";
 const dryRun = process.argv.includes("--dry-run");
 const writeEnv = process.argv.includes("--write-env");
 const key = process.env.STRIPE_SECRET_KEY?.trim() ?? "";

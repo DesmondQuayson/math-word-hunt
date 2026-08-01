@@ -7,7 +7,7 @@ const valid = {
   BILLING_ENVIRONMENT: "local",
   BILLING_PROVIDER: "stripe",
   STRIPE_MODE: "test",
-  STRIPE_API_VERSION: "2026-02-25.clover",
+  STRIPE_API_VERSION: "2026-07-29.dahlia",
   STRIPE_PUBLISHABLE_KEY: "pk_test_example12345",
   STRIPE_SECRET_KEY: "sk_test_example12345",
   STRIPE_WEBHOOK_SECRET: "whsec_example12345",

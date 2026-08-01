@@ -6,7 +6,7 @@ import { normalizeBillingSubscriptionStatus } from "@math-vocabulary-hunt/platfo
 
 import type { ConsumerBillingProvider } from "./consumer-provider";
 import { ConsumerBillingProviderError } from "./consumer-provider";
-import type { ConsumerBillingSubscription } from "./consumer-models";
+import { MATHNEXA_TRIAL_SECONDS, type ConsumerBillingSubscription } from "./consumer-models";
 
 const id = (value: unknown): string | null => typeof value === "string"
   ? value
@@ -14,6 +14,34 @@ const id = (value: unknown): string | null => typeof value === "string"
 const record = (value: unknown): Record<string, unknown> => value && typeof value === "object" ? value as Record<string, unknown> : {};
 const iso = (value: unknown): string | null => typeof value === "number" ? new Date(value * 1000).toISOString() : null;
 const metadata = (userId: string) => ({ mathnexa_account_id: userId, mathnexa_plan: "mathnexa-monthly" });
+const isManagedPayment = (value: unknown): boolean => record(record(value).managed_payments).enabled === true;
+
+function requireStandardPayments(...values: unknown[]) {
+  if (values.some(isManagedPayment)) throw new ConsumerBillingProviderError("invalid-resource");
+}
+
+function authoritativeInvoicePaid(value: unknown): boolean {
+  const invoice = record(value);
+  const legacyPaid = invoice.paid;
+  const status = invoice.status;
+  const amountRemaining = invoice.amount_remaining;
+  if (typeof legacyPaid === "boolean") {
+    if ((legacyPaid && typeof status === "string" && status !== "paid") ||
+      (!legacyPaid && status === "paid") ||
+      (legacyPaid && typeof amountRemaining === "number" && amountRemaining !== 0)) {
+      throw new ConsumerBillingProviderError("invalid-resource");
+    }
+    return legacyPaid;
+  }
+  if (status === "paid" && amountRemaining === 0) return true;
+  if (["draft", "open", "void", "uncollectible"].includes(String(status))) return false;
+  throw new ConsumerBillingProviderError("invalid-resource");
+}
+
+function providerFailure(error: unknown, fallback: "not-found" | "unavailable"): never {
+  if (error instanceof ConsumerBillingProviderError) throw error;
+  throw new ConsumerBillingProviderError(fallback);
+}
 
 export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
   constructor(private readonly stripe: Stripe) {}
@@ -49,8 +77,8 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         ownerUserId: customer.metadata.mathnexa_account_id ?? null,
         email: customer.email ?? null
       };
-    } catch {
-      throw new ConsumerBillingProviderError("unavailable");
+    } catch (error) {
+      providerFailure(error, "unavailable");
     }
   }
 
@@ -68,8 +96,8 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         intervalCount: price.recurring?.interval_count ?? null,
         usageType: price.recurring?.usage_type ?? null
       };
-    } catch {
-      throw new ConsumerBillingProviderError("not-found");
+    } catch (error) {
+      providerFailure(error, "not-found");
     }
   }
 
@@ -77,31 +105,33 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
     try {
       const session = await this.stripe.checkout.sessions.create({
         mode: "setup",
+        currency: "usd",
         customer: input.customerId,
         client_reference_id: input.userId,
         payment_method_types: ["card"],
+        managed_payments: { enabled: false },
         metadata: metadata(input.userId),
         setup_intent_data: { metadata: metadata(input.userId) },
         success_url: input.successUrl,
         cancel_url: input.cancelUrl
       }, { idempotencyKey: input.idempotencyKey });
-      return this.normalizeSetup(session);
-    } catch {
-      throw new ConsumerBillingProviderError("unavailable");
+      return this.normalizeSetup(session, false);
+    } catch (error) {
+      providerFailure(error, "unavailable");
     }
   }
 
   async retrieveSetupCheckout(reference: string) {
     try {
-      return this.normalizeSetup(await this.stripe.checkout.sessions.retrieve(reference, { expand: ["setup_intent"] }));
-    } catch {
-      throw new ConsumerBillingProviderError("not-found");
+      return this.normalizeSetup(await this.stripe.checkout.sessions.retrieve(reference, { expand: ["setup_intent"] }), true);
+    } catch (error) {
+      providerFailure(error, "not-found");
     }
   }
 
   async createSubscription(input: Parameters<ConsumerBillingProvider["createSubscription"]>[0]) {
     try {
-      const subscription = await this.stripe.subscriptions.create({
+      let subscription = await this.stripe.subscriptions.create({
         customer: input.customerId,
         items: [{ price: input.priceId, quantity: 1 }],
         default_payment_method: input.paymentMethodId,
@@ -114,19 +144,33 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
           trial_settings: { end_behavior: { missing_payment_method: "cancel" } }
         } : {})
       }, { idempotencyKey: input.idempotencyKey });
+      requireStandardPayments(subscription);
+      if (input.trialEndsAt && subscription.trial_start) {
+        const exactTrialEnd = subscription.trial_start + MATHNEXA_TRIAL_SECONDS;
+        if (subscription.trial_end !== exactTrialEnd) {
+          subscription = await this.stripe.subscriptions.update(subscription.id, {
+            trial_end: exactTrialEnd,
+            trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+            proration_behavior: "none"
+          }, { idempotencyKey: `${input.idempotencyKey}:exact-trial-end` });
+          requireStandardPayments(subscription);
+        }
+      }
       return this.normalizeSubscription(subscription);
-    } catch {
-      throw new ConsumerBillingProviderError("unavailable");
+    } catch (error) {
+      providerFailure(error, "unavailable");
     }
   }
 
   async retrieveSubscription(reference: string) {
     try {
-      return this.normalizeSubscription(await this.stripe.subscriptions.retrieve(reference, {
+      const subscription = await this.stripe.subscriptions.retrieve(reference, {
         expand: ["items.data.price.product"]
-      }));
-    } catch {
-      throw new ConsumerBillingProviderError("not-found");
+      });
+      requireStandardPayments(subscription);
+      return this.normalizeSubscription(subscription);
+    } catch (error) {
+      providerFailure(error, "not-found");
     }
   }
 
@@ -135,12 +179,12 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
       const subscriptions = await this.stripe.subscriptions.list({
         customer: customerId,
         status: "all",
-        limit: 100,
-        expand: ["data.items.data.price.product"]
+        limit: 100
       });
+      requireStandardPayments(...subscriptions.data);
       return subscriptions.data.map((subscription) => this.normalizeSubscription(subscription));
-    } catch {
-      throw new ConsumerBillingProviderError("unavailable");
+    } catch (error) {
+      providerFailure(error, "unavailable");
     }
   }
 
@@ -148,15 +192,30 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
     try {
       const invoice = await this.stripe.invoices.retrieve(reference);
       const raw = record(invoice);
+      requireStandardPayments(invoice);
+      const payments = await this.stripe.invoicePayments.list({
+        invoice: reference,
+        limit: 100,
+        expand: ["data.payment.payment_intent"]
+      });
+      for (const payment of payments.data) {
+        if (payment.payment.type !== "payment_intent") continue;
+        const paymentIntent = payment.payment.payment_intent;
+        const authoritative = typeof paymentIntent === "string"
+          ? await this.stripe.paymentIntents.retrieve(paymentIntent)
+          : paymentIntent;
+        requireStandardPayments(authoritative);
+      }
+      const parent = record(record(invoice.parent).subscription_details);
       return {
         id: invoice.id,
         customerId: id(invoice.customer),
-        subscriptionId: id(raw.subscription),
+        subscriptionId: id(raw.subscription) ?? id(parent.subscription),
         livemode: invoice.livemode,
-        paid: raw.paid === true
+        paid: authoritativeInvoicePaid(invoice)
       };
-    } catch {
-      throw new ConsumerBillingProviderError("not-found");
+    } catch (error) {
+      providerFailure(error, "not-found");
     }
   }
 
@@ -176,6 +235,7 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
   constructVerifiedEvent(payload: string | Buffer, signature: string, secret: string) {
     const event = this.stripe.webhooks.constructEvent(payload, signature, secret);
     const object = record(event.data.object);
+    requireStandardPayments(object);
     const objectMetadata = record(object.metadata);
     return {
       id: event.id,
@@ -192,8 +252,15 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
     };
   }
 
-  private normalizeSetup(session: Stripe.Checkout.Session) {
+  private normalizeSetup(session: Stripe.Checkout.Session, requireCompletedIntent: boolean) {
     const intent = record(session.setup_intent);
+    requireStandardPayments(session, intent);
+    if (session.mode !== "setup" || session.payment_intent !== null || session.subscription !== null ||
+      (requireCompletedIntent && session.status === "complete" && (
+        !session.setup_intent || typeof session.setup_intent === "string" || intent.status !== "succeeded"
+      ))) {
+      throw new ConsumerBillingProviderError("invalid-resource");
+    }
     const paymentMethodId = intent.status === "succeeded" ? id(intent.payment_method) : null;
     return {
       id: session.id,

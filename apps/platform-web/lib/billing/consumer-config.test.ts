@@ -9,7 +9,7 @@ const valid = {
   BILLING_ENABLED: "true",
   BILLING_PROVIDER: "fixture",
   STRIPE_MODE: "test",
-  STRIPE_API_VERSION: "2026-02-25.clover",
+  STRIPE_API_VERSION: "2026-07-29.dahlia",
   STRIPE_PUBLISHABLE_KEY: "pk_test_fixture12345",
   STRIPE_SECRET_KEY: "sk_test_fixture12345",
   STRIPE_WEBHOOK_SECRET: "whsec_fixture12345",

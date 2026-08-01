@@ -36,7 +36,7 @@ const environment = {
   BILLING_AUTOMATIC_REFUNDS: "false",
   BILLING_APP_BASE_URL: "https://platform.mathnexa.example",
   STRIPE_MODE: "test",
-  STRIPE_API_VERSION: "2026-02-25.clover",
+  STRIPE_API_VERSION: "2026-07-29.dahlia",
   STRIPE_PUBLISHABLE_KEY: "pk_test_build12345",
   STRIPE_SECRET_KEY: "sk_test_build12345",
   STRIPE_WEBHOOK_SECRET: "whsec_build12345",

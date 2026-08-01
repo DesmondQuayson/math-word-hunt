@@ -77,3 +77,9 @@ Secret and webhook keys must be supplied through secure local or provider secret
 `npm run phase7c:verify` includes all Phase 7B and public/canonical regression gates, focused unit tests, migration-from-empty, the full pgTAP suite, the Phase 7C browser rehearsal, production builds, security and bundle scans, dependency audit, protected-file diffs, and SHA-256 checks.
 
 Actual Stripe-hosted Sandbox Checkout and Portal testing requires owner-supplied Sandbox credentials and provisioned test resource IDs. The deterministic fixture tests do not claim that external provider validation has occurred.
+
+## Checkpoint status
+
+The real Sandbox rehearsal verified resource reuse, standard Setup-mode Checkout with Managed Payments disabled, payment-method collection, one server-created subscription, an exact 86,400-second trial, trial entitlement, webhook replay protection, Customer Portal ownership, trial cancellation, initial-payment failure denial, cross-account denial, and browser-forgery denial. The reusable Sandbox Product, monthly Price, and Portal configuration remain outside this repository.
+
+The uninterrupted renewal lifecycle after the Stripe 22.4.0 and `2026-07-29.dahlia` compatibility corrections is still pending. First-payment success, renewal failure with a non-extending seven-day grace period, payment recovery, and paid period-end cancellation must be rerun with valid process-only Sandbox credentials before this branch is eligible to merge or billing can be enabled. No live-mode or deployed billing validation is claimed by this checkpoint.

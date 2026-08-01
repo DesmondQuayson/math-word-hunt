@@ -3,7 +3,7 @@ import "server-only";
 export type BillingApplicationEnvironment = "local" | "test" | "preview" | "production" | "production-public";
 export type StripeMode = "test" | "live";
 export type BillingProvider = "stripe" | "fixture";
-export const STRIPE_API_VERSION = "2026-02-25.clover" as const;
+export const STRIPE_API_VERSION = "2026-07-29.dahlia" as const;
 
 export type BillingConfiguration = Readonly<
   | { enabled: false; applicationEnvironment: BillingApplicationEnvironment }

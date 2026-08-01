@@ -21,6 +21,9 @@ requireAll("apps/platform-web/lib/billing/consumer-config.ts", [
 ]);
 requireAll("apps/platform-web/lib/billing/consumer-stripe-provider.ts", [
   'mode: "setup"',
+  'currency: "usd"',
+  "managed_payments: { enabled: false }",
+  "requireStandardPayments",
   "setup_intent_data",
   "default_payment_method",
   "trial_end",

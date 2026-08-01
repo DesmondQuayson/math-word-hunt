@@ -23,7 +23,7 @@ for (const path of candidates) {
 }
 
 const webPackage = JSON.parse(readFileSync("apps/platform-web/package.json", "utf8"));
-if (webPackage.dependencies?.stripe !== "20.4.0") throw new Error("The approved server Stripe SDK must be pinned exactly to 20.4.0");
+if (webPackage.dependencies?.stripe !== "22.4.0") throw new Error("The approved server Stripe SDK must be pinned exactly to 22.4.0");
 if (Object.keys({ ...webPackage.dependencies, ...webPackage.devDependencies }).some((name) => name.startsWith("@stripe/"))) throw new Error("No client Stripe SDK is approved");
 for (const path of candidates.filter((file) => file.startsWith("apps/platform-web/") && /\.(?:ts|tsx)$/.test(file))) {
   const contents = readFileSync(path, "utf8");
