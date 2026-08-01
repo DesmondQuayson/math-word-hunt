@@ -157,6 +157,9 @@ test("Phase 7D uses the directly verified Resend STARTTLS transport", () => {
   assert.match(source, /smtp_port: "587"/);
   assert.match(source, /smtp_user: "resend"/);
   assert.match(source, /smtpSecurity: "STARTTLS"/);
+  assert.match(source, /smtp_max_frequency: 60/);
+  assert.match(source, /rate_limit_email_sent: 30/);
+  assert.match(source, /Number\(auth\.rate_limit_email_sent\) !== 30/);
   assert.doesNotMatch(source, /smtp_port: "465"/);
 });
 

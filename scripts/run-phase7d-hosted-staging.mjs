@@ -642,6 +642,7 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
       smtp_pass: resendRuntimeApiKey,
       smtp_sender_name: "MathNexa",
       smtp_max_frequency: 60,
+      rate_limit_email_sent: 30,
       mailer_subjects_confirmation: "Confirm your MathNexa account",
       mailer_subjects_recovery: "Reset your MathNexa password"
     })
@@ -651,7 +652,8 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
     auth.external_email_enabled !== true || auth.external_anonymous_users_enabled === true ||
     auth.smtp_host !== "smtp.resend.com" || String(auth.smtp_port) !== "587" ||
     auth.smtp_user !== "resend" || auth.smtp_admin_email !== PHASE7D_RESEND_SENDER ||
-    auth.smtp_sender_name !== "MathNexa") {
+    auth.smtp_sender_name !== "MathNexa" || Number(auth.smtp_max_frequency) !== 60 ||
+    Number(auth.rate_limit_email_sent) !== 30) {
     throw new Error("supabase-auth-configuration-verification");
   }
   const admin = createClient(supabase.url, supabase.secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -667,6 +669,8 @@ async function configureSupabaseAuth(supabase, state, resendRuntimeApiKey) {
     smtpHost: "smtp.resend.com",
     smtpPort: 587,
     smtpSecurity: "STARTTLS",
+    emailRateLimitPerHour: 30,
+    emailAddressMinimumIntervalSeconds: 60,
     identityModel: "consumer-v1"
   };
   saveState(state);
