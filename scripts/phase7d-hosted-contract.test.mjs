@@ -167,6 +167,8 @@ test("Phase 7D completes the conditional Stripe Checkout postal-code field", () 
   assert.match(source, /select\[name="billingCountry"\], select\[autocomplete~="country"\]/);
   assert.match(source, /input\[name="billingPostalCode"\], input\[autocomplete~="postal-code"\]/);
   assert.match(source, /postalCode\.count\(\)\) await postalCode\.fill\("42424"\)/);
+  assert.match(source, /input\[name="enableStripePass"\]/);
+  assert.match(source, /saveWithLink\.isChecked\(\)\) await saveWithLink\.uncheck\(\)/);
 });
 
 test("Phase 7D uses the directly verified Resend STARTTLS transport", () => {

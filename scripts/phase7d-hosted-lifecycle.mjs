@@ -118,6 +118,8 @@ async function completeStripeSetup(page) {
   if (await country.count()) await country.selectOption("US");
   const postalCode = page.locator('input[name="billingPostalCode"], input[autocomplete~="postal-code"]').first();
   if (await postalCode.count()) await postalCode.fill("42424");
+  const saveWithLink = page.locator('input[name="enableStripePass"]').first();
+  if (await saveWithLink.count() && await saveWithLink.isChecked()) await saveWithLink.uncheck();
   await page.locator('button[type="submit"]').last().click();
   await page.waitForURL(new RegExp(`^${PHASE7D_STAGING_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/checkout/status`), {
     timeout: 120_000
