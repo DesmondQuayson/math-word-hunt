@@ -78,6 +78,59 @@ select ok(
 );
 
 select results_eq(
+  $$with functions(function_signature) as (values
+      ('public.start_admin_session(uuid,text,timestamptz,text,text)'::text),
+      ('public.end_admin_session(text,text,text,text)'::text),
+      ('public.record_admin_audit_event(uuid,text,text,jsonb,text,text)'::text),
+      ('public.consume_admin_auth_rate_limit(text,text,integer,integer,integer)'::text),
+      ('public.clear_admin_auth_rate_limit(text,text)'::text)
+    )
+    select
+      function_signature,
+      coalesce((
+        select bool_or(acl.grantee = 0 and acl.privilege_type = 'EXECUTE')
+        from pg_proc procedure
+        cross join lateral aclexplode(coalesce(procedure.proacl, acldefault('f', procedure.proowner))) acl
+        where procedure.oid = to_regprocedure(function_signature)
+      ), false) as public_can_execute,
+      has_function_privilege('anon', function_signature, 'EXECUTE') as anon_can_execute,
+      has_function_privilege('authenticated', function_signature, 'EXECUTE') as authenticated_can_execute
+    from functions
+    order by function_signature$$,
+  $$values
+    ('public.clear_admin_auth_rate_limit(text,text)'::text, false, false, false),
+    ('public.consume_admin_auth_rate_limit(text,text,integer,integer,integer)'::text, false, false, false),
+    ('public.end_admin_session(text,text,text,text)'::text, false, false, false),
+    ('public.record_admin_audit_event(uuid,text,text,jsonb,text,text)'::text, false, false, false),
+    ('public.start_admin_session(uuid,text,timestamptz,text,text)'::text, false, false, false)$$,
+  'PUBLIC, anon, and authenticated cannot execute the five server-only admin functions'
+);
+
+select results_eq(
+  $$select function_signature,
+      has_function_privilege('service_role', function_signature, 'EXECUTE')
+    from (values
+      ('public.start_admin_session(uuid,text,timestamptz,text,text)'::text),
+      ('public.end_admin_session(text,text,text,text)'::text),
+      ('public.record_admin_audit_event(uuid,text,text,jsonb,text,text)'::text),
+      ('public.consume_admin_auth_rate_limit(text,text,integer,integer,integer)'::text),
+      ('public.clear_admin_auth_rate_limit(text,text)'::text),
+      ('public.mark_admin_mfa_enrolled(uuid)'::text),
+      ('public.revoke_admin_access(uuid,text,text,text)'::text)
+    ) functions(function_signature)
+    order by function_signature$$,
+  $$values
+    ('public.clear_admin_auth_rate_limit(text,text)'::text, true),
+    ('public.consume_admin_auth_rate_limit(text,text,integer,integer,integer)'::text, true),
+    ('public.end_admin_session(text,text,text,text)'::text, true),
+    ('public.mark_admin_mfa_enrolled(uuid)'::text, true),
+    ('public.record_admin_audit_event(uuid,text,text,jsonb,text,text)'::text, true),
+    ('public.revoke_admin_access(uuid,text,text,text)'::text, true),
+    ('public.start_admin_session(uuid,text,timestamptz,text,text)'::text, true)$$,
+  'service role retains execute permission on all seven server-only admin functions'
+);
+
+select results_eq(
   $$select id, public from storage.buckets where id = 'admin-assets'$$,
   $$values ('admin-assets'::text, false)$$,
   'future admin asset bucket is private from creation'
