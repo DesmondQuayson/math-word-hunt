@@ -788,6 +788,19 @@ async function deployVercel(state, environment, bypass, commit) {
   return { ...finalGate, deploymentUrl };
 }
 
+async function waitForCleanupWebhookReceipt(admin, eventType, stripeObjectId) {
+  if (!admin) throw new Error("cleanup-webhook-receipt-admin-unavailable");
+  await waitFor(`cleanup-${eventType}`, async () => {
+    const result = await admin.from("billing_webhook_events")
+      .select("processing_state")
+      .eq("event_type", eventType)
+      .eq("stripe_object_id", stripeObjectId)
+      .maybeSingle();
+    if (result.error) throw new Error("cleanup-webhook-receipt-read-failed");
+    return result.data?.processing_state ?? null;
+  }, (state) => ["processed", "failed", "manual_review", "ignored"].includes(state));
+}
+
 async function cleanupHosted(state, lifecycleError = null) {
   const resources = lifecycle?.resources ?? lifecycleError?.phase7dResources;
   const admin = lifecycle?.admin ?? lifecycleError?.phase7dAdmin;
@@ -797,7 +810,10 @@ async function cleanupHosted(state, lifecycleError = null) {
     for (const subscriptionId of resources.subscriptionIds) {
       try {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        if (subscription.status !== "canceled") await stripe.subscriptions.cancel(subscriptionId);
+        if (subscription.status !== "canceled") {
+          await stripe.subscriptions.cancel(subscriptionId);
+          await waitForCleanupWebhookReceipt(admin, "customer.subscription.deleted", subscriptionId);
+        }
       } catch (error) {
         if (error?.code !== "resource_missing") failures.push("subscription-cleanup");
       }
@@ -816,7 +832,10 @@ async function cleanupHosted(state, lifecycleError = null) {
     for (const customerId of resources.customerIds) {
       try {
         const customer = await stripe.customers.retrieve(customerId);
-        if (!("deleted" in customer && customer.deleted)) await stripe.customers.del(customerId);
+        if (!("deleted" in customer && customer.deleted)) {
+          await stripe.customers.del(customerId);
+          await waitForCleanupWebhookReceipt(admin, "customer.deleted", customerId);
+        }
       } catch (error) {
         if (error?.code !== "resource_missing") failures.push("customer-cleanup");
       }

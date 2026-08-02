@@ -196,6 +196,15 @@ test("Phase 7D cleanup inventories the canonical consumer deletion-request table
   assert.equal(PHASE7D_SYNTHETIC_TABLES.includes("consumer_deletion_requests"), false);
 });
 
+test("Phase 7D cleanup drains terminal provider deletion receipts before database reset", () => {
+  const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
+  assert.match(source, /waitForCleanupWebhookReceipt\(admin, "customer\.subscription\.deleted", subscriptionId\)/);
+  assert.match(source, /waitForCleanupWebhookReceipt\(admin, "customer\.deleted", customerId\)/);
+  assert.match(source, /\["processed", "failed", "manual_review", "ignored"\]\.includes\(state\)/);
+  assert.ok(source.indexOf('waitForCleanupWebhookReceipt(admin, "customer.deleted", customerId)') <
+    source.indexOf('supabaseCommand(["db", "reset", "--linked", "--no-seed"])'));
+});
+
 test("Phase 7D environment is consumer-only, locked, test-billing configuration", () => {
   const value = buildPhase7dEnvironment(input);
   assert.equal(value.MVH_APP_ENVIRONMENT, "production-platform");
