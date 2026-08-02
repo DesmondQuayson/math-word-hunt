@@ -164,7 +164,8 @@ test("Phase 7D waits for authoritative Resend delivery instead of message-body a
 
 test("Phase 7D completes the conditional Stripe Checkout postal-code field", () => {
   const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
-  assert.match(source, /input\[name="postalCode"\], input\[autocomplete="postal-code"\]/);
+  assert.match(source, /select\[name="billingCountry"\], select\[autocomplete~="country"\]/);
+  assert.match(source, /input\[name="billingPostalCode"\], input\[autocomplete~="postal-code"\]/);
   assert.match(source, /postalCode\.count\(\)\) await postalCode\.fill\("42424"\)/);
 });
 
