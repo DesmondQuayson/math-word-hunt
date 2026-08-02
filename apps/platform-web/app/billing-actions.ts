@@ -11,6 +11,7 @@ import { createBillingRepository, createHostedCheckout, createHostedPortal } fro
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { parseCommercialConsentForm } from "@/lib/commercial/policy";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { createConsumerBillingProvider } from "@/lib/billing/consumer-provider-factory";
 import {
@@ -29,13 +30,16 @@ export async function startCheckoutAction(formData: FormData) {
       if (context.status === "anonymous" || context.status === "unconfigured") {
         redirect("/sign-in?next=/pricing");
       }
-      const repository = createConsumerBillingRepository();
+      const consent = parseCommercialConsentForm(formData);
+      if (!consent) redirect("/pricing?consent=required");
+      const repository = createConsumerBillingRepository(config);
       if (!repository) throw new Error("unavailable");
       const result = await createConsumerSetupCheckout({
         context,
         config,
         provider: createConsumerBillingProvider(config),
-        repository
+        repository,
+        consent
       });
       redirect(result.url);
     } catch (error) {
@@ -68,7 +72,7 @@ export async function openBillingPortalAction() {
     if (!config) redirect("/subscription?billing=unavailable");
     try {
       const context = await resolveConsumerContext();
-      const repository = createConsumerBillingRepository();
+      const repository = createConsumerBillingRepository(config);
       if (!repository) throw new Error("unavailable");
       const result = await createConsumerPortal({
         context,

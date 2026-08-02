@@ -22,7 +22,7 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
   }
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow="MathNexa account" title="Your account" description="Only authentication, security, subscription, entitlement, support, and deletion information is associated with this account." />
-    {params.deletion === "requested" ? <Notice label="Deletion request" tone="warning" live><strong>Deletion requested.</strong><p>Game access and new subscription actions are denied while support completes the approved account and billing review.</p></Notice> : null}
+    {params.deletion === "requested" ? <Notice label="Deletion request" tone="warning" live><strong>Deletion requested.</strong><p>Game access and new subscription actions are denied. Authenticated billing management remains available until cancellation is secured.</p></Notice> : null}
     {params.deletion === "unavailable" ? <Notice label="Deletion request" tone="warning" live><strong>Request unavailable.</strong><p>No deletion state was changed. Contact support if this continues.</p></Notice> : null}
     <dl className="definition-grid" data-testid="consumer-account-summary">
       <div><dt>Email</dt><dd>{context.email ?? "Unavailable"}</dd></div>
@@ -32,7 +32,7 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
       <div><dt>Game access</dt><dd>{access.decision.allowed ? "Available" : "Unavailable"}</dd></div>
     </dl>
     <Notice label="Data boundary" tone="information"><strong>No learning profile is stored.</strong><p>MathNexa does not save school, class, roster, assignment, result, score, lesson history, or gameplay progress data.</p></Notice>
-    <div className="button-row"><LinkButton href="/subscription">Subscription and billing</LinkButton><LinkButton href="/game-access" variant="secondary">Game-access decision</LinkButton></div>
+    <div className="button-row"><LinkButton href="/subscriber-management">Manage or cancel billing</LinkButton><LinkButton href="/refunds" variant="secondary">Refund review</LinkButton><LinkButton href="/game-access" variant="secondary">Game-access decision</LinkButton></div>
     {context.status === "active" ? <form action={requestConsumerDeletionAction}><button className="button button-secondary" type="submit">Request account deletion</button></form> : null}
     <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
   </Container>;

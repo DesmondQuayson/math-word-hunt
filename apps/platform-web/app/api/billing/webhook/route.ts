@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   if (isProductionPlatformMode()) {
     const config = tryGetConsumerBillingConfiguration();
     if (!config) return Response.json({ received: false, state: "billing-disabled" }, { status: 503 });
-    const repository = createConsumerBillingRepository();
+    const repository = createConsumerBillingRepository(config);
     if (!repository) return Response.json({ received: false, state: "database-unavailable" }, { status: 503 });
     const result = await processConsumerBillingWebhook({
       payload,

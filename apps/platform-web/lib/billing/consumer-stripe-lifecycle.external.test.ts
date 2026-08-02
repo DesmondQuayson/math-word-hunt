@@ -137,12 +137,13 @@ test.skipIf(!enabled)("completes the remaining real Stripe Sandbox renewal lifec
   const admin = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-  const repository = new SupabaseConsumerBillingRepository(admin);
+  const repository = new SupabaseConsumerBillingRepository(admin, "test");
   const provider = new ConsumerStripeBillingProvider(stripe);
   const config: ConsumerBillingConfiguration = Object.freeze({
     enabled: true,
     provider: "stripe",
     stripeMode: "test",
+    commercialActivation: "rehearsal",
     apiVersion: STRIPE_API_VERSION,
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY!,
     secretKey,
@@ -151,13 +152,15 @@ test.skipIf(!enabled)("completes the remaining real Stripe Sandbox renewal lifec
     priceId,
     portalConfigurationId: portalId,
     applicationBaseUrl: "http://127.0.0.1:3000",
+    subscriberManagementBaseUrl: "http://127.0.0.1:3000",
     checkoutEnabled: true,
     portalEnabled: true,
     webhookEnabled: true,
     emergencyDefaultDeny: false,
     renewalGraceDays: 7,
     refundReviewDays: 7,
-    automaticRefunds: false
+    automaticRefunds: false,
+    supportEmail: null
   });
   const runId = randomUUID().replaceAll("-", "");
   const email = `phase7c-renewal-${runId}@example.invalid`;

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ConsumerContext } from "@/lib/auth/consumer-context";
+import type { CommercialConsentDecision } from "@/lib/commercial/policy";
 
 import { parseConsumerBillingConfiguration } from "./consumer-config";
 import type { ConsumerBillingProvider } from "./consumer-provider";
@@ -12,6 +13,15 @@ import {
 } from "./consumer-service";
 
 const USER_ID = "90000000-0000-0000-0000-000000000001";
+const consent = Object.freeze({
+  subscriptionTermsAccepted: true,
+  automaticRenewalAccepted: true,
+  trialAccepted: true,
+  monthlyPriceAccepted: true,
+  cancellationPolicyAccepted: true,
+  refundPolicyAccepted: true,
+  privacyAndTermsAccepted: true
+}) satisfies CommercialConsentDecision;
 const config = parseConsumerBillingConfiguration({
   MVH_APP_ENVIRONMENT: "production-platform",
   MVH_ALLOW_LOCAL_PRODUCTION_REHEARSAL: "true",
@@ -98,6 +108,14 @@ function dependencies(redeemedAt: string | null = null) {
     retrieveSubscription: vi.fn(),
     listCustomerSubscriptions: vi.fn(async () => []),
     retrieveInvoice: vi.fn(),
+    retrievePortalConfiguration: vi.fn(async () => ({
+      id: config.portalConfigurationId,
+      active: true,
+      livemode: false,
+      cancelAtPeriodEnd: true,
+      paymentMethodUpdateEnabled: true,
+      invoiceHistoryEnabled: true
+    })),
     createPortalSession: vi.fn(async () => ({ url: "http://127.0.0.1:3000/subscription?billing=fixture-portal" })),
     constructVerifiedEvent: vi.fn()
   } as unknown as ConsumerBillingProvider;
@@ -111,7 +129,10 @@ function dependencies(redeemedAt: string | null = null) {
       trial_redeemed_at: redeemedAt,
       trial_redemption_checkout_hash: null
     })),
-    claimTrial: vi.fn(async () => "claimed")
+    claimTrial: vi.fn(async () => "claimed"),
+    recordCommercialAcceptance: vi.fn(async () => ({ id: "60000000-0000-0000-0000-000000000001", ownerUserId: USER_ID, environment: "test" })),
+    bindCommercialAcceptance: vi.fn(async () => true),
+    hasCurrentCommercialAcceptance: vi.fn(async () => true)
   } as unknown as SupabaseConsumerBillingRepository;
   return { mapping, provider, repository };
 }
@@ -122,6 +143,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
     await expect(createConsumerSetupCheckout({
       context: context(),
       config,
+      consent,
       ...deps
     })).resolves.toMatchObject({ trialEligible: true });
     expect(deps.provider.retrievePrice).toHaveBeenCalledWith(config.priceId);
@@ -131,6 +153,15 @@ describe("consumer Setup Checkout and subscription activation", () => {
       successUrl: expect.stringContaining("/checkout/status?session_id="),
       cancelUrl: "http://127.0.0.1:3000/pricing?checkout=canceled"
     }));
+    expect(deps.repository.recordCommercialAcceptance).toHaveBeenCalledWith(USER_ID, consent);
+    expect(deps.repository.bindCommercialAcceptance).toHaveBeenCalledOnce();
+  });
+
+  it("does not create Setup Checkout without current server-bound consent", async () => {
+    const deps = dependencies();
+    (deps.repository.bindCommercialAcceptance as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+    await expect(createConsumerSetupCheckout({ context: context(), config, consent, ...deps }))
+      .rejects.toMatchObject({ code: "commercial-consent-required" });
   });
 
   it("creates an exact server-timed 24-hour trial after successful payment-method setup", async () => {
@@ -269,5 +300,17 @@ describe("consumer Setup Checkout and subscription activation", () => {
       config,
       ...deps
     })).rejects.toMatchObject({ code: "provider-resource-invalid" });
+  });
+
+  it("keeps Portal cancellation available while deletion is pending", async () => {
+    const deps = dependencies();
+    const active = context();
+    if (active.status !== "active") throw new Error("test context unavailable");
+    const deletionPending: ConsumerContext = {
+      ...active,
+      status: "deletion-pending",
+      account: { ...active.account, accountStatus: "deletion-pending", deletionRequestedAt: "2026-08-01T00:00:00.000Z" }
+    };
+    await expect(createConsumerPortal({ context: deletionPending, config, ...deps })).resolves.toBeTruthy();
   });
 });

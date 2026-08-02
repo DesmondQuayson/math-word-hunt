@@ -80,8 +80,9 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   await signIn(page);
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
-  await expect(page.getByText(/first \$5\.99 charge occurs exactly 24 hours/i)).toBeVisible();
-  await page.getByRole("button", { name: "Add payment method and start trial" }).click();
+  await expect(page.getByText(/Stripe controls invoice creation and the payment-attempt time/i)).toBeVisible();
+  for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
+  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
   sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
   expect(sessionId).toMatch(/^cs_fixture[A-Za-z0-9]+$/);
@@ -202,12 +203,12 @@ test("webhook replay protection is idempotent and conflicting bodies fail closed
   expect(await conflict.json()).toMatchObject({ state: "manual-review" });
 });
 
-test("Customer Portal is owner-bound and returns to subscription status", async ({ page }) => {
+test("Customer Portal is owner-bound and returns to stable subscriber management", async ({ page }) => {
   await signIn(page);
   await page.goto("/subscription");
   await expect(page.getByTestId("consumer-subscription-summary")).toContainText("trialing");
-  await page.getByRole("button", { name: "Manage billing in Stripe" }).click();
-  await expect(page).toHaveURL(/\/subscription\?billing=fixture-portal$/);
+  await page.getByRole("button", { name: "Manage or cancel in Stripe" }).click();
+  await expect(page).toHaveURL(/\/subscriber-management\?billing=fixture-portal$/);
 });
 
 test("browser timestamps and storage cannot extend an expired trial", async ({ page, context }) => {

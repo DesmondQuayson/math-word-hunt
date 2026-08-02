@@ -15,6 +15,9 @@ export function SiteFooter() {
           <Link href={publicProduction || productionPlatform ? "/privacy" : "/pilot/privacy"}>{publicProduction || productionPlatform ? "Privacy" : "Pilot privacy"}</Link>
           {publicProduction || productionPlatform ? <Link href="/accessibility">Accessibility</Link> : null}
           {productionPlatform ? <Link href="/terms">Terms</Link> : null}
+          {productionPlatform ? <Link href="/cancellation">Cancellation</Link> : null}
+          {productionPlatform ? <Link href="/refunds">Refunds</Link> : null}
+          {productionPlatform ? <Link href="/support">Support</Link> : null}
           <Link href="/play">{productionPlatform ? "Game access" : "Go to the game gateway"}</Link>
         </div>
       </Container>

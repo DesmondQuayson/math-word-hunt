@@ -31,6 +31,41 @@ const config = parseConsumerBillingConfiguration({
   BILLING_AUTOMATIC_REFUNDS: "false"
 });
 
+const liveConfig = parseConsumerBillingConfiguration({
+  MVH_APP_ENVIRONMENT: "production-platform",
+  MVH_STRIPE_MODE: "live",
+  MVH_COMMERCIAL_ACTIVATION: "live",
+  MVH_EMAIL_DELIVERY: "transactional-verified",
+  MVH_FIXTURE_POLICY: "forbidden",
+  MVH_IDENTITY_MODEL: "consumer-v1",
+  MVH_LEGAL_REVIEW: "owner-approved",
+  MVH_TERMS_VERSION: "2026-08-01",
+  MVH_PRIVACY_VERSION: "2026-08-01",
+  MVH_CANCELLATION_POLICY_VERSION: "2026-08-01",
+  MVH_REFUND_POLICY_VERSION: "2026-08-01",
+  MVH_SUPPORT_EMAIL: "support@mathnexa.com",
+  MVH_APPLICATION_ORIGIN: "https://mathnexa.com",
+  MVH_SUBSCRIBER_MANAGEMENT_ORIGIN: "https://mathnexa-platform-production.vercel.app",
+  BILLING_ENABLED: "true",
+  BILLING_PROVIDER: "stripe",
+  BILLING_LIVE_ACTIVATION: "owner-approved",
+  STRIPE_MODE: "live",
+  STRIPE_API_VERSION: "2026-07-29.dahlia",
+  STRIPE_PUBLISHABLE_KEY: "pk_live_fixture12345",
+  STRIPE_SECRET_KEY: "sk_live_fixture12345",
+  STRIPE_WEBHOOK_SECRET: "whsec_fixture12345",
+  STRIPE_PRODUCT_MATHNEXA: "prod_mathnexa123",
+  STRIPE_PRICE_MATHNEXA_MONTHLY: "price_mathnexa123",
+  STRIPE_PORTAL_CONFIGURATION_ID: "bpc_mathnexa123",
+  BILLING_APP_BASE_URL: "https://mathnexa.com",
+  BILLING_PORTAL_ENABLED: "true",
+  BILLING_WEBHOOK_ENABLED: "true",
+  BILLING_EMERGENCY_DEFAULT_DENY: "false",
+  BILLING_RENEWAL_GRACE_DAYS: "7",
+  BILLING_REFUND_REVIEW_DAYS: "7",
+  BILLING_AUTOMATIC_REFUNDS: "false"
+});
+
 const subscription: ConsumerBillingSubscription = {
   id: "sub_fixture123456",
   customerId: "cus_fixture123456",
@@ -72,6 +107,9 @@ function event(type = "customer.subscription.updated"): ConsumerBillingEvent {
 }
 
 function dependencies(currentEvent = event()) {
+  const authoritativeSubscription = currentEvent.livemode
+    ? { ...subscription, livemode: true, price: { ...subscription.price!, livemode: true } }
+    : subscription;
   const provider = {
     constructVerifiedEvent: vi.fn((_payload, signature) => {
       if (signature !== "valid") throw new Error("invalid");
@@ -79,18 +117,18 @@ function dependencies(currentEvent = event()) {
     }),
     retrieveCustomer: vi.fn(async () => ({
       id: subscription.customerId,
-      livemode: false,
+      livemode: currentEvent.livemode,
       deleted: false,
       ownerUserId: USER_ID,
       email: null
     })),
-    retrieveSubscription: vi.fn(async () => subscription),
-    listCustomerSubscriptions: vi.fn(async () => [subscription]),
+    retrieveSubscription: vi.fn(async () => authoritativeSubscription),
+    listCustomerSubscriptions: vi.fn(async () => [authoritativeSubscription]),
     retrieveInvoice: vi.fn(async () => ({
       id: "in_fixture123456",
       customerId: subscription.customerId,
       subscriptionId: subscription.id,
-      livemode: false,
+      livemode: currentEvent.livemode,
       paid: currentEvent.type === "invoice.paid"
     }))
   } as unknown as ConsumerBillingProvider;
@@ -107,7 +145,7 @@ function dependencies(currentEvent = event()) {
       id: "70000000-0000-0000-0000-000000000002",
       ownerUserId: USER_ID,
       stripeCustomerId: subscription.customerId,
-      environment: "test"
+      environment: currentEvent.livemode ? "live" : "test"
     })),
     applyProjection: vi.fn(async () => "subscription-active")
   } as unknown as SupabaseConsumerBillingRepository;
@@ -134,6 +172,18 @@ describe("consumer Stripe webhook boundary", () => {
       ...deps
     })).resolves.toMatchObject({ status: 400, body: { state: "live-event-rejected" } });
     expect(deps.repository.registerEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects Test events in Live and accepts only matching Live provider state", async () => {
+    const testInLive = dependencies(event());
+    await expect(processConsumerBillingWebhook({ payload: "{}", signature: "valid", config: liveConfig, ...testInLive }))
+      .resolves.toMatchObject({ status: 400, body: { state: "test-event-rejected" } });
+    expect(testInLive.repository.registerEvent).not.toHaveBeenCalled();
+
+    const liveEvent = { ...event(), livemode: true };
+    const matching = dependencies(liveEvent);
+    await expect(processConsumerBillingWebhook({ payload: "{\"live\":true}", signature: "valid", config: liveConfig, ...matching }))
+      .resolves.toMatchObject({ status: 200, body: { state: "subscription-active" } });
   });
 
   it("projects only authoritative retrieved subscription state", async () => {

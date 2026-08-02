@@ -60,6 +60,15 @@ export type ConsumerBillingInvoice = Readonly<{
   paid: boolean;
 }>;
 
+export type ConsumerPortalConfiguration = Readonly<{
+  id: string;
+  active: boolean;
+  livemode: boolean;
+  cancelAtPeriodEnd: boolean;
+  paymentMethodUpdateEnabled: boolean;
+  invoiceHistoryEnabled: boolean;
+}>;
+
 export type ConsumerBillingEvent = Readonly<{
   id: string;
   type: string;

@@ -2,6 +2,7 @@ import { BILLING_CATALOG, CAPABILITIES_BY_KEY, getProductPackage } from "@math-v
 
 import { startCheckoutAction } from "@/app/billing-actions";
 import { ExistingDataSafeNotice } from "@/components/capabilities/existing-data-safe-notice";
+import { CommercialConsentForm } from "@/components/consumer/commercial-consent-form";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -26,7 +27,7 @@ function money(amount: number | null, currency: string | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
 }
 
-async function ConsumerPricingPage({ checkout, billing }: { checkout?: string; billing?: string }) {
+async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: string; billing?: string; consent?: string }) {
   const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
   const config = tryGetConsumerBillingConfiguration();
   const canCheckout = context.status === "active" && !access.decision.allowed &&
@@ -36,34 +37,36 @@ async function ConsumerPricingPage({ checkout, billing }: { checkout?: string; b
     <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly game subscription. No annual plan and no permanent free gameplay tier." />
     {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {billing === "unavailable" ? <Notice label="Billing status" tone="warning" live><strong>Billing is temporarily unavailable.</strong><p>No access or subscription change was made. Try again later.</p></Notice> : null}
+    {consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}
     <Card variant="highlighted">
-      <p className="card-kicker">Stripe Sandbox subscription</p>
+      <p className="card-kicker">MathNexa monthly subscription</p>
       <h2>$5.99 USD / month</h2>
       <ul>
         <li>A payment method is required in Stripe-hosted Checkout before trial activation.</li>
         <li>Eligible accounts receive one full, non-renewable 24-hour trial, timed exactly by the server.</li>
-        <li>The first $5.99 charge occurs exactly 24 hours after successful setup; the server displays that exact time after completion.</li>
+        <li>Trial access ends exactly 24 hours after activation. Billing begins after the trial.</li>
+        <li>Stripe controls invoice creation and the payment-attempt time, so MathNexa does not promise an exact card-charge minute.</li>
         <li>The subscription renews automatically for $5.99 monthly until canceled.</li>
         <li>Cancel before the verified trial end to prevent the first charge.</li>
       </ul>
       {context.status === "anonymous" || context.status === "unconfigured"
         ? <LinkButton href="/sign-up">Create an account</LinkButton>
         : canCheckout
-          ? <form action={startCheckoutAction}><button className="button button-primary" type="submit">Add payment method and start trial</button></form>
+          ? <CommercialConsentForm />
           : access.decision.allowed
             ? <LinkButton href="/play">Continue playing</LinkButton>
             : <LinkButton href="/subscription">Review subscription status</LinkButton>}
     </Card>
-    {!config ? <Notice label="Sandbox availability" tone="warning"><strong>Checkout is not active yet.</strong><p>Stripe Sandbox is not configured, so Checkout remains safely unavailable. No key or browser value can activate billing.</p></Notice> : null}
-    <Notice label="Refund policy" tone="information"><strong>Manual review only.</strong><p>First-charge refund requests may be reviewed by the owner within 7 days. MathNexa issues no automatic refunds.</p></Notice>
+    {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active yet.</strong><p>The server does not have a complete approved billing configuration. No key or browser value can activate billing.</p></Notice> : null}
+    <Notice label="Refund policy" tone="information"><strong>Authenticated review only.</strong><p>First-charge refund requests submitted within seven days receive manual review. MathNexa issues no automatic refunds. <a href="/refunds">Read the policy</a>.</p></Notice>
     <Notice label="Data boundary" tone="information"><strong>No education or gameplay-progress profile.</strong><p>Only minimum account, security, subscription, entitlement, support, and deletion data is permitted.</p></Notice>
   </Container>;
 }
 
-export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string }> }) {
+export default async function PricingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; billing?: string; consent?: string }> }) {
   if (isProductionPlatformMode()) {
     const params = await searchParams;
-    return <ConsumerPricingPage checkout={params.checkout} billing={params.billing} />;
+    return <ConsumerPricingPage checkout={params.checkout} billing={params.billing} consent={params.consent} />;
   }
   const [params, access] = await Promise.all([searchParams, getCapabilityAccessView()]);
   const config = tryGetBillingConfiguration();

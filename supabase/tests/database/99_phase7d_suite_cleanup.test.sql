@@ -28,6 +28,9 @@ select results_eq(
       union all select count(*)::bigint from public.billing_customers
       union all select count(*)::bigint from public.billing_subscriptions
       union all select count(*)::bigint from public.billing_webhook_events
+      union all select count(*)::bigint from public.consumer_commercial_acceptances
+      union all select count(*)::bigint from public.consumer_checkout_acceptance_bindings
+      union all select count(*)::bigint from public.consumer_refund_requests
     ) fixture_rows$$,
   $$values (0::bigint)$$,
   'no pgTAP application fixture rows persist between files'

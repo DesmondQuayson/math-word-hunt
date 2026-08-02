@@ -11,5 +11,8 @@ import { ConsumerStripeBillingProvider } from "./consumer-stripe-provider";
 export function createConsumerBillingProvider(config: ConsumerBillingConfiguration): ConsumerBillingProvider {
   return config.provider === "fixture"
     ? new ConsumerFixtureBillingProvider(config)
-    : new ConsumerStripeBillingProvider(new Stripe(config.secretKey, { apiVersion: STRIPE_API_VERSION }));
+    : new ConsumerStripeBillingProvider(
+      new Stripe(config.secretKey, { apiVersion: STRIPE_API_VERSION }),
+      config.stripeMode
+    );
 }

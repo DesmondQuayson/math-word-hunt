@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { ConsumerContext } from "@/lib/auth/consumer-context";
+import type { CommercialConsentDecision } from "@/lib/commercial/policy";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 import type { ConsumerBillingConfiguration } from "./consumer-config";
@@ -23,6 +24,7 @@ export class ConsumerBillingOperationError extends Error {
   constructor(public readonly code:
     | "account-restricted"
     | "checkout-disabled"
+    | "commercial-consent-required"
     | "portal-disabled"
     | "already-subscribed"
     | "no-customer"
@@ -37,9 +39,11 @@ export class ConsumerBillingOperationError extends Error {
   }
 }
 
-export function createConsumerBillingRepository(): SupabaseConsumerBillingRepository | null {
+export function createConsumerBillingRepository(
+  config: ConsumerBillingConfiguration
+): SupabaseConsumerBillingRepository | null {
   const client = createServiceSupabaseClient();
-  return client ? new SupabaseConsumerBillingRepository(client) : null;
+  return client ? new SupabaseConsumerBillingRepository(client, config.stripeMode) : null;
 }
 
 function owner(context: ConsumerContext) {
@@ -49,8 +53,20 @@ function owner(context: ConsumerContext) {
   return { userId: context.userId, email: context.email, account: context.account };
 }
 
-function validCustomer(customer: Awaited<ReturnType<ConsumerBillingProvider["retrieveCustomer"]>>, userId: string) {
-  return !customer.deleted && !customer.livemode &&
+function billingManager(context: ConsumerContext) {
+  if ((context.status !== "active" && context.status !== "deletion-pending") ||
+    !context.userId || !context.account || !context.account.emailConfirmedAt) {
+    throw new ConsumerBillingOperationError("account-restricted");
+  }
+  return { userId: context.userId, email: context.email, account: context.account };
+}
+
+function expectedLivemode(config: ConsumerBillingConfiguration): boolean {
+  return config.stripeMode === "live";
+}
+
+function validCustomer(customer: Awaited<ReturnType<ConsumerBillingProvider["retrieveCustomer"]>>, userId: string, config: ConsumerBillingConfiguration) {
+  return !customer.deleted && customer.livemode === expectedLivemode(config) &&
     (customer.ownerUserId === null || customer.ownerUserId === userId);
 }
 
@@ -58,7 +74,7 @@ function validPrice(
   price: Awaited<ReturnType<ConsumerBillingProvider["retrievePrice"]>>,
   config: ConsumerBillingConfiguration
 ) {
-  return !price.livemode && price.active && price.id === config.priceId &&
+  return price.livemode === expectedLivemode(config) && price.active && price.id === config.priceId &&
     price.productId === config.productId && price.currency === "usd" &&
     price.amountMinorUnits === MATHNEXA_MONTHLY_AMOUNT &&
     price.interval === "month" && price.intervalCount === 1 &&
@@ -69,7 +85,7 @@ function validSubscription(
   subscription: ConsumerBillingSubscription,
   input: Readonly<{ userId: string; customerId: string; config: ConsumerBillingConfiguration }>
 ) {
-  return !subscription.livemode &&
+  return subscription.livemode === expectedLivemode(input.config) &&
     subscription.customerId === input.customerId &&
     subscription.ownerUserId === input.userId &&
     subscription.quantity === 1 &&
@@ -105,19 +121,19 @@ export async function resolveConsumerBillingCustomer(input: Readonly<{
   const mapped = await input.repository.getCustomerMapping(input.userId);
   if (mapped) {
     const customer = await input.provider.retrieveCustomer(mapped.stripeCustomerId);
-    if (!validCustomer(customer, input.userId)) throw new ConsumerBillingOperationError("ownership-conflict");
+    if (!validCustomer(customer, input.userId, input.config)) throw new ConsumerBillingOperationError("ownership-conflict");
     return mapped;
   }
   const customer = await input.provider.createCustomer({
     userId: input.userId,
     email: input.email,
-    idempotencyKey: billingIdempotencyKey("consumer-customer", input.userId, "test")
+    idempotencyKey: billingIdempotencyKey("consumer-customer", input.userId, input.config.stripeMode)
   });
-  if (!validCustomer(customer, input.userId)) throw new ConsumerBillingOperationError("ownership-conflict");
+  if (!validCustomer(customer, input.userId, input.config)) throw new ConsumerBillingOperationError("ownership-conflict");
   const stored = await input.repository.storeCustomerMapping(input.userId, customer.id);
   if (stored.stripeCustomerId !== customer.id) {
     const winner = await input.provider.retrieveCustomer(stored.stripeCustomerId);
-    if (!validCustomer(winner, input.userId)) throw new ConsumerBillingOperationError("ownership-conflict");
+    if (!validCustomer(winner, input.userId, input.config)) throw new ConsumerBillingOperationError("ownership-conflict");
   }
   return stored;
 }
@@ -127,6 +143,7 @@ export async function createConsumerSetupCheckout(input: Readonly<{
   config: ConsumerBillingConfiguration;
   provider: ConsumerBillingProvider;
   repository: SupabaseConsumerBillingRepository;
+  consent: CommercialConsentDecision;
 }>): Promise<{ url: string; trialEligible: boolean }> {
   if (!input.config.checkoutEnabled) throw new ConsumerBillingOperationError("checkout-disabled");
   const activeOwner = owner(input.context);
@@ -146,18 +163,24 @@ export async function createConsumerSetupCheckout(input: Readonly<{
     subscription.status !== "canceled" && subscription.status !== "incomplete_expired"
   )) throw new ConsumerBillingOperationError("already-subscribed");
 
+  const acceptance = await input.repository.recordCommercialAcceptance(activeOwner.userId, input.consent);
+
   const window = Math.floor(Date.now() / (30 * 60 * 1000));
   const session = await input.provider.createSetupCheckout({
     userId: activeOwner.userId,
     customerId: customer.stripeCustomerId,
     successUrl: `${input.config.applicationBaseUrl}/checkout/status?session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${input.config.applicationBaseUrl}/pricing?checkout=canceled`,
-    idempotencyKey: billingIdempotencyKey("consumer-setup", activeOwner.userId, String(window))
+    idempotencyKey: billingIdempotencyKey("consumer-setup", activeOwner.userId, `${input.config.stripeMode}:${window}`)
   });
   if (!session.url || !validHostedRedirect(session.url, input.config, "checkout") ||
-    session.livemode || session.customerId !== customer.stripeCustomerId ||
+    session.livemode !== expectedLivemode(input.config) || session.customerId !== customer.stripeCustomerId ||
     session.ownerUserId !== activeOwner.userId) {
     throw new ConsumerBillingOperationError("provider-resource-invalid");
+  }
+  const checkoutHash = createHash("sha256").update(session.id).digest("hex");
+  if (!await input.repository.bindCommercialAcceptance(acceptance.id, activeOwner.userId, checkoutHash)) {
+    throw new ConsumerBillingOperationError("commercial-consent-required");
   }
   return { url: session.url, trialEligible: activeOwner.account.trialRedeemedAt === null };
 }
@@ -169,7 +192,7 @@ export async function activateConsumerSetupCheckout(input: Readonly<{
   provider: ConsumerBillingProvider;
   repository: SupabaseConsumerBillingRepository;
 }>): Promise<ConsumerBillingSubscription> {
-  if (input.session.livemode || input.session.status !== "complete" ||
+  if (input.session.livemode !== expectedLivemode(input.config) || input.session.status !== "complete" ||
     !input.session.paymentMethodId || !input.session.ownerUserId || !input.session.customerId) {
     throw new ConsumerBillingOperationError("setup-incomplete");
   }
@@ -186,6 +209,9 @@ export async function activateConsumerSetupCheckout(input: Readonly<{
     return input.provider.retrieveSubscription(existing[0]!.stripeSubscriptionId);
   }
   const checkoutHash = createHash("sha256").update(input.session.id).digest("hex");
+  if (!await input.repository.hasCurrentCommercialAcceptance(mapping.ownerUserId, checkoutHash)) {
+    throw new ConsumerBillingOperationError("commercial-consent-required");
+  }
   const eventTime = new Date(input.eventCreatedAt);
   if (!Number.isFinite(eventTime.getTime())) throw new ConsumerBillingOperationError("unavailable");
   const trialEligible = account.trial_redeemed_at === null ||
@@ -227,15 +253,20 @@ export async function createConsumerPortal(input: Readonly<{
   repository: SupabaseConsumerBillingRepository;
 }>) {
   if (!input.config.portalEnabled) throw new ConsumerBillingOperationError("portal-disabled");
-  const activeOwner = owner(input.context);
+  const activeOwner = billingManager(input.context);
   const mapping = await input.repository.getCustomerMapping(activeOwner.userId);
   if (!mapping) throw new ConsumerBillingOperationError("no-customer");
   const customer = await input.provider.retrieveCustomer(mapping.stripeCustomerId);
-  if (!validCustomer(customer, activeOwner.userId)) throw new ConsumerBillingOperationError("ownership-conflict");
+  if (!validCustomer(customer, activeOwner.userId, input.config)) throw new ConsumerBillingOperationError("ownership-conflict");
+  const portal = await input.provider.retrievePortalConfiguration(input.config.portalConfigurationId);
+  if (!portal.active || portal.livemode !== expectedLivemode(input.config) ||
+    !portal.cancelAtPeriodEnd || !portal.paymentMethodUpdateEnabled || !portal.invoiceHistoryEnabled) {
+    throw new ConsumerBillingOperationError("provider-resource-invalid");
+  }
   const session = await input.provider.createPortalSession({
     customerId: mapping.stripeCustomerId,
     configurationId: input.config.portalConfigurationId,
-    returnUrl: `${input.config.applicationBaseUrl}/subscription`
+    returnUrl: `${input.config.subscriberManagementBaseUrl}/subscriber-management`
   });
   if (!validHostedRedirect(session.url, input.config, "portal")) {
     throw new ConsumerBillingOperationError("provider-resource-invalid");
@@ -245,17 +276,18 @@ export async function createConsumerPortal(input: Readonly<{
 
 export async function getConsumerCheckoutState(input: Readonly<{
   context: ConsumerContext;
+  config: ConsumerBillingConfiguration;
   sessionId: string;
   provider: ConsumerBillingProvider;
   repository: SupabaseConsumerBillingRepository;
 }>): Promise<"processing" | "trialing" | "active" | "payment-required" | "expired" | "unavailable" | "manual-review"> {
-  if (!/^cs_(?:test_|fixture)?[A-Za-z0-9_]+$/.test(input.sessionId) ||
+  if (!/^cs_(?:(?:test|live)_|fixture)?[A-Za-z0-9_]+$/.test(input.sessionId) ||
     input.context.status !== "active" || !input.context.userId) return "unavailable";
   try {
     const mapping = await input.repository.getCustomerMapping(input.context.userId);
     if (!mapping) return "unavailable";
     const session = await input.provider.retrieveSetupCheckout(input.sessionId);
-    if (session.livemode || session.customerId !== mapping.stripeCustomerId ||
+    if (session.livemode !== expectedLivemode(input.config) || session.customerId !== mapping.stripeCustomerId ||
       session.ownerUserId !== input.context.userId) return "manual-review";
     const latest = await input.repository.getLatestSubscription(input.context.userId);
     if (latest?.status === "trialing" && latest.trialEnd && Date.parse(latest.trialEnd) > Date.now()) return "trialing";

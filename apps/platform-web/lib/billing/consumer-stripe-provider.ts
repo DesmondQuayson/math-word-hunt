@@ -44,13 +44,16 @@ function providerFailure(error: unknown, fallback: "not-found" | "unavailable"):
 }
 
 export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
-  constructor(private readonly stripe: Stripe) {}
+  constructor(
+    private readonly stripe: Stripe,
+    private readonly stripeMode: "test" | "live" = "test"
+  ) {}
 
   async retrieveCustomer(reference: string) {
     try {
       const customer = await this.stripe.customers.retrieve(reference);
       if ("deleted" in customer && customer.deleted) {
-        return { id: customer.id, livemode: false, deleted: true, ownerUserId: null, email: null };
+        return { id: customer.id, livemode: this.stripeMode === "live", deleted: true, ownerUserId: null, email: null };
       }
       return {
         id: customer.id,
@@ -229,6 +232,23 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
       return { url: session.url };
     } catch {
       throw new ConsumerBillingProviderError("unavailable");
+    }
+  }
+
+  async retrievePortalConfiguration(reference: string) {
+    try {
+      const configuration = await this.stripe.billingPortal.configurations.retrieve(reference);
+      return {
+        id: configuration.id,
+        active: configuration.active,
+        livemode: configuration.livemode,
+        cancelAtPeriodEnd: configuration.features.subscription_cancel.enabled &&
+          configuration.features.subscription_cancel.mode === "at_period_end",
+        paymentMethodUpdateEnabled: configuration.features.payment_method_update.enabled,
+        invoiceHistoryEnabled: configuration.features.invoice_history.enabled
+      };
+    } catch (error) {
+      providerFailure(error, "not-found");
     }
   }
 

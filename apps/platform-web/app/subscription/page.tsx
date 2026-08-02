@@ -18,14 +18,14 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
   if (view.context.status === "anonymous" || view.context.status === "unconfigured") redirect("/sign-in?next=/subscription");
   const params = await searchParams;
   const config = tryGetConsumerBillingConfiguration();
-  const repository = view.context.userId ? createConsumerBillingRepository() : null;
+  const repository = view.context.userId && config ? createConsumerBillingRepository(config) : null;
   const subscription = repository && view.context.userId
     ? await repository.getLatestSubscription(view.context.userId).catch(() => null)
     : null;
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Subscription" title="$5.99 USD monthly game access" description="One exact 24-hour trial follows successful Stripe payment-method setup, then billing renews automatically each month until canceled." />
+    <PageHeader eyebrow="Subscription" title="$5.99 USD monthly game access" description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />
     {params.billing === "unavailable" ? <Notice label="Billing management" tone="warning" live><strong>Billing management is unavailable.</strong><p>No subscription or access change was made.</p></Notice> : null}
-    {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active.</strong><p>Subscription setup remains safely unavailable until the server has a complete Stripe Sandbox configuration.</p></Notice> : null}
+    {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active.</strong><p>Subscription setup remains safely unavailable until the server has a complete approved billing configuration.</p></Notice> : null}
     <GameAccessStatus decision={view.decision} />
     {subscription ? <dl className="definition-grid" data-testid="consumer-subscription-summary">
       <div><dt>Status</dt><dd>{subscription.status.replaceAll("_", " ")}</dd></div>
@@ -35,8 +35,9 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
     </dl> : null}
     <div className="button-row">
       {!subscription && view.context.status === "active" ? <LinkButton href="/pricing">Start subscription setup</LinkButton> : null}
-      {subscription && config?.portalEnabled ? <form action={openBillingPortalAction}><button className="button button-primary" type="submit">Manage billing in Stripe</button></form> : null}
+      {subscription && config?.portalEnabled ? <form action={openBillingPortalAction}><button className="button button-primary" type="submit">Manage or cancel in Stripe</button></form> : null}
+      <LinkButton href="/subscriber-management" variant="secondary">Stable billing-management route</LinkButton>
     </div>
-    <Notice label="Stripe Customer Portal" tone="information"><strong>Self-service billing.</strong><p>The Portal supports payment-method updates, invoice history, and cancellation at period end. Restoration is available where Stripe permits it.</p></Notice>
+    <Notice label="Stripe Customer Portal" tone="information"><strong>Self-service billing.</strong><p>The Portal supports payment-method updates, invoice history, and cancellation at period end. Deletion-pending subscribers retain this route until cancellation is secured.</p></Notice>
   </Container>;
 }

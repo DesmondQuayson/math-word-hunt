@@ -3,12 +3,21 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ConsumerBillingEvent, ConsumerBillingSubscription } from "./consumer-models";
+import { COMMERCIAL_POLICY, type CommercialConsentDecision } from "@/lib/commercial/policy";
+
+export type StripeEnvironment = "test" | "live";
 
 export type ConsumerCustomerMapping = Readonly<{
   id: string;
   ownerUserId: string;
   stripeCustomerId: string;
-  environment: "test";
+  environment: StripeEnvironment;
+}>;
+
+export type ConsumerCommercialAcceptance = Readonly<{
+  id: string;
+  ownerUserId: string;
+  environment: StripeEnvironment;
 }>;
 
 export type ConsumerSubscriptionProjection = Readonly<{
@@ -24,7 +33,10 @@ export type ConsumerSubscriptionProjection = Readonly<{
 }>;
 
 export class SupabaseConsumerBillingRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly environment: StripeEnvironment
+  ) {}
 
   async getAccount(ownerUserId: string) {
     const { data, error } = await this.client
@@ -41,14 +53,14 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_customers")
       .select("id, owner_consumer_id, stripe_customer_id, stripe_environment")
       .eq("owner_consumer_id", ownerUserId)
-      .eq("stripe_environment", "test")
+      .eq("stripe_environment", this.environment)
       .maybeSingle();
     if (error) throw new Error("Consumer billing database unavailable");
     return data ? {
       id: data.id,
       ownerUserId: data.owner_consumer_id,
       stripeCustomerId: data.stripe_customer_id,
-      environment: "test"
+      environment: this.environment
     } : null;
   }
 
@@ -57,7 +69,7 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_customers")
       .insert({
         owner_consumer_id: ownerUserId,
-        stripe_environment: "test",
+        stripe_environment: this.environment,
         stripe_customer_id: stripeCustomerId
       })
       .select("id, owner_consumer_id, stripe_customer_id")
@@ -71,7 +83,7 @@ export class SupabaseConsumerBillingRepository {
       id: data.id,
       ownerUserId: data.owner_consumer_id,
       stripeCustomerId: data.stripe_customer_id,
-      environment: "test"
+      environment: this.environment
     };
   }
 
@@ -80,14 +92,14 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_customers")
       .select("id, owner_consumer_id, stripe_customer_id")
       .eq("stripe_customer_id", stripeCustomerId)
-      .eq("stripe_environment", "test")
+      .eq("stripe_environment", this.environment)
       .maybeSingle();
     if (error) throw new Error("Consumer billing database unavailable");
     return data?.owner_consumer_id ? {
       id: data.id,
       ownerUserId: data.owner_consumer_id,
       stripeCustomerId: data.stripe_customer_id,
-      environment: "test"
+      environment: this.environment
     } : null;
   }
 
@@ -96,7 +108,7 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_subscriptions")
       .select("id, stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, first_paid_at, last_payment_failed_at, renewal_grace_ends_at")
       .eq("owner_consumer_id", ownerUserId)
-      .eq("stripe_environment", "test")
+      .eq("stripe_environment", this.environment)
       .not("subscription_status", "in", "(canceled,incomplete_expired)");
     if (error) throw new Error("Consumer billing database unavailable");
     return (data ?? []).map((row) => ({
@@ -117,7 +129,7 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_subscriptions")
       .select("id, stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, first_paid_at, last_payment_failed_at, renewal_grace_ends_at")
       .eq("owner_consumer_id", ownerUserId)
-      .eq("stripe_environment", "test")
+      .eq("stripe_environment", this.environment)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -145,13 +157,73 @@ export class SupabaseConsumerBillingRepository {
     return String(data);
   }
 
+  async recordCommercialAcceptance(
+    ownerUserId: string,
+    decision: CommercialConsentDecision
+  ): Promise<ConsumerCommercialAcceptance> {
+    const { data, error } = await this.client
+      .from("consumer_commercial_acceptances")
+      .insert({
+        owner_user_id: ownerUserId,
+        stripe_environment: this.environment,
+        product_key: COMMERCIAL_POLICY.productKey,
+        amount_minor_units: COMMERCIAL_POLICY.amountMinorUnits,
+        currency: COMMERCIAL_POLICY.currency,
+        billing_interval: COMMERCIAL_POLICY.interval,
+        trial_seconds: COMMERCIAL_POLICY.trialSeconds,
+        terms_version: COMMERCIAL_POLICY.termsVersion,
+        privacy_version: COMMERCIAL_POLICY.privacyVersion,
+        cancellation_policy_version: COMMERCIAL_POLICY.cancellationVersion,
+        refund_policy_version: COMMERCIAL_POLICY.refundVersion,
+        subscription_terms_accepted: decision.subscriptionTermsAccepted,
+        automatic_renewal_accepted: decision.automaticRenewalAccepted,
+        trial_accepted: decision.trialAccepted,
+        monthly_price_accepted: decision.monthlyPriceAccepted,
+        cancellation_policy_accepted: decision.cancellationPolicyAccepted,
+        refund_policy_accepted: decision.refundPolicyAccepted,
+        privacy_and_terms_accepted: decision.privacyAndTermsAccepted
+      })
+      .select("id, owner_user_id, stripe_environment")
+      .single();
+    if (error || !data) throw new Error("Commercial acceptance unavailable");
+    if (data.owner_user_id !== ownerUserId || data.stripe_environment !== this.environment) {
+      throw new Error("Commercial acceptance ownership conflict");
+    }
+    return { id: data.id, ownerUserId: data.owner_user_id, environment: this.environment };
+  }
+
+  async bindCommercialAcceptance(
+    acceptanceId: string,
+    ownerUserId: string,
+    checkoutHash: string
+  ): Promise<boolean> {
+    const { data, error } = await this.client.rpc("bind_consumer_checkout_acceptance", {
+      p_acceptance_id: acceptanceId,
+      p_owner_user_id: ownerUserId,
+      p_stripe_environment: this.environment,
+      p_checkout_hash: checkoutHash
+    });
+    if (error) throw new Error("Commercial acceptance binding unavailable");
+    return data === true;
+  }
+
+  async hasCurrentCommercialAcceptance(ownerUserId: string, checkoutHash: string): Promise<boolean> {
+    const { data, error } = await this.client.rpc("has_current_consumer_checkout_acceptance", {
+      p_owner_user_id: ownerUserId,
+      p_stripe_environment: this.environment,
+      p_checkout_hash: checkoutHash
+    });
+    if (error) throw new Error("Commercial acceptance verification unavailable");
+    return data === true;
+  }
+
   async registerEvent(event: ConsumerBillingEvent, payloadSha256: string) {
     const { data, error } = await this.client
       .from("billing_webhook_events")
       .insert({
         stripe_event_id: event.id,
         event_type: event.type,
-        stripe_environment: "test",
+        stripe_environment: this.environment,
         stripe_object_id: event.objectId,
         event_created_at: event.createdAt,
         payload_sha256: payloadSha256,
@@ -164,7 +236,7 @@ export class SupabaseConsumerBillingRepository {
       .from("billing_webhook_events")
       .select("id, processing_state, payload_sha256")
       .eq("stripe_event_id", event.id)
-      .eq("stripe_environment", "test")
+      .eq("stripe_environment", this.environment)
       .maybeSingle();
     if (existing.error || !existing.data) throw new Error("Consumer billing receipt unavailable");
     return {
@@ -212,7 +284,7 @@ export class SupabaseConsumerBillingRepository {
       p_event_record_id: input.eventRecordId,
       p_event_type: input.eventType,
       p_owner_user_id: input.ownerUserId,
-      p_stripe_environment: "test",
+      p_stripe_environment: this.environment,
       p_stripe_customer_id: input.customerId,
       p_stripe_subscription_id: input.subscription.id,
       p_stripe_price_id: input.subscription.price?.id ?? "",
@@ -235,7 +307,7 @@ export class SupabaseConsumerBillingRepository {
     const { data, error } = await this.client.rpc("revoke_consumer_billing_customer", {
       p_event_record_id: eventRecordId,
       p_owner_user_id: ownerUserId,
-      p_stripe_environment: "test",
+      p_stripe_environment: this.environment,
       p_event_created_at: eventCreatedAt
     });
     if (error) throw new Error("Consumer billing revocation unavailable");

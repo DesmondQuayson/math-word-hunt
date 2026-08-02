@@ -6,6 +6,7 @@ import type {
   ConsumerBillingInvoice,
   ConsumerBillingPrice,
   ConsumerBillingSubscription,
+  ConsumerPortalConfiguration,
   ConsumerSetupSession
 } from "./consumer-models";
 
@@ -32,6 +33,7 @@ export interface ConsumerBillingProvider {
   retrieveSubscription(reference: string): Promise<ConsumerBillingSubscription>;
   listCustomerSubscriptions(customerId: string): Promise<readonly ConsumerBillingSubscription[]>;
   retrieveInvoice(reference: string): Promise<ConsumerBillingInvoice>;
+  retrievePortalConfiguration(reference: string): Promise<ConsumerPortalConfiguration>;
   createPortalSession(input: Readonly<{ customerId: string; configurationId: string; returnUrl: string }>): Promise<{ url: string }>;
   constructVerifiedEvent(payload: string | Buffer, signature: string, secret: string): ConsumerBillingEvent;
 }

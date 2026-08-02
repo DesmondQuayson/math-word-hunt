@@ -42,10 +42,11 @@ const consumerCopy = {
 async function ConsumerCheckoutStatus({ sessionId }: { sessionId: string }) {
   const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
   const config = tryGetConsumerBillingConfiguration();
-  const repository = createConsumerBillingRepository();
+  const repository = config ? createConsumerBillingRepository(config) : null;
   const state = config && repository
     ? await getConsumerCheckoutState({
-        context,
+      context,
+      config,
         sessionId,
         provider: createConsumerBillingProvider(config),
         repository
@@ -53,7 +54,7 @@ async function ConsumerCheckoutStatus({ sessionId }: { sessionId: string }) {
     : "unavailable";
   const content = consumerCopy[state];
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Stripe Sandbox" title="Subscription setup status" description="Only verified Stripe and server records can activate MathNexa game access." />
+    <PageHeader eyebrow="Stripe billing" title="Subscription setup status" description="Only verified Stripe, current consent, and server records can activate MathNexa game access." />
     <Notice label="Setup status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice>
     {access.decision.accessEndsAt ? <Notice label="Authoritative access window" tone="success"><strong>Verified expiration</strong><p><time dateTime={access.decision.accessEndsAt}>{new Date(access.decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p></Notice> : null}
     <div className="button-row">

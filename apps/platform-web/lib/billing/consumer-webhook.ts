@@ -35,7 +35,13 @@ export async function processConsumerBillingWebhook(input: Readonly<{
   } catch {
     return { status: 400, body: { received: false, state: "invalid-signature" } };
   }
-  if (event.livemode) return { status: 400, body: { received: false, state: "live-event-rejected" } };
+  const expectedLivemode = input.config.stripeMode === "live";
+  if (event.livemode !== expectedLivemode) {
+    return {
+      status: 400,
+      body: { received: false, state: expectedLivemode ? "test-event-rejected" : "live-event-rejected" }
+    };
+  }
   if (!EVENTS.has(event.type)) return { status: 200, body: { received: true, state: "ignored" } };
   if (event.apiVersion !== input.config.apiVersion) {
     return { status: 400, body: { received: false, state: "api-version-mismatch" } };
@@ -81,7 +87,7 @@ export async function processConsumerBillingWebhook(input: Readonly<{
     if ((event.type === "invoice.paid" || event.type === "invoice.payment_failed") &&
       event.objectId) {
       const invoice = await input.provider.retrieveInvoice(event.objectId);
-      if (invoice.livemode ||
+      if (invoice.livemode !== expectedLivemode ||
         (event.type === "invoice.paid" && !invoice.paid) ||
         (event.type === "invoice.payment_failed" && invoice.paid)) {
         await input.repository.finishEvent(receipt.id, "manual_review", "invoice_state_conflict");
@@ -119,10 +125,11 @@ export async function processConsumerBillingWebhook(input: Readonly<{
       input.provider.retrieveSubscription(subscriptionId),
       input.provider.listCustomerSubscriptions(customerId)
     ]);
-    if (customer.deleted || customer.livemode || customer.ownerUserId !== mapping.ownerUserId ||
+    if (customer.deleted || customer.livemode !== expectedLivemode || customer.ownerUserId !== mapping.ownerUserId ||
       subscription.ownerUserId !== mapping.ownerUserId ||
       subscription.customerId !== customerId ||
-      subscription.livemode ||
+      subscription.livemode !== expectedLivemode ||
+      subscription.price?.livemode !== expectedLivemode ||
       subscription.quantity !== 1 ||
       !subscription.price ||
       subscription.price.id !== input.config.priceId ||

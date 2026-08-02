@@ -32,7 +32,10 @@ export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
   private readonly verifier: ConsumerStripeBillingProvider;
 
   constructor(private readonly config: ConsumerBillingConfiguration) {
-    this.verifier = new ConsumerStripeBillingProvider(new Stripe(config.secretKey, { apiVersion: STRIPE_API_VERSION }));
+    this.verifier = new ConsumerStripeBillingProvider(
+      new Stripe(config.secretKey, { apiVersion: STRIPE_API_VERSION }),
+      config.stripeMode
+    );
   }
 
   async retrieveCustomer(reference: string) {
@@ -143,6 +146,17 @@ export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
 
   async createPortalSession(input: Parameters<ConsumerBillingProvider["createPortalSession"]>[0]) {
     return { url: `${input.returnUrl}?billing=fixture-portal` };
+  }
+
+  async retrievePortalConfiguration(reference: string) {
+    return {
+      id: reference,
+      active: true,
+      livemode: false,
+      cancelAtPeriodEnd: true,
+      paymentMethodUpdateEnabled: true,
+      invoiceHistoryEnabled: true
+    };
   }
 
   constructVerifiedEvent(payload: string | Buffer, signature: string, secret: string) {
