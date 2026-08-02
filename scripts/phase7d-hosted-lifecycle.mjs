@@ -383,7 +383,22 @@ async function verifyHostedRenewalLifecycle(input, admin, stripe, evidence, reso
   const grace = await waitFor("renewal-grace", () => querySingle(
     admin, "consumer_game_entitlements", "entitlement_state, grace_ends_at", "user_id", userId
   ), (value) => value?.entitlement_state === "subscription-grace-period" && Boolean(value.grace_ends_at));
-  const graceSeconds = Math.floor((Date.parse(grace.grace_ends_at) - failedInvoice.created * 1_000) / 1_000);
+  const failureProjection = await querySingle(
+    admin, "billing_subscriptions", "last_payment_failed_at, renewal_grace_ends_at", "owner_consumer_id", userId
+  );
+  const failureReceipt = await admin.from("billing_webhook_events")
+    .select("event_created_at")
+    .eq("event_type", "invoice.payment_failed")
+    .eq("stripe_object_id", failedInvoice.id)
+    .order("received_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (failureReceipt.error || !failureReceipt.data) throw new Error("failed-payment-timestamp-evidence");
+  assert(failureProjection.last_payment_failed_at === failureReceipt.data.event_created_at,
+    "renewal-failure-provider-timestamp");
+  assert(grace.grace_ends_at === failureProjection.renewal_grace_ends_at, "renewal-grace-projection-mismatch");
+  const graceSeconds = Math.floor((Date.parse(grace.grace_ends_at) -
+    Date.parse(failureProjection.last_payment_failed_at)) / 1_000);
   assert(graceSeconds === PHASE7D_RENEWAL_GRACE_DAYS * DAY, "renewal-grace-duration");
   evidence.failedRenewal = true;
   evidence.graceSeconds = graceSeconds;

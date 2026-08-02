@@ -213,6 +213,15 @@ test("Phase 7D cleanup drains terminal provider deletion receipts before databas
     source.indexOf('supabaseCommand(["db", "reset", "--linked", "--no-seed"])'));
 });
 
+test("Phase 7D measures renewal grace from the authoritative failed-payment event", () => {
+  const source = readFileSync(new URL("./phase7d-hosted-lifecycle.mjs", import.meta.url), "utf8");
+  assert.match(source, /last_payment_failed_at, renewal_grace_ends_at/);
+  assert.match(source, /failureProjection\.last_payment_failed_at === failureReceipt\.data\.event_created_at/);
+  assert.match(source, /grace\.grace_ends_at === failureProjection\.renewal_grace_ends_at/);
+  assert.match(source, /Date\.parse\(failureProjection\.last_payment_failed_at\)/);
+  assert.doesNotMatch(source, /Date\.parse\(grace\.grace_ends_at\) - failedInvoice\.created/);
+});
+
 test("Phase 7D environment is consumer-only, locked, test-billing configuration", () => {
   const value = buildPhase7dEnvironment(input);
   assert.equal(value.MVH_APP_ENVIRONMENT, "production-platform");
