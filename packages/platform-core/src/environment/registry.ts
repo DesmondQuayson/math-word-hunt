@@ -10,7 +10,7 @@ export type EnvironmentRegistry = Readonly<{
   identity: PlatformEnvironment;
   applicationOrigin: string;
   dataProjectIdentity: string | null;
-  paymentMode: "test" | "disabled";
+  paymentMode: "test" | "live" | "disabled";
   billingAvailable: boolean;
   emailDelivery: DeliveryMode;
   monitoring: MonitoringMode;
@@ -40,6 +40,9 @@ export type EnvironmentInput = Readonly<{
   deletionMode?: string | undefined;
   restrictedProviderConfigurationPresent?: boolean | undefined;
   billingEnabled?: string | undefined;
+  commercialActivation?: string | undefined;
+  liveBillingActivation?: string | undefined;
+  liveBillingConfigurationValid?: boolean | undefined;
   pilotState?: string | undefined;
   invitationsEnabled?: string | undefined;
   identityModel?: string | undefined;
@@ -67,12 +70,13 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
   const identity = exact(input.appEnvironment, PLATFORM_ENVIRONMENTS) as PlatformEnvironment | null;
   const applicationOrigin = origin(input.applicationOrigin);
   const projectRef = input.dataProjectIdentity?.trim() || null;
-  const paymentMode = exact(input.paymentMode, ["test", "disabled"]) as "test" | "disabled" | null;
+  const paymentMode = exact(input.paymentMode, ["test", "live", "disabled"]) as "test" | "live" | "disabled" | null;
   const emailDelivery = parseAuthEmailDeliveryState(input.emailDelivery);
   const monitoring = exact(input.monitoringMode, ["console", "disabled"]) as MonitoringMode | null;
   const fixturePolicy = exact(input.fixturePolicy, ["allowed", "forbidden"]) as "allowed" | "forbidden" | null;
   const deletionMode = exact(input.deletionMode, ["dry-run", "disabled"]) as DeletionMode | null;
   if (!identity || !applicationOrigin || !paymentMode || !emailDelivery || !monitoring || !fixturePolicy || !deletionMode) return null;
+  if (paymentMode === "live" && identity !== "production-platform") return null;
   if (identity === "production-public") {
     const validPublicContract = applicationOrigin.startsWith("https://") &&
       projectRef === null &&
@@ -113,10 +117,18 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
     const previewRef = input.previewDataProjectIdentity?.trim() || null;
     const localRehearsalOrigin = input.allowInsecureLoopback === true &&
       /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(applicationOrigin);
+    const liveActivationMarkersPresent = input.commercialActivation === "live" ||
+      input.liveBillingActivation === "owner-approved";
     const billingContractValid = (
-      paymentMode === "disabled" && input.billingEnabled === "false"
+      paymentMode === "disabled" && input.billingEnabled === "false" && !liveActivationMarkersPresent
     ) || (
-      paymentMode === "test" && input.billingEnabled === "true"
+      paymentMode === "test" && input.billingEnabled === "true" && !liveActivationMarkersPresent
+    ) || (
+      paymentMode === "live" && input.billingEnabled === "true" &&
+      input.commercialActivation === "live" &&
+      input.liveBillingActivation === "owner-approved" &&
+      input.liveBillingConfigurationValid === true &&
+      applicationOrigin === "https://mathnexa.com"
     );
     const validPlatformContract = (applicationOrigin.startsWith("https://") || localRehearsalOrigin) &&
       projectRef !== null &&
@@ -138,7 +150,7 @@ export function parseEnvironmentRegistry(input: EnvironmentInput): EnvironmentRe
       applicationOrigin,
       dataProjectIdentity: projectRef,
       paymentMode,
-      billingAvailable: paymentMode === "test",
+      billingAvailable: paymentMode === "test" || paymentMode === "live",
       emailDelivery,
       monitoring,
       fixturePolicy,

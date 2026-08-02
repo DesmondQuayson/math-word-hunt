@@ -81,10 +81,25 @@ describe("MathNexa Stripe Sandbox configuration", () => {
       stripeMode: "live",
       commercialActivation: "live",
       applicationBaseUrl: "https://mathnexa.com",
-      subscriberManagementBaseUrl: "https://mathnexa-platform-production.vercel.app"
+      subscriberManagementBaseUrl: "https://mathnexa-platform-production.vercel.app",
+      checkoutEnabled: true
     });
     expect(() => parseConsumerBillingConfiguration({ ...live, STRIPE_SECRET_KEY: "sk_test_fixture12345" })).toThrow(/mode-or-format/);
+    expect(() => parseConsumerBillingConfiguration({ ...live, STRIPE_PUBLISHABLE_KEY: "pk_test_fixture12345" })).toThrow(/mode-or-format/);
     expect(() => parseConsumerBillingConfiguration({ ...live, BILLING_LIVE_ACTIVATION: "not-approved" })).toThrow(/activation/);
+    expect(parseConsumerBillingConfiguration({ ...live, BILLING_CHECKOUT_ENABLED: "false" })).toMatchObject({
+      stripeMode: "live",
+      checkoutEnabled: false
+    });
+  });
+
+  it("rejects Live activation in Stripe Test mode", () => {
+    expect(() => parseConsumerBillingConfiguration({
+      ...valid,
+      BILLING_PROVIDER: "stripe",
+      MVH_COMMERCIAL_ACTIVATION: "live",
+      BILLING_LIVE_ACTIVATION: "owner-approved"
+    })).toThrow(/conflict/);
   });
 
   it("never returns a supplied secret in an error", () => {

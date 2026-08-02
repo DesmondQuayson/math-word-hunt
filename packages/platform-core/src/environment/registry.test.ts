@@ -11,6 +11,15 @@ const productionPlatform = {
   monitoringMode: "console", fixturePolicy: "forbidden", deletionMode: "dry-run",
   billingEnabled: "false", pilotState: "inactive", invitationsEnabled: "false"
 };
+const liveProductionPlatform = {
+  ...productionPlatform,
+  applicationOrigin: "https://mathnexa.com",
+  paymentMode: "live",
+  billingEnabled: "true",
+  commercialActivation: "live",
+  liveBillingActivation: "owner-approved",
+  liveBillingConfigurationValid: true
+};
 describe("environment registry", () => {
   it("accepts a complete preview contract", () => expect(parseEnvironmentRegistry(preview)?.previewBanner).toBe(true));
   it.each([
@@ -69,6 +78,34 @@ describe("environment registry", () => {
       billingAvailable: true,
       accountModel: "consumer"
     });
+  });
+  it("accepts Live billing only for the complete canonical Production-platform contract", () => {
+    expect(parseEnvironmentRegistry(liveProductionPlatform)).toMatchObject({
+      identity: "production-platform",
+      applicationOrigin: "https://mathnexa.com",
+      paymentMode: "live",
+      billingAvailable: true,
+      accountModel: "consumer"
+    });
+  });
+  it.each([
+    ["commercial activation", { commercialActivation: "disabled" }],
+    ["owner activation", { liveBillingActivation: "not-approved" }],
+    ["server configuration validation", { liveBillingConfigurationValid: false }],
+    ["canonical origin", { applicationOrigin: "https://mathnexa-platform-production.vercel.app" }]
+  ])("rejects Live Production without %s", (_name, override) => {
+    expect(parseEnvironmentRegistry({ ...liveProductionPlatform, ...override })).toBeNull();
+  });
+  it("rejects Test mode when either Live activation marker is present", () => {
+    expect(parseEnvironmentRegistry({ ...productionPlatform, paymentMode: "test", billingEnabled: "true", commercialActivation: "live" })).toBeNull();
+    expect(parseEnvironmentRegistry({ ...productionPlatform, paymentMode: "test", billingEnabled: "true", liveBillingActivation: "owner-approved" })).toBeNull();
+  });
+  it.each([
+    ["Preview", { ...preview, paymentMode: "live" }],
+    ["public Production", { ...productionPublic, paymentMode: "live", billingEnabled: "true" }],
+    ["local", { ...preview, appEnvironment: "local", applicationOrigin: "http://127.0.0.1:3000", paymentMode: "live" }]
+  ])("rejects Live billing in %s", (_name, contract) => {
+    expect(parseEnvironmentRegistry(contract)).toBeNull();
   });
   it.each([
     ["missing identity provider", { identityProviderConfigurationPresent: false }],

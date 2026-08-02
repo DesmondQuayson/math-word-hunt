@@ -1,5 +1,6 @@
 import "server-only";
 import { parseEnvironmentRegistry, type EnvironmentRegistry } from "@math-vocabulary-hunt/platform-core";
+import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { hasRestrictedProviderConfiguration } from "./production-public";
 import { hasPreviewCredentialCollision, hasProductionIdentityConfiguration } from "./production-platform";
 
@@ -14,6 +15,7 @@ export type PublicEnvironmentView = Readonly<{
 }>;
 
 export function getServerEnvironment(source: NodeJS.ProcessEnv = process.env): EnvironmentRegistry | null {
+  const consumerBilling = tryGetConsumerBillingConfiguration(source);
   return parseEnvironmentRegistry({
     appEnvironment: source.MVH_APP_ENVIRONMENT,
     applicationOrigin: source.MVH_APPLICATION_ORIGIN,
@@ -25,6 +27,9 @@ export function getServerEnvironment(source: NodeJS.ProcessEnv = process.env): E
     deletionMode: source.MVH_DELETION_MODE,
     restrictedProviderConfigurationPresent: hasRestrictedProviderConfiguration(source),
     billingEnabled: source.BILLING_ENABLED,
+    commercialActivation: source.MVH_COMMERCIAL_ACTIVATION,
+    liveBillingActivation: source.BILLING_LIVE_ACTIVATION,
+    liveBillingConfigurationValid: consumerBilling?.stripeMode === "live" && consumerBilling.provider === "stripe",
     pilotState: source.MVH_PILOT_STATE,
     invitationsEnabled: source.MVH_INVITATIONS_ENABLED,
     identityModel: source.MVH_IDENTITY_MODEL,

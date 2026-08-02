@@ -313,4 +313,30 @@ describe("consumer Setup Checkout and subscription activation", () => {
     };
     await expect(createConsumerPortal({ context: deletionPending, config, ...deps })).resolves.toBeTruthy();
   });
+
+  it("rejects Test-mode Price and Portal resources under a Live configuration", async () => {
+    const deps = dependencies();
+    const liveConfig = {
+      ...config,
+      provider: "stripe" as const,
+      stripeMode: "live" as const,
+      commercialActivation: "live" as const,
+      applicationBaseUrl: "https://mathnexa.com",
+      subscriberManagementBaseUrl: "https://mathnexa-platform-production.vercel.app"
+    };
+    await expect(createConsumerSetupCheckout({ context: context(), config: liveConfig, consent, ...deps }))
+      .rejects.toMatchObject({ code: "provider-resource-invalid" });
+    await expect(createConsumerPortal({ context: context(), config: liveConfig, ...deps }))
+      .rejects.toMatchObject({ code: "ownership-conflict" });
+
+    (deps.provider.retrieveCustomer as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: deps.mapping.stripeCustomerId,
+      livemode: true,
+      deleted: false,
+      ownerUserId: USER_ID,
+      email: null
+    });
+    await expect(createConsumerPortal({ context: context(), config: liveConfig, ...deps }))
+      .rejects.toMatchObject({ code: "provider-resource-invalid" });
+  });
 });
