@@ -416,6 +416,11 @@ async function provisionSupabase(state) {
   cpSync(resolve(repositoryRoot, "supabase"), resolve(supabaseWorkRoot, "supabase"), { recursive: true });
   supabaseCommand(["link", "--project-ref", projectRef]);
   const migrationOutput = supabaseCommand(["db", "push", "--linked", "--include-all"]);
+  const identityAdmin = createClient(`https://${projectRef}.supabase.co`, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  const identityPolicy = await identityAdmin.rpc("set_platform_identity_model", { p_identity_model: "consumer-v1" });
+  if (identityPolicy.error) throw new Error("supabase-consumer-identity-mode-preflight-failed");
   const lintOutput = supabaseCommand(["db", "lint", "--linked"]);
   const tapOutputs = [
     supabaseCommand(["test", "db", "--linked"]),

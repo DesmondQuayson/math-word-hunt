@@ -191,6 +191,14 @@ test("Phase 7D hosted state proof is read-only, consumer-only, and checks fixtur
   assert.doesNotMatch(sql, /set_platform_identity_model|\binsert\s+into\b|\bupdate\s+public\b|\bdelete\s+from\b/i);
 });
 
+test("Phase 7D selects consumer identity immediately after migrations and before hosted tests", () => {
+  const source = readFileSync(new URL("./run-phase7d-hosted-staging.mjs", import.meta.url), "utf8");
+  const migration = source.indexOf('supabaseCommand(["db", "push", "--linked", "--include-all"])');
+  const identity = source.indexOf('identityAdmin.rpc("set_platform_identity_model", { p_identity_model: "consumer-v1" })');
+  const tests = source.indexOf('supabaseCommand(["test", "db", "--linked"])');
+  assert.ok(migration >= 0 && identity > migration && tests > identity);
+});
+
 test("Phase 7D cleanup inventories the canonical consumer deletion-request table", () => {
   assert.equal(PHASE7D_SYNTHETIC_TABLES.includes("consumer_account_deletion_requests"), true);
   assert.equal(PHASE7D_SYNTHETIC_TABLES.includes("consumer_deletion_requests"), false);
