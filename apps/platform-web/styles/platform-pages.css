@@ -759,6 +759,66 @@
   }
 }
 
+.admin-mfa-flow,
+.admin-enrollment {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.admin-enrollment {
+  padding: var(--space-6);
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+}
+
+.admin-enrollment img {
+  max-width: 100%;
+  height: auto;
+  border: var(--border-width-thin) solid var(--color-border);
+}
+
+.admin-setup-secret {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: var(--space-4);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-muted);
+  font-family: var(--font-utility);
+}
+
+.admin-placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.admin-placeholder-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.admin-placeholder-card p,
+.admin-placeholder-card span {
+  color: var(--color-text-muted);
+}
+
+.admin-placeholder-card span {
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+@media (max-width: 64rem) {
+  .admin-placeholder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 40rem) {
+  .admin-placeholder-grid { grid-template-columns: 1fr; }
+}
+
 /* Phase 6 restricted-pilot field guide. The numbered path encodes the real
    participation sequence; it is not decorative progress or activation state. */
 .pilot-status-banner {
