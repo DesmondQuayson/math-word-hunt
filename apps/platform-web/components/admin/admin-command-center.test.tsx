@@ -11,9 +11,9 @@ const snapshot: AdminDashboardSnapshot = {
   state: "ready",
   metrics: [
     { key: "games", label: "Published games", value: 0, detail: "Reviewed game resources" },
-    { key: "downloads", label: "Recent downloads", value: null, detail: "Download events are not collected yet" }
+    { key: "downloads", label: "Recent downloads", value: 0, detail: "Entitlement-authorized downloads in the last 30 days" }
   ],
-  emailHealth: "not-configured",
+  emailHealth: "no-events",
   webhookHealth: "no-events",
   systemHealth: "operational",
   recentActions: []
@@ -29,8 +29,8 @@ describe("Phase 8C admin command center", () => {
     expect(screen.getByRole("link", { name: /MAP Prep/ })).toBeTruthy();
     expect(screen.queryByText(/ShowMe Math/i)).toBeNull();
     expect(screen.getByText("Published games").nextElementSibling?.textContent).toBe("0");
-    expect(screen.getByText("Recent downloads").nextElementSibling?.textContent).toBe("—");
-    expect(screen.getByText(/Download events are not collected yet/)).toBeTruthy();
+    expect(screen.getByText("Recent downloads").nextElementSibling?.textContent).toBe("0");
+    expect(screen.getByText(/Entitlement-authorized downloads in the last 30 days/)).toBeTruthy();
   });
 
   it("opens and filters the command interface from the keyboard", async () => {

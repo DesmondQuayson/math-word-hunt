@@ -7,6 +7,7 @@ import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { recordAggregateSignal } from "@/lib/operations/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function field(formData: FormData, name: string): string {
@@ -94,9 +95,10 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   if (!validEmail(email)) return { status: "error", message: "Enter a valid email address.", fieldErrors: { email: "Enter a valid email address." } };
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
-  await supabase.auth.resetPasswordForEmail(email, {
+  const recovery = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppBaseUrl()}/auth/callback?next=/update-password`
   });
+  await recordAggregateSignal({ metricKey: recovery.error ? "email-recovery-failure" : "email-recovery-success", outcome: recovery.error ? "failure" : "success", source: "email" });
   return { status: "success", message: getAuthEmailExperience(process.env, isProductionPlatformMode() ? "consumer" : "teacher").recoveryResponse };
 }
 

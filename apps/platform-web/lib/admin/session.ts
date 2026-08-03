@@ -3,6 +3,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { inspectAdminEmergencyFlag } from "@/lib/operations/server";
 
 import { getAdminSecurityConfig, isAdminFeatureEnabled } from "./config";
 import { createAdminRepository, type AdminRepository } from "./repository";
@@ -32,6 +33,9 @@ export type PreMfaAdminContext = Readonly<{
 
 export async function inspectPreMfaAdmin(): Promise<PreMfaAdminContext> {
   if (!isAdminFeatureEnabled()) return { state: "disabled" };
+  const emergency = await inspectAdminEmergencyFlag();
+  if (emergency === "enabled") return { state: "disabled" };
+  if (emergency === "unavailable") return { state: "unavailable" };
   const config = getAdminSecurityConfig();
   const supabase = await createServerSupabaseClient();
   const repository = createAdminRepository();
@@ -61,6 +65,9 @@ export async function inspectPreMfaAdmin(): Promise<PreMfaAdminContext> {
 export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessDecision> {
   const featureEnabled = isAdminFeatureEnabled();
   if (!featureEnabled) return { state: "disabled" };
+  const emergency = await inspectAdminEmergencyFlag();
+  if (emergency === "enabled") return { state: "disabled" };
+  if (emergency === "unavailable") return { state: "unavailable" };
   const config = getAdminSecurityConfig();
   const supabase = await createServerSupabaseClient();
   const repository = createAdminRepository();

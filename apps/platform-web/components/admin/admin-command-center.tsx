@@ -105,9 +105,9 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
       <section className="admin-health-panel" aria-labelledby="admin-health-title"><p className="admin-eyebrow">Provider watch</p><h2 id="admin-health-title">System health</h2>
         <dl>
           <div><dt>Application</dt><dd data-tone={snapshot.systemHealth === "operational" ? "good" : "warning"}>{snapshot.systemHealth}</dd></div>
-          <div><dt>Email</dt><dd data-tone="neutral">Not configured</dd></div>
+          <div><dt>Email</dt><dd data-tone={snapshot.emailHealth === "healthy" ? "good" : snapshot.emailHealth === "attention" ? "warning" : "neutral"}>{snapshot.emailHealth.replaceAll("-", " ")}</dd></div>
           <div><dt>Webhooks</dt><dd data-tone={snapshot.webhookHealth === "healthy" ? "good" : snapshot.webhookHealth === "attention" ? "warning" : "neutral"}>{snapshot.webhookHealth.replaceAll("-", " ")}</dd></div>
-        </dl><p className="admin-honesty-note">No email-health events or download analytics exist yet. Missing signals are never shown as healthy.</p>
+        </dl><p className="admin-honesty-note">Missing provider signals are never shown as healthy. Detailed evidence is available in Analytics and Settings.</p>
       </section>
       <section className="admin-audit-panel" aria-labelledby="admin-audit-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Immutable evidence</p><h2 id="admin-audit-title">Recent admin actions</h2></div><Link href="/admin?section=audit-log">Open audit log</Link></div>
         {snapshot.recentActions.length ? <ol>{snapshot.recentActions.map((event, index) => <li key={`${event.createdAt}-${index}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><strong>{readableAction(event.action)}</strong><small>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.createdAt))}{event.target ? ` · ${event.target}` : ""}</small></div></li>)}</ol> : <div className="admin-empty-state"><strong>No admin actions yet</strong><p>The immutable ledger will appear here after an authorized owner action.</p></div>}

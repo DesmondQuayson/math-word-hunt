@@ -6,6 +6,7 @@ import { createAdminPortalForTarget } from "@/lib/admin/account-operations";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { recordAggregateSignal } from "@/lib/operations/server";
 
 function back(request: Request, result: string) {
   const url = new URL("/admin", process.env.MVH_APPLICATION_ORIGIN ?? request.url);
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       if (target.error || !target.data.user?.email || target.data.user.email_confirmed_at) throw new Error("confirmation-unavailable");
       const config = getAdminSecurityConfig(); if (!config) throw new Error("confirmation-unavailable");
       const sent = await client.auth.resend({ type: "signup", email: target.data.user.email, options: { emailRedirectTo: `${config.applicationOrigin}/auth/callback` } });
+      await recordAggregateSignal({ metricKey: sent.error ? "email-confirmation-failure" : "email-confirmation-success", outcome: sent.error ? "failure" : "success", source: "email" });
       if (sent.error) throw new Error("confirmation-unavailable");
     } else if (input.operation === "revoke-sessions") {
       const signedOut = await client.rpc("revoke_admin_consumer_sessions", { p_admin_user_id: access.admin.id, p_admin_session_id: access.session.id, p_operation_id: operationId, p_target_user_id: input.targetUserId }); if (signedOut.error) throw new Error("session-revocation-failed");

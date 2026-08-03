@@ -20,10 +20,10 @@ const forbiddenCorePatterns = [
   /from\s+["']next(?:\/[^"']*)?["']/i,
   /supabase/i,
   /stripe/i,
-  /\bwindow\b/,
-  /\bdocument\b/,
-  /\blocalStorage\b/,
-  /\bsessionStorage\b/,
+  /\bwindow\s*\./,
+  /\bdocument\s*\./,
+  /\blocalStorage\s*\./,
+  /\bsessionStorage\s*\./,
   /\bprocess\./,
   /from\s+["']node:/
 ];

@@ -55,8 +55,8 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Admin modules" }).getByRole("link")).toHaveCount(12);
-  await expect(page.getByText("Download events are not collected yet")).toBeVisible();
-  await expect(page.getByText("Not configured")).toBeVisible();
+  await expect(page.getByText("Entitlement-authorized downloads in the last 30 days")).toBeVisible();
+  await expect(page.locator(".admin-health-panel dl > div").filter({ hasText: "Email" }).getByText("no events", { exact: true })).toBeVisible();
 
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("searchbox", { name: "Find an admin area" })).toBeFocused();

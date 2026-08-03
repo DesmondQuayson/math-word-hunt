@@ -19,9 +19,11 @@ import {
   createConsumerPortal,
   createConsumerSetupCheckout
 } from "@/lib/billing/consumer-service";
+import { isCheckoutOperational } from "@/lib/operations/server";
 
 export async function startCheckoutAction(formData: FormData) {
   if (isProductionPublicMode()) redirect("/not-launched");
+  if (!await isCheckoutOperational()) redirect("/pricing?billing=unavailable");
   if (isProductionPlatformMode()) {
     const config = tryGetConsumerBillingConfiguration();
     if (!config) redirect("/pricing?billing=unavailable");
