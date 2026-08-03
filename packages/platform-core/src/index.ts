@@ -146,3 +146,19 @@ export {
   inspectImageUpload,
   type ImageInspection
 } from "./admin-files/image-validation";
+export {
+  GAME_PACKAGE_SCHEMA_VERSION,
+  MATHNEXA_RUNTIME_VERSION,
+  compareGamePackageVersions,
+  inspectGamePackage,
+  normalizeGameAssetPath,
+  parseGamePackageManifest,
+  type GamePackageAsset,
+  type GamePackageInspection,
+  type GamePackageManifest
+} from "./game-package/model";
+export {
+  inspectZipCentralDirectory,
+  type ZipEntryEvidence,
+  type ZipPreflight
+} from "./game-package/zip-preflight";

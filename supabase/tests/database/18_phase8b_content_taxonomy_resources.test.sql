@@ -166,7 +166,7 @@ select lives_ok(
   $$select public.create_content_resource(
     'f8210000-0000-0000-0000-000000000001',
     (select id from public.content_lessons where slug='equivalent-fractions'),
-    'game','equivalent-fractions-practice',1::smallint,
+    'preview_image','equivalent-fractions-practice',1::smallint,
     'Equivalent fractions practice','A reviewed teacher-led worksheet.',
     'thumbnails/grade-4/equivalent-fractions.png',array[' Fractions ','grade-4','fractions'],
     '{"asset_pending":true}'::jsonb

@@ -1,0 +1,3 @@
+import{deliverPrivateGameAsset,loadGamePackageDelivery}from"@/lib/games/delivery";import{verifyGameAssetTicket}from"@/lib/games/ticket";
+export const runtime="nodejs";export const dynamic="force-dynamic";
+export async function GET(request:Request,{params}:{params:Promise<{packageId:string;ticket:string;asset:string[]}>}){const value=await params,game=await loadGamePackageDelivery(value.packageId);if(!game||game.publicationState==="archived"||!verifyGameAssetTicket(value.ticket,"admin-preview",game.id))return new Response("Not Found",{status:404});return deliverPrivateGameAsset(request,game.id,value.asset.join("/"));}

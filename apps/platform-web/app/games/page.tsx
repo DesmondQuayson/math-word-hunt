@@ -1,2 +1,5 @@
-import { redirect } from "next/navigation";
-export default function GamesPage(){redirect("/play");}
+import Link from "next/link";
+import { Container } from "@/components/layout/container";
+import { loadPublicGames } from "@/lib/games/catalog";
+export const metadata={title:"Games"};export const dynamic="force-dynamic";
+export default async function GamesPage(){const games=await loadPublicGames();return <Container className="game-catalog page-stack" width="wide"><header><p className="eyebrow">Grade → Topic → Lesson</p><h1>Math games</h1><p>Choose a published MathNexa game. Launches and every game asset require server-verified access.</p></header>{games.length?<div className="game-card-grid">{games.map(game=><article key={game.id}><p className="game-path">{game.grade} / {game.topic} / {game.lesson}</p><h2>{game.title}</h2><p>{game.description}</p><small>{game.gameId} · v{game.version}</small><Link href={`/games/${game.id}`}>Review game</Link></article>)}</div>:<div className="public-resource-empty"><strong>No published games yet</strong><p>Owner-reviewed game packages will appear here after publication.</p></div>}</Container>}

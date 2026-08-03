@@ -1,0 +1,3 @@
+import{loadPublicGame}from"@/lib/games/catalog";import{deliverPrivateGameAsset}from"@/lib/games/delivery";import{authorizeSubscriberGameAsset}from"@/lib/games/ticket";
+export const runtime="nodejs";export const dynamic="force-dynamic";
+export async function GET(request:Request,{params}:{params:Promise<{resourceId:string;ticket:string;asset:string[]}>}){const value=await params,game=await loadPublicGame(value.resourceId);if(!game||!await authorizeSubscriberGameAsset(value.ticket,game.packageId))return new Response("Not Found",{status:404,headers:{"Cache-Control":"no-store"}});return deliverPrivateGameAsset(request,game.packageId,value.asset.join("/"));}

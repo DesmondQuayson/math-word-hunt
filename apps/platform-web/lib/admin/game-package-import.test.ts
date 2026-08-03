@@ -1,0 +1,11 @@
+import { createHash } from "node:crypto";
+import { zipSync } from "fflate";
+import { describe,expect,it } from "vitest";
+import { inspectGameArchive,normalizeGamePackageFilename } from "./game-package-import";
+const encoded=(value:string)=>Uint8Array.from(Buffer.from(value,"utf8"));const hash=(value:Uint8Array)=>createHash("sha256").update(value).digest("hex");
+function archive(change:Record<string,unknown>={}){const assets={"game/index.html":encoded('<script src="main.js"></script>'),"game/main.js":encoded("const answer = 42;"),"thumbnail.png":Uint8Array.from([137,80,78,71]),"metadata.json":encoded('{"author":"MathNexa"}')};const manifest={package_schema_version:"1.0",game_id:"number-trail",version:"1.0.0",title:"Number Trail",description:"Owner-created number game.",grade:3,topic:"Operations",lesson:"Multiplication",entry_file:"game/index.html",thumbnail:"thumbnail.png",asset_inventory:Object.keys(assets),integrity_hashes:Object.fromEntries(Object.entries(assets).map(([path,bytes])=>[path,hash(bytes)])),minimum_mathnexa_runtime_version:"1.0.0",...change};return zipSync({"manifest.json":encoded(JSON.stringify(manifest)),...assets},{level:6});}
+describe("Phase 8E server ZIP importer",()=>{
+  it("normalizes only ZIP filenames",()=>{expect(normalizeGamePackageFilename("Number Trail FINAL.zip")).toBe("number-trail-final.zip");expect(normalizeGamePackageFilename("game.tar")).toBeNull();});
+  it("extracts a bounded package only after manifest and checksum validation",async()=>{const zipped=archive();expect(zipped.byteLength).toBeLessThan(2000);const result=await inspectGameArchive(zipped);expect(result.findings).toEqual([]);expect(result.decision).toBe("accepted");expect(result.manifest?.gameId).toBe("number-trail");expect(result.assets).toHaveLength(4);});
+  it("quarantines traversal, checksum drift, scripts, and undeclared entries",async()=>{expect((await inspectGameArchive(zipSync({"../escape.js":encoded("bad")}))).decision).toBe("quarantined");expect((await inspectGameArchive(archive({integrity_hashes:{}}))).decision).toBe("quarantined");expect((await inspectGameArchive(archive({scripts:{postinstall:"bad"}}))).decision).toBe("quarantined");const base=archive();expect(base.byteLength).toBeGreaterThan(22);});
+});
