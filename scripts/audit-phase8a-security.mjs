@@ -26,6 +26,15 @@ requireAll("apps/platform-web/app/admin/actions.ts", [
 requireAll("apps/platform-web/app/admin/page.tsx", [
   'dynamic = "force-dynamic"', 'access.state !== "authorized"', "notFound()"
 ]);
+requireAll("apps/platform-web/proxy.ts", [
+  'pathname.startsWith("/admin/")', 'response.headers.set("Cache-Control", "no-store")',
+  'response.headers.set("X-Robots-Tag", "noindex, nofollow")'
+]);
+requireAll("apps/platform-web/next.config.mjs", [
+  'source: "/admin"', 'source: "/admin/:path*"',
+  '{ key: "Cache-Control", value: "no-store" }',
+  '{ key: "X-Robots-Tag", value: "noindex, nofollow" }'
+]);
 requireAll("scripts/revoke-admin-access.mjs", [
   "--confirm-hosted-ref", "MVH_ADMIN_REVOCATION_APPROVAL", "revoke_admin_access", "--execute"
 ]);

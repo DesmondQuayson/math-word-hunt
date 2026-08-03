@@ -62,7 +62,13 @@ export async function proxy(request: NextRequest) {
       );
     }
   }
-  return refreshSupabaseSession(request);
+  const response = await refreshSupabaseSession(request);
+  const pathname = request.nextUrl.pathname;
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
 }
 
 export const config = {

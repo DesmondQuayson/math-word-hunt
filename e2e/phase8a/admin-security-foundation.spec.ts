@@ -77,6 +77,8 @@ test("only sign-in is public while unauthenticated and forged requests receive g
     for (const path of ["/admin", "/admin/mfa"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
+      expect(response?.headers()["cache-control"], path).toMatch(/^(?:no-store|no-cache, must-revalidate)$/);
+      expect(response?.headers()["x-robots-tag"], path).toBe("noindex, nofollow");
       await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
     }
   } finally { await closeContext(context); }
@@ -94,6 +96,8 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     for (const path of ["/admin", "/admin/mfa"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
+      expect(response?.headers()["cache-control"], path).toMatch(/^(?:no-store|no-cache, must-revalidate)$/);
+      expect(response?.headers()["x-robots-tag"], path).toBe("noindex, nofollow");
       await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
       await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
     }
