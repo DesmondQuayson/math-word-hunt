@@ -116,8 +116,9 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   await page.getByRole("button", { name: "Verify and open admin" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toBeVisible();
-  await expect(page.getByText("Coming in a later phase")).toHaveCount(12);
-  await expect(page.getByText(/separate ShowMe Math Admin/)).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Admin modules" }).getByRole("link")).toHaveCount(12);
+  await expect(page.getByRole("link", { name: /MAP Prep/ })).toBeVisible();
+  await expect(page.getByText(/ShowMe Math Admin/)).toHaveCount(0);
 
   const activeSession = await adminClient.from("admin_sessions")
     .select("expires_at,started_at,ended_at,revoked_at").eq("admin_user_id", adminUserId).single();
