@@ -12,7 +12,7 @@ const operations = completePhase8Integrated ? read("apps/platform-web/lib/admin/
 const navigation = read("apps/platform-web/lib/admin/navigation.ts");
 const styles = read("apps/platform-web/styles/admin.css");
 
-for (const marker of ["inspectAdminAccess()", "notFound()", "mfa-required", "loadAdminDashboard()", "createAdminCsrfToken"]) {
+for (const marker of ["inspectAdminAccess()", "access.state !== \"authorized\"", "notFound()", "loadAdminDashboard()", "createAdminCsrfToken"]) {
   if (!page.includes(marker)) throw new Error(`Protected Phase 8C page is missing ${marker}.`);
 }
 for (const label of ["Dashboard", "Games", "MAP Prep", "Homework", "Quizzes", "Users", "Subscriptions", "Analytics", "Media Library", "CMS", "Settings", "Audit Log"]) {

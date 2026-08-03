@@ -67,15 +67,18 @@ test.afterAll(async () => {
   if (ordinaryUser) await adminClient.auth.admin.deleteUser(ordinaryUser.id);
 });
 
-test("unauthenticated and forged-cookie requests cannot open the admin shell", async ({ browser }) => {
+test("only sign-in is public while unauthenticated and forged requests receive genuine 404s", async ({ browser }) => {
   const context = await browser.newContext();
   try {
     await context.addCookies([{ name: "mvh-admin-session", value: "forged-admin=true", domain: "127.0.0.1", path: "/admin" }]);
     const page = await context.newPage();
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/admin\/sign-in$/);
-    await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
+    expect((await page.goto("/admin/sign-in"))?.status()).toBe(200);
     await expect(page.getByText("Authorized owner only.")).toBeVisible();
+    for (const path of ["/admin", "/admin/mfa"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
+      await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
+    }
   } finally { await closeContext(context); }
 });
 
@@ -88,10 +91,12 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/teacher$/);
-    const response = await page.goto("/admin");
-    expect(response?.status()).toBe(404);
-    await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
+    for (const path of ["/admin", "/admin/mfa"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
+      await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
+    }
   } finally { await closeContext(context); }
 });
 
@@ -104,6 +109,9 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   await page.getByRole("button", { name: "Continue securely" }).click();
   await expect(page).toHaveURL(/\/admin\/mfa$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
+
+  expect((await page.goto("/admin"))?.status()).toBe(404);
+  expect((await page.goto("/admin/mfa"))?.status()).toBe(200);
 
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   const secret = (await page.locator("code.admin-setup-secret").textContent())?.trim() ?? "";

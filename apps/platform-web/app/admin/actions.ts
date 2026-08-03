@@ -87,7 +87,7 @@ export async function adminEnrollMfaAction(
 ): Promise<AdminAuthFormState> {
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
-  if (preliminary.state === "unauthenticated") redirect("/admin/sign-in");
+  if (preliminary.state === "unauthenticated") notFound();
   if (preliminary.state === "unavailable") return unavailable;
   if (!await validateAdminMutationCsrf(formData)) {
     await preliminary.repository.recordAudit({
@@ -131,7 +131,7 @@ export async function adminVerifyMfaAction(
 ): Promise<AdminAuthFormState> {
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
-  if (preliminary.state === "unauthenticated") redirect("/admin/sign-in");
+  if (preliminary.state === "unauthenticated") notFound();
   if (preliminary.state === "unavailable") return unavailable;
   if (!await validateAdminMutationCsrf(formData)) {
     await preliminary.repository.recordAudit({
@@ -180,8 +180,7 @@ export async function adminVerifyMfaAction(
 export async function adminSignOutAction(formData: FormData): Promise<void> {
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
-  if (preliminary.state === "unauthenticated") redirect("/admin/sign-in");
-  if (preliminary.state === "unavailable") redirect("/admin/sign-in?unavailable=1");
+  if (preliminary.state === "unauthenticated" || preliminary.state === "unavailable") notFound();
   if (!await validateAdminMutationCsrf(formData)) redirect("/admin?csrf=invalid");
   await endCurrentAdminSession(preliminary.repository, preliminary.context);
   await preliminary.supabase.auth.signOut({ scope: "local" });

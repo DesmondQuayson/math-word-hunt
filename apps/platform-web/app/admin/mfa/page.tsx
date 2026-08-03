@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { AdminMfaFlow } from "@/components/admin/admin-auth-forms";
 import { Notice } from "@/components/feedback/notice";
@@ -12,11 +12,7 @@ export const metadata = { title: "Admin MFA", robots: { index: false, follow: fa
 
 export default async function AdminMfaPage() {
   const preliminary = await inspectPreMfaAdmin();
-  if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
-  if (preliminary.state === "unauthenticated") redirect("/admin/sign-in");
-  if (preliminary.state === "unavailable") return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Restricted system" title="Admin MFA unavailable" description="The admin identity service failed closed." />
-  </Container>;
+  if (preliminary.state !== "ready" || preliminary.assuranceLevel !== "aal1") notFound();
   const config = getAdminSecurityConfig();
   if (!config) notFound();
   const factors = await preliminary.supabase.auth.mfa.listFactors();

@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { adminSignOutAction } from "./actions";
 import { AdminCommandCenter } from "@/components/admin/admin-command-center";
@@ -25,13 +25,7 @@ export const metadata = { title: "Super Admin", robots: { index: false, follow: 
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; ops?:string }> }) {
   const access = await inspectAdminAccess();
-  if (access.state === "disabled" || access.state === "non-admin") notFound();
-  if (access.state === "unauthenticated") redirect("/admin/sign-in");
-  if (access.state === "mfa-required") redirect("/admin/mfa");
-  if (access.state === "reauth-required") redirect("/admin/sign-in?expired=1");
-  if (access.state === "unavailable") return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Restricted system" title="Admin access unavailable" description="Authorization could not be verified, so access was denied." />
-  </Container>;
+  if (access.state !== "authorized") notFound();
   const config = getAdminSecurityConfig();
   if (!config) notFound();
   const csrfToken = createAdminCsrfToken(config);
