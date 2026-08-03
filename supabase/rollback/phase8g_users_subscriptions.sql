@@ -1,0 +1,16 @@
+drop function if exists public.get_own_active_complimentary_entitlement();
+drop function if exists public.deny_admin_refund_review(uuid,uuid,uuid,uuid,uuid);
+drop function if exists public.submit_admin_refund_review(uuid,uuid,uuid,uuid);
+drop function if exists public.add_admin_user_support_note(uuid,uuid,uuid,text);
+drop function if exists public.revoke_admin_complimentary_entitlement(uuid,uuid,uuid,uuid);
+drop function if exists public.grant_admin_complimentary_entitlement(uuid,uuid,uuid,uuid,timestamptz);
+drop function if exists public.revoke_admin_consumer_sessions(uuid,uuid,uuid,uuid);
+drop function if exists public.set_admin_consumer_account_status(uuid,uuid,uuid,uuid,text);
+drop function if exists public.finish_admin_account_operation(uuid,uuid,uuid,text,text);
+drop function if exists public.prepare_admin_account_operation(uuid,uuid,uuid,text,text,text);
+drop function if exists private.admin_consumer_snapshot(uuid);
+drop function if exists private.require_admin_account_session(uuid,uuid,boolean);
+drop table if exists public.consumer_complimentary_entitlements;
+drop table if exists public.admin_user_support_notes;
+drop table if exists public.admin_account_operations;
+drop function if exists private.reject_phase8g_evidence_mutation();

@@ -9,6 +9,13 @@ export class SupabaseConsumerEntitlementRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async getEvidence(account: ConsumerAccountRecord): Promise<GameEntitlementEvidence | Record<string, never>> {
+    const complimentary = await this.client.rpc("get_own_active_complimentary_entitlement");
+    const complimentaryExpiry = Array.isArray(complimentary.data) && complimentary.data.length === 1
+      ? complimentary.data[0]?.expires_at : null;
+    if (!complimentary.error && typeof complimentaryExpiry === "string" &&
+      Number.isFinite(Date.parse(complimentaryExpiry)) && Date.parse(complimentaryExpiry) > Date.now()) {
+      return { state: "subscription-active", periodEndsAt: complimentaryExpiry };
+    }
     const { data, error } = await this.client
       .from("consumer_game_entitlements")
       .select("entitlement_state, trial_started_at, trial_ends_at, current_period_ends_at, grace_ends_at")

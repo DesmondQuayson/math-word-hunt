@@ -67,8 +67,8 @@ test("owner command center is accessible, responsive, honest, and preference-awa
 
   await page.getByRole("link", { name: /Users/ }).click();
   await expect(page).toHaveURL(/section=users/);
-  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
-  await expect(page.getByText(/no placeholder data has been created/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Accounts and access" })).toBeVisible();
+  await expect(page.getByText(/No consumer accounts/i)).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("navigation", { name: "Admin modules" })).toBeVisible();
