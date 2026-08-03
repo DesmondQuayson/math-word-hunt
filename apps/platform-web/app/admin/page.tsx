@@ -2,17 +2,19 @@ import { notFound, redirect } from "next/navigation";
 
 import { adminSignOutAction } from "./actions";
 import { AdminCommandCenter } from "@/components/admin/admin-command-center";
+import { AdminResourceLibrary } from "@/components/admin/admin-resource-library";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
 import { loadAdminDashboard } from "@/lib/admin/dashboard";
 import { isAdminSectionKey } from "@/lib/admin/navigation";
+import { loadAdminResourceLibrary } from "@/lib/admin/resource-library";
 import { createAdminCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
 
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string }> }) {
   const access = await inspectAdminAccess();
   if (access.state === "disabled" || access.state === "non-admin") notFound();
   if (access.state === "unauthenticated") redirect("/admin/sign-in");
@@ -27,9 +29,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const allowedSection = isAdminSectionKey(params.section) ? params.section : "dashboard";
   const snapshot = await loadAdminDashboard();
+  const libraryKind = allowedSection === "homework" ? "homework" : allowedSection === "quizzes" ? "quizzes" : null;
+  const library = libraryKind ? await loadAdminResourceLibrary(libraryKind) : null;
 
   return <>
     {params.csrf === "invalid" ? <Container className="page-stack" width="compact"><PageHeader eyebrow="Request expired" title="The state-changing request was blocked" description="Reload the admin workspace before trying again." /></Container> : null}
-    <AdminCommandCenter snapshot={snapshot} activeSection={allowedSection} csrfToken={csrfToken} signOutAction={adminSignOutAction} />
+    <AdminCommandCenter snapshot={snapshot} activeSection={allowedSection} csrfToken={csrfToken} signOutAction={adminSignOutAction}
+      moduleContent={libraryKind && library ? <AdminResourceLibrary kind={libraryKind} snapshot={library} csrfToken={csrfToken} result={params.upload??params.publish} /> : undefined} />
   </>;
 }

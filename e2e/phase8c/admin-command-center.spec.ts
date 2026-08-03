@@ -65,9 +65,9 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await expect(page.getByRole("link", { name: /Subscriptions/ })).toHaveCount(0);
   await page.getByRole("searchbox", { name: "Find an admin area" }).fill("");
 
-  await page.getByRole("link", { name: /Homework/ }).click();
-  await expect(page).toHaveURL(/section=homework/);
-  await expect(page.getByRole("heading", { name: "Homework" })).toBeVisible();
+  await page.getByRole("link", { name: /Users/ }).click();
+  await expect(page).toHaveURL(/section=users/);
+  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
   await expect(page.getByText(/no placeholder data has been created/i)).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -75,7 +75,7 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
-  await expect(page.getByRole("link", { name: /Homework/ })).toHaveCSS("outline-style", /none|solid/);
+  await expect(page.getByRole("link", { name: /Users/ })).toHaveCSS("outline-style", /none|solid/);
 
   await context.setOffline(true);
   await expect(page.getByText("You are offline.")).toBeVisible();

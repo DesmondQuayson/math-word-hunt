@@ -133,3 +133,16 @@ export {
   type ContentResourceType,
   type ResourceRevisionPlan
 } from "./admin-content/model";
+export {
+  PDF_FILE_ROLES,
+  inspectPdfUpload,
+  isPdfFileRole,
+  normalizePdfFilename,
+  type PdfFileRole,
+  type PdfInspection,
+  type PdfValidationFinding
+} from "./admin-files/pdf-validation";
+export {
+  inspectImageUpload,
+  type ImageInspection
+} from "./admin-files/image-validation";

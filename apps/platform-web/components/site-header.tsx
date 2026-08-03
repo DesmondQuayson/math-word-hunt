@@ -20,9 +20,13 @@ const publicNavigation = [
 ] as const;
 
 const consumerNavigation = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/help", label: "Help" },
-  { href: "/account", label: "Account" }
+  { href: "/", label: "Home" },
+  { href: "/games", label: "Games" },
+  { href: "/map-prep", label: "MAP Prep" },
+  { href: "/homework", label: "Homework" },
+  { href: "/quizzes", label: "Quizzes" },
+  { href: "/subscription", label: "Subscription" },
+  { href: "/my-account", label: "My Account" }
 ] as const;
 
 export function SiteHeader() {

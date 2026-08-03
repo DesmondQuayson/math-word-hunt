@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { AdminDashboardSnapshot } from "@/lib/admin/dashboard";
 import { ADMIN_SECTIONS } from "@/lib/admin/navigation";
@@ -11,6 +11,7 @@ type AdminCommandCenterProps = Readonly<{
   activeSection: string;
   csrfToken: string;
   signOutAction: (formData: FormData) => void | Promise<void>;
+  moduleContent?: ReactNode;
 }>;
 
 function sectionHref(key: string): string {
@@ -21,7 +22,7 @@ function readableAction(value: string): string {
   return value.replace(/^admin\./, "").replaceAll(".", " / ").replaceAll("-", " ");
 }
 
-export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOutAction }: AdminCommandCenterProps) {
+export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOutAction, moduleContent }: AdminCommandCenterProps) {
   const [query, setQuery] = useState("");
   const [online, setOnline] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -81,7 +82,7 @@ export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOut
 
       <div className="admin-main" id="admin-main">
         <nav className="admin-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/admin">Super Admin</Link></li><li aria-current="page">{selected[1]}</li></ol></nav>
-        {selected[0] === "dashboard" ? <AdminDashboard snapshot={snapshot} /> : <AdminModuleEmpty title={selected[1]} detail={selected[2]} />}
+        {selected[0] === "dashboard" ? <AdminDashboard snapshot={snapshot} /> : moduleContent ?? <AdminModuleEmpty title={selected[1]} detail={selected[2]} />}
       </div>
     </div>
   </div>;
