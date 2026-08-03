@@ -22,6 +22,7 @@ import { createAdminCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
 
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; ops?:string }> }) {
   const access = await inspectAdminAccess();

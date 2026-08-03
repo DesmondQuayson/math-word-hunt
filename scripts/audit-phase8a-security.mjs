@@ -23,6 +23,9 @@ requireAll("apps/platform-web/lib/admin/session.ts", [
 requireAll("apps/platform-web/app/admin/actions.ts", [
   "validateAdminMutationCsrf", "consumeRateLimit", "challengeAndVerify", "admin.login.failure", "admin.mfa.failure"
 ]);
+requireAll("apps/platform-web/app/admin/page.tsx", [
+  'dynamic = "force-dynamic"', 'access.state !== "authorized"', "notFound()"
+]);
 requireAll("scripts/revoke-admin-access.mjs", [
   "--confirm-hosted-ref", "MVH_ADMIN_REVOCATION_APPROVAL", "revoke_admin_access", "--execute"
 ]);
