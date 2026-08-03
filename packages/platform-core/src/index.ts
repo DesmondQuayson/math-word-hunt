@@ -112,3 +112,24 @@ export {
   type PilotActivationPrerequisites,
   type PilotPrerequisiteState
 } from "./pilot/activation";
+export {
+  CONTENT_GRADE_NUMBERS,
+  CONTENT_PUBLICATION_STATES,
+  CONTENT_RESOURCE_TYPES,
+  canTransitionContentState,
+  isContentGradeNumber,
+  isContentPublicationState,
+  isContentResourceType,
+  normalizeContentTags,
+  parseContentResourceDraft,
+  parseContentSlug,
+  parsePrivateObjectPath,
+  planResourceRevision,
+  validateContentManifest,
+  type ContentGradeNumber,
+  type ContentManifest,
+  type ContentPublicationState,
+  type ContentResourceDraft,
+  type ContentResourceType,
+  type ResourceRevisionPlan
+} from "./admin-content/model";
