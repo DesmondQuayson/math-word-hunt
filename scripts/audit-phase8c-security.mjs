@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
+const completePhase8Integrated = existsSync(resolve(root, "supabase/migrations/20260804010000_phase8h_analytics_operations.sql"));
 const page = read("apps/platform-web/app/admin/page.tsx");
 const component = read("apps/platform-web/components/admin/admin-command-center.tsx");
 const dashboard = read("apps/platform-web/lib/admin/dashboard.ts");
+const operations = completePhase8Integrated ? read("apps/platform-web/lib/admin/analytics-operations.ts") : "";
 const navigation = read("apps/platform-web/lib/admin/navigation.ts");
 const styles = read("apps/platform-web/styles/admin.css");
 
@@ -16,8 +18,11 @@ for (const marker of ["inspectAdminAccess()", "notFound()", "mfa-required", "loa
 for (const label of ["Dashboard", "Games", "MAP Prep", "Homework", "Quizzes", "Users", "Subscriptions", "Analytics", "Media Library", "CMS", "Settings", "Audit Log"]) {
   if (!navigation.includes(`"${label}"`)) throw new Error(`Admin navigation is missing ${label}.`);
 }
-for (const marker of ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Download events are not collected yet", "no placeholder data has been created"]) {
-  if (!`${component}\n${dashboard}`.includes(marker)) throw new Error(`Admin state contract is missing ${marker}.`);
+const stateMarkers = completePhase8Integrated
+  ? ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Entitlement-authorized downloads in the last 30 days", "No confirmation or recovery delivery signal is available.", "no placeholder data has been created"]
+  : ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Download events are not collected yet", "no placeholder data has been created"];
+for (const marker of stateMarkers) {
+  if (!`${component}\n${dashboard}\n${operations}`.includes(marker)) throw new Error(`Admin state contract is missing ${marker}.`);
 }
 for (const marker of ["prefers-reduced-motion", "forced-colors", "@media (max-width: 48rem)", "--size-target-min"]) {
   const source = marker === "prefers-reduced-motion" ? read("apps/platform-web/styles/foundations.css") : styles;

@@ -45,7 +45,18 @@ for (const directory of adminRoots) {
   }
 }
 
-for (const route of ["games", "map-prep", "homework", "quizzes", "users", "subscriptions", "analytics", "media", "cms", "settings", "audit-log"]) {
+const completePhase8Integrated = [
+  "supabase/migrations/20260803200000_phase8b_content_taxonomy_resources.sql",
+  "supabase/migrations/20260803210000_phase8d_pdf_resource_security.sql",
+  "supabase/migrations/20260803220000_phase8e_game_package_importer.sql",
+  "supabase/migrations/20260803230000_phase8f_cms_media_legal.sql",
+  "supabase/migrations/20260804000000_phase8g_users_subscriptions.sql",
+  "supabase/migrations/20260804010000_phase8h_analytics_operations.sql"
+].every((path) => existsSync(resolve(root, path)));
+const forbiddenFunctionalRoutes = completePhase8Integrated
+  ? ["map-prep", "homework", "quizzes", "subscriptions"]
+  : ["games", "map-prep", "homework", "quizzes", "users", "subscriptions", "analytics", "media", "cms", "settings", "audit-log"];
+for (const route of forbiddenFunctionalRoutes) {
   if (existsSync(resolve(root, "apps/platform-web/app/admin", route))) throw new Error(`Functional admin route unexpectedly exists: ${route}`);
 }
 
