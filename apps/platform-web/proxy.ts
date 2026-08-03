@@ -55,6 +55,7 @@ export async function proxy(request: NextRequest) {
             "Cache-Control": "no-store",
             "Content-Security-Policy": "default-src 'none'; style-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
             "Content-Type": "text/html; charset=utf-8",
+            "X-Robots-Tag": "noindex, nofollow",
             "X-Content-Type-Options": "nosniff"
           }
         }

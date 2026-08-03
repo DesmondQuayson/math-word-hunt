@@ -43,7 +43,8 @@ export function isProductionPlatformMode(source: EnvironmentSource = process.env
   return source.MVH_APP_ENVIRONMENT === PRODUCTION_PLATFORM_ENVIRONMENT;
 }
 
-export function isProductionPlatformRestrictedPath(pathname: string): boolean {
+export function isProductionPlatformRestrictedPath(pathname: string, source: EnvironmentSource = process.env): boolean {
+  if (source.MVH_ADMIN_ENABLED === "true" && exactPrefix(pathname, "/admin")) return false;
   return PRODUCTION_PLATFORM_RESTRICTED_PREFIXES.some((prefix) => exactPrefix(pathname, prefix));
 }
 
