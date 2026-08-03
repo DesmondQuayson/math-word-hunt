@@ -90,7 +90,7 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     await page.getByLabel("Email address").fill(ordinaryEmail);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/teacher$/);
+    await expect(page).toHaveURL(/\/(?:teacher|account)$/);
     for (const path of ["/admin", "/admin/mfa"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);

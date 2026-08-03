@@ -11,6 +11,8 @@ import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 function ConsumerHomePage() {
   return <>
     <section className="hero container" aria-labelledby="home-title">
