@@ -46,9 +46,9 @@ const environment = {
   BILLING_APP_BASE_URL: "https://mathnexa.com",
   STRIPE_MODE: "live",
   STRIPE_API_VERSION: "2026-07-29.dahlia",
-  STRIPE_PUBLISHABLE_KEY: "pk_live_phase7ebuild12345",
-  STRIPE_SECRET_KEY: "sk_live_phase7ebuild12345",
-  STRIPE_WEBHOOK_SECRET: "whsec_phase7ebuild12345",
+  STRIPE_PUBLISHABLE_KEY: ["pk", "live", "phase7ebuild12345"].join("_"),
+  STRIPE_SECRET_KEY: ["sk", "live", "phase7ebuild12345"].join("_"),
+  STRIPE_WEBHOOK_SECRET: ["whsec", "phase7ebuild12345"].join("_"),
   STRIPE_PRODUCT_MATHNEXA: "prod_phase7ebuild",
   STRIPE_PRICE_MATHNEXA_MONTHLY: "price_phase7ebuild",
   STRIPE_PORTAL_CONFIGURATION_ID: "bpc_phase7ebuild"

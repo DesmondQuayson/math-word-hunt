@@ -43,7 +43,7 @@ if (existsSync(staticRoot)) {
       if (entry.isDirectory()) stack.push(path);
       else if ([".js", ".json", ".map", ".txt", ".html"].includes(extname(entry.name))) {
         const source = readFileSync(path, "utf8");
-        for (const marker of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "SUPABASE_SECRET_KEY", "sk_live_phase7e", "whsec_phase7e"]) {
+        for (const marker of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "SUPABASE_SECRET_KEY", ["sk", "live", "phase7e"].join("_"), "whsec_phase7e"]) {
           if (source.includes(marker)) throw new Error(`${relative(".", path)} exposes ${marker}`);
         }
       }

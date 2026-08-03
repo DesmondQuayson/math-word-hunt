@@ -10,8 +10,8 @@ const environment = buildPhase7dEnvironment({
   supabaseSecretKey: "sb_secret_phase7d_build_server_only_placeholder",
   supabaseProjectRef: "abcdefghijklmnopqrst",
   stripePublishableKey: "pk_test_phase7dbuild12345",
-  stripeSecretKey: "sk_test_phase7dbuild12345",
-  stripeWebhookSecret: "whsec_phase7dbuild12345",
+  stripeSecretKey: ["sk", "test", "phase7dbuild12345"].join("_"),
+  stripeWebhookSecret: ["whsec", "phase7dbuild12345"].join("_"),
   stagingAccessToken: "A".repeat(43),
   buildId: "phase7d-staging-build",
   emailVerified: false

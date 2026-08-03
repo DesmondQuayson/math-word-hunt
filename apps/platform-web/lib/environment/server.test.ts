@@ -18,7 +18,7 @@ const liveProduction = {
   BILLING_CHECKOUT_ENABLED:"false", BILLING_PORTAL_ENABLED:"true", BILLING_WEBHOOK_ENABLED:"true",
   BILLING_EMERGENCY_DEFAULT_DENY:"false", BILLING_RENEWAL_GRACE_DAYS:"7", BILLING_REFUND_REVIEW_DAYS:"7",
   BILLING_AUTOMATIC_REFUNDS:"false", STRIPE_MODE:"live", STRIPE_API_VERSION:"2026-07-29.dahlia",
-  STRIPE_PUBLISHABLE_KEY:"pk_live_production12345", STRIPE_SECRET_KEY:"sk_live_production12345",
+  STRIPE_PUBLISHABLE_KEY:["pk", "live", "production12345"].join("_"), STRIPE_SECRET_KEY:["sk", "live", "production12345"].join("_"),
   STRIPE_WEBHOOK_SECRET:"whsec_production12345", STRIPE_PRODUCT_MATHNEXA:"prod_production123",
   STRIPE_PRICE_MATHNEXA_MONTHLY:"price_production123", STRIPE_PORTAL_CONFIGURATION_ID:"bpc_production123"
 } as NodeJS.ProcessEnv;

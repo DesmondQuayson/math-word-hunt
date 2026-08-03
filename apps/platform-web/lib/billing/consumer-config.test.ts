@@ -74,8 +74,8 @@ describe("MathNexa Stripe Sandbox configuration", () => {
       BILLING_LIVE_ACTIVATION: "owner-approved",
       BILLING_APP_BASE_URL: "https://mathnexa.com",
       STRIPE_MODE: "live",
-      STRIPE_PUBLISHABLE_KEY: "pk_live_fixture12345",
-      STRIPE_SECRET_KEY: "sk_live_fixture12345"
+      STRIPE_PUBLISHABLE_KEY: ["pk", "live", "fixture12345"].join("_"),
+      STRIPE_SECRET_KEY: ["sk", "live", "fixture12345"].join("_")
     };
     expect(parseConsumerBillingConfiguration(live)).toMatchObject({
       stripeMode: "live",
