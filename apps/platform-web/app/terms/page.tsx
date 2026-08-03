@@ -1,10 +1,15 @@
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
+import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
+import { loadPublishedCmsDocument } from "@/lib/cms/public";
 
 export const metadata = { title: "Terms" };
 
-export default function TermsPage() {
+export const dynamic = "force-dynamic";
+export default async function TermsPage() {
+  const managed=await loadPublishedCmsDocument("terms");
+  if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   return <Container className="page-stack">
     <PageHeader
       eyebrow={`Terms version ${COMMERCIAL_POLICY.termsVersion}`}

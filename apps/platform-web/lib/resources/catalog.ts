@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { loadPublishedCmsDocument } from "@/lib/cms/public";
 
 export type PublicResource = Readonly<{
   id: string; title: string; description: string; resourceType: string; grade: string; topic: string; lesson: string;
@@ -42,6 +43,7 @@ export async function loadPublicResourceCatalog(kind: "homework"|"quizzes"): Pro
 }
 
 export async function loadMapPrepDestination(): Promise<string|null> {
+  const managed=await loadPublishedCmsDocument("map-prep");const href=managed?.content.blocks.find(block=>block.type==="external-link")?.href;if(href)return href;
   const client=createServiceSupabaseClient(); if(!client) return null;
   const resources=await client.from("content_resources").select("id,published_version_number").eq("resource_type","map_prep_link").eq("publication_state","published").limit(1).maybeSingle();
   if(resources.error||!resources.data) return null;

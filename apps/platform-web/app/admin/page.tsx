@@ -4,6 +4,7 @@ import { adminSignOutAction } from "./actions";
 import { AdminCommandCenter } from "@/components/admin/admin-command-center";
 import { AdminResourceLibrary } from "@/components/admin/admin-resource-library";
 import { AdminGamePackageLibrary } from "@/components/admin/admin-game-package-library";
+import { AdminCmsLibrary,AdminMediaLibrary } from "@/components/admin/admin-cms-library";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
@@ -11,12 +12,13 @@ import { loadAdminDashboard } from "@/lib/admin/dashboard";
 import { isAdminSectionKey } from "@/lib/admin/navigation";
 import { loadAdminResourceLibrary } from "@/lib/admin/resource-library";
 import { loadAdminGamePackages } from "@/lib/admin/game-package-library";
+import { loadAdminCmsLibrary } from "@/lib/admin/cms-library";
 import { createAdminCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
 
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string }> }) {
   const access = await inspectAdminAccess();
   if (access.state === "disabled" || access.state === "non-admin") notFound();
   if (access.state === "unauthenticated") redirect("/admin/sign-in");
@@ -34,10 +36,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const libraryKind = allowedSection === "homework" ? "homework" : allowedSection === "quizzes" ? "quizzes" : null;
   const library = libraryKind ? await loadAdminResourceLibrary(libraryKind) : null;
   const gameLibrary = allowedSection === "games" ? await loadAdminGamePackages() : null;
+  const cmsLibrary = allowedSection === "cms" || allowedSection === "media-library" ? await loadAdminCmsLibrary() : null;
 
   return <>
     {params.csrf === "invalid" ? <Container className="page-stack" width="compact"><PageHeader eyebrow="Request expired" title="The state-changing request was blocked" description="Reload the admin workspace before trying again." /></Container> : null}
     <AdminCommandCenter snapshot={snapshot} activeSection={allowedSection} csrfToken={csrfToken} signOutAction={adminSignOutAction}
-      moduleContent={allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library ? <AdminResourceLibrary kind={libraryKind} snapshot={library} csrfToken={csrfToken} result={params.upload??params.publish} /> : undefined} />
+      moduleContent={allowedSection === "cms" && cmsLibrary ? <AdminCmsLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.cms} /> : allowedSection === "media-library" && cmsLibrary ? <AdminMediaLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.media} /> : allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library ? <AdminResourceLibrary kind={libraryKind} snapshot={library} csrfToken={csrfToken} result={params.upload??params.publish} /> : undefined} />
   </>;
 }

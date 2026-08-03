@@ -7,6 +7,9 @@ import { LinkButton } from "@/components/ui/link-button";
 import { getProductCatalogView } from "@/lib/adapters/catalog";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
+import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import type { Metadata } from "next";
 
 function ConsumerHomePage() {
   return <>
@@ -49,7 +52,9 @@ function ConsumerHomePage() {
   </>;
 }
 
-export default function HomePage() {
+export async function generateMetadata():Promise<Metadata>{const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}}
+export default async function HomePage() {
+  const managed=await loadPublishedCmsDocument("homepage");if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   if (isProductionPlatformMode()) return <ConsumerHomePage />;
   const catalog = getProductCatalogView();
   const publicProduction = isProductionPublicMode();

@@ -162,3 +162,21 @@ export {
   type ZipEntryEvidence,
   type ZipPreflight
 } from "./game-package/zip-preflight";
+export {
+  CMS_BLOCK_TYPES,
+  CMS_DOCUMENT_KEYS,
+  CMS_LEGAL_KEYS,
+  CMS_PUBLICATION_STATES,
+  MEDIA_KINDS,
+  canTransitionCmsState,
+  isCmsDocumentKey,
+  isLegalCmsKey,
+  parseMediaMetadata,
+  parseStructuredCmsDraft,
+  type CmsBlock,
+  type CmsBlockType,
+  type CmsDocumentKey,
+  type CmsPublicationState,
+  type MediaKind,
+  type StructuredCmsDraft
+} from "./admin-cms/model";

@@ -3,10 +3,15 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
+import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
+import { loadPublishedCmsDocument } from "@/lib/cms/public";
 
 export const metadata = { title: "Privacy" };
 
-export default function PrivacyPage() {
+export const dynamic = "force-dynamic";
+export default async function PrivacyPage() {
+  const managed=await loadPublishedCmsDocument("privacy");
+  if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   if (isProductionPlatformMode()) {
     return <Container className="page-stack"><PageHeader eyebrow={`Privacy Notice ${COMMERCIAL_POLICY.privacyVersion}`} title="Account and subscription privacy" description="MathNexa uses only the minimum data required for authentication, security, billing, entitlement, support, refund review, and account deletion." />
       <Notice label="Information not collected" tone="information"><strong>No educational or gameplay-progress profile.</strong><p>MathNexa does not request teacher, student, school, class, roster, organization, assignment, result, score, lesson history, or cloud gameplay-progress information.</p></Notice>
