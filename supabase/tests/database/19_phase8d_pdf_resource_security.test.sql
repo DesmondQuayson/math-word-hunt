@@ -133,6 +133,36 @@ select results_eq(
   'quarantined files cannot be mistaken for accepted download objects'
 );
 
+select results_eq(
+  $$select public.revise_content_resource(
+    'f8310000-0000-0000-0000-000000000001',resource_id,4,'Decimal practice v2','Second reviewed version.',null,array['decimals'],
+    '{"difficulty":"core","estimated_minutes":25}'::jsonb
+  ) from public.lesson_resource_assignments where slug='decimal-practice'$$,
+  $$values (2)$$,
+  'a second immutable draft version is created with optimistic concurrency'
+);
+select public.register_resource_file(
+  'f8310000-0000-0000-0000-000000000001',resource_id,2,'primary_pdf','Decimal Practice v2.pdf','decimal-practice-v2.pdf',
+  'resource-files','resources/phase8d/decimal-practice-v2.pdf','application/pdf',1024,repeat('c',64),'accepted','{"magic":"pdf","javascript":false}'::jsonb,null
+) from public.lesson_resource_assignments where slug='decimal-practice';
+select public.transition_content_resource('f8310000-0000-0000-0000-000000000001',resource_id,2,5,'validating') from public.lesson_resource_assignments where slug='decimal-practice';
+select public.transition_content_resource('f8310000-0000-0000-0000-000000000001',resource_id,2,6,'ready_for_review') from public.lesson_resource_assignments where slug='decimal-practice';
+select public.transition_content_resource('f8310000-0000-0000-0000-000000000001',resource_id,2,7,'published') from public.lesson_resource_assignments where slug='decimal-practice';
+select results_eq(
+  $$select public.rollback_content_resource(
+    'f8310000-0000-0000-0000-000000000001',resource_id,1,8
+  ) from public.lesson_resource_assignments where slug='decimal-practice'$$,
+  $$values (3)$$,
+  'rollback restores a prior published version additively'
+);
+select results_eq(
+  $$select public.record_resource_download(
+    'f8300000-0000-0000-0000-000000000002',id
+  ) from public.resource_files where normalized_filename='decimal-practice.pdf'$$,
+  $$values (true)$$,
+  'rollback authorizes the preserved validated source file without a public Storage URL'
+);
+
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"f8300000-0000-0000-0000-000000000002","role":"authenticated"}',true);
@@ -151,8 +181,8 @@ select results_eq(
   ) group by action order by action$$,
   $$values
     ('admin.resource.quarantined'::text,1::bigint),
-    ('admin.resource.uploaded'::text,1::bigint),
-    ('content.resource.downloaded'::text,1::bigint)$$,
+    ('admin.resource.uploaded'::text,2::bigint),
+    ('content.resource.downloaded'::text,2::bigint)$$,
   'uploads, quarantine decisions, and successful downloads are audited'
 );
 

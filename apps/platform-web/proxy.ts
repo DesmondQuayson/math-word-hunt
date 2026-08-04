@@ -5,6 +5,7 @@ import { getServerEnvironment } from "@/lib/environment/server";
 import { isProductionPlatformDeferredBillingPath, isProductionPlatformMode, isProductionPlatformRestrictedPath } from "@/lib/environment/production-platform";
 import {
   isStagingAccessRequired,
+  isTicketedGameAssetPath,
   isValidStagingAccessCookie,
   STAGING_ACCESS_BOOTSTRAP_PATH,
   STAGING_ACCESS_COOKIE_NAME,
@@ -35,6 +36,7 @@ export async function proxy(request: NextRequest) {
   if (isProductionPlatformMode()) {
     const pathname = request.nextUrl.pathname;
     if (isStagingAccessRequired() && pathname !== STAGING_ACCESS_BOOTSTRAP_PATH && pathname !== STAGING_ACCESS_WEBHOOK_PATH &&
+      !isTicketedGameAssetPath(pathname) &&
       !isValidStagingAccessCookie(request.cookies.get(STAGING_ACCESS_COOKIE_NAME)?.value)) {
       return stagingAccessNotFoundResponse();
     }

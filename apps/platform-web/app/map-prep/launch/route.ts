@@ -7,5 +7,5 @@ export async function GET(request: Request) {
   const destination = await loadMapPrepDestination();
   if (!destination) return NextResponse.redirect(new URL("/map-prep", request.url), 303);
   await recordAggregateSignal({ metricKey: "map-prep-launch", outcome: "success", source: "runtime" });
-  return NextResponse.redirect(destination, 303);
+  return NextResponse.redirect(destination.destinationUrl, 303);
 }

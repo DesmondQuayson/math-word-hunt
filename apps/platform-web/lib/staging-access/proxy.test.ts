@@ -52,6 +52,26 @@ describe("staging access request gate", () => {
     expect(response.status).toBe(200);
   });
 
+  it("lets only structurally ticketed sandbox assets reach their cryptographic route gate", async () => {
+    enableStagingLock();
+    process.env.MVH_ADMIN_ENABLED = "true";
+    const uuid = "11111111-1111-4111-8111-111111111111";
+    const ticket = `${"A".repeat(80)}.${"B".repeat(43)}`;
+    for (const pathname of [
+      `/admin/games/${uuid}/preview/assets/${ticket}/game/main.js`,
+      `/games/${uuid}/runtime/assets/${ticket}/game/styles.css`
+    ]) {
+      expect((await proxy(new NextRequest(`https://staging.example.invalid${pathname}`))).status).toBe(200);
+    }
+    for (const pathname of [
+      `/admin/games/not-a-uuid/preview/assets/${ticket}/game/main.js`,
+      `/games/${uuid}/runtime/assets/not-a-ticket/game/main.js`,
+      `/games/${uuid}/runtime/assets/${ticket}`
+    ]) {
+      expect((await proxy(new NextRequest(`https://staging.example.invalid${pathname}`))).status).toBe(404);
+    }
+  });
+
   it("rejects missing and invalid bootstrap credentials without disclosing the token", async () => {
     enableStagingLock();
     for (const authorization of [null, `Bearer ${"D".repeat(43)}`]) {

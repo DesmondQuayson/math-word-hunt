@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransitionCmsState, parseMediaMetadata, parseStructuredCmsDraft } from "./model";
+import { canTransitionCmsState, parseMapPrepDestination, parseMediaMetadata, readMapPrepDestination, parseStructuredCmsDraft } from "./model";
 
 const draft = { key:"homepage",title:"Math learning",description:"Teacher-led practice",seoTitle:"MathNexa",seoDescription:"Math practice",socialTitle:"MathNexa",socialDescription:"Teacher-led math",blocks:[{type:"hero",heading:"Practice with purpose",body:"Choose a lesson."}] };
 
@@ -16,5 +16,12 @@ describe("structured CMS",()=>{
   it("requires accessible text for visual media",()=>{
     expect(parseMediaMetadata({kind:"image",altText:"",caption:"",attribution:"",license:"owned"})).toBeNull();
     expect(parseMediaMetadata({kind:"audio",altText:"",caption:"Directions",attribution:"MathNexa",license:"owned"})?.kind).toBe("audio");
+  });
+  it("builds and revalidates an explicit MAP Prep host policy",()=>{
+    const destination=parseMapPrepDestination({label:"MAP Prep",destinationUrl:"https://learn.showmemath.example.com/path",adminDestinationUrl:"https://admin.showmemath.example.com",enabled:true,openMode:"new_tab"},"2026-08-04T12:00:00Z");
+    expect(destination?.allowedHosts).toEqual(["learn.showmemath.example.com","admin.showmemath.example.com"]);
+    expect(readMapPrepDestination(destination)).toEqual(destination);
+    expect(parseMapPrepDestination({label:"Unsafe",destinationUrl:"https://127.0.0.1/admin",enabled:true,openMode:"same_tab"},"2026-08-04T12:00:00Z")).toBeNull();
+    expect(parseMapPrepDestination({label:"Unsafe",destinationUrl:"data:text/html,bad",enabled:true,openMode:"same_tab"},"2026-08-04T12:00:00Z")).toBeNull();
   });
 });

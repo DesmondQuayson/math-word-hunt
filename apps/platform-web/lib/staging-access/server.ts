@@ -7,6 +7,13 @@ export const STAGING_ACCESS_COOKIE_NAME = "__Host-mvh-staging-access";
 export const STAGING_ACCESS_WEBHOOK_PATH = "/api/billing/webhook";
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const UUID_PATH = "[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+const TICKET_PATH = "[A-Za-z0-9_-]{80,650}\\.[A-Za-z0-9_-]{43}";
+const GAME_ASSET_PATH = "[A-Za-z0-9][A-Za-z0-9._/-]{0,511}";
+const TICKETED_GAME_ASSET_PATH = new RegExp(
+  `^/(?:admin/games/${UUID_PATH}/preview|games/${UUID_PATH}/runtime)/assets/${TICKET_PATH}/${GAME_ASSET_PATH}$`,
+  "i"
+);
 const COOKIE_VERSION = "v1";
 const COOKIE_PAYLOAD = "mathnexa-phase7d-staging-access-v1";
 const COOKIE_SIGNATURE_LENGTH = 43;
@@ -25,6 +32,10 @@ function constantTimeTextEqual(candidate: string, expected: string): boolean {
 export function isStagingAccessRequired(source: EnvironmentSource = process.env): boolean {
   return source.MVH_APP_ENVIRONMENT === "production-platform" &&
     source.MVH_STAGING_ACCESS_REQUIRED === "true";
+}
+
+export function isTicketedGameAssetPath(pathname: string): boolean {
+  return !pathname.includes("..") && !pathname.includes("//") && TICKETED_GAME_ASSET_PATH.test(pathname);
 }
 
 export function getStagingAccessToken(source: EnvironmentSource = process.env): string | null {

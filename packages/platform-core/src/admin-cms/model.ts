@@ -22,6 +22,13 @@ export type CmsBlock = Readonly<{
   href?: string;
   items?: readonly Readonly<{ title: string; body?: string; href?: string; resourceId?: string }>[];
   mediaId?: string;
+  destinationUrl?: string;
+  adminDestinationUrl?: string | null;
+  enabled?: boolean;
+  openMode?: "same_tab" | "new_tab";
+  allowedHosts?: readonly string[];
+  lastVerifiedAt?: string;
+  status?: "verified";
 }>;
 
 export type StructuredCmsDraft = Readonly<{
@@ -33,6 +40,17 @@ export type StructuredCmsDraft = Readonly<{
   socialTitle: string;
   socialDescription: string;
   blocks: readonly CmsBlock[];
+}>;
+
+export type MapPrepDestination = Readonly<{
+  label: string;
+  destinationUrl: string;
+  adminDestinationUrl: string | null;
+  enabled: boolean;
+  openMode: "same_tab" | "new_tab";
+  allowedHosts: readonly string[];
+  lastVerifiedAt: string;
+  status: "verified";
 }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -53,6 +71,56 @@ function safeHref(value: unknown, externalOnly = false): string | null {
     const url = new URL(candidate);
     return url.protocol === "https:" && !url.username && !url.password ? url.toString() : null;
   } catch { return null; }
+}
+
+function publicHttpsUrl(value: unknown): URL | null {
+  const candidate = safeHref(value, true);
+  if (!candidate) return null;
+  const url = new URL(candidate);
+  const host = url.hostname.toLowerCase();
+  const domain = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+  if (!domain.test(host) || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) || host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return null;
+  return url;
+}
+
+export function parseMapPrepDestination(input: unknown, verifiedAt: string): MapPrepDestination | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const value = input as Record<string, unknown>;
+  const label = text(value.label, 120, false);
+  const destination = publicHttpsUrl(value.destinationUrl);
+  const adminDestination = value.adminDestinationUrl ? publicHttpsUrl(value.adminDestinationUrl) : null;
+  const enabled = value.enabled === true || value.enabled === "true";
+  const openMode = value.openMode;
+  const timestamp = new Date(verifiedAt);
+  if (!label || !destination || (value.adminDestinationUrl && !adminDestination) ||
+      (openMode !== "same_tab" && openMode !== "new_tab") || Number.isNaN(timestamp.valueOf())) return null;
+  const allowedHosts = [...new Set([destination.hostname.toLowerCase(), adminDestination?.hostname.toLowerCase()].filter(Boolean) as string[])];
+  return Object.freeze({
+    label,
+    destinationUrl: destination.toString(),
+    adminDestinationUrl: adminDestination?.toString() ?? null,
+    enabled,
+    openMode,
+    allowedHosts: Object.freeze(allowedHosts),
+    lastVerifiedAt: timestamp.toISOString(),
+    status: "verified"
+  });
+}
+
+export function readMapPrepDestination(input: unknown): MapPrepDestination | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const value = input as Record<string, unknown>;
+  const parsed = parseMapPrepDestination({
+    label: value.label,
+    destinationUrl: value.destinationUrl,
+    adminDestinationUrl: value.adminDestinationUrl,
+    enabled: value.enabled,
+    openMode: value.openMode
+  }, typeof value.lastVerifiedAt === "string" ? value.lastVerifiedAt : "invalid");
+  const storedHosts = Array.isArray(value.allowedHosts) ? value.allowedHosts.filter((host): host is string => typeof host === "string") : [];
+  if (!parsed || value.status !== "verified" || storedHosts.length !== parsed.allowedHosts.length ||
+      !parsed.allowedHosts.every((host) => storedHosts.includes(host))) return null;
+  return parsed;
 }
 
 export function isCmsDocumentKey(value: unknown): value is CmsDocumentKey {
@@ -102,6 +170,11 @@ export function parseStructuredCmsDraft(input: unknown): StructuredCmsDraft | nu
         items.push(result);
       }
       parsed.items=items;
+    }
+    if (candidate.key === "map-prep" && block.type === "external-link" && block.destinationUrl !== undefined) {
+      const destination = readMapPrepDestination(block);
+      if (!destination || block.href !== destination.destinationUrl || block.label !== destination.label) return null;
+      Object.assign(parsed, destination);
     }
     blocks.push(parsed as CmsBlock);
   }

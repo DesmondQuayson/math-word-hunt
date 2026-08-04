@@ -1,9 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
-
-import { inspectImageUpload, inspectPdfUpload, normalizeContentTags, parseContentSlug } from "@math-vocabulary-hunt/platform-core";
+import { normalizeContentTags, parseContentSlug } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
 
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
+import { storeResourceFile } from "@/lib/admin/resource-file-storage";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -23,52 +22,6 @@ function integer(form: FormData, name: string, minimum: number, maximum: number)
 }
 function file(form: FormData, name: string): File | null {
   const item = form.get(name); return item instanceof File && item.size > 0 ? item : null;
-}
-
-async function storeFile(input: Readonly<{
-  client: ServiceClient; adminId: string; resourceId: string; role: "primary_pdf"|"answer_key_pdf"|"thumbnail"|"preview_image"; upload: File;
-}>) {
-  if (input.upload.size > 20*1024*1024) return { decision: "quarantined" as const, stored: false };
-  const bytes = new Uint8Array(await input.upload.arrayBuffer());
-  const isPdf = input.role === "primary_pdf" || input.role === "answer_key_pdf";
-  const pdfInspection = isPdf ? inspectPdfUpload({ filename: input.upload.name, mimeType: input.upload.type, bytes }) : null;
-  const imageInspection = isPdf ? null : inspectImageUpload({ filename: input.upload.name, mimeType: input.upload.type, bytes });
-  const decision = pdfInspection?.decision ?? imageInspection!.decision;
-  const accepted = decision === "accepted";
-  const bucket = accepted ? "resource-files" : "resource-quarantine";
-  const prefix = accepted ? "resources" : "quarantine";
-  const normalizedFilename = pdfInspection?.normalizedFilename ?? imageInspection!.normalizedFilename;
-  const objectPath = `${prefix}/${input.resourceId}/v1/${randomUUID()}-${normalizedFilename}`;
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const detectedMime = isPdf ? "application/pdf" : imageInspection!.mimeType ?? "application/octet-stream";
-  const uploaded = await input.client.storage.from(bucket).upload(objectPath, bytes, {
-    contentType: accepted ? detectedMime : "application/octet-stream", upsert: false, cacheControl: "private, max-age=0"
-  });
-  if (uploaded.error) throw new Error("Private resource upload failed.");
-  const report = pdfInspection
-    ? { validator: "phase8d-pdf-structure-v1", findings: pdfInspection.findings, acroform: pdfInspection.hasAcroForm, malware_scan: "structural-fail-closed" }
-    : { validator: "phase8d-image-magic-v1", findings: imageInspection!.findings, width: imageInspection!.width, height: imageInspection!.height, malware_scan: "structural-fail-closed" };
-  const registered = await input.client.rpc("register_resource_file", {
-    p_actor_admin_id: input.adminId,
-    p_resource_id: input.resourceId,
-    p_resource_version_number: 1,
-    p_file_role: input.role,
-    p_original_filename: input.upload.name.slice(0,255),
-    p_normalized_filename: normalizedFilename,
-    p_bucket_id: bucket,
-    p_object_path: objectPath,
-    p_mime_type: accepted ? detectedMime : "application/octet-stream",
-    p_byte_size: bytes.byteLength,
-    p_sha256: sha256,
-    p_validation_state: accepted ? "accepted" : "quarantined",
-    p_validation_report: report,
-    p_replaces_file_id: null
-  });
-  if (registered.error) {
-    await input.client.storage.from(bucket).remove([objectPath]);
-    throw new Error("Resource validation evidence could not be registered.");
-  }
-  return { decision, stored: true };
 }
 
 async function createResource(input: Readonly<{
@@ -104,18 +57,18 @@ export async function POST(request: Request) {
     const primaryType = kind === "homework" ? "homework_pdf" : "quiz_pdf";
     const primaryId = await createResource({ client, adminId:access.admin.id, lessonId, resourceType:primaryType, slug, sortOrder,
       title, description, tags, manifest:{ difficulty, estimated_minutes:minutes, asset_kind:"interactive_pdf" } });
-    const results = [await storeFile({ client,adminId:access.admin.id,resourceId:primaryId,role:"primary_pdf",upload:primary })];
+    const results = [await storeResourceFile({ client,adminId:access.admin.id,resourceId:primaryId,resourceVersion:1,role:"primary_pdf",upload:primary })];
     const answer = file(form,"answerPdf");
     if (answer) {
       const answerId = await createResource({ client,adminId:access.admin.id,lessonId,
         resourceType:kind === "homework" ? "homework_answer_key" : "quiz_answer_key",slug:`${slug}-answer-key`,sortOrder:sortOrder+1,
         title:`${title} answer key`,description:`Answer key for ${title}.`,tags,manifest:{ difficulty,estimated_minutes:minutes,asset_kind:"answer_key_pdf" } });
-      results.push(await storeFile({ client,adminId:access.admin.id,resourceId:answerId,role:"answer_key_pdf",upload:answer }));
+      results.push(await storeResourceFile({ client,adminId:access.admin.id,resourceId:answerId,resourceVersion:1,role:"answer_key_pdf",upload:answer }));
     }
     const thumbnail = file(form,"thumbnail");
-    if (thumbnail) results.push(await storeFile({ client,adminId:access.admin.id,resourceId:primaryId,role:"thumbnail",upload:thumbnail }));
+    if (thumbnail) results.push(await storeResourceFile({ client,adminId:access.admin.id,resourceId:primaryId,resourceVersion:1,role:"thumbnail",upload:thumbnail }));
     for (const preview of form.getAll("previews")) if (preview instanceof File && preview.size>0) {
-      results.push(await storeFile({ client,adminId:access.admin.id,resourceId:primaryId,role:"preview_image",upload:preview }));
+      results.push(await storeResourceFile({ client,adminId:access.admin.id,resourceId:primaryId,resourceVersion:1,role:"preview_image",upload:preview }));
     }
     return safeRedirect(request,kind,results.some((result) => result.decision === "quarantined") ? "quarantined" : "saved");
   } catch {

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { registerVerificationNextProcess, stopVerificationNextProcess } from "./verification-processes.mjs";
+import { registerVerificationNextProcess, stopVerificationNextProcess, waitForLocalSupabaseAuth } from "./verification-processes.mjs";
 
 const supabaseCli = resolve("node_modules/supabase/dist/supabase.js");
 const status = JSON.parse(execFileSync(process.execPath, [supabaseCli, "status", "-o", "json"], {
@@ -18,6 +18,7 @@ if (status.API_URL !== "http://127.0.0.1:55321") throw new Error("Phase 8D brows
 const admin = createClient(status.API_URL, status.SECRET_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 const migration = await admin.from("resource_files").select("id", { count: "exact", head: true });
 if (migration.error) throw new Error("Apply the Phase 8D local migration before browser verification.");
+await waitForLocalSupabaseAuth(admin);
 
 const environment = {
   ...process.env,

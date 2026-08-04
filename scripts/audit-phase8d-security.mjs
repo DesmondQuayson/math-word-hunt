@@ -6,6 +6,8 @@ const root = resolve(import.meta.dirname, "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
 const migration = read("supabase/migrations/20260803210000_phase8d_pdf_resource_security.sql");
 const upload = read("apps/platform-web/app/admin/resources/upload/route.ts");
+const replace = read("apps/platform-web/app/admin/resources/replace/route.ts");
+const storage = read("apps/platform-web/lib/admin/resource-file-storage.ts");
 const download = read("apps/platform-web/app/resources/[resourceId]/download/route.ts");
 const preview = read("apps/platform-web/app/resources/[resourceId]/preview/[fileId]/route.ts");
 const validator = read("packages/platform-core/src/admin-files/pdf-validation.ts");
@@ -22,8 +24,13 @@ for (const name of ["register_resource_file", "record_resource_download"]) {
     throw new Error(`${name} does not explicitly revoke browser execution.`);
   }
 }
-for (const marker of ["inspectPdfUpload", "inspectImageUpload", "createServiceSupabaseClient", "inspectAdminAccess", "validateAdminMutationCsrf", "resource-quarantine"]) {
-  if (!upload.includes(marker)) throw new Error(`Upload boundary is missing ${marker}.`);
+for (const marker of ["inspectPdfUpload", "inspectImageUpload", "createServiceSupabaseClient", "resource-quarantine", "register_resource_file"]) {
+  if (!storage.includes(marker)) throw new Error(`Private file-storage boundary is missing ${marker}.`);
+}
+for (const [name, source] of [["upload", upload], ["replacement", replace]]) {
+  for (const marker of ["storeResourceFile", "createServiceSupabaseClient", "inspectAdminAccess", "validateAdminMutationCsrf"]) {
+    if (!source.includes(marker)) throw new Error(`${name} boundary is missing ${marker}.`);
+  }
 }
 for (const token of ["JavaScript", "Launch", "OpenAction", "EmbeddedFile", "SubmitForm", "XFA"]) {
   if (!validator.includes(token)) throw new Error(`PDF validation does not reject ${token}.`);
@@ -36,7 +43,7 @@ for (const source of [download, preview]) {
   if (!source.includes("fetch(signed.data.signedUrl")) throw new Error("Private storage assets must be proxied by the application server.");
 }
 for (const forbidden of ["pdfkit", "PDFDocument", "student_id", "studentId", "ShowMe Math"]) {
-  if (`${migration}\n${upload}\n${download}`.includes(forbidden)) throw new Error(`Phase 8D contains forbidden marker ${forbidden}.`);
+  if (`${migration}\n${upload}\n${replace}\n${storage}\n${download}`.includes(forbidden)) throw new Error(`Phase 8D contains forbidden marker ${forbidden}.`);
 }
 
 const expected = new Map([

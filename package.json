@@ -118,6 +118,9 @@
     "test:e2e:phase8h": "node scripts/run-phase8h-e2e.mjs",
     "test:phase8h:security": "node scripts/audit-phase8h-security.mjs",
     "phase8h:verify": "node scripts/verify-phase8h.mjs",
+    "test:phase8:content-cleanup": "node --test scripts/phase8-content-cleanup-contract.test.mjs",
+    "test:phase8:content-cleanup:security": "node scripts/audit-phase8-content-cleanup.mjs",
+    "phase8:content:hosted": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-phase8-content-staging.ps1",
     "phase8:verify": "node scripts/verify-phase8.mjs",
     "admin:revoke": "node scripts/revoke-admin-access.mjs",
     "deletion:plan": "node scripts/deletion-ops.mjs",
@@ -138,7 +141,7 @@
     "vitest": "latest"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.9",
     "minimatch": "10.2.5",
     "postcss": "8.5.23",
     "sharp": "0.35.3"

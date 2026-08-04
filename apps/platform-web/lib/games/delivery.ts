@@ -57,13 +57,11 @@ export async function deliverPrivateGameAsset(request: Request, packageId: strin
   if (asset.data.mime_type === "text/html" && request.headers.get("sec-fetch-dest") !== "iframe") {
     return new Response("Not Found", { status: 404, headers: BASE_HEADERS });
   }
-  const signed = await client.storage.from("game-packages").createSignedUrl(asset.data.object_path, 30);
-  if (signed.error) return new Response("Not Found", { status: 404, headers: BASE_HEADERS });
-  const stored = await fetch(signed.data.signedUrl, { cache: "no-store", redirect: "error" });
-  if (!stored.ok || Number(stored.headers.get("content-length") ?? asset.data.byte_size) !== asset.data.byte_size) {
-    return new Response("Not Found", { status: 404, headers: BASE_HEADERS });
-  }
+  const stored = await client.storage.from("game-packages").download(asset.data.object_path);
+  if (stored.error || !stored.data) return new Response("Not Found", { status: 404, headers: BASE_HEADERS });
+  const bytes = new Uint8Array(await stored.data.arrayBuffer());
+  if (bytes.byteLength !== asset.data.byte_size) return new Response("Not Found", { status: 404, headers: BASE_HEADERS });
   const headers: Record<string, string> = { ...BASE_HEADERS, "Content-Type": asset.data.mime_type };
   if (asset.data.mime_type === "text/html") headers["Content-Security-Policy"] = gameCsp(request,assetPath);
-  return new Response(stored.body, { status: 200, headers });
+  return new Response(bytes, { status: 200, headers });
 }

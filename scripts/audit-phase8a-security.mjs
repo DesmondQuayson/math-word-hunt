@@ -38,6 +38,9 @@ requireAll("apps/platform-web/next.config.mjs", [
 requireAll("scripts/revoke-admin-access.mjs", [
   "--confirm-hosted-ref", "MVH_ADMIN_REVOCATION_APPROVAL", "revoke_admin_access", "--execute"
 ]);
+for (const path of ["apps/platform-web/app/admin/map-prep/save/route.ts", "apps/platform-web/app/admin/map-prep/status/route.ts"]) {
+  requireAll(path, ["inspectAdminAccess", 'access.state!=="authorized"', "validateAdminMutationCsrf"]);
+}
 
 const adminRoots = ["apps/platform-web/app/admin", "apps/platform-web/lib/admin", "apps/platform-web/components/admin"];
 for (const directory of adminRoots) {
@@ -66,7 +69,7 @@ const completePhase8Integrated = [
   "supabase/migrations/20260804010000_phase8h_analytics_operations.sql"
 ].every((path) => existsSync(resolve(root, path)));
 const forbiddenFunctionalRoutes = completePhase8Integrated
-  ? ["map-prep", "homework", "quizzes", "subscriptions"]
+  ? ["homework", "quizzes", "subscriptions"]
   : ["games", "map-prep", "homework", "quizzes", "users", "subscriptions", "analytics", "media", "cms", "settings", "audit-log"];
 for (const route of forbiddenFunctionalRoutes) {
   if (existsSync(resolve(root, "apps/platform-web/app/admin", route))) throw new Error(`Functional admin route unexpectedly exists: ${route}`);

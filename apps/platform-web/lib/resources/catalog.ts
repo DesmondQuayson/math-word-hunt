@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import { readMapPrepDestination, type MapPrepDestination } from "@math-vocabulary-hunt/platform-core";
 
 export type PublicResource = Readonly<{
   id: string; title: string; description: string; resourceType: string; grade: string; topic: string; lesson: string;
@@ -15,7 +16,7 @@ export async function loadPublicResourceCatalog(kind: "homework"|"quizzes"): Pro
   if(resources.error || !resources.data?.length) return [];
   const ids=resources.data.map((resource)=>resource.id);
   const [versions,assignments,files]=await Promise.all([
-    client.from("content_resource_versions").select("resource_id,version_number,title,description,tags,content_manifest").in("resource_id",ids).eq("publication_state","published"),
+    client.from("content_resource_versions").select("id,resource_id,version_number,title,description,tags,content_manifest,source_version_id").in("resource_id",ids).eq("publication_state","published"),
     client.from("lesson_resource_assignments").select("resource_id,lesson_id").in("resource_id",ids),
     client.from("resource_files").select("id,resource_id,resource_version_number,file_role").in("resource_id",ids).eq("validation_state","accepted")
   ]);
@@ -33,7 +34,8 @@ export async function loadPublicResourceCatalog(kind: "homework"|"quizzes"): Pro
     const assignment=(assignments.data??[]).find((item)=>item.resource_id===resource.id); const lesson=(lessons.data??[]).find((item)=>item.id===assignment?.lesson_id);
     const topic=(topics.data??[]).find((item)=>item.id===lesson?.topic_id); const grade=(grades.data??[]).find((item)=>item.id===topic?.grade_id);
     const manifest=(version?.content_manifest && typeof version.content_manifest==="object" && !Array.isArray(version.content_manifest)) ? version.content_manifest as Record<string,unknown> : {};
-    const resourceFiles=(files.data??[]).filter((item)=>item.resource_id===resource.id && item.resource_version_number===resource.published_version_number);
+    const sourceVersion=version?.source_version_id?(versions.data??[]).find((item)=>item.id===version.source_version_id)?.version_number:null;const fileVersion=sourceVersion??resource.published_version_number;
+    const resourceFiles=(files.data??[]).filter((item)=>item.resource_id===resource.id && item.resource_version_number===fileVersion);
     return { id:resource.id,title:version?.title??"Untitled resource",description:version?.description??"",resourceType:resource.resource_type,
       grade:grade?.title??"Unknown grade",topic:topic?.title??"Unknown topic",lesson:lesson?.title??"Unknown lesson",
       difficulty:typeof manifest.difficulty==="string"?manifest.difficulty:null,minutes:typeof manifest.estimated_minutes==="number"?manifest.estimated_minutes:null,
@@ -42,14 +44,11 @@ export async function loadPublicResourceCatalog(kind: "homework"|"quizzes"): Pro
   }).sort((a,b)=>`${a.grade}/${a.topic}/${a.lesson}/${a.title}`.localeCompare(`${b.grade}/${b.topic}/${b.lesson}/${b.title}`));
 }
 
-export async function loadMapPrepDestination(): Promise<string|null> {
-  const managed=await loadPublishedCmsDocument("map-prep");const href=managed?.content.blocks.find(block=>block.type==="external-link")?.href;if(href)return href;
-  const client=createServiceSupabaseClient(); if(!client) return null;
-  const resources=await client.from("content_resources").select("id,published_version_number").eq("resource_type","map_prep_link").eq("publication_state","published").limit(1).maybeSingle();
-  if(resources.error||!resources.data) return null;
-  const version=await client.from("content_resource_versions").select("content_manifest").eq("resource_id",resources.data.id).eq("version_number",resources.data.published_version_number).eq("publication_state","published").maybeSingle();
-  const candidate=version.data?.content_manifest && typeof version.data.content_manifest==="object" && !Array.isArray(version.data.content_manifest) ? (version.data.content_manifest as Record<string,unknown>).external_url : null;
-  if(typeof candidate!=="string") return null; try { const url=new URL(candidate); return url.protocol==="https:"&&!url.username&&!url.password?url.href:null; } catch { return null; }
+export async function loadMapPrepDestination(): Promise<MapPrepDestination|null> {
+  const managed=await loadPublishedCmsDocument("map-prep");
+  const block=managed?.content.blocks.find(item=>item.type==="external-link");
+  const destination=readMapPrepDestination(block);
+  return destination?.enabled ? destination : null;
 }
 
 export async function loadPublicResource(resourceId:string):Promise<PublicResource|null>{

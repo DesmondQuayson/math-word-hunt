@@ -70,6 +70,15 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await expect(page.getByRole("heading", { name: "Accounts and access" })).toBeVisible();
   await expect(page.getByText(/No consumer accounts/i)).toBeVisible();
 
+  for (const [section, action] of [["games","Add Game"],["homework","Add Homework"],["quizzes","Add Quiz"]] as const) {
+    await page.goto(`/admin?section=${section}`);
+    await expect(page.getByRole("link", { name: action, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Grade → Topic → Lesson" })).toBeVisible();
+  }
+  await page.goto("/admin?section=map-prep");
+  await expect(page.getByRole("heading", { name: "MAP Prep destination" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add destination" })).toBeVisible();
+
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("navigation", { name: "Admin modules" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

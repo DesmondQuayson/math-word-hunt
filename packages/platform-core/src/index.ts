@@ -172,12 +172,15 @@ export {
   isCmsDocumentKey,
   isLegalCmsKey,
   parseMediaMetadata,
+  parseMapPrepDestination,
+  readMapPrepDestination,
   parseStructuredCmsDraft,
   type CmsBlock,
   type CmsBlockType,
   type CmsDocumentKey,
   type CmsPublicationState,
   type MediaKind,
+  type MapPrepDestination,
   type StructuredCmsDraft
 } from "./admin-cms/model";
 export {

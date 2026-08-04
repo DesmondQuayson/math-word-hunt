@@ -8,7 +8,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{resourceId:
   const resource=await client.from("content_resources").select("published_version_number,resource_type").eq("id",resourceId).eq("publication_state","published").maybeSingle();
   if(resource.error||!resource.data)return Response.json({error:"not-found"},{status:404});
   const expectedRole=resource.data.resource_type.includes("answer_key")?"answer_key_pdf":"primary_pdf";
-  const file=await client.from("resource_files").select("id,bucket_id,object_path,mime_type,normalized_filename").eq("resource_id",resourceId).eq("resource_version_number",resource.data.published_version_number).eq("file_role",expectedRole).eq("validation_state","accepted").maybeSingle();
+  const published=await client.from("content_resource_versions").select("source_version_id").eq("resource_id",resourceId).eq("version_number",resource.data.published_version_number).maybeSingle();if(published.error||!published.data)return Response.json({error:"not-found"},{status:404});
+  const source=published.data.source_version_id?await client.from("content_resource_versions").select("version_number").eq("id",published.data.source_version_id).maybeSingle():null;const fileVersion=source?.data?.version_number??resource.data.published_version_number;
+  const file=await client.from("resource_files").select("id,bucket_id,object_path,mime_type,normalized_filename").eq("resource_id",resourceId).eq("resource_version_number",fileVersion).eq("file_role",expectedRole).eq("validation_state","accepted").maybeSingle();
   if(file.error||!file.data)return Response.json({error:"not-found"},{status:404});
   const authorized=await client.rpc("record_resource_download",{p_consumer_user_id:access.context.userId,p_resource_file_id:file.data.id});
   if(authorized.error||authorized.data!==true)return Response.json({error:"resource-access-denied"},{status:403,headers:{"Cache-Control":"no-store"}});
