@@ -3,15 +3,15 @@ import { once } from "node:events";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import {
+  cleanPlatformGeneratedNextState,
   registerVerificationNextProcess,
-  stopRegisteredVerificationNextProcesses,
   stopVerificationNextProcess
 } from "./verification-processes.mjs";
 
 const prototypeMode = process.argv.includes("--prototype");
 const playwrightArgs = process.argv.slice(2).filter((argument) => argument !== "--prototype");
 
-await stopRegisteredVerificationNextProcesses();
+await cleanPlatformGeneratedNextState();
 
 async function getFreeLoopbackPort() {
   const reservation = createServer();

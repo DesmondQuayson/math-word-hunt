@@ -144,6 +144,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
       context: context(),
       config,
       consent,
+      returnDestination: "/games",
       ...deps
     })).resolves.toMatchObject({ trialEligible: true });
     expect(deps.provider.retrievePrice).toHaveBeenCalledWith(config.priceId);
@@ -151,7 +152,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
       userId: USER_ID,
       customerId: deps.mapping.stripeCustomerId,
       successUrl: expect.stringContaining("/checkout/status?session_id="),
-      cancelUrl: "http://127.0.0.1:3000/pricing?checkout=canceled"
+      cancelUrl: "http://127.0.0.1:3000/subscription?checkout=canceled&next=/games"
     }));
     expect(deps.repository.recordCommercialAcceptance).toHaveBeenCalledWith(USER_ID, consent);
     expect(deps.repository.bindCommercialAcceptance).toHaveBeenCalledOnce();
@@ -160,7 +161,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
   it("does not create Setup Checkout without current server-bound consent", async () => {
     const deps = dependencies();
     (deps.repository.bindCommercialAcceptance as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
-    await expect(createConsumerSetupCheckout({ context: context(), config, consent, ...deps }))
+    await expect(createConsumerSetupCheckout({ context: context(), config, consent, returnDestination: "/games", ...deps }))
       .rejects.toMatchObject({ code: "commercial-consent-required" });
   });
 
@@ -324,7 +325,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
       applicationBaseUrl: "https://mathnexa.com",
       subscriberManagementBaseUrl: "https://mathnexa-platform-production.vercel.app"
     };
-    await expect(createConsumerSetupCheckout({ context: context(), config: liveConfig, consent, ...deps }))
+    await expect(createConsumerSetupCheckout({ context: context(), config: liveConfig, consent, returnDestination: "/games", ...deps }))
       .rejects.toMatchObject({ code: "provider-resource-invalid" });
     await expect(createConsumerPortal({ context: context(), config: liveConfig, ...deps }))
       .rejects.toMatchObject({ code: "ownership-conflict" });

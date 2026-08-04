@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { startCheckoutAction } from "@/app/billing-actions";
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
+import type { AccessIntentDestination } from "@/lib/auth/access-intent";
 
 const consentItems = [
   ["subscriptionTermsAccepted", <>I accept the <Link href="/terms">subscription Terms</Link>.</>],
@@ -13,8 +14,15 @@ const consentItems = [
   ["privacyAndTermsAccepted", <>I have reviewed Privacy Notice {COMMERCIAL_POLICY.privacyVersion} and Terms {COMMERCIAL_POLICY.termsVersion}.</>]
 ] as const;
 
-export function CommercialConsentForm() {
+export function CommercialConsentForm({
+  returnDestination = "/subscription",
+  enabled = true
+}: {
+  returnDestination?: AccessIntentDestination;
+  enabled?: boolean;
+}) {
   return <form action={startCheckoutAction} className="prototype-form" aria-labelledby="commercial-consent-heading">
+    <input type="hidden" name="returnDestination" value={returnDestination} />
     <div>
       <h3 id="commercial-consent-heading">Confirm the subscription terms</h3>
       <p>All boxes are required before MathNexa can open Stripe to save a payment method.</p>
@@ -23,6 +31,6 @@ export function CommercialConsentForm() {
       <input name={name} type="checkbox" value="accepted" required />
       <span>{label}</span>
     </label>)}
-    <button className="button button-primary" type="submit">Accept terms and continue to Stripe</button>
+    <button className="button button-primary" type="submit" disabled={!enabled}>Accept terms and continue to Stripe</button>
   </form>;
 }

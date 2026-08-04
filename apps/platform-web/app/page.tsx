@@ -9,11 +9,12 @@ import { isProductionPlatformMode } from "@/lib/environment/production-platform"
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import { TeacherFirstHome } from "@/components/public/teacher-first-home";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-function ConsumerHomePage() {
+export function ConsumerHomePage() {
   return <>
     <section className="hero container" aria-labelledby="home-title">
       <div className="hero-copy">
@@ -54,10 +55,16 @@ function ConsumerHomePage() {
   </>;
 }
 
-export async function generateMetadata():Promise<Metadata>{const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}}
+export async function generateMetadata():Promise<Metadata>{
+  if(isProductionPlatformMode())return{
+    title:{absolute:"MathNexa | Math Games, MAP Prep, Homework and Quizzes"},
+    description:"Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+  };
+  const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
+}
 export default async function HomePage() {
+  if (isProductionPlatformMode()) return <TeacherFirstHome />;
   const managed=await loadPublishedCmsDocument("homepage");if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
-  if (isProductionPlatformMode()) return <ConsumerHomePage />;
   const catalog = getProductCatalogView();
   const publicProduction = isProductionPublicMode();
 

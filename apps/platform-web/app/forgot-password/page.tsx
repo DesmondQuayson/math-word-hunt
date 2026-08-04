@@ -5,8 +5,9 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Recover password" };
+export const metadata: Metadata = { title: "Recover password", robots: { index: false, follow: false, noarchive: true, nocache: true } };
 export default function ForgotPasswordPage() {
   const configured = isSupabaseConfigured();
   const consumerMode = isProductionPlatformMode();

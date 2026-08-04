@@ -122,6 +122,7 @@
     "test:phase8:content-cleanup:security": "node scripts/audit-phase8-content-cleanup.mjs",
     "phase8:content:hosted": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-phase8-content-staging.ps1",
     "phase8:verify": "node scripts/verify-phase8.mjs",
+    "test:e2e:phase9": "node scripts/run-phase9-e2e.mjs",
     "admin:revoke": "node scripts/revoke-admin-access.mjs",
     "deletion:plan": "node scripts/deletion-ops.mjs",
     "billing:provision:test:dry-run": "node scripts/provision-stripe-test.mjs --dry-run",

@@ -58,7 +58,10 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
-  const callback = `${getAppBaseUrl()}/auth/callback?next=${consumerMode ? "/account" : "/teacher"}`;
+  const destination = consumerMode
+    ? safeInternalRedirect(field(formData, "next"), "/account")
+    : "/teacher";
+  const callback = `${getAppBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}`;
   const { error } = await supabase.auth.signUp({
     email,
     password,

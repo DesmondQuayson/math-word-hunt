@@ -15,8 +15,15 @@ import {
 } from "@/lib/billing/consumer-service";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { getGameAccessView } from "@/lib/game-access/server";
+import { CheckoutStatusPoller } from "@/components/consumer/checkout-status-poller";
+import { safeAccessIntentDestination } from "@/lib/auth/access-intent";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Checkout status" };
+export const metadata: Metadata = {
+  title: "Checkout status",
+  robots: { index: false, follow: false, noarchive: true, nocache: true }
+};
 export const dynamic = "force-dynamic";
 
 const copy: Record<CheckoutDisplayState, { title: string; message: string; tone: "information" | "success" | "warning" }> = {
@@ -39,7 +46,7 @@ const consumerCopy = {
   "manual-review": { title: "Billing review required", message: "Ownership or provider data did not match. Access remains locked while support reviews the record.", tone: "warning" }
 } as const;
 
-async function ConsumerCheckoutStatus({ sessionId }: { sessionId: string }) {
+async function ConsumerCheckoutStatus({ sessionId, nextDestination }: { sessionId: string; nextDestination: string }) {
   const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
   const config = tryGetConsumerBillingConfiguration();
   const repository = config ? createConsumerBillingRepository(config) : null;
@@ -53,20 +60,26 @@ async function ConsumerCheckoutStatus({ sessionId }: { sessionId: string }) {
       })
     : "unavailable";
   const content = consumerCopy[state];
+  const destination = safeAccessIntentDestination(nextDestination, "/subscription");
+  if ((state === "trialing" || state === "active") && access.decision.allowed) redirect(destination);
+  const awaitingAuthoritativeAccess = state === "processing" ||
+    ((state === "trialing" || state === "active") && !access.decision.allowed);
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow="Stripe billing" title="Subscription setup status" description="Only verified Stripe, current consent, and server records can activate MathNexa game access." />
     <Notice label="Setup status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice>
     {access.decision.accessEndsAt ? <Notice label="Authoritative access window" tone="success"><strong>Verified expiration</strong><p><time dateTime={access.decision.accessEndsAt}>{new Date(access.decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p></Notice> : null}
+    {awaitingAuthoritativeAccess ? <CheckoutStatusPoller /> : null}
     <div className="button-row">
-      {access.decision.allowed ? <LinkButton href="/play">Play MathNexa</LinkButton> : <LinkButton href={`/checkout/status?session_id=${encodeURIComponent(sessionId)}`}>Refresh verified status</LinkButton>}
+      {access.decision.allowed ? <LinkButton href={destination}>Continue to your selected resource</LinkButton> : null}
       <LinkButton href="/subscription" variant="secondary">Subscription status</LinkButton>
     </div>
   </Container>;
 }
 
-export default async function CheckoutStatusPage({ searchParams }: { searchParams: Promise<{ session_id?: string }> }) {
-  const sessionId = (await searchParams).session_id ?? "";
-  if (isProductionPlatformMode()) return <ConsumerCheckoutStatus sessionId={sessionId} />;
+export default async function CheckoutStatusPage({ searchParams }: { searchParams: Promise<{ session_id?: string; next?: string }> }) {
+  const params = await searchParams;
+  const sessionId = params.session_id ?? "";
+  if (isProductionPlatformMode()) return <ConsumerCheckoutStatus sessionId={sessionId} nextDestination={params.next ?? ""} />;
   const config = tryGetBillingConfiguration();
   const context = await resolveTeacherContext();
   const repository = createBillingRepository();

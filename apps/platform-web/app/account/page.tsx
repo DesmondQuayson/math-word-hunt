@@ -24,7 +24,10 @@ import { createBillingRepository } from "@/lib/billing/service";
 import { ConsumerAccountPage } from "@/components/consumer/consumer-account-page";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 
-export const metadata = { title: isProductionPlatformMode() ? "Account" : "Teacher account" };
+export const metadata = {
+  title: isProductionPlatformMode() ? "Account" : "Teacher account",
+  robots: isProductionPlatformMode() ? { index: false, follow: false, noarchive: true, nocache: true } : undefined
+};
 
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ deletion?: string }> }) {
   if (isProductionPlatformMode()) return <ConsumerAccountPage searchParams={searchParams} />;

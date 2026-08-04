@@ -20,35 +20,41 @@ import {
   createConsumerSetupCheckout
 } from "@/lib/billing/consumer-service";
 import { isCheckoutOperational } from "@/lib/operations/server";
+import { safeAccessIntentDestination } from "@/lib/auth/access-intent";
+
+async function startConsumerCheckout(formData: FormData) {
+  const returnDestination = safeAccessIntentDestination(String(formData.get("returnDestination") ?? ""), "/subscription");
+  if (!await isCheckoutOperational()) redirect(`/subscription?billing=unavailable&next=${returnDestination}`);
+  const config = tryGetConsumerBillingConfiguration();
+  if (!config) redirect(`/subscription?billing=unavailable&next=${returnDestination}`);
+  try {
+    const context = await resolveConsumerContext();
+    if (context.status === "anonymous" || context.status === "unconfigured") {
+      redirect(`/access?next=${returnDestination}`);
+    }
+    const consent = parseCommercialConsentForm(formData);
+    if (!consent) redirect(`/subscription?consent=required&next=${returnDestination}`);
+    const repository = createConsumerBillingRepository(config);
+    if (!repository) throw new Error("unavailable");
+    const result = await createConsumerSetupCheckout({
+      context,
+      config,
+      provider: createConsumerBillingProvider(config),
+      repository,
+      consent,
+      returnDestination
+    });
+    redirect(result.url);
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) throw error;
+    redirect(`/subscription?billing=unavailable&next=${returnDestination}`);
+  }
+}
 
 export async function startCheckoutAction(formData: FormData) {
   if (isProductionPublicMode()) redirect("/not-launched");
+  if (isProductionPlatformMode()) return startConsumerCheckout(formData);
   if (!await isCheckoutOperational()) redirect("/pricing?billing=unavailable");
-  if (isProductionPlatformMode()) {
-    const config = tryGetConsumerBillingConfiguration();
-    if (!config) redirect("/pricing?billing=unavailable");
-    try {
-      const context = await resolveConsumerContext();
-      if (context.status === "anonymous" || context.status === "unconfigured") {
-        redirect("/sign-in?next=/pricing");
-      }
-      const consent = parseCommercialConsentForm(formData);
-      if (!consent) redirect("/pricing?consent=required");
-      const repository = createConsumerBillingRepository(config);
-      if (!repository) throw new Error("unavailable");
-      const result = await createConsumerSetupCheckout({
-        context,
-        config,
-        provider: createConsumerBillingProvider(config),
-        repository,
-        consent
-      });
-      redirect(result.url);
-    } catch (error) {
-      if (error && typeof error === "object" && "digest" in error) throw error;
-      redirect("/pricing?billing=unavailable");
-    }
-  }
   const config = tryGetBillingConfiguration();
   if (!config?.enabled) redirect("/pricing?billing=unavailable");
   try {

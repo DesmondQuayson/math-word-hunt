@@ -74,9 +74,9 @@ test("public consumer pages state the exact product and minimum-data boundary", 
     await expect(page.getByText("Teacher Pro", { exact: false })).toHaveCount(0);
   }
   await page.goto("/pricing");
-  await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
-  await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
-  await expect(page.getByText(/Checkout is not active yet/i)).toBeVisible();
+  await expect(page).toHaveURL("/access?next=/subscription");
+  await expect(page.getByRole("heading", { name: "Continue to Subscription" })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|Stripe|Checkout/i);
 });
 
 test("signup collects only account credentials and rejects forged profile data", async ({ page }) => {
@@ -140,7 +140,11 @@ test("consumer provisioning ignores forged educational metadata", async () => {
 });
 
 test("signed-out authenticated routes redirect and protected assets deny", async ({ page, request }) => {
-  for (const path of ["/account", "/subscription", "/game-access", "/play"]) {
+  for (const path of ["/account", "/subscription"]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(`/access?next=${path}`);
+  }
+  for (const path of ["/game-access", "/play"]) {
     await page.goto(path);
     await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=${path.replace("/", "\\/")}$`));
   }

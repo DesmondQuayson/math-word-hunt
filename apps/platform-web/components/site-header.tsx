@@ -4,7 +4,6 @@ import { Container } from "@/components/layout/container";
 import { NavigationItem } from "@/components/layout/navigation-item";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
-import { loadPublishedCmsDocument } from "@/lib/cms/public";
 
 const navigation = [
   { href: "/play", label: "Play" },
@@ -27,16 +26,14 @@ const consumerNavigation = [
   { href: "/homework", label: "Homework" },
   { href: "/quizzes", label: "Quizzes" },
   { href: "/subscription", label: "Subscription" },
-  { href: "/my-account", label: "My Account" }
+  { href: "/account", label: "My Account" }
 ] as const;
 
 export async function SiteHeader() {
   const publicProduction = isProductionPublicMode();
   const productionPlatform = isProductionPlatformMode();
   const mathNexa = publicProduction || productionPlatform;
-  const defaults = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
-  const managed=productionPlatform?await loadPublishedCmsDocument("navigation"):null;const labels=new Map<string,string>();for(const block of managed?.content.blocks??[])for(const item of block.items??[])if(item.href&&defaults.some(entry=>entry.href===item.href))labels.set(item.href,item.title);
-  const items=defaults.map(item=>({...item,label:labels.get(item.href)??item.label}));
+  const items = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
   return (
     <header className="site-header">
       <Container className="header-inner">

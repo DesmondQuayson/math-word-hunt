@@ -15,7 +15,7 @@ import { Button } from "../ui/button";
 import { TextField } from "./text-field";
 
 type AuthFormProps = Readonly<{ configured: boolean }>;
-type SignUpFormProps = AuthFormProps & Readonly<{ consumerMode?: boolean }>;
+type SignUpFormProps = AuthFormProps & Readonly<{ consumerMode?: boolean; nextDestination?: string }>;
 type SignInFormProps = AuthFormProps & Readonly<{ nextDestination?: string }>;
 
 function FormMessage({ state, messageRef }: { state: AuthFormState; messageRef: React.RefObject<HTMLDivElement | null> }) {
@@ -41,12 +41,13 @@ function useMessageFocus(state: AuthFormState) {
   return ref;
 }
 
-export function SignUpForm({ configured, consumerMode = false }: SignUpFormProps) {
+export function SignUpForm({ configured, consumerMode = false, nextDestination }: SignUpFormProps) {
   const [state, action, pending] = useActionState(signUpAction, initialAuthFormState);
   const messageRef = useMessageFocus(state);
   return (
     <form className="prototype-form" action={action} noValidate>
       <FormMessage state={state} messageRef={messageRef} />
+      {nextDestination ? <input type="hidden" name="next" value={nextDestination} /> : null}
       <TextField id="signup-email" name="email" type="email" autoComplete="email" label="Email address" required error={state.fieldErrors?.email} />
       {!consumerMode ? <><TextField id="signup-display-name" name="displayName" autoComplete="name" label="Display name" description="Use the teacher name you want shown in the workspace." required maxLength={80} error={state.fieldErrors?.displayName} />
       <p className="form-field-note">Do not enter a school, district, classroom, institution, or organization name. Organization labels are disabled for this controlled pilot.</p></> : <p className="form-field-note">Only an email address and password are required. Do not enter educational, organization, or gameplay-progress information.</p>}

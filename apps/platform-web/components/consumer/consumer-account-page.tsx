@@ -8,10 +8,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
 import { getGameAccessView } from "@/lib/game-access/server";
+import { accessIntentHref } from "@/lib/auth/access-intent";
 
 export async function ConsumerAccountPage({ searchParams }: { searchParams?: Promise<{ deletion?: string }> }) {
   const context = await resolveConsumerContext();
-  if (context.status === "anonymous" || context.status === "unconfigured") redirect("/sign-in?next=/account");
+  if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/account"));
   const params = searchParams ? await searchParams : {};
   const access = await getGameAccessView();
   if (context.status === "unconfirmed") {

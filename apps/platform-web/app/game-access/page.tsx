@@ -4,8 +4,9 @@ import { GameAccessStatus } from "@/components/consumer/game-access-status";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { getGameAccessView } from "@/lib/game-access/server";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Game access" };
+export const metadata: Metadata = { title: "Game access", robots: { index: false, follow: false, noarchive: true, nocache: true } };
 export const dynamic = "force-dynamic";
 
 export default async function GameAccessPage() {

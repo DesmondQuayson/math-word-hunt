@@ -17,9 +17,11 @@ export const metadata: Metadata = {
     template: mathNexa ? "%s · MathNexa" : "%s · Math Vocabulary Hunt"
   },
   description: productionPlatform
-    ? "Subscription access to the MathNexa mathematics vocabulary game."
+    ? "Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
     : "A teacher-led classroom game for building fluency with the language of mathematics.",
-  robots: publicProduction ? { index: true, follow: true } : { index: false, follow: false, noarchive: true, nocache: true }
+  robots: publicProduction || productionPlatform
+    ? { index: true, follow: true }
+    : { index: false, follow: false, noarchive: true, nocache: true }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -14,8 +14,14 @@ import { isProductionPlatformMode } from "@/lib/environment/production-platform"
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { getGameAccessView } from "@/lib/game-access/server";
+import { redirect } from "next/navigation";
+import { accessIntentHref, confirmationRequiredHref } from "@/lib/auth/access-intent";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Pricing" };
+export const metadata: Metadata = {
+  title: "Pricing",
+  robots: { index: false, follow: false, noarchive: true, nocache: true }
+};
 
 const freePackage = getProductPackage("free");
 const monthlyPackage = getProductPackage("teacher-pro-monthly");
@@ -29,6 +35,8 @@ function money(amount: number | null, currency: string | null): string {
 
 async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: string; billing?: string; consent?: string }) {
   const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
+  if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
+  if (context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref("/subscription"));
   const config = tryGetConsumerBillingConfiguration();
   const canCheckout = context.status === "active" && !access.decision.allowed &&
     (access.decision.nextAction === "start-checkout" || access.decision.nextAction === "manage-subscription") &&
@@ -49,13 +57,11 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
         <li>The subscription renews automatically for $5.99 monthly until canceled.</li>
         <li>Cancel before the verified trial end to prevent the first charge.</li>
       </ul>
-      {context.status === "anonymous" || context.status === "unconfigured"
-        ? <LinkButton href="/sign-up">Create an account</LinkButton>
-        : canCheckout
-          ? <CommercialConsentForm />
-          : access.decision.allowed
-            ? <LinkButton href="/play">Continue playing</LinkButton>
-            : <LinkButton href="/subscription">Review subscription status</LinkButton>}
+      {canCheckout
+        ? <CommercialConsentForm />
+        : access.decision.allowed
+          ? <LinkButton href="/play">Continue playing</LinkButton>
+          : <LinkButton href="/subscription">Review subscription status</LinkButton>}
     </Card>
     {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active yet.</strong><p>The server does not have a complete approved billing configuration. No key or browser value can activate billing.</p></Notice> : null}
     <Notice label="Refund policy" tone="information"><strong>Authenticated review only.</strong><p>First-charge refund requests submitted within seven days receive manual review. MathNexa issues no automatic refunds. <a href="/refunds">Read the policy</a>.</p></Notice>

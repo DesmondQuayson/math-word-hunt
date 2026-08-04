@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import type { ConsumerContext } from "@/lib/auth/consumer-context";
 import type { CommercialConsentDecision } from "@/lib/commercial/policy";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import type { AccessIntentDestination } from "@/lib/auth/access-intent";
 
 import type { ConsumerBillingConfiguration } from "./consumer-config";
 import {
@@ -144,6 +145,7 @@ export async function createConsumerSetupCheckout(input: Readonly<{
   provider: ConsumerBillingProvider;
   repository: SupabaseConsumerBillingRepository;
   consent: CommercialConsentDecision;
+  returnDestination: AccessIntentDestination;
 }>): Promise<{ url: string; trialEligible: boolean }> {
   if (!input.config.checkoutEnabled) throw new ConsumerBillingOperationError("checkout-disabled");
   const activeOwner = owner(input.context);
@@ -169,8 +171,8 @@ export async function createConsumerSetupCheckout(input: Readonly<{
   const session = await input.provider.createSetupCheckout({
     userId: activeOwner.userId,
     customerId: customer.stripeCustomerId,
-    successUrl: `${input.config.applicationBaseUrl}/checkout/status?session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${input.config.applicationBaseUrl}/pricing?checkout=canceled`,
+    successUrl: `${input.config.applicationBaseUrl}/checkout/status?session_id={CHECKOUT_SESSION_ID}&next=${input.returnDestination}`,
+    cancelUrl: `${input.config.applicationBaseUrl}/subscription?checkout=canceled&next=${input.returnDestination}`,
     idempotencyKey: billingIdempotencyKey("consumer-setup", activeOwner.userId, `${input.config.stripeMode}:${window}`)
   });
   if (!session.url || !validHostedRedirect(session.url, input.config, "checkout") ||
