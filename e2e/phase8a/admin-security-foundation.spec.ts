@@ -74,7 +74,7 @@ test("only sign-in is public while unauthenticated and forged requests receive g
     const page = await context.newPage();
     expect((await page.goto("/admin/sign-in"))?.status()).toBe(200);
     await expect(page.getByText("Authorized owner only.")).toBeVisible();
-    for (const path of ["/admin", "/admin/mfa"]) {
+    for (const path of ["/admin", "/admin/mfa", "/admin/map-prep"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
       expect(response?.headers()["cache-control"], path).toMatch(/^(?:no-store|no-cache, must-revalidate)$/);
@@ -93,6 +93,11 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/(?:teacher|account)$/);
+    const switchResponse = await page.goto("/admin/sign-in");
+    expect(switchResponse?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Sign in to MathNexa Admin" })).toBeVisible();
+    await expect(page.getByText("You are currently signed in to MathNexa without Admin access.")).toBeVisible();
+    await expect(page.getByText(ownerEmail)).toHaveCount(0);
     for (const path of ["/admin", "/admin/mfa"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
@@ -101,6 +106,10 @@ test("an authenticated non-admin receives a genuine not-found response", async (
       await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
       await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
     }
+    await page.goto("/admin/sign-in");
+    await page.getByRole("button", { name: "Sign out and continue" }).click();
+    await expect(page).toHaveURL(/\/admin\/sign-in\?switched=1$/);
+    await expect(page.getByLabel("Owner email address")).toBeVisible();
   } finally { await closeContext(context); }
 });
 
@@ -129,7 +138,9 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Admin modules" }).getByRole("link")).toHaveCount(12);
-  await expect(page.getByRole("link", { name: /MAP Prep/ })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Admin modules" }).getByRole("link", { name: /MAP Prep/ }),
+  ).toBeVisible();
   await expect(page.getByText(/ShowMe Math Admin/)).toHaveCount(0);
 
   const activeSession = await adminClient.from("admin_sessions")
@@ -137,6 +148,20 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   if (activeSession.error) throw activeSession.error;
   expect(Date.parse(activeSession.data.expires_at) - Date.parse(activeSession.data.started_at)).toBeLessThanOrEqual(15 * 60_000 + 1_000);
   expect(activeSession.data).toMatchObject({ ended_at: null, revoked_at: null });
+
+  const sessionCookie = (await page.context().cookies()).find((cookie) => cookie.name === "mvh-admin-session");
+  expect(sessionCookie?.value).toBeTruthy();
+  await page.getByRole("button", { name: "End admin session" }).click();
+  await expect(page).toHaveURL(/\/admin\/sign-in\?signedOut=1$/);
+  await expect(page.getByLabel("Owner email address")).toBeVisible();
+  if (sessionCookie) await page.context().addCookies([sessionCookie]);
+  expect((await page.goto("/admin"))?.status()).toBe(404);
+
+  await signIn(page, ownerEmail);
+  await expect(page).toHaveURL(/\/admin\/mfa$/);
+  await page.getByLabel("Six-digit authenticator code").fill(totp(secret));
+  await page.getByRole("button", { name: "Verify and open admin" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
 
   const revoked = await adminClient.rpc("revoke_admin_access", {
     p_user_id: ownerUser.id,
@@ -155,7 +180,7 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
     .or(`admin_user_id.eq.${adminUserId},admin_user_id.is.null`);
   if (audit.error) throw audit.error;
   const actions = audit.data.map((entry) => entry.action);
-  for (const action of ["admin.login.success", "admin.login.failure", "admin.mfa.success", "admin.mfa.failure", "admin.session.started", "admin.revoked"]) {
+  for (const action of ["admin.login.success", "admin.login.failure", "admin.mfa.success", "admin.mfa.failure", "admin.session.started", "admin.session.ended", "admin.revoked"]) {
     expect(actions).toContain(action);
   }
 });

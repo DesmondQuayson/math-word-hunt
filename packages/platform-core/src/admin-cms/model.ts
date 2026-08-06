@@ -44,6 +44,7 @@ export type StructuredCmsDraft = Readonly<{
 
 export type MapPrepDestination = Readonly<{
   label: string;
+  publicDescription: string;
   destinationUrl: string;
   adminDestinationUrl: string | null;
   enabled: boolean;
@@ -87,16 +88,18 @@ export function parseMapPrepDestination(input: unknown, verifiedAt: string): Map
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const value = input as Record<string, unknown>;
   const label = text(value.label, 120, false);
+  const publicDescription = text(value.publicDescription ?? "", 500, true);
   const destination = publicHttpsUrl(value.destinationUrl);
   const adminDestination = value.adminDestinationUrl ? publicHttpsUrl(value.adminDestinationUrl) : null;
   const enabled = value.enabled === true || value.enabled === "true";
   const openMode = value.openMode;
   const timestamp = new Date(verifiedAt);
-  if (!label || !destination || (value.adminDestinationUrl && !adminDestination) ||
+  if (!label || publicDescription === null || !destination || (value.adminDestinationUrl && !adminDestination) ||
       (openMode !== "same_tab" && openMode !== "new_tab") || Number.isNaN(timestamp.valueOf())) return null;
   const allowedHosts = [...new Set([destination.hostname.toLowerCase(), adminDestination?.hostname.toLowerCase()].filter(Boolean) as string[])];
   return Object.freeze({
     label,
+    publicDescription,
     destinationUrl: destination.toString(),
     adminDestinationUrl: adminDestination?.toString() ?? null,
     enabled,
@@ -112,6 +115,7 @@ export function readMapPrepDestination(input: unknown): MapPrepDestination | nul
   const value = input as Record<string, unknown>;
   const parsed = parseMapPrepDestination({
     label: value.label,
+    publicDescription: value.publicDescription ?? "",
     destinationUrl: value.destinationUrl,
     adminDestinationUrl: value.adminDestinationUrl,
     enabled: value.enabled,

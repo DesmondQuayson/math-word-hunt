@@ -1,6 +1,6 @@
 export const ADMIN_SECTIONS = [
   ["dashboard", "Dashboard", "Overview"],
-  ["games", "Games", "Packages"],
+  ["games", "Games", "Standalone catalog"],
   ["map-prep", "MAP Prep", "External destination"],
   ["homework", "Homework", "PDF library"],
   ["quizzes", "Quizzes", "PDF library"],

@@ -6,12 +6,12 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
 import { createAdminCsrfToken } from "@/lib/admin/security";
-import { inspectPreMfaAdmin } from "@/lib/admin/session";
+import { inspectPendingMfaAdmin } from "@/lib/admin/session";
 
 export const metadata = { title: "Admin MFA", robots: { index: false, follow: false, noarchive: true } };
 
 export default async function AdminMfaPage() {
-  const preliminary = await inspectPreMfaAdmin();
+  const preliminary = await inspectPendingMfaAdmin();
   if (preliminary.state !== "ready" || preliminary.assuranceLevel !== "aal1") notFound();
   const config = getAdminSecurityConfig();
   if (!config) notFound();

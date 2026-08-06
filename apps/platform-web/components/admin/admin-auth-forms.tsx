@@ -8,6 +8,7 @@ import {
   adminSignInAction,
   adminVerifyMfaAction
 } from "@/app/admin/actions";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/forms/text-field";
 import { initialAdminAuthFormState, type AdminAuthFormState } from "@/lib/admin/form-state";
@@ -30,6 +31,17 @@ export function AdminSignInForm({ csrfToken }: { csrfToken: string }) {
     <TextField id="admin-password" name="password" type="password" autoComplete="current-password" label="Password" required />
     <div className="form-actions"><Button type="submit" loading={pending}>Continue securely</Button></div>
   </form>;
+}
+
+export function AdminAccountSwitch({ csrfToken, action }: { csrfToken: string; action: (formData: FormData) => void | Promise<void> }) {
+  return <section className="admin-account-switch" aria-labelledby="admin-account-switch-title">
+    <h1 id="admin-account-switch-title">Sign in to MathNexa Admin</h1>
+    <p>You are currently signed in to MathNexa without Admin access. Sign out of this account to continue with the authorized owner account.</p>
+    <div className="form-actions">
+      <form action={action}><input type="hidden" name="csrfToken" value={csrfToken} /><Button type="submit">Sign out and continue</Button></form>
+      <Link className="button button-secondary" href="/">Return to MathNexa</Link>
+    </div>
+  </section>;
 }
 
 function AdminVerifyForm({ csrfToken, factorId }: { csrfToken: string; factorId: string }) {

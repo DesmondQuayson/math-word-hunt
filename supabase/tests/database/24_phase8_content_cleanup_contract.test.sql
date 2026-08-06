@@ -66,6 +66,28 @@ select ok(
   'service_role receives no general-purpose audit-delete table privilege'
 );
 
+select is(
+  (select confdeltype from pg_constraint where conname='game_catalog_destination_audit_catalog_entry_id_fkey'),
+  'r'::"char",
+  'normal catalog deletion remains blocked while destination audit evidence exists'
+);
+
+select ok(
+  exists(
+    select 1 from pg_trigger
+    where tgrelid='public.game_catalog_destination_audit'::regclass
+      and tgname='game_catalog_destination_audit_reject_mutation'
+      and not tgisinternal
+  ),
+  'normal game destination audit evidence retains its append-only trigger'
+);
+
+select throws_ok(
+  $$delete from public.game_catalog_destination_audit where catalog_entry_id='9b000000-0000-4000-8000-000000000001'$$,
+  'P0001', 'Game catalog destination audit is append-only',
+  'normal application operations cannot delete destination audit evidence'
+);
+
 select results_eq(
   $$select count(*)::bigint from public.admin_audit_log$$,
   $$values (0::bigint)$$,

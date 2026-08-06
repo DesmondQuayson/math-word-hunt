@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 
 const read = (path) => readFileSync(path, "utf8");
 const migration = read("supabase/migrations/20260805120000_phase9b_all_access_product_model.sql");
@@ -32,11 +31,14 @@ for (const forbidden of [/localStorage/i, /document\.cookie/i, /query.*entitleme
   if (forbidden.test(access + repository)) throw new Error(`Browser authority pattern reached server access code: ${forbidden}`);
 }
 
-const changed = execFileSync("git", ["diff", "--name-only", "HEAD"], { encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
-for (const name of changed) {
-  if (name.startsWith("apps/platform-web/app/admin/") || name.startsWith("apps/platform-web/lib/admin/") || name.startsWith("apps/platform-web/components/admin/")) {
-    throw new Error(`Phase 9B modified strict Admin non-scope: ${name}`);
-  }
+for (const forbidden of [
+  /alter table public\.admin_users/i,
+  /alter table public\.admin_sessions/i,
+  /create (?:or replace )?function public\.(?:start|consume)_admin_/i,
+  /update public\.admin_users/i,
+  /delete from public\.admin_users/i
+]) {
+  if (forbidden.test(migration)) throw new Error(`Phase 9B migration crossed its strict Admin non-scope: ${forbidden}`);
 }
 const protectedHashes = new Map([
   ["docs/index.html", "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"],

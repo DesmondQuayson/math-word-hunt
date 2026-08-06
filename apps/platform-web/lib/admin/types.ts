@@ -24,6 +24,16 @@ export type AdminClientContext = Readonly<{
   userAgent: string | null;
 }>;
 
+export type AdminMfaChallengeRecord = Readonly<{
+  id: string;
+  admin_user_id: string;
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  consumed_at: string | null;
+  revoked_at: string | null;
+}>;
+
 export type AdminAccessDecision =
   | Readonly<{ state: "disabled" | "unavailable" | "unauthenticated" | "non-admin" | "mfa-required" | "reauth-required" }>
   | Readonly<{ state: "authorized"; admin: AdminUserRecord; session: AdminSessionRecord }>;

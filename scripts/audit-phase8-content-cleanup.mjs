@@ -14,7 +14,20 @@ const targeted = buildTargetedCleanupSql(auditRunId, {
   runId: auditRunId,
   startedAt: "2026-08-04T12:00:00.000Z",
   frozenAt: "2026-08-04T12:10:00.000Z",
-  auditRows: [{ id: "11111111-1111-4111-8111-111111111111", target: "22222222-2222-4222-8222-222222222222" }]
+  auditRows: [{ id: "11111111-1111-4111-8111-111111111111", target: "22222222-2222-4222-8222-222222222222" }],
+  catalogRows: [{
+    id: "33333333-3333-4333-8333-333333333333",
+    stableKey: `phase10-game-${auditRunId.slice(0, 12)}`,
+    launchType: "hosted_package",
+    packageId: "44444444-4444-4444-8444-444444444444",
+    resourceId: "55555555-5555-4555-8555-555555555555",
+    createdAt: "2026-08-04T12:05:00.000Z"
+  }],
+  destinationAuditRows: [{
+    id: "66666666-6666-4666-8666-666666666666",
+    catalogEntryId: "33333333-3333-4333-8333-333333333333",
+    recordedAt: "2026-08-04T12:05:01.000Z"
+  }]
 });
 const fallback = buildFallbackBucketDeleteSql();
 
@@ -35,6 +48,10 @@ rejectMatch(targeted, /delete from auth\.users/i, "Database cleanup must leave A
 rejectMatch(targeted, /delete from public\.admin_audit_log where admin_user_id/i, "Audit cleanup must never use actor-only deletion.");
 requireMatch(targeted, /delete from public\.admin_audit_log audit using phase8_cleanup_audits/, "Audit cleanup must use the exact captured ID allowlist.");
 requireMatch(targeted, /phase8_cleanup_audit_allowlist_mismatch/, "Audit cleanup must fail closed on ambiguous rows.");
+requireMatch(targeted, /delete from public\.game_catalog_destination_audit audit using phase8_cleanup_destination_audits/, "Destination evidence must use the exact captured ID allowlist.");
+requireMatch(targeted, /phase8_cleanup_unapproved_destination_audit/, "Catalog cleanup must reject uncaptured destination evidence.");
+requireMatch(targeted, /phase8_cleanup_destination_audit_remaining/, "Catalog cleanup must prove destination evidence is gone first.");
+rejectMatch(targeted, /on delete cascade/i, "Cleanup must preserve restrictive destination-audit foreign keys.");
 requireMatch(targeted, /allowed\.actor_bound and audit\.admin_user_id in/, "Targetless audit cleanup must require the exact synthetic actor.");
 requireMatch(targeted, /not allowed\.actor_bound and audit\.admin_user_id is null/, "Entity-bound audit cleanup must preserve null-actor isolation.");
 rejectMatch(fallback, /delete from storage\.objects/i, "Fallback must require object cleanup before bucket-definition repair.");

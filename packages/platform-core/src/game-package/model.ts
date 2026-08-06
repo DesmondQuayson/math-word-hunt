@@ -7,9 +7,9 @@ export type GamePackageManifest = Readonly<{
   version: string;
   title: string;
   description: string;
-  grade: number;
-  topic: string;
-  lesson: string;
+  grade?: number;
+  topic?: string;
+  lesson?: string;
   entryFile: string;
   thumbnail: string;
   assetInventory: readonly string[];
@@ -56,16 +56,21 @@ function text(value: unknown, maximum: number): string | null {
 export function parseGamePackageManifest(value: unknown): GamePackageManifest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const source = value as Record<string, unknown>;
-  const exactKeys = ["package_schema_version", "game_id", "version", "title", "description", "grade", "topic", "lesson", "entry_file", "thumbnail", "asset_inventory", "integrity_hashes", "minimum_mathnexa_runtime_version"];
-  if (Object.keys(source).sort().join("|") !== [...exactKeys].sort().join("|")) return null;
+  const requiredKeys = ["package_schema_version", "game_id", "version", "title", "description", "entry_file", "thumbnail", "asset_inventory", "integrity_hashes", "minimum_mathnexa_runtime_version"];
+  const optionalTaxonomyKeys = ["grade", "topic", "lesson"];
+  const sourceKeys = Object.keys(source);
+  if (requiredKeys.some((key) => !sourceKeys.includes(key)) ||
+      sourceKeys.some((key) => !requiredKeys.includes(key) && !optionalTaxonomyKeys.includes(key))) return null;
+  const taxonomyCount = optionalTaxonomyKeys.filter((key) => sourceKeys.includes(key)).length;
+  if (taxonomyCount !== 0 && taxonomyCount !== optionalTaxonomyKeys.length) return null;
   const gameId = typeof source.game_id === "string" && SLUG.test(source.game_id) && source.game_id.length <= 64 ? source.game_id : null;
   const version = typeof source.version === "string" && SEMVER.test(source.version) ? source.version : null;
   const title = text(source.title, 160); const description = text(source.description, 4000);
-  const grade = Number.isInteger(source.grade) && Number(source.grade) >= 1 && Number(source.grade) <= 9 ? Number(source.grade) : null;
-  const topic = text(source.topic, 120); const lesson = text(source.lesson, 160);
+  const grade = taxonomyCount === 0 ? undefined : Number.isInteger(source.grade) && Number(source.grade) >= 1 && Number(source.grade) <= 9 ? Number(source.grade) : null;
+  const topic = taxonomyCount === 0 ? undefined : text(source.topic, 120); const lesson = taxonomyCount === 0 ? undefined : text(source.lesson, 160);
   const entryFile = normalizeGameAssetPath(source.entry_file); const thumbnail = normalizeGameAssetPath(source.thumbnail);
   const minimum = typeof source.minimum_mathnexa_runtime_version === "string" && SEMVER.test(source.minimum_mathnexa_runtime_version) ? source.minimum_mathnexa_runtime_version : null;
-  if (!gameId || !version || !title || !description || !grade || !topic || !lesson || !entryFile || !thumbnail || !minimum) return null;
+  if (!gameId || !version || !title || !description || grade === null || topic === null || lesson === null || !entryFile || !thumbnail || !minimum) return null;
   if (!entryFile.startsWith("game/") || !entryFile.endsWith(".html") || thumbnail !== "thumbnail.png") return null;
   if (!Array.isArray(source.asset_inventory) || source.asset_inventory.length < 3 || source.asset_inventory.length > 255) return null;
   const inventory = source.asset_inventory.map(normalizeGameAssetPath);
@@ -80,8 +85,9 @@ export function parseGamePackageManifest(value: unknown): GamePackageManifest | 
     const extension = path.split(".").at(-1)?.toLowerCase() ?? "";
     return !ALLOWED_EXTENSIONS.has(extension) || /(^|\/)(?:package\.json|node_modules)(?:\/|$)/i.test(path);
   })) return null;
-  return Object.freeze({ packageSchemaVersion: GAME_PACKAGE_SCHEMA_VERSION, gameId, version, title, description, grade, topic, lesson,
-    entryFile, thumbnail, assetInventory: Object.freeze(paths), integrityHashes: Object.freeze(Object.fromEntries(paths.map((path) => [path, hashes[path] as string]))), minimumMathNexaRuntimeVersion: minimum });
+  return Object.freeze({ packageSchemaVersion: GAME_PACKAGE_SCHEMA_VERSION, gameId, version, title, description,
+    ...(grade === undefined ? {} : { grade, topic: topic!, lesson: lesson! }), entryFile, thumbnail,
+    assetInventory: Object.freeze(paths), integrityHashes: Object.freeze(Object.fromEntries(paths.map((path) => [path, hashes[path] as string]))), minimumMathNexaRuntimeVersion: minimum });
 }
 
 function inspectTextAsset(path: string, bytes: Uint8Array): string[] {

@@ -82,11 +82,15 @@ export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOut
 
       <div className="admin-main" id="admin-main">
         <nav className="admin-breadcrumbs" aria-label="Breadcrumb"><ol><li><Link href="/admin">Super Admin</Link></li><li aria-current="page">{selected[1]}</li></ol></nav>
+        <AdminPrimaryActions section={selected[0]} />
         {selected[0] === "dashboard" ? <AdminDashboard snapshot={snapshot} /> : moduleContent ?? <AdminModuleEmpty title={selected[1]} detail={selected[2]} />}
       </div>
     </div>
   </div>;
 }
+
+const PRIMARY_ACTIONS:Readonly<Record<string,readonly Readonly<{label:string;href:string}>[]>>={dashboard:[{label:"Add Game",href:"/admin?section=games#add-games"},{label:"Add Homework",href:"/admin?section=homework#add-homework"},{label:"Add Quiz",href:"/admin?section=quizzes#add-quizzes"},{label:"Configure MAP Prep",href:"/admin?section=map-prep#map-prep-editor"},{label:"Manage Taxonomy",href:"/admin?section=homework#homework-taxonomy"}],games:[{label:"Add Game",href:"/admin?section=games#add-games"}],homework:[{label:"Add Homework",href:"/admin?section=homework#add-homework"}],quizzes:[{label:"Add Quiz",href:"/admin?section=quizzes#add-quizzes"}],"map-prep":[{label:"Edit Destination",href:"/admin?section=map-prep#map-prep-editor"}]};
+function AdminPrimaryActions({section}:{section:string}){const actions=PRIMARY_ACTIONS[section]??[];if(!actions.length)return null;return <nav className="admin-primary-actions" aria-label="Primary authoring actions"><span>Quick operations</span>{actions.map((action,index)=><Link key={action.label} className={index===0?"admin-primary-action":"admin-secondary-action"} href={action.href}>{action.label}</Link>)}</nav>}
 
 function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapshot }>) {
   return <div className="admin-dashboard">
@@ -107,6 +111,10 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
           <div><dt>Application</dt><dd data-tone={snapshot.systemHealth === "operational" ? "good" : "warning"}>{snapshot.systemHealth}</dd></div>
           <div><dt>Email</dt><dd data-tone={snapshot.emailHealth === "healthy" ? "good" : snapshot.emailHealth === "attention" ? "warning" : "neutral"}>{snapshot.emailHealth.replaceAll("-", " ")}</dd></div>
           <div><dt>Webhooks</dt><dd data-tone={snapshot.webhookHealth === "healthy" ? "good" : snapshot.webhookHealth === "attention" ? "warning" : "neutral"}>{snapshot.webhookHealth.replaceAll("-", " ")}</dd></div>
+          <div><dt>Private storage</dt><dd data-tone={snapshot.storageHealth === "healthy" ? "good" : "warning"}>{snapshot.storageHealth}</dd></div>
+          <div><dt>Game package validation</dt><dd data-tone={snapshot.packageHealth === "healthy" ? "good" : snapshot.packageHealth === "attention" ? "warning" : "neutral"}>{snapshot.packageHealth.replaceAll("-", " ")}</dd></div>
+          <div><dt>PDF quarantine</dt><dd data-tone={snapshot.pdfQuarantineCount === 0 ? "good" : "warning"}>{snapshot.pdfQuarantineCount ?? "unavailable"}</dd></div>
+          <div><dt>ZIP quarantine</dt><dd data-tone={snapshot.packageQuarantineCount === 0 ? "good" : "warning"}>{snapshot.packageQuarantineCount ?? "unavailable"}</dd></div>
         </dl><p className="admin-honesty-note">Missing provider signals are never shown as healthy. Detailed evidence is available in Analytics and Settings.</p>
       </section>
       <section className="admin-audit-panel" aria-labelledby="admin-audit-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Immutable evidence</p><h2 id="admin-audit-title">Recent admin actions</h2></div><Link href="/admin?section=audit-log">Open audit log</Link></div>

@@ -416,8 +416,47 @@ async function syntheticResourceDiagnostic(adminId) {
   };
 }
 
+async function freezeRunGameCleanupScope(fixture) {
+  const resources = await admin.from("content_resources").select("id").eq("created_by", fixture.adminId);
+  const packages = await admin.from("game_packages").select("id,resource_id").eq("created_by", fixture.adminId);
+  if (resources.error || packages.error) throw new Error("game-cleanup-dependencies-unavailable");
+  const resourceIds = new Set(resources.data.map((row) => row.id));
+  const packageRows = new Map(packages.data.map((row) => [row.id, row]));
+  if (resourceIds.size === 0) return { catalogRows: [], destinationAuditRows: [] };
+  const catalog = await admin.from("game_catalog_entries")
+    .select("id,stable_key,launch_type,package_id,resource_id,created_at")
+    .in("resource_id", [...resourceIds]);
+  if (catalog.error) throw new Error("game-cleanup-catalog-unavailable");
+  for (const row of catalog.data) {
+    check(row.launch_type === "hosted_package" && resourceIds.has(row.resource_id) &&
+      packageRows.has(row.package_id) && packageRows.get(row.package_id).resource_id === row.resource_id,
+    "game-cleanup-catalog-ownership-ambiguous");
+  }
+  const catalogRows = catalog.data.map((row) => ({
+    id: row.id, stableKey: row.stable_key, launchType: row.launch_type,
+    packageId: row.package_id, resourceId: row.resource_id, createdAt: row.created_at
+  })).sort((left, right) => left.id.localeCompare(right.id));
+  addRunEntityTargets(fixture, catalogRows.map((row) => row.id));
+  if (catalogRows.length === 0) return { catalogRows, destinationAuditRows: [] };
+  const destination = await admin.from("game_catalog_destination_audit")
+    .select("id,catalog_entry_id,recorded_at")
+    .in("catalog_entry_id", catalogRows.map((row) => row.id))
+    .order("recorded_at");
+  if (destination.error) throw new Error("game-cleanup-destination-audit-unavailable");
+  for (const row of catalogRows) {
+    check(destination.data.some((audit) => audit.catalog_entry_id === row.id), "game-cleanup-destination-audit-missing");
+  }
+  return {
+    catalogRows,
+    destinationAuditRows: destination.data.map((row) => ({
+      id: row.id, catalogEntryId: row.catalog_entry_id, recordedAt: row.recorded_at
+    }))
+  };
+}
+
 async function freezeRunAuditScope(fixture) {
   await collectRunEntityTargets(fixture);
+  const gameScope = await freezeRunGameCleanupScope(fixture);
   fixture.frozenAt ??= new Date().toISOString();
   await captureRunAuditRows(fixture);
   check(fixture.auditRows.size > 0, "audit-cleanup-empty-allowlist");
@@ -426,7 +465,8 @@ async function freezeRunAuditScope(fixture) {
     runId: fixture.runId,
     startedAt: fixture.startedAt,
     frozenAt: fixture.frozenAt,
-    auditRows: [...fixture.auditRows.values()].sort((left, right) => left.id.localeCompare(right.id))
+    auditRows: [...fixture.auditRows.values()].sort((left, right) => left.id.localeCompare(right.id)),
+    ...gameScope
   };
 }
 

@@ -18,10 +18,13 @@ describe("structured CMS",()=>{
     expect(parseMediaMetadata({kind:"audio",altText:"",caption:"Directions",attribution:"MathNexa",license:"owned"})?.kind).toBe("audio");
   });
   it("builds and revalidates an explicit MAP Prep host policy",()=>{
-    const destination=parseMapPrepDestination({label:"MAP Prep",destinationUrl:"https://learn.showmemath.example.com/path",adminDestinationUrl:"https://admin.showmemath.example.com",enabled:true,openMode:"new_tab"},"2026-08-04T12:00:00Z");
+    const destination=parseMapPrepDestination({label:"MAP Prep",publicDescription:"Reviewed practice destination.",destinationUrl:"https://learn.showmemath.example.com/path",adminDestinationUrl:"https://admin.showmemath.example.com",enabled:true,openMode:"new_tab"},"2026-08-04T12:00:00Z");
     expect(destination?.allowedHosts).toEqual(["learn.showmemath.example.com","admin.showmemath.example.com"]);
     expect(readMapPrepDestination(destination)).toEqual(destination);
     expect(parseMapPrepDestination({label:"Unsafe",destinationUrl:"https://127.0.0.1/admin",enabled:true,openMode:"same_tab"},"2026-08-04T12:00:00Z")).toBeNull();
     expect(parseMapPrepDestination({label:"Unsafe",destinationUrl:"data:text/html,bad",enabled:true,openMode:"same_tab"},"2026-08-04T12:00:00Z")).toBeNull();
+    const disabled=parseMapPrepDestination({label:"Disabled",destinationUrl:"https://learn.showmemath.example.com/path",enabled:false,openMode:"same_tab"},"2026-08-04T12:00:00Z");
+    expect(disabled?.enabled).toBe(false);
+    expect(readMapPrepDestination(disabled)?.enabled).toBe(false);
   });
 });

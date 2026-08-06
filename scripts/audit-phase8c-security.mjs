@@ -19,17 +19,20 @@ for (const label of ["Dashboard", "Games", "MAP Prep", "Homework", "Quizzes", "U
   if (!navigation.includes(`"${label}"`)) throw new Error(`Admin navigation is missing ${label}.`);
 }
 const stateMarkers = completePhase8Integrated
-  ? ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Entitlement-authorized downloads in the last 30 days", "No confirmation or recovery delivery signal is available.", "no placeholder data has been created"]
+  ? ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Entitlement-authorized downloads", "No confirmation or recovery delivery signal is available.", "no placeholder data has been created"]
   : ["Ctrl K", "You are offline.", "Live admin data is unavailable.", "Download events are not collected yet", "no placeholder data has been created"];
 for (const marker of stateMarkers) {
   if (!`${component}\n${dashboard}\n${operations}`.includes(marker)) throw new Error(`Admin state contract is missing ${marker}.`);
+}
+for (const marker of ['from("resource_download_events")', '.gte("downloaded_at", window.start)', '.lte("downloaded_at", window.end)']) {
+  if (!operations.includes(marker)) throw new Error(`Admin download metric is missing its bounded range contract: ${marker}.`);
 }
 for (const marker of ["prefers-reduced-motion", "forced-colors", "@media (max-width: 48rem)", "--size-target-min"]) {
   const source = marker === "prefers-reduced-motion" ? read("apps/platform-web/styles/foundations.css") : styles;
   if (!source.includes(marker)) throw new Error(`Admin accessibility styling is missing ${marker}.`);
 }
 for (const marker of ["createServiceSupabaseClient", "server-only", "billing_subscriptions", "admin_audit_log"]) {
-  if (!dashboard.includes(marker)) throw new Error(`Admin dashboard server boundary is missing ${marker}.`);
+  if (!`${dashboard}\n${operations}`.includes(marker)) throw new Error(`Admin server boundary is missing ${marker}.`);
 }
 for (const forbidden of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "SUPABASE_SECRET_KEY", "NEXT_PUBLIC_MVH_ADMIN", "dangerouslySetInnerHTML", "ShowMe Math"]) {
   if (component.includes(forbidden) || page.includes(forbidden)) throw new Error(`Admin browser surface contains forbidden marker ${forbidden}.`);

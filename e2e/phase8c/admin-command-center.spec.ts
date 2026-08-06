@@ -55,7 +55,7 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Admin modules" }).getByRole("link")).toHaveCount(12);
-  await expect(page.getByText("Entitlement-authorized downloads in the last 30 days")).toBeVisible();
+  await expect(page.getByText("Standalone catalog entries")).toBeVisible();
   await expect(page.locator(".admin-health-panel dl > div").filter({ hasText: "Email" }).getByText("no events", { exact: true })).toBeVisible();
 
   await page.keyboard.press("Control+k");
@@ -72,12 +72,19 @@ test("owner command center is accessible, responsive, honest, and preference-awa
 
   for (const [section, action] of [["games","Add Game"],["homework","Add Homework"],["quizzes","Add Quiz"]] as const) {
     await page.goto(`/admin?section=${section}`);
-    await expect(page.getByRole("link", { name: action, exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Grade → Topic → Lesson" })).toBeVisible();
+    await expect(
+      page.getByLabel("Primary authoring actions").getByRole("link", { name: action, exact: true }),
+    ).toBeVisible();
+    if(section==="games")await expect(page.getByText("Standalone product catalog")).toBeVisible();
+    if(section==="homework")await expect(page.getByRole("heading", { name: "Grade > Topic > Lesson" })).toBeVisible();
+    if(section==="quizzes")await expect(page.getByRole("heading", { name: "Grade > Topic" })).toBeVisible();
   }
-  await page.goto("/admin?section=map-prep");
+  await page.goto("/admin/map-prep");
+  await expect(page).toHaveURL(/\/admin\?section=map-prep$/);
   await expect(page.getByRole("heading", { name: "MAP Prep destination" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add destination" })).toBeVisible();
+  await expect(
+    page.getByLabel("Primary authoring actions").getByRole("link", { name: "Edit Destination", exact: true }),
+  ).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("navigation", { name: "Admin modules" })).toBeVisible();

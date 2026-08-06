@@ -2,7 +2,7 @@ import "server-only";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
-import type { AdminClientContext, AdminSessionRecord, AdminUserRecord } from "./types";
+import type { AdminClientContext, AdminMfaChallengeRecord, AdminSessionRecord, AdminUserRecord } from "./types";
 
 export type AdminAuditEvent = Readonly<{
   adminUserId: string | null;
@@ -29,6 +29,29 @@ export class AdminRepository {
       .eq("token_hash", tokenHash).maybeSingle();
     if (result.error) throw new Error("Admin session lookup failed.");
     return result.data as AdminSessionRecord | null;
+  }
+
+  async startMfaChallenge(adminUserId: string, tokenHash: string, expiresAt: Date, context: AdminClientContext): Promise<void> {
+    const created = await this.client.rpc("start_admin_mfa_challenge", {
+      p_admin_user_id: adminUserId, p_token_hash: tokenHash, p_expires_at: expiresAt.toISOString(),
+      p_ip: context.ip, p_user_agent: context.userAgent
+    });
+    if (created.error || typeof created.data !== "string") throw new Error("Admin MFA challenge creation failed.");
+  }
+
+  async findMfaChallengeByHash(tokenHash: string): Promise<AdminMfaChallengeRecord | null> {
+    const result = await this.client.from("admin_mfa_challenges")
+      .select("id,admin_user_id,token_hash,created_at,expires_at,consumed_at,revoked_at")
+      .eq("token_hash", tokenHash).maybeSingle();
+    if (result.error) throw new Error("Admin MFA challenge lookup failed.");
+    return result.data as AdminMfaChallengeRecord | null;
+  }
+
+  async consumeMfaChallenge(tokenHash: string, now = new Date()): Promise<boolean> {
+    void now;
+    const result = await this.client.rpc("consume_admin_mfa_challenge", { p_token_hash: tokenHash });
+    if (result.error || typeof result.data !== "boolean") throw new Error("Admin MFA challenge consumption failed.");
+    return result.data;
   }
 
   async recordAudit(event: AdminAuditEvent): Promise<void> {

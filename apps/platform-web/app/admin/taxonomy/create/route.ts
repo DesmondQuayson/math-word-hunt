@@ -6,7 +6,7 @@ import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 function back(request: Request, section: string, result: string) {
   const target = new URL("/admin", process.env.MVH_APPLICATION_ORIGIN ?? request.url);
-  target.searchParams.set("section", ["games", "homework", "quizzes"].includes(section) ? section : "games");
+  target.searchParams.set("section", ["homework", "quizzes"].includes(section) ? section : "homework");
   target.searchParams.set("taxonomy", result);
   return NextResponse.redirect(target, 303);
 }

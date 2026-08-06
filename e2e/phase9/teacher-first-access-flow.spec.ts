@@ -39,6 +39,16 @@ function signedEvent(event: Record<string, unknown>) {
   };
 }
 
+async function commercialCounts() {
+  const counts: Record<string, number> = {};
+  for (const table of ["billing_customers","billing_subscriptions","consumer_commercial_acceptances","consumer_checkout_acceptance_bindings"]) {
+    const result = await admin.from(table).select("id", { count: "exact", head: true });
+    if (result.error) throw result.error;
+    counts[table] = result.count ?? -1;
+  }
+  return counts;
+}
+
 test.beforeAll(async () => {
   expect(url).toMatch(/^http:\/\/127\.0\.0\.1:/);
   admin = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -169,6 +179,8 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await expect(page.getByRole("button", { name: "Accept terms and continue to Stripe" })).toBeEnabled();
   await page.goto("/games?access=active");
   await expect(page).toHaveURL("/subscription?next=/games");
+  await page.goto("/map-prep?destinationUrl=https://evil.example/override");
+  await expect(page).toHaveURL("/subscription?next=/map-prep");
 });
 
 test("server-entitled accounts reach all four selected products and validated MAP Prep state", async ({ page }) => {
@@ -199,6 +211,13 @@ test("server-entitled accounts reach all four selected products and validated MA
   await expect(page.getByRole("combobox", { name: "Lesson" })).toHaveCount(0);
   await page.goto("/map-prep");
   await expect(page.getByText("MAP Prep is not configured", { exact: true })).toBeVisible();
+  const beforeMissingMap = await commercialCounts();
+  await page.goto("/map-prep?destinationUrl=https://evil.example/override");
+  await expect(page.getByText("MAP Prep is not configured", { exact: true })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/subscription required|checkout required/i);
+  expect(new URL(page.url()).pathname).toBe("/map-prep");
+  await expect(page.locator('a[href*="evil.example"]')).toHaveCount(0);
+  expect(await commercialCounts()).toEqual(beforeMissingMap);
 });
 
 test("fixture Checkout polls server entitlement and returns to the selected product without duplication", async ({ page, request }) => {

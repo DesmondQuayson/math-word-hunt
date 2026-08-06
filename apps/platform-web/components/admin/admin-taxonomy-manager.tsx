@@ -1,47 +1,29 @@
-import type { AdminTaxonomySnapshot } from "@/lib/admin/taxonomy";
+import type { AdminTaxonomySnapshot, AdminTaxonomyState } from "@/lib/admin/taxonomy";
 
-export function AdminTaxonomyManager({ snapshot, csrfToken, section, result }: Readonly<{
-  snapshot: AdminTaxonomySnapshot;
-  csrfToken: string;
-  section: "games" | "homework" | "quizzes";
-  result?: string;
-}>) {
-  if (snapshot.state === "unavailable") return <div className="admin-state-banner admin-state-danger" role="alert"><strong>Curriculum paths are unavailable.</strong> Creation controls failed closed.</div>;
+type Section = "homework"|"quizzes";
+
+export function AdminTaxonomyManager({snapshot,csrfToken,section,result,requiredDepth}:Readonly<{
+  snapshot:AdminTaxonomySnapshot;csrfToken:string;section:Section;result?:string;requiredDepth:"topic"|"lesson";
+}>){
+  if(snapshot.state==="unavailable")return <div className="admin-state-banner admin-state-danger" role="alert"><strong>Curriculum paths are unavailable.</strong> Creation controls failed closed.</div>;
+  const ready=requiredDepth==="lesson"?snapshot.lessons.length>0:snapshot.topics.length>0;
   return <section className="admin-taxonomy" id={`${section}-taxonomy`} aria-labelledby={`${section}-taxonomy-title`}>
-    <div className="admin-section-heading"><div><p className="admin-eyebrow">Required content path</p><h2 id={`${section}-taxonomy-title`}>Grade → Topic → Lesson</h2></div><span>{snapshot.lessons.length} lessons</span></div>
-    <p className="admin-taxonomy-intro">Create only reviewed curriculum labels. Each step becomes available after its parent exists.</p>
-    {result ? <div className={`admin-state-banner ${result === "created" ? "" : "admin-state-danger"}`} role="status"><strong>{result === "created" ? "Curriculum path updated." : "The curriculum update failed closed."}</strong></div> : null}
+    <div className="admin-section-heading"><div><p className="admin-eyebrow">Curriculum setup wizard</p><h2 id={`${section}-taxonomy-title`}>{requiredDepth==="lesson"?"Grade > Topic > Lesson":"Grade > Topic"}</h2></div><span>{ready?"Path ready":"Setup required"}</span></div>
+    <ol className="admin-workflow-steps" aria-label="Taxonomy setup progress"><li data-complete={snapshot.grades.length>0}>1. Add Grade</li><li data-complete={snapshot.topics.length>0}>2. Add Topics</li><li data-complete={requiredDepth==="topic"||snapshot.lessons.length>0}>3. Add Lessons</li><li data-complete={false}>4. Review</li><li data-complete={snapshot.grades.some((item)=>item.state==="published")}>5. Publish</li></ol>
+    <p className="admin-taxonomy-intro">Topic and Lesson numbers use the display-order value and are unique within their parent. Archive replaces destructive deletion; referenced curriculum cannot be archived.</p>
+    {result?<div className={`admin-state-banner ${["created","updated"].includes(result)?"":"admin-state-danger"}`} role="status"><strong>{result==="created"?"Curriculum item created.":result==="updated"?"Curriculum state updated.":"The curriculum update failed closed."}</strong></div>:null}
     <div className="admin-taxonomy-steps">
-      <TaxonomyForm action="grade" title="1. Add grade" csrfToken={csrfToken} section={section}>
-        <label><span>Grade number</span><input name="gradeNumber" type="number" min={1} max={9} required /></label>
-        <label><span>Display title</span><input name="title" placeholder="Grade 6" maxLength={80} required /></label>
-        <label><span>Slug</span><input name="slug" placeholder="grade-6" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required /></label>
-      </TaxonomyForm>
-      <TaxonomyForm action="topic" title="2. Add topic" csrfToken={csrfToken} section={section} disabled={!snapshot.grades.length}>
-        <label><span>Grade</span><select name="parentId" required disabled={!snapshot.grades.length}>{snapshot.grades.map((grade) => <option value={grade.id} key={grade.id}>{grade.title}</option>)}</select></label>
-        <label><span>Topic title</span><input name="title" placeholder="Fractions" maxLength={120} required disabled={!snapshot.grades.length} /></label>
-        <label><span>Slug</span><input name="slug" placeholder="fractions" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required disabled={!snapshot.grades.length} /></label>
-      </TaxonomyForm>
-      <TaxonomyForm action="lesson" title="3. Add lesson" csrfToken={csrfToken} section={section} disabled={!snapshot.topics.length}>
-        <label><span>Topic</span><select name="parentId" required disabled={!snapshot.topics.length}>{snapshot.topics.map((topic) => <option value={topic.id} key={topic.id}>{topic.gradeTitle} / {topic.title}</option>)}</select></label>
-        <label><span>Lesson title</span><input name="title" placeholder="Equivalent fractions" maxLength={160} required disabled={!snapshot.topics.length} /></label>
-        <label><span>Slug</span><input name="slug" placeholder="equivalent-fractions" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required disabled={!snapshot.topics.length} /></label>
-      </TaxonomyForm>
+      <TaxonomyForm action="grade" title="1. Add Grade" csrfToken={csrfToken} section={section}><label><span>Grade number (1-9)</span><input name="gradeNumber" type="number" min={1} max={9} required/></label><label><span>Display title</span><input name="title" placeholder="Grade 6" maxLength={80} required/></label><label><span>Slug</span><input name="slug" placeholder="grade-6" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required/></label></TaxonomyForm>
+      <TaxonomyForm action="topic" title="2. Add Topic" csrfToken={csrfToken} section={section} disabled={!snapshot.grades.some((item)=>item.state!=="archived")}><label><span>Grade</span><select name="parentId" required>{snapshot.grades.filter((item)=>item.state!=="archived").map((grade)=><option value={grade.id} key={grade.id}>{grade.title}</option>)}</select></label><label><span>Topic title</span><input name="title" placeholder="Fractions" maxLength={120} required/></label><label><span>Topic slug</span><input name="slug" placeholder="fractions" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required/></label></TaxonomyForm>
+      {requiredDepth==="lesson"?<TaxonomyForm action="lesson" title="3. Add Lesson" csrfToken={csrfToken} section={section} disabled={!snapshot.topics.some((item)=>item.state!=="archived")}><label><span>Topic</span><select name="parentId" required>{snapshot.topics.filter((item)=>item.state!=="archived").map((topic)=><option value={topic.id} key={topic.id}>{topic.gradeTitle} / Topic {topic.sortOrder}: {topic.title}</option>)}</select></label><label><span>Lesson title</span><input name="title" placeholder="Equivalent fractions" maxLength={160} required/></label><label><span>Lesson slug</span><input name="slug" placeholder="equivalent-fractions" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={80} required/></label></TaxonomyForm>:<article className="admin-taxonomy-step admin-taxonomy-scope-note"><h3>3. Lessons are not used</h3><p>Quizzes publish at Topic level. Lesson controls remain available only in Homework.</p></article>}
     </div>
+    <details className="admin-taxonomy-review"><summary>4. Review and publish taxonomy</summary><div className="admin-taxonomy-review-grid"><TaxonomyList label="Grades" kind="grade" items={snapshot.grades} csrfToken={csrfToken} section={section}/><TaxonomyList label="Topics" kind="topic" items={snapshot.topics} csrfToken={csrfToken} section={section}/>{requiredDepth==="lesson"?<TaxonomyList label="Lessons" kind="lesson" items={snapshot.lessons} csrfToken={csrfToken} section={section}/>:null}</div></details>
   </section>;
 }
 
-function TaxonomyForm({ action, title, csrfToken, section, disabled = false, children }: Readonly<{
-  action: "grade" | "topic" | "lesson";
-  title: string;
-  csrfToken: string;
-  section: string;
-  disabled?: boolean;
-  children: React.ReactNode;
-}>) {
-  return <form action="/admin/taxonomy/create" method="post" className="admin-taxonomy-step" data-disabled={disabled || undefined}>
-    <input type="hidden" name="csrfToken" value={csrfToken} /><input type="hidden" name="kind" value={action} /><input type="hidden" name="section" value={section} />
-    <h3>{title}</h3>{children}<label><span>Order</span><input name="sortOrder" type="number" min={1} max={32767} defaultValue={1} required disabled={disabled} /></label>
-    <button className="admin-secondary-action" type="submit" disabled={disabled}>Create {action}</button>
-  </form>;
-}
+function TaxonomyForm({action,title,csrfToken,section,disabled=false,children}:Readonly<{action:"grade"|"topic"|"lesson";title:string;csrfToken:string;section:Section;disabled?:boolean;children:React.ReactNode}>){return <form action="/admin/taxonomy/create" method="post" className="admin-taxonomy-step" data-disabled={disabled||undefined}><input type="hidden" name="csrfToken" value={csrfToken}/><input type="hidden" name="kind" value={action}/><input type="hidden" name="section" value={section}/><h3>{title}</h3><fieldset disabled={disabled}>{children}<label><span>{action==="grade"?"Display order":`${action[0].toUpperCase()+action.slice(1)} number / order`}</span><input name="sortOrder" type="number" min={1} max={32767} defaultValue={1} required/></label><button className="admin-secondary-action" type="submit">Create {action}</button></fieldset></form>}
+
+type Item=AdminTaxonomySnapshot["grades"][number]|AdminTaxonomySnapshot["topics"][number]|AdminTaxonomySnapshot["lessons"][number];
+function TaxonomyList({label,kind,items,csrfToken,section}:Readonly<{label:string;kind:"grade"|"topic"|"lesson";items:readonly Item[];csrfToken:string;section:Section}>){return <section><h3>{label}</h3>{items.length?<ul className="admin-taxonomy-list">{items.map((item)=><li key={item.id}><div><strong>{item.sortOrder}. {item.title}</strong><small>{item.slug}</small><span className="admin-publication-badge" data-state={item.state}>{item.state.replaceAll("_"," ")}</span><small>{item.counts.homework} Homework / {item.counts.quizzes} Topic Quizzes / {item.counts.media} media</small></div><TaxonomyActions item={item} kind={kind} csrfToken={csrfToken} section={section}/></li>)}</ul>:<p>No {label.toLowerCase()} yet.</p>}</section>}
+
+function TaxonomyActions({item,kind,csrfToken,section}:Readonly<{item:Item;kind:"grade"|"topic"|"lesson";csrfToken:string;section:Section}>){const transition:Record<AdminTaxonomyState,readonly[string,string]|null>={draft:["validating","Validate"],validating:["ready_for_review","Ready for review"],ready_for_review:["published","Publish"],published:["archived","Archive"],archived:null};const next=transition[item.state];if(!next)return null;return <form action="/admin/taxonomy/status" method="post"><input type="hidden" name="csrfToken" value={csrfToken}/><input type="hidden" name="section" value={section}/><input type="hidden" name="kind" value={kind}/><input type="hidden" name="itemId" value={item.id}/><input type="hidden" name="lockVersion" value={item.lockVersion}/><input type="hidden" name="title" value={item.title}/><input type="hidden" name="slug" value={item.slug}/><input type="hidden" name="sortOrder" value={item.sortOrder}/><button className={next[0]==="published"?"admin-primary-action":"admin-secondary-action"} name="targetState" value={next[0]}>{next[1]}</button></form>}

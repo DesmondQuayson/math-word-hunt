@@ -10,11 +10,15 @@ import { AdminCommandCenter } from "./admin-command-center";
 const snapshot: AdminDashboardSnapshot = {
   state: "ready",
   metrics: [
-    { key: "games", label: "Published games", value: 0, detail: "Reviewed game resources" },
-    { key: "downloads", label: "Recent downloads", value: 0, detail: "Entitlement-authorized downloads in the last 30 days" }
+    { key: "games", label: "Published Games", value: 0, detail: "Standalone catalog entries" },
+    { key: "homework", label: "Homework PDFs", value: 0, detail: "Published lesson-scoped resources" }
   ],
   emailHealth: "no-events",
   webhookHealth: "no-events",
+  storageHealth: "healthy",
+  packageHealth: "no-packages",
+  pdfQuarantineCount: 0,
+  packageQuarantineCount: 0,
   systemHealth: "operational",
   recentActions: []
 };
@@ -26,11 +30,11 @@ describe("Phase 8C admin command center", () => {
     render(<AdminCommandCenter snapshot={snapshot} activeSection="dashboard" csrfToken="test" signOutAction={vi.fn()} />);
     const navigation = screen.getByRole("navigation", { name: "Admin modules" });
     expect(navigation.querySelectorAll("a")).toHaveLength(ADMIN_SECTIONS.length);
-    expect(screen.getByRole("link", { name: /MAP Prep/ })).toBeTruthy();
+    expect(navigation.textContent).toContain("MAP Prep");
     expect(screen.queryByText(/ShowMe Math/i)).toBeNull();
-    expect(screen.getByText("Published games").nextElementSibling?.textContent).toBe("0");
-    expect(screen.getByText("Recent downloads").nextElementSibling?.textContent).toBe("0");
-    expect(screen.getByText(/Entitlement-authorized downloads in the last 30 days/)).toBeTruthy();
+    expect(screen.getByText("Published Games").nextElementSibling?.textContent).toBe("0");
+    expect(screen.getByText("Homework PDFs").nextElementSibling?.textContent).toBe("0");
+    expect(screen.getByText(/Published lesson-scoped resources/)).toBeTruthy();
   });
 
   it("opens and filters the command interface from the keyboard", async () => {
