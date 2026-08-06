@@ -32,7 +32,8 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
     ? await repository.getLatestSubscription(view.context.userId).catch(() => null)
     : null;
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Subscription" title="$5.99 USD monthly game access" description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />
+    <PageHeader eyebrow="Subscription" title="$5.99 USD monthly MathNexa access" description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />
+    <Notice label="Included with your subscription" tone="information"><strong>One MathNexa subscription includes Games, MAP Prep, Homework, and Quizzes.</strong><p>Every included area uses the same server-verified trial or subscription. You will not be asked to subscribe again for another module.</p></Notice>
     {params.checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {params.billing === "unavailable" ? <Notice label="Billing management" tone="warning" live><strong>Billing management is unavailable.</strong><p>No subscription or access change was made.</p></Notice> : null}
     {params.consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}

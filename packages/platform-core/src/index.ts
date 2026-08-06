@@ -86,6 +86,22 @@ export {
   type GameEntitlementState
 } from "./game-access/entitlement";
 export {
+  MATHNEXA_ALL_ACCESS,
+  MATHNEXA_PRODUCT_MODULES,
+  decideMathNexaAccess,
+  hasMathNexaModuleAccess,
+  type MathNexaAccessDecision,
+  type MathNexaAllAccessEvidence,
+  type MathNexaProductModule
+} from "./product-access/all-access";
+export {
+  GAME_LAUNCH_TYPES,
+  parseExternalGameDestination,
+  parseGameLaunchTarget,
+  type GameLaunchTarget,
+  type GameLaunchType
+} from "./game-catalog/model";
+export {
   PILOT_CHECKLIST_KEYS,
   PILOT_READINESS_STATES,
   createEmptyPilotChecklist,

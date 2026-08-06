@@ -37,7 +37,7 @@ const copy: Record<CheckoutDisplayState, { title: string; message: string; tone:
 };
 
 const consumerCopy = {
-  processing: { title: "Payment method saved", message: "Stripe completed setup. The server is creating and verifying the subscription; this redirect cannot grant access.", tone: "information" },
+  processing: { title: "Activating your MathNexa access", message: "Stripe completed setup. The server is creating and verifying the subscription; this redirect cannot grant access.", tone: "information" },
   trialing: { title: "24-hour trial active", message: "The server verified the subscription and exact trial expiration shown below.", tone: "success" },
   active: { title: "Subscription active", message: "The server verified the paid monthly subscription.", tone: "success" },
   "payment-required": { title: "Payment requires attention", message: "Game access remains locked until Stripe confirms successful payment or an approved renewal grace period.", tone: "warning" },
@@ -61,17 +61,19 @@ async function ConsumerCheckoutStatus({ sessionId, nextDestination }: { sessionI
     : "unavailable";
   const content = consumerCopy[state];
   const destination = safeAccessIntentDestination(nextDestination, "/subscription");
-  if ((state === "trialing" || state === "active") && access.decision.allowed) redirect(destination);
+  const activatedDestination = destination === "/map-prep" ? "/map-prep/launch" : destination;
+  if ((state === "trialing" || state === "active") && access.decision.allowed) redirect(activatedDestination);
   const awaitingAuthoritativeAccess = state === "processing" ||
     ((state === "trialing" || state === "active") && !access.decision.allowed);
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Stripe billing" title="Subscription setup status" description="Only verified Stripe, current consent, and server records can activate MathNexa game access." />
+    <PageHeader eyebrow="Stripe billing" title={awaitingAuthoritativeAccess ? "Activating your MathNexa access" : "Subscription setup status"} description="Only verified Stripe, current consent, and server records can activate Games, MAP Prep, Homework, and Quizzes." />
     <Notice label="Setup status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice>
     {access.decision.accessEndsAt ? <Notice label="Authoritative access window" tone="success"><strong>Verified expiration</strong><p><time dateTime={access.decision.accessEndsAt}>{new Date(access.decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p></Notice> : null}
     {awaitingAuthoritativeAccess ? <CheckoutStatusPoller /> : null}
     <div className="button-row">
-      {access.decision.allowed ? <LinkButton href={destination}>Continue to your selected resource</LinkButton> : null}
-      <LinkButton href="/subscription" variant="secondary">Subscription status</LinkButton>
+      {access.decision.allowed ? <LinkButton href={activatedDestination}>Continue to your selected resource</LinkButton> : null}
+      {awaitingAuthoritativeAccess ? <LinkButton href={`/checkout/status?session_id=${encodeURIComponent(sessionId)}&next=${encodeURIComponent(destination)}`} variant="secondary">Refresh status</LinkButton> : null}
+      <LinkButton href="/subscriber-management" variant="secondary">Subscriber Management</LinkButton>
     </div>
   </Container>;
 }

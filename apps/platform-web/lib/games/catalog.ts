@@ -1,32 +1,114 @@
 import "server-only";
 
+import { parseGameLaunchTarget, type GameLaunchTarget } from "@math-vocabulary-hunt/platform-core";
+
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
-export type PublicGame = Readonly<{ id:string; packageId:string; title:string; description:string; grade:string; topic:string; lesson:string; gameId:string; version:string }>;
+export type PublicGame = Readonly<{
+  id: string;
+  resourceId: string | null;
+  packageId: string | null;
+  stableKey: string;
+  slug: string;
+  title: string;
+  description: string;
+  launch: GameLaunchTarget;
+  thumbnailReference: string;
+  recommendedGradeMin: number | null;
+  recommendedGradeMax: number | null;
+  skills: readonly string[];
+  topics: readonly string[];
+  tags: readonly string[];
+  difficulty: string;
+  version: string;
+}>;
 
-export async function loadPublicGames(): Promise<readonly PublicGame[]> {
-  const client=createServiceSupabaseClient(); if(!client)return [];
-  const resources=await client.from("content_resources").select("id,published_version_number").eq("resource_type","game").eq("publication_state","published");
-  if(resources.error||!resources.data?.length)return [];
-  const ids=resources.data.map(row=>row.id);
-  const [versions,packages,assignments]=await Promise.all([
-    client.from("content_resource_versions").select("resource_id,version_number,title,description").in("resource_id",ids).eq("publication_state","published"),
-    client.from("game_packages").select("id,resource_id,resource_version_number,game_id,package_version").in("resource_id",ids).eq("publication_state","published"),
-    client.from("lesson_resource_assignments").select("resource_id,lesson_id").in("resource_id",ids)
-  ]);if(versions.error||packages.error||assignments.error)return [];
-  const lessonIds=[...new Set((assignments.data??[]).map(row=>row.lesson_id))];
-  const lessons=lessonIds.length?await client.from("content_lessons").select("id,topic_id,title").in("id",lessonIds):{data:[],error:null};
-  const topicIds=[...new Set((lessons.data??[]).map(row=>row.topic_id))];
-  const topics=topicIds.length?await client.from("content_topics").select("id,grade_id,title").in("id",topicIds):{data:[],error:null};
-  const gradeIds=[...new Set((topics.data??[]).map(row=>row.grade_id))];
-  const grades=gradeIds.length?await client.from("content_grades").select("id,title").in("id",gradeIds):{data:[],error:null};
-  if(lessons.error||topics.error||grades.error)return [];
-  return resources.data.flatMap(resource=>{
-    const packageRow=(packages.data??[]).find(row=>row.resource_id===resource.id&&row.resource_version_number===resource.published_version_number);
-    const version=(versions.data??[]).find(row=>row.resource_id===resource.id&&row.version_number===resource.published_version_number);
-    const assignment=(assignments.data??[]).find(row=>row.resource_id===resource.id);const lesson=(lessons.data??[]).find(row=>row.id===assignment?.lesson_id);const topic=(topics.data??[]).find(row=>row.id===lesson?.topic_id);const grade=(grades.data??[]).find(row=>row.id===topic?.grade_id);
-    return packageRow&&version&&lesson&&topic&&grade?[{id:resource.id,packageId:packageRow.id,title:version.title,description:version.description,grade:grade.title,topic:topic.title,lesson:lesson.title,gameId:packageRow.game_id,version:packageRow.package_version}]:[];
-  }).sort((a,b)=>`${a.grade}/${a.topic}/${a.lesson}/${a.title}`.localeCompare(`${b.grade}/${b.topic}/${b.lesson}/${b.title}`));
+export type PublicGameCatalog = Readonly<{
+  state: "ready" | "unavailable" | "canonical-entry-missing";
+  games: readonly PublicGame[];
+}>;
+
+function textArray(value: unknown): readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
 }
 
-export async function loadPublicGame(resourceId:string):Promise<PublicGame|null>{if(!/^[0-9a-f-]{36}$/i.test(resourceId))return null;return(await loadPublicGames()).find(game=>game.id===resourceId)??null;}
+function reportCatalogFailure(code: "query-unavailable" | "canonical-entry-missing") {
+  console.error(`mathnexa-game-catalog:${code}`);
+}
+
+export async function loadPublicGameCatalog(reconcileCanonical = true): Promise<PublicGameCatalog> {
+  const client = createServiceSupabaseClient();
+  if (!client) return { state: "unavailable", games: [] };
+  const [entries, allowedHosts] = await Promise.all([
+    client.from("game_catalog_entries").select("id,resource_id,package_id,stable_key,slug,title,description,launch_type,canonical_route,external_url,external_allowed_host,thumbnail_reference,recommended_grade_min,recommended_grade_max,skills,topics,tags,difficulty,display_order,version").eq("status", "published").order("display_order").order("title"),
+    client.from("game_external_allowed_hosts").select("hostname").eq("enabled", true)
+  ]);
+  if (entries.error || allowedHosts.error || !entries.data) {
+    reportCatalogFailure("query-unavailable");
+    return { state: "unavailable", games: [] };
+  }
+  const hosts = (allowedHosts.data ?? []).map((row) => row.hostname);
+  const packageIds = entries.data.flatMap((row) => row.launch_type === "hosted_package" && row.package_id ? [row.package_id] : []);
+  const packages = packageIds.length
+    ? await client.from("game_packages").select("id,resource_id,publication_state").in("id", packageIds).eq("publication_state", "published")
+    : { data: [], error: null };
+  if (packages.error) {
+    reportCatalogFailure("query-unavailable");
+    return { state: "unavailable", games: [] };
+  }
+  const games = entries.data.flatMap((row): PublicGame[] => {
+    const launch = parseGameLaunchTarget(
+      row.launch_type === "canonical"
+        ? { type: "canonical", route: row.canonical_route }
+        : row.launch_type === "hosted_package"
+          ? { type: "hosted_package", packageId: row.package_id }
+          : { type: "external_https", url: row.external_url, host: row.external_allowed_host },
+      hosts
+    );
+    if (!launch) return [];
+    const packageRow = launch.type === "hosted_package" ? (packages.data ?? []).find((item) => item.id === launch.packageId) : null;
+    if (launch.type === "hosted_package" && (!packageRow || packageRow.resource_id !== row.resource_id)) return [];
+    return [{
+      id: row.id,
+      resourceId: row.resource_id,
+      packageId: row.package_id,
+      stableKey: row.stable_key,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      launch,
+      thumbnailReference: row.thumbnail_reference,
+      recommendedGradeMin: row.recommended_grade_min,
+      recommendedGradeMax: row.recommended_grade_max,
+      skills: textArray(row.skills),
+      topics: textArray(row.topics),
+      tags: textArray(row.tags),
+      difficulty: row.difficulty,
+      version: row.version
+    }];
+  });
+  if (!games.some((game) => game.stableKey === "math-vocabulary-hunt" && game.launch.type === "canonical")) {
+    reportCatalogFailure("canonical-entry-missing");
+    if (reconcileCanonical) {
+      const reconciled = await client.rpc("reconcile_canonical_game_catalog_entry");
+      if (!reconciled.error && reconciled.data === true) return loadPublicGameCatalog(false);
+    }
+    return { state: "canonical-entry-missing", games };
+  }
+  return { state: "ready", games };
+}
+
+export async function loadPublicGames(): Promise<readonly PublicGame[]> {
+  return (await loadPublicGameCatalog()).games;
+}
+
+export async function loadPublicGame(identifier: string): Promise<PublicGame | null> {
+  if (!/^(?:[0-9a-f-]{36}|[a-z0-9]+(?:-[a-z0-9]+)*)$/i.test(identifier)) return null;
+  return (await loadPublicGames()).find((game) => game.slug === identifier || game.resourceId === identifier || game.id === identifier) ?? null;
+}
+
+export function gamePlayHref(game: PublicGame): string {
+  if (game.launch.type === "canonical") return game.launch.route;
+  if (game.launch.type === "external_https") return `/games/${game.slug}/launch`;
+  return `/games/${game.slug}`;
+}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { decideGameAccess, type GameAccessDecision } from "@math-vocabulary-hunt/platform-core";
+import { decideMathNexaAccess, type MathNexaAccessDecision } from "@math-vocabulary-hunt/platform-core";
 
 import { resolveConsumerContext, type ConsumerContext } from "@/lib/auth/consumer-context";
 import { SupabaseConsumerEntitlementRepository } from "@/lib/repositories/consumer-entitlement.repository";
@@ -8,7 +8,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type GameAccessView = Readonly<{
   context: ConsumerContext;
-  decision: GameAccessDecision;
+  decision: MathNexaAccessDecision;
   source: "server-authoritative" | "default-deny";
 }>;
 
@@ -17,11 +17,11 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
   if (context.status === "unconfigured" || context.status === "anonymous") {
     return {
       context,
-      decision: decideGameAccess({
+      decision: decideMathNexaAccess({
         authenticated: false,
         accountStatus: "active",
         emailConfirmed: false,
-        evidence: { state: "no-entitlement", trialRedeemedAt: null },
+        evidence: {},
         serverNow
       }),
       source: "default-deny"
@@ -30,7 +30,7 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
   if (context.status === "unconfirmed" || context.status === "missing-account" || !context.account) {
     return {
       context,
-      decision: decideGameAccess({
+      decision: decideMathNexaAccess({
         authenticated: true,
         accountStatus: "active",
         emailConfirmed: context.status !== "unconfirmed",
@@ -44,7 +44,7 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
   const evidence = supabase ? await new SupabaseConsumerEntitlementRepository(supabase).getEvidence(context.account) : {};
   return {
     context,
-    decision: decideGameAccess({
+    decision: decideMathNexaAccess({
       authenticated: true,
       accountStatus: context.account.accountStatus,
       emailConfirmed: context.account.emailConfirmedAt !== null,

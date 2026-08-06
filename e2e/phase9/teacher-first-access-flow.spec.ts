@@ -161,7 +161,8 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/subscription?next=/homework");
-  await expect(page.getByRole("heading", { name: "$5.99 USD monthly game access" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "$5.99 USD monthly MathNexa access" })).toBeVisible();
+  await expect(page.getByText("One MathNexa subscription includes Games, MAP Prep, Homework, and Quizzes.", { exact: true })).toBeVisible();
   await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
   await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
@@ -173,12 +174,30 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
 test("server-entitled accounts reach all four selected products and validated MAP Prep state", async ({ page }) => {
   await signIn(page, entitledEmail, "/games");
   await expect(page).toHaveURL("/games");
-  await expect(page.getByRole("heading", { name: "Math games" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "MathNexa games" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Math Vocabulary Hunt" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Play" })).toBeVisible();
+  await expect(page).toHaveURL("/games");
+  await expect(page.getByRole("combobox", { name: "Grade" })).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText("game doesn’t exist");
+  await page.getByRole("link", { name: "Play" }).click();
+  await expect(page).toHaveURL("/play");
+  await expect(page.getByRole("heading", { name: "Game access verified" })).toBeVisible();
+  await expect(page.getByTestId("protected-game-launch")).toHaveAttribute("href", "/game/runtime/index.html");
   for (const [destination, heading] of [["/homework", "Homework"], ["/quizzes", "Quizzes"], ["/map-prep", "MAP Prep"]] as const) {
     await page.goto(destination);
     await expect(page).toHaveURL(destination);
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
   }
+  await page.goto("/homework");
+  await expect(page.getByRole("combobox", { name: "Grade" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Topic" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Lesson" })).toBeVisible();
+  await page.goto("/quizzes");
+  await expect(page.getByRole("combobox", { name: "Grade" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Topic" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Lesson" })).toHaveCount(0);
+  await page.goto("/map-prep");
   await expect(page.getByText("MAP Prep is not configured", { exact: true })).toBeVisible();
 });
 
@@ -188,6 +207,9 @@ test("fixture Checkout polls server entitlement and returns to the selected prod
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture[A-Za-z0-9_]+&next=\/quizzes/);
+  await expect(page.getByRole("heading", { name: "Activating your MathNexa access" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Refresh status" })).toHaveAttribute("href", /next=%2Fquizzes/);
+  await expect(page.getByRole("link", { name: "Subscriber Management" })).toBeVisible();
   const sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
   const acceptanceCount = (await admin.from("consumer_commercial_acceptances")
     .select("id", { count: "exact", head: true }).eq("owner_user_id", reviewUser.id)).count;
