@@ -66,7 +66,7 @@ select throws_ok(
 insert into public.game_external_allowed_hosts(hostname,enabled) values('games.example.edu',true);
 select lives_ok(
   $$insert into public.game_catalog_entries(stable_key,slug,title,description,launch_type,external_url,external_allowed_host,thumbnail_reference,status,display_order,version)
-    values('safe-external','safe-external','Safe external','Approved HTTPS game','external_https','https://games.example.edu/math','games.example.edu','https://games.example.edu/thumb.png','published',20,'1')$$,
+    values('safe-external','safe-external','Safe external','Approved HTTPS game','external_https','https://games.example.edu/math','games.example.edu','https://games.example.edu/thumb.png','draft',20,'1')$$,
   'exact allowlisted HTTPS game is accepted'
 );
 select throws_ok(
@@ -90,10 +90,17 @@ reset role;
 
 insert into public.admin_users(id,user_id,role,mfa_enrolled)
 values('9b110000-0000-4000-8000-000000000001','9b100000-0000-4000-8000-000000000001','owner',true);
+with available_order as (
+  select min(value)::smallint as sort_order from generate_series(1,32767) value
+  where not exists(select 1 from public.content_grades where sort_order=value)
+)
 insert into public.content_grades(id,grade_number,title,slug,sort_order,publication_state,created_by,updated_by)
-values('9b120000-0000-4000-8000-000000000001',6,'Grade 6','grade-6',6,'published','9b110000-0000-4000-8000-000000000001','9b110000-0000-4000-8000-000000000001');
+select '9b120000-0000-4000-8000-000000000001',6,'Grade 6','grade-6-phase9b',available_order.sort_order,'published','9b110000-0000-4000-8000-000000000001','9b110000-0000-4000-8000-000000000001'
+from available_order where not exists(select 1 from public.content_grades where grade_number=6)
+on conflict do nothing;
+select id as phase9b_grade_id from public.content_grades where grade_number=6 \gset
 insert into public.content_topics(id,grade_id,title,slug,sort_order,publication_state,created_by,updated_by)
-values('9b130000-0000-4000-8000-000000000001','9b120000-0000-4000-8000-000000000001','Expressions','expressions',2,'published','9b110000-0000-4000-8000-000000000001','9b110000-0000-4000-8000-000000000001');
+values('9b130000-0000-4000-8000-000000000001',:'phase9b_grade_id','Expressions','expressions-phase9b',32767,'published','9b110000-0000-4000-8000-000000000001','9b110000-0000-4000-8000-000000000001');
 insert into public.content_lessons(id,topic_id,title,slug,sort_order,publication_state,created_by,updated_by)
 values('9b140000-0000-4000-8000-000000000001','9b130000-0000-4000-8000-000000000001','Write expressions','write-expressions',1,'published','9b110000-0000-4000-8000-000000000001','9b110000-0000-4000-8000-000000000001');
 
