@@ -18,7 +18,7 @@ export async function POST(request:Request){
   const skills=normalizeContentTags(value(form,"skills").split(",").filter(Boolean)),topics=normalizeContentTags(value(form,"topics").split(",").filter(Boolean)),tags=normalizeContentTags(value(form,"tags").split(",").filter(Boolean));
   if(!slug||title.length<1||title.length>160||description.length<1||description.length>4000||!/^(?:builtin|media):[a-z0-9][a-z0-9:._-]{0,500}$/i.test(thumbnailReference)||
     !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(allowedHost)||!skills||!topics||!tags||
-    !["support","core","challenge","adaptive"].includes(difficulty)||!Number.isSafeInteger(displayOrder)||displayOrder<1||displayOrder>32767||
+    !["support","core","challenge","adaptive","mixed"].includes(difficulty)||!Number.isSafeInteger(displayOrder)||displayOrder<1||displayOrder>32767||
     (value(form,"recommendedGradeMin")!==""&&gradeMin===null)||(value(form,"recommendedGradeMax")!==""&&gradeMax===null)||(gradeMin!==null&&gradeMax!==null&&gradeMax<gradeMin))return back(request,"invalid-input");
   const health=await checkAdminExternalDestination(externalUrl,allowedHost);if(health.state!=="verified")return back(request,health.state==="unsafe"?"unsafe-destination":"destination-unreachable");
   const client=createServiceSupabaseClient();if(!client)return back(request,"failed-closed");

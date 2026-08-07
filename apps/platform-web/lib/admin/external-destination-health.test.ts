@@ -1,6 +1,6 @@
 import { describe,expect,it } from "vitest";
 
-import { checkAdminExternalDestination,isPublicInternetAddress } from "./external-destination-health";
+import { checkAdminExternalDestination,isPublicInternetAddress,isReachableExternalStatus } from "./external-destination-health";
 
 describe("Phase 10 external destination health guard",()=>{
   it("rejects loopback, private, link-local, carrier, and documentation networks",()=>{
@@ -11,6 +11,12 @@ describe("Phase 10 external destination health guard",()=>{
   it("accepts routable public addresses",()=>{
     expect(isPublicInternetAddress("8.8.8.8")).toBe(true);
     expect(isPublicInternetAddress("2606:4700:4700::1111")).toBe(true);
+  });
+  it("accepts a protected destination's 401 as reachable but rejects redirects and server failures",()=>{
+    expect(isReachableExternalStatus(200)).toBe(true);
+    expect(isReachableExternalStatus(401)).toBe(true);
+    expect(isReachableExternalStatus(302)).toBe(false);
+    expect(isReachableExternalStatus(500)).toBe(false);
   });
   it("fails closed before DNS for unsafe, encoded, and protocol-relative destinations",async()=>{
     for(const value of ["javascript:alert(1)","//example.com/path","https://example.com/%2f%2fevil.example","https://example.com@evil.example/path","http://example.com/path"]){

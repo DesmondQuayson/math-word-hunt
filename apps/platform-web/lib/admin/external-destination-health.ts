@@ -35,6 +35,10 @@ export function isPublicInternetAddress(address: string): boolean {
   return false;
 }
 
+export function isReachableExternalStatus(status: number): boolean {
+  return status >= 200 && status < 500 && !(status >= 300 && status < 400);
+}
+
 export async function checkAdminExternalDestination(value: string, allowedHost: string): Promise<ExternalDestinationHealth> {
   const checkedAt = new Date().toISOString();
   const parsed = parseExternalGameDestination(value, [allowedHost]);
@@ -53,7 +57,7 @@ export async function checkAdminExternalDestination(value: string, allowedHost: 
       signal: AbortSignal.timeout(5_000),
       headers: { "User-Agent": "MathNexa-Destination-Health/1.0" }
     });
-    const verified = response.status >= 200 && response.status < 500 && !(response.status >= 300 && response.status < 400);
+    const verified = isReachableExternalStatus(response.status);
     return { state: verified ? "verified" : "unreachable", checkedAt, statusCode: response.status };
   } catch {
     return { state: "unreachable", checkedAt, statusCode: null };
