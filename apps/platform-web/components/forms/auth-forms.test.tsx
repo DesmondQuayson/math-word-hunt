@@ -7,7 +7,9 @@ vi.mock("@/app/auth-actions", () => ({
   signUpAction: vi.fn(async (state) => state),
   signInAction: vi.fn(async (state) => state),
   forgotPasswordAction: vi.fn(async (state) => state),
-  updatePasswordAction: vi.fn(async (state) => state)
+  updatePasswordAction: vi.fn(async (state) => state),
+  checkEmailConfirmationAction: vi.fn(async (state) => state),
+  resendConfirmationAction: vi.fn(async (state) => state)
 }));
 
 afterEach(cleanup);

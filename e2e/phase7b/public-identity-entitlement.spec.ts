@@ -107,7 +107,11 @@ test("general account signup requires confirmation and recovery stays generic", 
   await page.locator("#signup-password").fill(password);
   await page.locator("#signup-password-confirmation").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText(/Check the local email inbox to verify the address/)).toBeVisible();
+  const confirmationDialog = page.getByRole("dialog", { name: "Check your email" });
+  await expect(confirmationDialog).toBeVisible();
+  await expect(confirmationDialog.getByText(/Open the email and select “Confirm email”/)).toBeVisible();
+  await confirmationDialog.getByRole("button", { name: "I've confirmed my email" }).click();
+  await expect(confirmationDialog.getByText("Your email has not been confirmed yet. Check your inbox and try again.")).toBeVisible();
   const users = await admin.auth.admin.listUsers();
   signupUser = users.data.users.find((user) => user.email === signupEmail);
   expect(signupUser).toBeDefined();
@@ -144,10 +148,10 @@ test("signed-out authenticated routes redirect and protected assets deny", async
     await page.goto(path);
     await expect(page).toHaveURL(`/access?next=${path}`);
   }
-  for (const path of ["/game-access", "/play"]) {
-    await page.goto(path);
-    await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=${path.replace("/", "\\/")}$`));
-  }
+  await page.goto("/game-access");
+  await expect(page).toHaveURL(/\/sign-in\?next=\/game-access$/);
+  await page.goto("/play");
+  await expect(page).toHaveURL(/\/access\?next=\/games$/);
   const index = await request.get("/game/runtime/index.html");
   expect(index.status()).toBe(401);
   expect(await index.json()).toMatchObject({ error: "game-access-denied", reason: "authentication-required" });
@@ -204,8 +208,8 @@ test("server-authenticated exact 24-hour trial unlocks only protected canonical 
 
   await signIn(page);
   await page.goto("/play?access=active");
-  await expect(page.getByRole("heading", { name: "Game access verified" })).toBeVisible();
-  await expect(page.getByTestId("protected-game-launch")).toHaveAttribute("href", "/game/runtime/index.html");
+  await expect(page).toHaveURL("/game/runtime/index.html");
+  await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
 
   const index = await page.request.get("/game/runtime/index.html");
   const vocab = await page.request.get("/game/runtime/vocab.js");
@@ -234,7 +238,7 @@ test("consumer identity and access states retain accessible interaction", async 
   await signIn(page);
   await page.goto("/account");
   await expect(page.locator("h1")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.goto("/game-access");
   await expect(page.locator("[aria-live]")).toHaveCount(1);
 });

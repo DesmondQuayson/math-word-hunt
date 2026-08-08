@@ -159,6 +159,27 @@
   background: rgb(255 255 255 / 11%);
 }
 
+.nav-account-action form {
+  height: 100%;
+}
+
+.nav-account-action button {
+  min-height: var(--size-target-min);
+  height: 100%;
+  padding-inline: var(--space-4);
+  border: var(--border-width-thin) solid rgb(255 255 255 / 38%);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-brand);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.nav-account-action button:hover {
+  background: rgb(255 255 255 / 11%);
+}
+
 .button {
   min-height: var(--size-control-standard);
   display: inline-flex;
@@ -878,6 +899,10 @@
   .site-header .nav-list a {
     width: 100%;
     padding-inline: var(--space-2);
+  }
+
+  .site-header .nav-account-action button {
+    width: 100%;
   }
 }
 

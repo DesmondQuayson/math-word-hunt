@@ -10,6 +10,8 @@ import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
 import { TeacherFirstHome } from "@/components/public/teacher-first-home";
+import { getGameAccessView } from "@/lib/game-access/server";
+import { loadPublicGameCatalog } from "@/lib/games/catalog";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +65,22 @@ export async function generateMetadata():Promise<Metadata>{
   const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
 }
 export default async function HomePage() {
-  if (isProductionPlatformMode()) return <TeacherFirstHome />;
+  if (isProductionPlatformMode()) {
+    const [access, catalog] = await Promise.all([
+      getGameAccessView(),
+      loadPublicGameCatalog()
+    ]);
+    const authState = access.context.status === "anonymous" || access.context.status === "unconfigured"
+      ? "signed-out"
+      : access.context.status === "unconfirmed"
+        ? "unconfirmed"
+        : "signed-in";
+    return <TeacherFirstHome
+      authState={authState}
+      entitled={access.decision.allowed}
+      numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
+    />;
+  }
   const managed=await loadPublishedCmsDocument("homepage");if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   const catalog = getProductCatalogView();
   const publicProduction = isProductionPublicMode();

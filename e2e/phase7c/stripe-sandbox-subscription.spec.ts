@@ -146,7 +146,8 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   await expect(page.getByText("24-hour trial active", { exact: true })).toBeVisible();
   await expect(page.locator(`time[datetime="${trialEnd}"]`)).toBeVisible();
   await page.goto("/play?access=active&trialEndsAt=2099-01-01");
-  await expect(page.getByRole("heading", { name: "Game access verified" })).toBeVisible();
+  await expect(page).toHaveURL("/game/runtime/index.html");
+  await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
   const canonical = await page.request.get("/game/runtime/index.html");
   expect(canonical.status()).toBe(200);
   expect(createHash("sha256").update(await canonical.body()).digest("hex")).toBe(

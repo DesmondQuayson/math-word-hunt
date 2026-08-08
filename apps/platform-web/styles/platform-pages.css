@@ -421,6 +421,504 @@
   color: var(--color-text-secondary);
 }
 
+/* Phase 11 public home: a real classroom product shelf, with product imagery doing the talking. */
+.teacher-home-hero {
+  grid-template-columns: minmax(0, 1.18fr) minmax(20rem, 0.62fr);
+  align-items: end;
+  padding-block: clamp(var(--space-12), 6vw, var(--space-20));
+}
+
+.teacher-home-copy h1 {
+  max-width: 13ch;
+}
+
+.teacher-home-cycle {
+  min-width: 0;
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-large);
+  background: var(--color-warm-paper);
+  box-shadow: var(--shadow-offset-brand);
+}
+
+.teacher-home-cycle > p:last-child {
+  margin-top: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.teaching-cycle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teaching-cycle li {
+  min-height: 5.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-left: 0.35rem solid var(--color-accent-teal);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-elevated);
+}
+
+.teaching-cycle li:nth-child(2) { border-left-color: var(--color-accent); }
+.teaching-cycle li:nth-child(3) { border-left-color: var(--color-brand-secondary); }
+.teaching-cycle li:nth-child(4) { border-left-color: var(--color-brand-primary); }
+
+.teaching-cycle span {
+  color: var(--color-text-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.teaching-cycle strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+}
+
+.teacher-home-ready {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-standard) solid var(--color-success);
+  border-radius: var(--radius-pill);
+  background: #dcefe9;
+  color: var(--color-success);
+  font-weight: 800;
+}
+
+.teacher-home-ready span {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: white;
+}
+
+.product-showcase-section {
+  padding-block: clamp(var(--space-14, 3.5rem), 6vw, var(--space-20));
+  border-block: var(--border-width-thin) solid var(--color-border);
+  background-color: var(--color-warm-paper);
+  background-image: radial-gradient(circle at 1px 1px, rgb(13 59 87 / 8%) 1px, transparent 0);
+  background-size: 1.25rem 1.25rem;
+}
+
+.product-showcase-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.52fr);
+  align-items: end;
+  gap: var(--space-8);
+}
+
+.product-showcase-intro h2 {
+  max-width: 19ch;
+  margin-top: var(--space-3);
+}
+
+.product-showcase-intro > p,
+.product-showcase-heading > p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-large);
+}
+
+.product-showcase-card {
+  min-width: 0;
+  overflow: hidden;
+  border: var(--border-width-standard) solid var(--color-border-strong);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-medium);
+}
+
+.product-showcase-games {
+  margin-top: var(--space-10);
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
+  background: var(--color-brand-primary-hover);
+  color: var(--color-on-brand);
+}
+
+.product-showcase-games h3,
+.product-showcase-games .product-showcase-heading > p,
+.product-showcase-games .product-showcase-link {
+  color: var(--color-on-brand);
+}
+
+.product-showcase-games .card-kicker {
+  color: var(--color-brand-secondary);
+}
+
+.product-showcase-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(18rem, 0.5fr);
+  align-items: end;
+  gap: var(--space-6);
+}
+
+.product-showcase-heading h3 {
+  margin-top: var(--space-2);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+}
+
+.game-preview-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.72fr) minmax(15rem, 0.58fr);
+  gap: var(--space-5);
+  margin-block: var(--space-6);
+}
+
+.game-preview {
+  min-width: 0;
+  overflow: hidden;
+  border: var(--border-width-thin) solid rgb(255 255 255 / 30%);
+  border-radius: var(--radius-large);
+  background: #06152d;
+  color: white;
+  text-decoration: none;
+}
+
+.game-preview-image {
+  height: clamp(16rem, 29vw, 25rem);
+  display: block;
+  overflow: hidden;
+  background: #06152d;
+}
+
+.game-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.game-preview-portrait .game-preview-image,
+.game-preview-portrait img {
+  background: #f8f3e8;
+  object-fit: contain;
+}
+
+.game-preview-caption {
+  min-height: var(--size-control-spacious);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-width-thin) solid rgb(255 255 255 / 24%);
+}
+
+.game-preview-caption strong {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+}
+
+.game-preview-caption small {
+  color: var(--color-brand-secondary);
+  font-family: var(--font-utility);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.game-preview:is(a):hover .game-preview-caption,
+.game-preview:is(a):focus-visible .game-preview-caption {
+  background: rgb(255 255 255 / 10%);
+}
+
+.product-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.product-showcase-resource {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-showcase-media {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-bottom: var(--border-width-standard) solid var(--color-border-strong);
+  background: var(--color-surface-muted);
+}
+
+.product-showcase-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.product-showcase-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: clamp(var(--space-5), 2.5vw, var(--space-8));
+}
+
+.product-showcase-body > p:not(.card-kicker) {
+  color: var(--color-text-secondary);
+}
+
+.product-showcase-link {
+  min-height: var(--size-target-min);
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+  color: var(--color-brand-primary);
+  font-weight: 900;
+}
+
+.product-showcase-link span {
+  color: var(--color-accent);
+  font-size: 1.25rem;
+}
+
+.confirmation-dialog {
+  width: min(42rem, calc(100% - (2 * var(--page-gutter))));
+  max-height: calc(100dvh - (2 * var(--page-gutter)));
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: var(--radius-large);
+  background: transparent;
+  color: var(--color-text-primary);
+  box-shadow: 0 2rem 6rem rgb(5 33 51 / 35%);
+}
+
+.confirmation-dialog::backdrop {
+  background: rgb(5 33 51 / 74%);
+  backdrop-filter: blur(4px);
+}
+
+.confirmation-dialog-panel {
+  padding: clamp(var(--space-6), 6vw, var(--space-10));
+  border: var(--border-width-strong) solid var(--color-brand-primary);
+  border-radius: var(--radius-large);
+  background: var(--color-warm-paper);
+}
+
+.confirmation-dialog-panel > * + * {
+  margin-top: var(--space-4);
+}
+
+.confirmation-mail-mark {
+  width: 4rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border: var(--border-width-strong) solid var(--color-brand-primary);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-secondary);
+  box-shadow: 0.25rem 0.25rem 0 var(--color-accent-teal);
+}
+
+.confirmation-mail-mark::before,
+.confirmation-mail-mark::after {
+  position: absolute;
+}
+
+.confirmation-mail-mark span {
+  color: var(--color-success);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.confirmation-dialog-copy {
+  color: var(--color-text-secondary);
+}
+
+.confirmation-dialog-copy > * + * {
+  margin-top: var(--space-3);
+}
+
+.confirmation-dialog-actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.confirmation-dialog-actions .button,
+.confirmation-dialog-actions form {
+  width: 100%;
+}
+
+.confirmation-text-action,
+.confirmation-reopen button,
+.confirmation-reminder > a {
+  min-height: var(--size-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-primary);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.confirmation-status {
+  padding: var(--space-3) var(--space-4);
+  border-left: 0.3rem solid currentColor;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-elevated);
+  color: var(--color-success);
+}
+
+.confirmation-status-error {
+  color: var(--color-danger);
+}
+
+.confirmation-reopen,
+.confirmation-reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-standard) solid var(--color-warning);
+  border-radius: var(--radius-medium);
+  background: var(--color-warm-paper);
+}
+
+.confirmation-reminder {
+  margin-bottom: var(--space-8);
+}
+
+.confirmation-reminder > div {
+  min-width: 0;
+}
+
+.confirmation-reminder p {
+  color: var(--color-text-secondary);
+}
+
+.confirmation-reminder .confirmation-status {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 70rem) {
+  .teacher-home-hero,
+  .product-showcase-intro,
+  .product-showcase-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-home-cycle {
+    width: min(50rem, 100%);
+  }
+
+  .product-showcase-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-showcase-resource:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 48rem) {
+  .game-preview-strip {
+    display: flex;
+    margin-inline: calc(-1 * var(--space-5));
+    padding-inline: var(--space-5);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: var(--space-5);
+    scroll-snap-type: inline mandatory;
+  }
+
+  .game-preview {
+    flex: 0 0 min(86vw, 34rem);
+    scroll-snap-align: start;
+  }
+
+  .game-preview-portrait {
+    flex-basis: min(68vw, 22rem);
+  }
+
+  .game-preview-image {
+    height: clamp(14rem, 66vw, 23rem);
+  }
+
+  .product-showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-showcase-resource:last-child {
+    grid-column: auto;
+  }
+
+  .confirmation-reminder,
+  .confirmation-reopen {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 25rem) {
+  .teacher-home-hero {
+    padding-block: var(--space-10);
+  }
+
+  .teacher-home-copy h1 {
+    font-size: clamp(2.3rem, 12vw, 3rem);
+  }
+
+  .teaching-cycle {
+    grid-template-columns: 1fr;
+  }
+
+  .teaching-cycle li {
+    min-height: 4.5rem;
+  }
+
+  .product-showcase-games {
+    padding-inline: var(--space-4);
+  }
+
+  .game-preview-strip {
+    margin-inline: calc(-1 * var(--space-4));
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (forced-colors: active) {
+  .teacher-home-cycle,
+  .teaching-cycle li,
+  .product-showcase-card,
+  .game-preview,
+  .confirmation-dialog-panel,
+  .confirmation-mail-mark,
+  .confirmation-reminder,
+  .confirmation-reopen {
+    border-color: CanvasText;
+    background-image: none;
+    box-shadow: none;
+  }
+
+  .teacher-home-ready {
+    border-color: CanvasText;
+  }
+}
+
 .checkout-polling > * + * {
   margin-top: 0;
 }

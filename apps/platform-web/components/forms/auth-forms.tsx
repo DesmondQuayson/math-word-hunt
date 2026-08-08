@@ -9,6 +9,7 @@ import {
   signUpAction,
   updatePasswordAction
 } from "@/app/auth-actions";
+import { EmailConfirmationDialog } from "@/components/auth/email-confirmation-dialog";
 import { initialAuthFormState, type AuthFormState } from "@/lib/auth/form-state";
 
 import { Button } from "../ui/button";
@@ -44,9 +45,14 @@ function useMessageFocus(state: AuthFormState) {
 export function SignUpForm({ configured, consumerMode = false, nextDestination }: SignUpFormProps) {
   const [state, action, pending] = useActionState(signUpAction, initialAuthFormState);
   const messageRef = useMessageFocus(state);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (state.confirmation) formRef.current?.reset();
+  }, [state.confirmation]);
   return (
-    <form className="prototype-form" action={action} noValidate>
-      <FormMessage state={state} messageRef={messageRef} />
+    <>
+    <form className="prototype-form" action={action} noValidate ref={formRef}>
+      {!state.confirmation ? <FormMessage state={state} messageRef={messageRef} /> : null}
       {nextDestination ? <input type="hidden" name="next" value={nextDestination} /> : null}
       <TextField id="signup-email" name="email" type="email" autoComplete="email" label="Email address" required error={state.fieldErrors?.email} />
       {!consumerMode ? <><TextField id="signup-display-name" name="displayName" autoComplete="name" label="Display name" description="Use the teacher name you want shown in the workspace." required maxLength={80} error={state.fieldErrors?.displayName} />
@@ -55,6 +61,8 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination }
       <TextField id="signup-password-confirmation" name="passwordConfirmation" type="password" autoComplete="new-password" label="Confirm password" required error={state.fieldErrors?.passwordConfirmation} />
       <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{consumerMode ? "Create account" : "Create teacher account"}</Button><Link href="/sign-in">Already have an account?</Link></div>
     </form>
+    {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} /> : null}
+    </>
   );
 }
 

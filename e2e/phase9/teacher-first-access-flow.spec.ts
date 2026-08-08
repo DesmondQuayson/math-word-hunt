@@ -13,6 +13,7 @@ const entitledEmail = `${run}-entitled@example.test`;
 let admin: SupabaseClient;
 let reviewUser: User;
 let entitledUser: User;
+let numberCrossPublished = false;
 
 async function createConfirmedUser(email: string): Promise<User> {
   const result = await admin.auth.admin.createUser({ email, password, email_confirm: true });
@@ -68,6 +69,9 @@ test.beforeAll(async () => {
     trial_ends_at: endsAt.toISOString()
   });
   if (entitlement.error) throw entitlement.error;
+  const numberCross = await admin.from("game_catalog_entries").select("status").eq("stable_key", "number-cross").maybeSingle();
+  if (numberCross.error) throw numberCross.error;
+  numberCrossPublished = numberCross.data?.status === "published";
 });
 
 test.afterAll(async () => {
@@ -97,7 +101,7 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
     "content",
     "Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
   );
-  await expect(page.getByText("TEACHER-LED CLASSROOM MATH RESOURCES")).toBeVisible();
+  await expect(page.getByText("Teacher-led classroom math resources")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();
   await expect(page.getByText("Built for teachers. Useful for families. Engaging for learners.")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
@@ -106,10 +110,19 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   const expectedNavigation = ["Home", "Games", "MAP Prep", "Homework", "Quizzes", "Subscription", "My Account"];
   await expect(navigation.getByRole("link")).toHaveCount(expectedNavigation.length);
   for (const label of expectedNavigation) await expect(navigation.getByRole("link", { name: label, exact: true })).toBeVisible();
-  for (const label of ["Games", "MAP Prep", "Homework", "Quizzes"]) {
-    await expect(page.getByRole("link", { name: `Explore ${label}` })).toBeVisible();
+  for (const [label, href] of [["Explore Games", "/games"], ["Open MAP Prep", "/map-prep"], ["Browse Homework", "/homework"], ["Browse Quizzes", "/quizzes"]] as const) {
+    await expect(page.getByRole("link", { name: label })).toHaveAttribute("href", href);
   }
-  await expect(page.getByRole("img", { name: /teacher planning table/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Math Word Hunt game artwork/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /MAP Prep workspace/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /snack-bag unit-rate problem/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Grade 7 topic quiz/i })).toBeVisible();
+  if (numberCrossPublished) {
+    await expect(page.getByRole("link", { name: /Number Cross Play now/ })).toBeVisible();
+  } else {
+    await expect(page.getByLabel("Number Cross preview, coming soon")).toBeVisible();
+  }
+  await expect(page.locator("body")).not.toContainText("Today's math toolkit");
 });
 
 test("signed-out product and account choices preserve only allowlisted destinations", async ({ page }) => {
@@ -148,7 +161,7 @@ test("signed-out product and account choices preserve only allowlisted destinati
 
 test("pointer and keyboard choices reach the preserved account-intent path", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Explore MAP Prep" }).click();
+  await page.getByRole("link", { name: "Open MAP Prep" }).click();
   await expect(page).toHaveURL("/access?next=/map-prep");
   await page.goto("/");
   const createAccount = page.getByRole("link", { name: "Create an account" });
@@ -188,14 +201,21 @@ test("server-entitled accounts reach all four selected products and validated MA
   await expect(page).toHaveURL("/games");
   await expect(page.getByRole("heading", { name: "MathNexa games" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Math Vocabulary Hunt" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Play" })).toBeVisible();
+  const vocabularyGameCard = page.locator("article").filter({ hasText: "Math Vocabulary Hunt" });
+  await expect(vocabularyGameCard.getByRole("link", { name: "Play" })).toBeVisible();
   await expect(page).toHaveURL("/games");
   await expect(page.getByRole("combobox", { name: "Grade" })).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText("game doesn’t exist");
-  await page.getByRole("link", { name: "Play" }).click();
-  await expect(page).toHaveURL("/play");
-  await expect(page.getByRole("heading", { name: "Game access verified" })).toBeVisible();
-  await expect(page.getByTestId("protected-game-launch")).toHaveAttribute("href", "/game/runtime/index.html");
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Create an account" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "My Account" })).toBeVisible();
+  await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
+  await page.goto("/games");
+  await vocabularyGameCard.getByRole("link", { name: "Play" }).click();
+  await expect(page).toHaveURL("/game/runtime/index.html");
+  await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
   for (const [destination, heading] of [["/homework", "Homework"], ["/quizzes", "Quizzes"], ["/map-prep", "MAP Prep"]] as const) {
     await page.goto(destination);
     await expect(page).toHaveURL(destination);
@@ -275,6 +295,9 @@ test("fixture Checkout polls server entitlement and returns to the selected prod
 test("homepage and account-intent UI remain accessible across target devices and user preferences", async ({ page }) => {
   for (const viewport of [
     { width: 320, height: 568 },
+    { width: 375, height: 667 },
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
     { width: 768, height: 1024 },
     { width: 1440, height: 900 },
     { width: 1920, height: 1080 }
@@ -300,6 +323,8 @@ test("homepage and account-intent UI remain accessible across target devices and
 test("teacher-first homepage matches mobile, desktop, and smartboard visual baselines", async ({ page }) => {
   for (const [name, viewport] of [
     ["mobile", { width: 320, height: 568 }],
+    ["mobile-390", { width: 390, height: 844 }],
+    ["tablet", { width: 768, height: 1024 }],
     ["desktop", { width: 1440, height: 900 }],
     ["smartboard", { width: 1920, height: 1080 }]
   ] as const) {

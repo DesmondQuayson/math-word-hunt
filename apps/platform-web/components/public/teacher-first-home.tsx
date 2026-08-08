@@ -1,125 +1,190 @@
+import Image from "next/image";
 import Link from "next/link";
 
+import { ConfirmationReminder } from "@/components/auth/email-confirmation-dialog";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
-import type { ProductDestination } from "@/lib/auth/access-intent";
 
-const modules: readonly Readonly<{
-  href: ProductDestination;
-  label: string;
-  title: string;
-  description: string;
-  symbol: string;
-}>[] = [
-  {
-    href: "/games",
-    label: "Interactive practice",
-    title: "Games",
-    description: "Turn grade- and lesson-aligned math ideas into whole-class participation.",
-    symbol: "G"
-  },
-  {
-    href: "/map-prep",
-    label: "Missouri assessment practice",
-    title: "MAP Prep",
-    description: "Open the teacher-curated MAP Prep destination for focused mathematics practice.",
-    symbol: "M"
-  },
-  {
-    href: "/homework",
-    label: "Image-rich printables",
-    title: "Homework",
-    description: "Find classroom-ready homework PDFs organized by grade, topic, and lesson.",
-    symbol: "H"
-  },
-  {
-    href: "/quizzes",
-    label: "Ready to check learning",
-    title: "Quizzes",
-    description: "Choose printable quiz PDFs and answer keys for quick lesson follow-through.",
-    symbol: "Q"
+export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
+
+type TeacherFirstHomeProps = Readonly<{
+  authState?: HomeAuthState;
+  entitled?: boolean;
+  numberCrossPublished?: boolean;
+}>;
+
+function HeroActions({ authState, entitled }: Readonly<{ authState: HomeAuthState; entitled: boolean }>) {
+  if (authState === "signed-out") {
+    return <div className="button-row teacher-home-actions">
+      <LinkButton href="/sign-up">Create an account</LinkButton>
+      <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
+    </div>;
   }
-] as const;
-
-function ClassroomToolkitVisual() {
-  return <div
-    className="classroom-toolkit"
-    role="img"
-    aria-label="A teacher planning table with an interactive math game, Missouri MAP Prep, an image-rich homework PDF, and a quiz PDF with answer key"
-  >
-    <div className="toolkit-heading" aria-hidden="true">
-      <span>Today&apos;s math toolkit</span>
-      <b>Grade 5 · Fractions</b>
-    </div>
-    <div className="toolkit-grid" aria-hidden="true">
-      <div className="toolkit-game">
-        <span className="toolkit-tab">Interactive game</span>
-        <div className="toolkit-game-board">
-          {Array.from({ length: 12 }, (_, index) => <i key={index}>{["3", "÷", "4", "=", "0.75", "×"][index % 6]}</i>)}
-        </div>
-        <small>Discuss · trace · solve</small>
-      </div>
-      <div className="toolkit-map">
-        <span className="toolkit-tab">MAP Prep</span>
-        <svg viewBox="0 0 180 100" focusable="false">
-          <path d="M18 76 C45 16 76 88 105 38 S150 23 164 54" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 11" />
-          <circle cx="18" cy="76" r="9" />
-          <path d="m150 51 14 3-7-13" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <small>Missouri-ready practice</small>
-      </div>
-      <div className="toolkit-paper toolkit-homework">
-        <span className="toolkit-tab">Homework PDF</span>
-        <strong>Fractions in pictures</strong>
-        <div className="fraction-picture"><i /><i /><i /><i /></div>
-        <span className="paper-line" /><span className="paper-line short" />
-      </div>
-      <div className="toolkit-paper toolkit-quiz">
-        <span className="answer-key-tab">Answer key</span>
-        <span className="toolkit-tab">Quiz PDF</span>
-        <strong>Lesson check</strong>
-        <ol><li>A</li><li>C</li><li>B</li></ol>
-      </div>
-    </div>
-    <div className="toolkit-pencil" aria-hidden="true"><span /> Plan · teach · check</div>
-  </div>;
+  if (!entitled) {
+    return <div className="button-row teacher-home-actions">
+      <LinkButton href="/subscription">View access options</LinkButton>
+      <LinkButton variant="secondary" href="/account">My Account</LinkButton>
+    </div>;
+  }
+  return <p className="teacher-home-ready" role="status">
+    <span aria-hidden="true">✓</span> Your MathNexa resource shelf is ready below.
+  </p>;
 }
 
-export function TeacherFirstHome() {
+function TeachingCycle() {
+  return <ol className="teaching-cycle" aria-label="A flexible classroom resource cycle">
+    <li><span>Engage</span><strong>Games</strong></li>
+    <li><span>Prepare</span><strong>MAP Prep</strong></li>
+    <li><span>Practice</span><strong>Homework</strong></li>
+    <li><span>Check</span><strong>Quizzes</strong></li>
+  </ol>;
+}
+
+function GamesShowcase({ published }: Readonly<{ published: boolean }>) {
+  return <article className="product-showcase-card product-showcase-games">
+    <div className="product-showcase-heading">
+      <div>
+        <p className="card-kicker">Whole-class energy</p>
+        <h3>Interactive Games</h3>
+      </div>
+      <p>Launch teacher-ready math games with one secure click.</p>
+    </div>
+    <div className="game-preview-strip" aria-label="Published MathNexa games">
+      <Link className="game-preview game-preview-landscape" href="/play">
+        <span className="game-preview-image">
+          <Image
+            src="/media/home/math-word-hunt.webp"
+            alt="Math Word Hunt game artwork with a glowing vocabulary grid and grades 6 through 8 classroom features"
+            width={1400}
+            height={700}
+            sizes="(max-width: 48rem) 86vw, 52vw"
+            loading="eager"
+          />
+        </span>
+        <span className="game-preview-caption"><strong>Math Word Hunt</strong><small>Play now</small></span>
+      </Link>
+      {published ? <Link className="game-preview game-preview-portrait" href="/games/number-cross/play">
+        <span className="game-preview-image">
+          <Image
+            src="/media/home/number-cross.webp"
+            alt="Number Cross addition puzzle with crossed-out number tiles and solved row and column targets"
+            width={720}
+            height={1223}
+            sizes="(max-width: 48rem) 72vw, 28vw"
+          />
+        </span>
+        <span className="game-preview-caption"><strong>Number Cross</strong><small>Play now</small></span>
+      </Link> : <div className="game-preview game-preview-portrait" aria-label="Number Cross preview, coming soon">
+        <span className="game-preview-image">
+          <Image
+            src="/media/home/number-cross.webp"
+            alt="Number Cross addition puzzle preview"
+            width={720}
+            height={1223}
+            sizes="(max-width: 48rem) 72vw, 28vw"
+          />
+        </span>
+        <span className="game-preview-caption"><strong>Number Cross</strong><small>Coming soon</small></span>
+      </div>}
+    </div>
+    <Link className="product-showcase-link" href="/games">Explore Games <span aria-hidden="true">→</span></Link>
+  </article>;
+}
+
+function ProductCard({
+  href,
+  eyebrow,
+  title,
+  description,
+  image,
+  alt,
+  cta,
+  eager = false
+}: Readonly<{
+  href: "/map-prep" | "/homework" | "/quizzes";
+  eyebrow: string;
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+  cta: string;
+  eager?: boolean;
+}>) {
+  return <article className="product-showcase-card product-showcase-resource">
+    <div className="product-showcase-media">
+      <Image src={image} alt={alt} width={1200} height={800} sizes="(max-width: 48rem) 92vw, 30vw" loading={eager ? "eager" : "lazy"} />
+    </div>
+    <div className="product-showcase-body">
+      <p className="card-kicker">{eyebrow}</p>
+      <h3>{title}</h3>
+      <p>{description}</p>
+      <Link className="product-showcase-link" href={href}>{cta} <span aria-hidden="true">→</span></Link>
+    </div>
+  </article>;
+}
+
+export function TeacherFirstHome({
+  authState = "signed-out",
+  entitled = false,
+  numberCrossPublished = false
+}: TeacherFirstHomeProps) {
   return <>
     <section className="teacher-home-hero container" aria-labelledby="home-title">
       <div className="teacher-home-copy">
-        <p className="eyebrow">TEACHER-LED CLASSROOM MATH RESOURCES</p>
+        <p className="eyebrow">Teacher-led classroom math resources</p>
         <h1 id="home-title">Make every math lesson clearer, more engaging, and ready to teach.</h1>
-        <p className="teacher-home-lede">Interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes—organized by grade, topic, and lesson.</p>
+        <p className="teacher-home-lede">Interactive games, Missouri MAP Prep, image-rich homework, and classroom-ready quizzes—all in one teacher-friendly math platform.</p>
         <p className="teacher-home-audience">Built for teachers. Useful for families. Engaging for learners.</p>
-        <div className="button-row teacher-home-actions">
-          <LinkButton href="/sign-up">Create an account</LinkButton>
-          <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
-        </div>
+        <HeroActions authState={authState} entitled={entitled} />
       </div>
-      <ClassroomToolkitVisual />
+      <div className="teacher-home-cycle">
+        <p className="eyebrow">Your lesson, supported from start to finish</p>
+        <TeachingCycle />
+        <p>Homework is organized by grade, topic, and lesson. Quizzes are organized by grade and topic.</p>
+      </div>
     </section>
 
-    <section className="teacher-module-section" aria-labelledby="modules-heading">
+    {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
+
+    <section className="product-showcase-section" aria-labelledby="product-showcase-title">
       <Container width="wide">
-        <div className="teacher-module-heading">
+        <header className="product-showcase-intro">
           <div>
-            <p className="eyebrow">One organized resource shelf</p>
-            <h2 id="modules-heading">Plan the lesson. Lead the room. Keep the next step close.</h2>
+            <p className="eyebrow">MathNexa in action</p>
+            <h2 id="product-showcase-title">See the real resources waiting for your next lesson.</h2>
           </div>
           <p>Move from active practice to independent work and a quick check for understanding without hunting across disconnected tools.</p>
-        </div>
-        <div className="teacher-module-grid">
-          {modules.map((module) => <article className="teacher-module-card" key={module.href}>
-            <div className="teacher-module-symbol" aria-hidden="true">{module.symbol}</div>
-            <p className="card-kicker">{module.label}</p>
-            <h3>{module.title}</h3>
-            <p>{module.description}</p>
-            <Link className="teacher-module-link" href={module.href}>
-              Explore {module.title} <span aria-hidden="true">→</span>
-            </Link>
-          </article>)}
+        </header>
+        <GamesShowcase published={numberCrossPublished} />
+        <div className="product-showcase-grid">
+          <ProductCard
+            href="/map-prep"
+            eyebrow="Interactive workspace"
+            title="Missouri MAP Prep"
+            description="Practice MAP-style questions and tools in an interactive workspace."
+            image="/media/home/map-prep-preview.webp"
+            alt="Sanitized MathNexa MAP Prep workspace showing a proportional-relationship question, working board, graph, calculator, pen, eraser, highlighter, shape, and formula tools"
+            cta="Open MAP Prep"
+            eager
+          />
+          <ProductCard
+            href="/homework"
+            eyebrow="Lesson-based practice"
+            title="Interactive Homework"
+            description="Lesson-based practice with image-rich, downloadable PDFs and answer keys."
+            image="/media/home/homework-preview.webp"
+            alt="Original MathNexa homework preview with a snack-bag unit-rate problem, fruit diagrams, writing space, and an answer-key indicator"
+            cta="Browse Homework"
+          />
+          <ProductCard
+            href="/quizzes"
+            eyebrow="Grade → Topic"
+            title="Topic Quizzes"
+            description="Classroom-ready topic assessments with downloadable PDFs and answer keys."
+            image="/media/home/quiz-preview.webp"
+            alt="Original MathNexa Grade 7 topic quiz preview with proportional-relationship questions, a table, graphs, and an answer-key indicator"
+            cta="Browse Quizzes"
+          />
         </div>
       </Container>
     </section>
@@ -130,9 +195,9 @@ export function TeacherFirstHome() {
         <h2 id="teacher-proof-heading">A calmer path from lesson idea to classroom use.</h2>
       </div>
       <ul>
-        <li><strong>Find by lesson</strong><span>Use grade, topic, and lesson structure to reach the right resource quickly.</span></li>
-        <li><strong>Teach your way</strong><span>Choose an interactive game, printable practice, assessment prep, or a quiz.</span></li>
-        <li><strong>Keep learners moving</strong><span>Use clear, focused materials on phones, laptops, tablets, or a shared classroom display.</span></li>
+        <li><strong>Find the right level</strong><span>Use the resource-specific grade, topic, and lesson choices without unnecessary setup.</span></li>
+        <li><strong>Teach your way</strong><span>Choose an interactive game, printable practice, assessment prep, or a topic quiz.</span></li>
+        <li><strong>Keep learners moving</strong><span>Use focused materials on phones, laptops, tablets, or a shared classroom display.</span></li>
       </ul>
     </section>
   </>;

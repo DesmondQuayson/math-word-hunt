@@ -1,9 +1,11 @@
 import Link from "next/link";
 
+import { signOutAction } from "@/app/auth-actions";
 import { Container } from "@/components/layout/container";
 import { NavigationItem } from "@/components/layout/navigation-item";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { getGameAccessView } from "@/lib/game-access/server";
 
 const navigation = [
   { href: "/play", label: "Play" },
@@ -34,6 +36,8 @@ export async function SiteHeader() {
   const productionPlatform = isProductionPlatformMode();
   const mathNexa = publicProduction || productionPlatform;
   const items = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
+  const access = productionPlatform ? await getGameAccessView() : null;
+  const signedIn = access !== null && access.context.status !== "anonymous" && access.context.status !== "unconfigured";
   return (
     <header className="site-header">
       <Container className="header-inner">
@@ -67,6 +71,11 @@ export async function SiteHeader() {
                 <NavigationItem href={item.href} label={item.label} />
               </li>
             ))}
+            {signedIn ? <li className="nav-account-action">
+              <form action={signOutAction}>
+                <button type="submit">Sign out</button>
+              </form>
+            </li> : null}
           </ul>
         </nav>
       </Container>
