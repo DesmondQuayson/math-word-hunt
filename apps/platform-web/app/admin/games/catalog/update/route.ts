@@ -1,4 +1,5 @@
 import { normalizeContentTags,parseContentSlug } from "@math-vocabulary-hunt/platform-core";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { checkAdminExternalDestination } from "@/lib/admin/external-destination-health";
@@ -20,6 +21,8 @@ export async function POST(request:Request){
     !Number.isSafeInteger(displayOrder)||displayOrder<1||displayOrder>32767||(value(form,"recommendedGradeMin")!==""&&gradeMin===null)||(value(form,"recommendedGradeMax")!==""&&gradeMax===null)||(gradeMin!==null&&gradeMax!==null&&gradeMax<gradeMin))return back(request,"invalid-input");
   if(externalUrl&&allowedHost){const health=await checkAdminExternalDestination(externalUrl,allowedHost);if(health.state!=="verified")return back(request,health.state==="unsafe"?"unsafe-destination":"destination-unreachable");}
   const client=createServiceSupabaseClient();if(!client)return back(request,"failed-closed");
+  const current=await client.from("game_catalog_entries").select("slug").eq("id",catalogId).maybeSingle();if(current.error||!current.data)return back(request,"failed-closed");
   const changed=await client.rpc("update_game_catalog_entry",{p_actor_admin_id:access.admin.id,p_catalog_entry_id:catalogId,p_expected_lock_version:lockVersion,p_slug:slug,p_title:title,p_description:description,p_thumbnail_reference:thumbnailReference,p_recommended_grade_min:gradeMin,p_recommended_grade_max:gradeMax,p_skills:skills,p_topics:topics,p_tags:tags,p_difficulty:difficulty,p_display_order:displayOrder,p_external_url:externalUrl,p_allowed_host:allowedHost});
-  return back(request,changed.error?"failed-closed":"catalog-updated");
+  if(changed.error)return back(request,"failed-closed");revalidatePath("/games");revalidatePath(`/games/${current.data.slug}`);revalidatePath(`/games/${slug}`);revalidatePath(`/games/${slug}/play`);
+  return back(request,"catalog-updated");
 }

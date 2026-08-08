@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { inspectAdminAccess } from "@/lib/admin/session";
-import { loadExternalGameLaunchRecord } from "@/lib/games/catalog";
+import { loadExternalGameLaunchRecord, loadInternalGameLaunchRecord } from "@/lib/games/catalog";
+import { createInternalGameResponse, isInternalGameRegistered } from "@/lib/games/internal-registry";
 import {
   createNumberCrossLaunchUrl,
   externalGameLaunchAction,
@@ -13,7 +14,15 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request, { params }: { params: Promise<{ catalogId: string }> }) {
   const access = await inspectAdminAccess();
   if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
-  const game = await loadExternalGameLaunchRecord((await params).catalogId);
+  const catalogId = (await params).catalogId;
+  const internalGame = await loadInternalGameLaunchRecord(catalogId);
+  if (internalGame) {
+    if (internalGame.status === "archived" || !isInternalGameRegistered(internalGame.stableKey)) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+    return createInternalGameResponse(internalGame.stableKey);
+  }
+  const game = await loadExternalGameLaunchRecord(catalogId);
   if (!game) return new NextResponse("Not Found", { status: 404 });
   const action = externalGameLaunchAction(game, "admin-preview");
   if (action === "not-found" || action === "maintenance") return new NextResponse("Not Found", { status: 404 });

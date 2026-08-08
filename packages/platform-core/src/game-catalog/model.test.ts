@@ -9,6 +9,15 @@ describe("standalone game launch targets", () => {
     expect(parseGameLaunchTarget({ type: "hosted_package", packageId: "../../game" })).toBeNull();
   });
 
+  it("accepts only source-registered internal games", () => {
+    expect(parseGameLaunchTarget({ type: "internal", key: "number-cross" }, [], ["number-cross"]))
+      .toEqual({ type: "internal", key: "number-cross" });
+    expect(parseGameLaunchTarget({ type: "internal", key: "number-cross" })).toBeNull();
+    expect(parseGameLaunchTarget({ type: "internal", key: "unregistered" }, [], ["number-cross"])).toBeNull();
+    expect(parseGameLaunchTarget({ type: "internal", key: "number-cross", module: "./arbitrary.js" }, [], ["number-cross"]))
+      .toBeNull();
+  });
+
   it("requires canonical HTTPS URLs on an exact server allowlist", () => {
     const hosts = ["games.example.edu"];
     expect(parseExternalGameDestination("https://games.example.edu/math", hosts)?.href).toBe("https://games.example.edu/math");

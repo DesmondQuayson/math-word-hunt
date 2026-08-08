@@ -7,6 +7,7 @@ import type { ExternalGameLaunchRecord } from "@/lib/games/catalog";
 const mocks = vi.hoisted(() => ({
   inspectAdminAccess: vi.fn(),
   loadExternalGameLaunchRecord: vi.fn(),
+  loadInternalGameLaunchRecord: vi.fn(),
   loadPublicGame: vi.fn(),
   requireProductAccess: vi.fn()
 }));
@@ -15,6 +16,7 @@ vi.mock("@/lib/access/server", () => ({ requireProductAccess: mocks.requireProdu
 vi.mock("@/lib/admin/session", () => ({ inspectAdminAccess: mocks.inspectAdminAccess }));
 vi.mock("@/lib/games/catalog", () => ({
   loadExternalGameLaunchRecord: mocks.loadExternalGameLaunchRecord,
+  loadInternalGameLaunchRecord: mocks.loadInternalGameLaunchRecord,
   loadPublicGame: mocks.loadPublicGame
 }));
 
@@ -52,6 +54,7 @@ describe("protected Number Cross launch routes", () => {
     mocks.requireProductAccess.mockResolvedValue(undefined);
     mocks.inspectAdminAccess.mockResolvedValue({ state: "authorized", admin: { id: "admin-id" } });
     mocks.loadPublicGame.mockResolvedValue(null);
+    mocks.loadInternalGameLaunchRecord.mockResolvedValue(null);
   });
 
   afterEach(() => {

@@ -1,10 +1,11 @@
-export const GAME_LAUNCH_TYPES = ["canonical", "hosted_package", "external_https"] as const;
+export const GAME_LAUNCH_TYPES = ["canonical", "hosted_package", "external_https", "internal"] as const;
 export type GameLaunchType = (typeof GAME_LAUNCH_TYPES)[number];
 
 export type GameLaunchTarget =
   | Readonly<{ type: "canonical"; route: "/play" }>
   | Readonly<{ type: "hosted_package"; packageId: string }>
-  | Readonly<{ type: "external_https"; url: string; host: string }>;
+  | Readonly<{ type: "external_https"; url: string; host: string }>
+  | Readonly<{ type: "internal"; key: string }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HOST = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
@@ -24,7 +25,11 @@ export function parseExternalGameDestination(value: unknown, allowedHosts: reado
   }
 }
 
-export function parseGameLaunchTarget(value: unknown, allowedHosts: readonly string[] = []): GameLaunchTarget | null {
+export function parseGameLaunchTarget(
+  value: unknown,
+  allowedHosts: readonly string[] = [],
+  registeredInternalKeys: readonly string[] = []
+): GameLaunchTarget | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const item = value as Record<string, unknown>;
   if (item.type === "canonical" && Object.keys(item).sort().join("|") === "route|type" && item.route === "/play") {
@@ -36,6 +41,10 @@ export function parseGameLaunchTarget(value: unknown, allowedHosts: readonly str
   if (item.type === "external_https" && Object.keys(item).sort().join("|") === "host|type|url" && typeof item.host === "string") {
     const url = parseExternalGameDestination(item.url, allowedHosts);
     if (url && item.host.toLowerCase() === url.hostname.toLowerCase()) return Object.freeze({ type: "external_https", url: url.href, host: url.hostname.toLowerCase() });
+  }
+  if (item.type === "internal" && Object.keys(item).sort().join("|") === "key|type" && typeof item.key === "string" &&
+    registeredInternalKeys.includes(item.key)) {
+    return Object.freeze({ type: "internal", key: item.key });
   }
   return null;
 }

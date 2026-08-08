@@ -18,7 +18,7 @@ export default async function GamesPage() {
     </header>
     {catalog.games.length ? <div className="game-card-grid">{catalog.games.map((game) => <article key={game.id}>
       <div className="game-card-thumbnail" role="img" aria-label={`${game.title} thumbnail`} data-game={game.stableKey}>
-        <span aria-hidden="true">MATH</span><strong aria-hidden="true">WORD HUNT</strong>
+        <span aria-hidden="true">MATHNEXA</span><strong aria-hidden="true">{game.title}</strong>
       </div>
       <div className="game-card-content">
         <p className="game-path">{game.difficulty} · {game.recommendedGradeMin && game.recommendedGradeMax ? `Grades ${game.recommendedGradeMin}–${game.recommendedGradeMax}` : "Flexible classroom use"}</p>

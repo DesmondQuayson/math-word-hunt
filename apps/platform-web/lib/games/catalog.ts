@@ -3,6 +3,7 @@ import "server-only";
 import { parseGameLaunchTarget, type GameLaunchTarget } from "@math-vocabulary-hunt/platform-core";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { getInternalGameRegistration, internalGameKeys } from "@/lib/games/internal-registry";
 
 export type PublicGame = Readonly<{
   id: string;
@@ -30,6 +31,11 @@ export type PublicGameCatalog = Readonly<{
 
 export type ExternalGameLaunchRecord = Omit<PublicGame, "launch"> & Readonly<{
   launch: Extract<GameLaunchTarget, { type: "external_https" }>;
+  status: "draft" | "maintenance" | "published" | "archived";
+}>;
+
+export type InternalGameLaunchRecord = Omit<PublicGame, "launch"> & Readonly<{
+  launch: Extract<GameLaunchTarget, { type: "internal" }>;
   status: "draft" | "maintenance" | "published" | "archived";
 }>;
 
@@ -67,8 +73,11 @@ export async function loadPublicGameCatalog(reconcileCanonical = true): Promise<
         ? { type: "canonical", route: row.canonical_route }
         : row.launch_type === "hosted_package"
           ? { type: "hosted_package", packageId: row.package_id }
-          : { type: "external_https", url: row.external_url, host: row.external_allowed_host },
-      hosts
+          : row.launch_type === "internal"
+            ? { type: "internal", key: row.stable_key }
+            : { type: "external_https", url: row.external_url, host: row.external_allowed_host },
+      hosts,
+      internalGameKeys()
     );
     if (!launch) return [];
     const packageRow = launch.type === "hosted_package" ? (packages.data ?? []).find((item) => item.id === launch.packageId) : null;
@@ -150,8 +159,44 @@ export async function loadExternalGameLaunchRecord(identifier: string): Promise<
   };
 }
 
+export async function loadInternalGameLaunchRecord(identifier: string): Promise<InternalGameLaunchRecord | null> {
+  if (!/^(?:[0-9a-f-]{36}|[a-z0-9]+(?:-[a-z0-9]+)*)$/i.test(identifier)) return null;
+  const client = createServiceSupabaseClient();
+  if (!client) return null;
+  let query = client.from("game_catalog_entries")
+    .select("id,resource_id,package_id,stable_key,slug,title,description,launch_type,thumbnail_reference,recommended_grade_min,recommended_grade_max,skills,topics,tags,difficulty,status,version")
+    .eq("launch_type", "internal");
+  query = /^[0-9a-f-]{36}$/i.test(identifier) ? query.eq("id", identifier) : query.eq("slug", identifier);
+  const entry = await query.maybeSingle();
+  if (entry.error || !entry.data || !["draft", "maintenance", "published", "archived"].includes(entry.data.status)) return null;
+  const launch = parseGameLaunchTarget({ type: "internal", key: entry.data.stable_key }, [], internalGameKeys());
+  if (!launch || launch.type !== "internal") return null;
+  return {
+    id: entry.data.id,
+    resourceId: entry.data.resource_id,
+    packageId: entry.data.package_id,
+    stableKey: entry.data.stable_key,
+    slug: entry.data.slug,
+    title: entry.data.title,
+    description: entry.data.description,
+    launch,
+    thumbnailReference: entry.data.thumbnail_reference,
+    recommendedGradeMin: entry.data.recommended_grade_min,
+    recommendedGradeMax: entry.data.recommended_grade_max,
+    skills: textArray(entry.data.skills),
+    topics: textArray(entry.data.topics),
+    tags: textArray(entry.data.tags),
+    difficulty: entry.data.difficulty,
+    version: entry.data.version,
+    status: entry.data.status as InternalGameLaunchRecord["status"]
+  };
+}
+
 export function gamePlayHref(game: PublicGame): string {
   if (game.launch.type === "canonical") return game.launch.route;
   if (game.launch.type === "external_https") return `/games/${game.slug}/launch`;
+  if (game.launch.type === "internal") {
+    return getInternalGameRegistration(game.launch.key)?.route ?? `/games/${game.slug}/play`;
+  }
   return `/games/${game.slug}`;
 }

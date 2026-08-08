@@ -5,6 +5,7 @@ import { GameAccessStatus } from "@/components/consumer/game-access-status";
 import { Container } from "@/components/layout/container";
 import { requireProductAccess } from "@/lib/access/server";
 import { loadPublicGame } from "@/lib/games/catalog";
+import { getInternalGameRegistration } from "@/lib/games/internal-registry";
 import { createGameAssetTicket } from "@/lib/games/ticket";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,11 @@ export default async function GameDetail({ params }: { params: Promise<{ resourc
   if (!game) notFound();
   if (game.launch.type === "canonical") redirect(game.launch.route);
   if (game.launch.type === "external_https") redirect(`/games/${game.slug}/launch`);
+  if (game.launch.type === "internal") {
+    const registration = getInternalGameRegistration(game.launch.key);
+    if (!registration) notFound();
+    redirect(registration.route);
+  }
   const ticket = access.decision.allowed && access.context.userId
     ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.context.userId })
     : null;

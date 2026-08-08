@@ -15,7 +15,7 @@ insert into public.admin_users(id,user_id,role,mfa_enrolled) values
 ('ac100000-0000-4000-8000-000000000001','ac000000-0000-4000-8000-000000000001','owner',true);
 
 select public.create_external_game_catalog_entry(
-  'ac100000-0000-4000-8000-000000000001','number-cross','Number Cross','Protected arithmetic puzzle.',
+  'ac100000-0000-4000-8000-000000000001','number-cross-external-backup','Number Cross external backup','Protected arithmetic puzzle backup.',
   'https://number-cross.vercel.app','number-cross.vercel.app','builtin:number-cross',3::smallint,9::smallint,
   array['addition','multiplication','number-sense','logical-reasoning','problem-solving','mental-math'],
   array['arithmetic','number-operations','logic-puzzles'],
@@ -24,33 +24,33 @@ select public.create_external_game_catalog_entry(
 ) as number_cross_id \gset
 
 select results_eq(
-  $$select stable_key,launch_type,external_url,external_allowed_host,status from public.game_catalog_entries where stable_key='number-cross'$$,
-  $$values ('number-cross'::text,'external_https'::text,'https://number-cross.vercel.app'::text,'number-cross.vercel.app'::text,'draft'::text)$$,
-  'Number Cross is stored as a draft trusted HTTPS origin, not a signed URL'
+  $$select stable_key,launch_type,external_url,external_allowed_host,status from public.game_catalog_entries where stable_key='number-cross-external-backup'$$,
+  $$values ('number-cross-external-backup'::text,'external_https'::text,'https://number-cross.vercel.app'::text,'number-cross.vercel.app'::text,'draft'::text)$$,
+  'the protected external backup remains available as a trusted HTTPS Draft'
 );
 select lives_ok(
-  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross'),1,'published')$$,
-  'reviewed Number Cross can publish through the existing Admin transition'
+  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross-external-backup'),1,'published')$$,
+  'the reviewed external backup can publish through the existing Admin transition'
 );
 select lives_ok(
-  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross'),2,'maintenance')$$,
-  'published Number Cross can enter maintenance without changing its destination'
+  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross-external-backup'),2,'maintenance')$$,
+  'the published external backup can enter maintenance without changing its destination'
 );
 select results_eq(
-  $$select status,external_url,external_allowed_host from public.game_catalog_entries where stable_key='number-cross'$$,
+  $$select status,external_url,external_allowed_host from public.game_catalog_entries where stable_key='number-cross-external-backup'$$,
   $$values ('maintenance'::text,'https://number-cross.vercel.app'::text,'number-cross.vercel.app'::text)$$,
   'maintenance preserves the exact trusted destination'
 );
 select lives_ok(
-  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross'),3,'published')$$,
-  'maintenance Number Cross can resume after the existing verified-health gate'
+  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross-external-backup'),3,'published')$$,
+  'the maintenance backup can resume after the existing verified-health gate'
 );
 select throws_ok(
-  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross'),4,'draft')$$,
+  $$select public.transition_game_catalog_entry('ac100000-0000-4000-8000-000000000001',(select id from public.game_catalog_entries where stable_key='number-cross-external-backup'),4,'draft')$$,
   'P0001','Invalid game publication transition','published games cannot be moved backward to Draft'
 );
 select is(
-  (select count(*)::bigint from public.admin_audit_log where target=(select id::text from public.game_catalog_entries where stable_key='number-cross') and action='admin.game.maintenance'),
+  (select count(*)::bigint from public.admin_audit_log where target=(select id::text from public.game_catalog_entries where stable_key='number-cross-external-backup') and action='admin.game.maintenance'),
   1::bigint,'maintenance transition is audited exactly once'
 );
 

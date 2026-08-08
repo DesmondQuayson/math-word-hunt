@@ -50,6 +50,10 @@ continues to publish directly from docs without a build step.
   gateway.
 - npm run test:e2e:visual runs only the three stable platform visual snapshots.
 - npm run db:test runs the complete schema and Row Level Security assertion suite.
+- npm run test:number-cross:native verifies byte preservation, deterministic
+  puzzle/Reasoning Index parity, storage namespacing, and the optimized audio asset.
+- npm run test:e2e:number-cross exercises local MFA-backed Draft Preview and the
+  native same-origin Number Cross player flow, then restores local Supabase.
 - npm run test:e2e:phase1d tests local authentication, two-account isolation,
   profile/class/activity persistence, archive, deletion request, entitlement
   denial, and sign-out.
@@ -69,6 +73,12 @@ continues to publish directly from docs without a build step.
 - npm test runs content, unit, current/historical, and platform browser tests.
 
 ## Workspace foundation
+
+Number Cross is integrated as a trusted internal game at
+`/games/number-cross/play` while its standalone protected deployment remains a
+rollback backup. The source-owned registry, Draft Preview authorization,
+catalog migration, preservation hashes, and verification commands are
+documented in `docs/number-cross-native-integration.md`.
 
 Phase 1C uses npm workspaces. `apps/platform-web` is the isolated Next.js App
 Router shell, and `packages/platform-core` contains the portable catalog,

@@ -3,14 +3,15 @@ import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { requireProductAccess } from "@/lib/access/server";
-import { loadExternalGameLaunchRecord } from "@/lib/games/catalog";
+import { loadExternalGameLaunchRecord, loadInternalGameLaunchRecord } from "@/lib/games/catalog";
 
 export const metadata = { title: "Game maintenance" };
 export const dynamic = "force-dynamic";
 
 export default async function GameMaintenance({ params }: { params: Promise<{ resourceId: string }> }) {
   await requireProductAccess("/games");
-  const game = await loadExternalGameLaunchRecord((await params).resourceId);
+  const identifier = (await params).resourceId;
+  const game = await loadInternalGameLaunchRecord(identifier) ?? await loadExternalGameLaunchRecord(identifier);
   if (!game || game.status !== "maintenance") notFound();
   return <Container className="page-stack" width="compact">
     <header>

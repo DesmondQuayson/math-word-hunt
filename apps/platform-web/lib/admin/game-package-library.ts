@@ -11,7 +11,7 @@ export type AdminGameItem = Readonly<{
   slug: string;
   title: string;
   description: string;
-  launchType: "canonical" | "hosted_package" | "external_https";
+  launchType: "canonical" | "hosted_package" | "external_https" | "internal";
   status: string;
   version: string;
   displayOrder: number;
@@ -28,7 +28,7 @@ export type AdminGameItem = Readonly<{
   packageLockVersion: number;
   assetCount: number;
   updatedAt: string;
-  history: readonly Readonly<{ id: string; versionNumber: number; status: string; createdAt: string }>[];
+  history: readonly Readonly<{ id: string; versionNumber: number; status: string; launchType: string; createdAt: string }>[];
   packageHistory: readonly Readonly<{ id: string; version: string; status: string; createdAt: string }>[];
 }>;
 
@@ -89,6 +89,7 @@ export async function loadAdminGamePackages(): Promise<AdminGamePackageSnapshot>
       id: version.id,
       versionNumber: version.version_number,
       status: typeof version.snapshot === "object" && version.snapshot && "status" in version.snapshot ? String(version.snapshot.status) : "draft",
+      launchType: typeof version.snapshot === "object" && version.snapshot && "launch_type" in version.snapshot ? String(version.snapshot.launch_type) : "unknown",
       createdAt: version.created_at
     })),
     packageHistory: (packages.data ?? []).filter((entry) => entry.resource_id === item.resource_id).map((entry) => ({
