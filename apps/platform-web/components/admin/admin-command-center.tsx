@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { AdminDashboardSnapshot } from "@/lib/admin/dashboard";
+import { formatAdminDateTime, formatAdminNumber } from "@/lib/admin/format";
 import { ADMIN_SECTIONS } from "@/lib/admin/navigation";
 
 type AdminCommandCenterProps = Readonly<{
@@ -101,7 +102,7 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
 
     <section aria-labelledby="admin-metrics-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Today’s ledger</p><h2 id="admin-metrics-title">Content and commerce</h2></div><span>Live server projections</span></div>
       <div className="admin-metric-grid">{snapshot.metrics.map((metric, index) => <article className="admin-metric" key={metric.key}>
-        <span className="admin-metric-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><p>{metric.label}</p><strong>{metric.value === null ? "—" : metric.value.toLocaleString()}</strong><small>{metric.detail}</small>
+        <span className="admin-metric-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><p>{metric.label}</p><strong>{metric.value === null ? "—" : formatAdminNumber(metric.value)}</strong><small>{metric.detail}</small>
       </article>)}</div>
     </section>
 
@@ -118,7 +119,7 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
         </dl><p className="admin-honesty-note">Missing provider signals are never shown as healthy. Detailed evidence is available in Analytics and Settings.</p>
       </section>
       <section className="admin-audit-panel" aria-labelledby="admin-audit-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Immutable evidence</p><h2 id="admin-audit-title">Recent admin actions</h2></div><Link href="/admin?section=audit-log">Open audit log</Link></div>
-        {snapshot.recentActions.length ? <ol>{snapshot.recentActions.map((event, index) => <li key={`${event.createdAt}-${index}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><strong>{readableAction(event.action)}</strong><small>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.createdAt))}{event.target ? ` · ${event.target}` : ""}</small></div></li>)}</ol> : <div className="admin-empty-state"><strong>No admin actions yet</strong><p>The immutable ledger will appear here after an authorized owner action.</p></div>}
+        {snapshot.recentActions.length ? <ol>{snapshot.recentActions.map((event, index) => <li key={`${event.createdAt}-${index}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><strong>{readableAction(event.action)}</strong><small>{formatAdminDateTime(event.createdAt)}{event.target ? ` · ${event.target}` : ""}</small></div></li>)}</ol> : <div className="admin-empty-state"><strong>No admin actions yet</strong><p>The immutable ledger will appear here after an authorized owner action.</p></div>}
       </section>
     </div>
   </div>;
