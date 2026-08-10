@@ -43,6 +43,19 @@ function numberCross(status: InternalGameLaunchRecord["status"], stableKey = "nu
   };
 }
 
+function numberLogic(status: InternalGameLaunchRecord["status"]): InternalGameLaunchRecord {
+  return {
+    ...numberCross(status, "number-logic"),
+    id: "11000000-0000-4000-8000-000000000001",
+    slug: "number-logic",
+    title: "Number Logic",
+    description: "Six native number-placement puzzles.",
+    thumbnailReference: "builtin:number-logic",
+    tags: ["number-logic"],
+    version: "0.1.0"
+  };
+}
+
 describe("native internal game authorization routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -103,5 +116,23 @@ describe("native internal game authorization routes", () => {
     expect(preview.status).toBe(200);
     expect(preview.headers.get("location")).toBeNull();
     expect(await preview.text()).not.toContain("number-cross.vercel.app");
+  });
+
+  it("previews one Draft Number Logic registration and keeps normal play concealed", async () => {
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(numberLogic("draft"));
+    const preview = await adminPreview(new Request("https://mathnexa.com/admin/games/catalog/id/preview"), {
+      params: Promise.resolve({ catalogId: "11000000-0000-4000-8000-000000000001" })
+    });
+    expect(preview.status).toBe(200);
+    const previewBody = await preview.text();
+    expect(previewBody).toContain("Number Logic · MathNexa");
+    expect(previewBody).toContain('/internal-games/number-logic/');
+    expect(previewBody).not.toContain("iframe");
+
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(numberLogic("draft"));
+    const play = await playerPlay(new Request("https://mathnexa.com/games/number-logic/play"), {
+      params: Promise.resolve({ resourceId: "number-logic" })
+    });
+    expect(play.status).toBe(404);
   });
 });

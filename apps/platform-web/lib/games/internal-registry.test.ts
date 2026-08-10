@@ -10,15 +10,36 @@ import {
 } from "./internal-registry";
 
 describe("trusted internal game registry", () => {
-  it("registers Number Cross by source-owned key and route only", () => {
-    expect(internalGameKeys()).toEqual(["number-cross"]);
+  it("registers the source-owned Number Cross and Number Logic keys and routes only", () => {
+    expect(internalGameKeys()).toEqual(["number-cross", "number-logic"]);
     expect(getInternalGameRegistration("number-cross")).toMatchObject({
       stableKey: "number-cross",
       route: "/games/number-cross/play",
-      assetBase: "/internal-games/number-cross/"
+      assetBase: "/internal-games/number-cross/",
+      connectSource: "'none'"
     });
     expect(isInternalGameRegistered("number-cross")).toBe(true);
+    expect(getInternalGameRegistration("number-logic")).toMatchObject({
+      stableKey: "number-logic",
+      route: "/games/number-logic/play",
+      assetBase: "/internal-games/number-logic/",
+      connectSource: "'self'"
+    });
+    expect(isInternalGameRegistered("number-logic")).toBe(true);
     expect(getInternalGameRegistration("../../arbitrary-module")).toBeNull();
+  });
+
+  it("renders Number Logic as one same-origin game with one six-mode runtime", async () => {
+    const response = createInternalGameResponse("number-logic");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
+    const body = await response.text();
+    expect(body).toContain('<base href="/internal-games/number-logic/"');
+    expect(body).toContain('<script type="module" src="./assets/index-C-hGjYO7.js"');
+    expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
+    expect(body).not.toContain("iframe");
+    expect(body).not.toContain("http://");
+    expect(body).not.toContain("https://");
   });
 
   it("renders a same-origin top-level document with restrictive headers", async () => {
