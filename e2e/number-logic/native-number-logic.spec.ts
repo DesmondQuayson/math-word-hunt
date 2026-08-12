@@ -53,6 +53,73 @@ async function signIn(page: Page, email: string, destination: string) {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
+type PublishedAudioProbe = Readonly<{
+  contexts: number;
+  resumes: ReadonlyArray<Readonly<{ active: boolean; state: string }>>;
+  decodes: number;
+  musicStarts: number;
+  musicStops: number;
+  effectStarts: number;
+}>;
+
+async function installStrictPublishedAudioPolicy(page: Page) {
+  await page.addInitScript(() => {
+    const host = window as typeof window & { __numberLogicPublishedAudioProbe?: {
+      contexts: number;
+      resumes: Array<{ active: boolean; state: string }>;
+      decodes: number;
+      musicStarts: number;
+      musicStops: number;
+      effectStarts: number;
+    } };
+    const probe = host.__numberLogicPublishedAudioProbe = {
+      contexts: 0, resumes: [], decodes: 0, musicStarts: 0, musicStops: 0, effectStarts: 0,
+    };
+    class StrictAudioContext {
+      state: AudioContextState = "suspended";
+      currentTime = 0;
+      destination = {};
+      constructor() { probe.contexts += 1; }
+      createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, disconnect() {} }; }
+      createBufferSource() {
+        return {
+          buffer: null, loop: false, loopStart: 0, loopEnd: 0,
+          connect() {}, disconnect() {},
+          start() { probe.musicStarts += 1; }, stop() { probe.musicStops += 1; },
+        };
+      }
+      createOscillator() {
+        let ended: (() => void) | null = null;
+        return {
+          type: "sine", frequency: { setValueAtTime() {}, linearRampToValueAtTime() {} },
+          connect() {}, disconnect() {},
+          addEventListener(_name: string, listener: () => void) { ended = listener; },
+          start() { probe.effectStarts += 1; }, stop() { ended?.(); },
+        };
+      }
+      decodeAudioData() {
+        probe.decodes += 1;
+        const samples = new Float32Array(1_000);
+        return Promise.resolve({ sampleRate: 1_000, length: samples.length, duration: 1, numberOfChannels: 1, getChannelData: () => samples });
+      }
+      resume() {
+        const active = navigator.userActivation?.isActive === true;
+        probe.resumes.push({ active, state: this.state });
+        if (!active) return Promise.reject(new DOMException("User activation required", "NotAllowedError"));
+        this.state = "running";
+        return Promise.resolve();
+      }
+      close() { this.state = "closed"; return Promise.resolve(); }
+    }
+    Object.defineProperty(window, "AudioContext", { configurable: true, value: StrictAudioContext });
+    Object.defineProperty(window, "webkitAudioContext", { configurable: true, value: StrictAudioContext });
+  });
+}
+
+async function readPublishedAudioProbe(page: Page): Promise<PublishedAudioProbe> {
+  return page.evaluate(() => (window as typeof window & { __numberLogicPublishedAudioProbe: PublishedAudioProbe }).__numberLogicPublishedAudioProbe);
+}
+
 async function completeMode(page: Page, mode: (typeof modes)[number], modeIndex: number) {
   await page.getByRole("button", { name: new RegExp(mode.name, "i") }).click();
   await page.getByRole("button", { name: /skip tutorial/i }).click();
@@ -244,4 +311,87 @@ test("Draft Admin Preview completes all six modes and preserves native lifecycle
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
   expect(failedRequests).toEqual([]);
+});
+
+test("published normal-user Play unlocks music and SFX on the first in-game gesture", async ({ page }) => {
+  const current = await admin.from("game_catalog_entries").select("id,status,lock_version").eq("stable_key", "number-logic").single();
+  if (current.error) throw current.error;
+  if (current.data.status !== "published") {
+    const published = await admin.rpc("transition_game_catalog_entry", {
+      p_actor_admin_id: ownerAdminId,
+      p_catalog_entry_id: current.data.id,
+      p_expected_lock_version: current.data.lock_version,
+      p_status: "published"
+    });
+    if (published.error) throw published.error;
+  }
+
+  await installStrictPublishedAudioPolicy(page);
+  await signIn(page, subscriberEmail, "/games");
+  await page.evaluate(() => localStorage.setItem("mathnexa:number-logic-audio:1", JSON.stringify({
+    version: "number-logic-audio/1",
+    masterMuted: false,
+    musicEnabled: true,
+    musicVolume: 0.35,
+    soundEffectsEnabled: true,
+    soundEffectsVolume: 0.6
+  })));
+  const card = page.locator("article").filter({ has: page.getByRole("heading", { name: "Number Logic", exact: true }) });
+  await expect(card).toBeVisible();
+  await card.getByRole("link", { name: "Play" }).click();
+  await expect(page).toHaveURL("/games/number-logic/play");
+
+  const root = page.locator("[data-audio-manager-count='1']");
+  await expect(root).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(root).toHaveAttribute("data-audio-track-decoded", "false");
+  await expect(root).toHaveAttribute("data-audio-music-volume", "0.35");
+  await expect(root).toHaveAttribute("data-audio-sfx-volume", "0.6");
+  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 0, resumes: [], decodes: 0, musicStarts: 0 });
+
+  const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
+  await page.getByRole("button", { name: /lines of 3/i }).click();
+  const response = await oldskool;
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("audio/mpeg");
+  expect(response.headers()["content-length"]).toBe("1295630");
+  await expect(root).toHaveAttribute("data-audio-context-state", "running");
+  await expect(root).toHaveAttribute("data-audio-track-decoded", "true");
+  await expect(page.locator("[data-audio-activated=true]")).toHaveAttribute("data-playback", "PLAYING");
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
+  expect(await readPublishedAudioProbe(page)).toMatchObject({
+    contexts: 1,
+    resumes: [{ active: true, state: "suspended" }],
+    decodes: 1,
+    musicStarts: 1
+  });
+
+  await page.getByRole("button", { name: /skip tutorial/i }).click();
+  await page.getByRole("button", { name: /play beginner/i }).click();
+  const firstTile = page.locator("[data-drag-tile-id]").first();
+  await firstTile.click();
+  const firstEmpty = page.locator("[data-position-id]").filter({ has: page.locator("small") }).first();
+  await firstEmpty.click();
+  await expect.poll(async () => (await readPublishedAudioProbe(page)).effectStarts).toBeGreaterThanOrEqual(2);
+  expect((await readPublishedAudioProbe(page)).resumes).toHaveLength(1);
+
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: /puzzle paused/i })).toBeVisible();
+  await expect.poll(async () => (await readPublishedAudioProbe(page)).musicStops).toBe(1);
+  await page.getByRole("button", { name: /resume puzzle/i }).click();
+  await expect.poll(async () => (await readPublishedAudioProbe(page)).musicStarts).toBe(2);
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
+
+  await page.getByRole("link", { name: "Back to MathNexa Games" }).click();
+  await expect(page).toHaveURL(/\/(?:games|subscription\?next=\/games)$/);
+  await expect(page.locator("[data-audio-manager-count]")).toHaveCount(0);
+
+  const reentryCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Number Logic", exact: true }) });
+  await reentryCard.getByRole("link", { name: "Play" }).click();
+  const reentryRoot = page.locator("[data-audio-manager-count='1']");
+  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await page.getByRole("button", { name: /product square/i }).click();
+  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "running");
+  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 1, decodes: 1, musicStarts: 1 });
+  await page.getByRole("link", { name: "Back to MathNexa Games" }).click();
+  await expect(page.locator("[data-audio-manager-count]")).toHaveCount(0);
 });

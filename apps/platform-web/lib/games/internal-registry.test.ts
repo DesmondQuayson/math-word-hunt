@@ -35,7 +35,7 @@ describe("trusted internal game registry", () => {
     expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/number-logic/"');
-    expect(body).toContain('<script type="module" src="./assets/index-C-hGjYO7.js"');
+    expect(body).toContain('<script type="module" src="./assets/index-Dk-vovPM.js"');
     expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");

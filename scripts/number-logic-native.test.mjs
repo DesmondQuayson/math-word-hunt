@@ -13,7 +13,7 @@ const standaloneRoot = process.env.NUMBER_LOGIC_SOURCE_DIR
 
 const assetHashes = Object.freeze({
   "assets/index-0S0ADVv9.css": "d29f4a432ea37e570e61ed9d83720ab0107922fc9f6ca15e0c3db54e20d2be29",
-  "assets/index-C-hGjYO7.js": "0f798c81be9adb66c819475bb83be0ab85b6ed946c2f239cda0d90e272bacf69",
+  "assets/index-Dk-vovPM.js": "16eb20992dca938f3f3677ac6e26b3f868ae1e9afc9d04358670e23885f2dec7",
   "assets/oldskool-cc0-CQNT44Pl.mp3": "888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88"
 });
 
@@ -21,7 +21,7 @@ const sourceAggregates = Object.freeze({
   math: "0f125d147d628173dd883235b230186ba5617be49c00f3c8c2212977dc28c2a5",
   resultContracts: "36f2f20505c80774c1815d6291b37e9d494c8d23da363025ec15ed42a86615a5",
   hostStorage: "85979ddd233322299622a4f62fb49c86a76b2ee55cf9d1c965ff04bc2512c2ea",
-  audio: "ade1328fc0c4aad582be57d96cfb3ba20536ee3918d413c807d98ea6be3ecc74"
+  audio: "7ef933cf688e9fea453122af10da2865a86a29336c502f92fce00d207e7fdfa8"
 });
 
 function sha256(value) {
@@ -72,7 +72,7 @@ test("approved mathematical, result, adapter, and audio sources have no native d
 });
 
 test("one bundle retains all six modes, exact contracts, and collision-safe storage", () => {
-  const source = readFileSync(resolve(nativeRoot, "assets/index-C-hGjYO7.js"), "utf8");
+  const source = readFileSync(resolve(nativeRoot, "assets/index-Dk-vovPM.js"), "utf8");
   for (const mode of ["lines-of-3", "u-sums", "magic-h", "equal-sums", "square-sums", "product-square"]) {
     assert.match(source, new RegExp(`\\b${mode.replaceAll("-", "\\-")}\\b`), mode);
   }
@@ -94,7 +94,7 @@ test("only production runtime assets ship and navigation stays native", () => {
   const shipped = files(nativeRoot).map((path) => relative(nativeRoot, path).replaceAll("\\", "/")).sort();
   assert.deepEqual(shipped, [
     "assets/index-0S0ADVv9.css",
-    "assets/index-C-hGjYO7.js",
+    "assets/index-Dk-vovPM.js",
     "assets/oldskool-cc0-CQNT44Pl.mp3",
     "integration.css"
   ]);
