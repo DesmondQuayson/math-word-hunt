@@ -105,7 +105,7 @@ async function installStrictPublishedAudioPolicy(page: Page) {
       resume() {
         const active = navigator.userActivation?.isActive === true;
         probe.resumes.push({ active, state: this.state });
-        if (!active) return Promise.reject(new DOMException("User activation required", "NotAllowedError"));
+        if (probe.resumes.length === 1 || !active) return Promise.reject(new DOMException("User activation required", "NotAllowedError"));
         this.state = "running";
         return Promise.resolve();
       }
@@ -122,6 +122,7 @@ async function readPublishedAudioProbe(page: Page): Promise<PublishedAudioProbe>
 
 async function completeMode(page: Page, mode: (typeof modes)[number], modeIndex: number) {
   await page.getByRole("button", { name: new RegExp(mode.name, "i") }).click();
+  await expect(page.locator("[data-audio-manager-count='1'] [data-music-sources='1']")).toBeVisible();
   await page.getByRole("button", { name: /skip tutorial/i }).click();
   await page.getByRole("button", { name: /play beginner/i }).click();
   const game = page.locator("main[data-puzzle-id]");
@@ -175,7 +176,9 @@ async function completeMode(page: Page, mode: (typeof modes)[number], modeIndex:
 
   await expect(page.getByTestId(mode.completion)).toBeVisible();
   await expect(page.getByText(new RegExp(`${mode.name} Reasoning Index`, "i"))).toBeVisible();
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
   await page.getByRole("button", { name: "Return home" }).click();
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -254,11 +257,16 @@ test("Draft Admin Preview completes all six modes and preserves native lifecycle
   await expect(page.locator("[data-audio-manager-count='1']")).toBeVisible();
 
   for (const [index, mode] of modes.entries()) await completeMode(page, mode, index);
+  await page.getByRole("button", { name: /settings/i }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
+  await page.getByRole("button", { name: /close settings/i }).click();
   const progress = await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-progress:1") ?? "null"));
   expect(progress.records).toHaveLength(6);
   expect(new Set(progress.records.map((record: { mode: string }) => record.mode)).size).toBe(6);
   const audioBeforeReset = await page.evaluate(() => localStorage.getItem("mathnexa:number-logic-audio:1"));
   await page.getByRole("button", { name: /open logic profile/i }).click();
+  await expect(page.locator("[data-music-sources='1']")).toBeVisible();
   await page.getByRole("button", { name: "Reset Logic Profile" }).click();
   await page.getByRole("button", { name: "Confirm reset" }).click();
   expect(await page.evaluate(() => localStorage.getItem("mathnexa:number-logic-audio:1"))).toBe(audioBeforeReset);
@@ -342,11 +350,17 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   await expect(page).toHaveURL("/games/number-logic/play");
 
   const root = page.locator("[data-audio-manager-count='1']");
-  await expect(root).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(root).toHaveAttribute("data-audio-context-state", "suspended");
+  await expect(root).toHaveAttribute("data-audio-permission", "LOCKED");
   await expect(root).toHaveAttribute("data-audio-track-decoded", "false");
   await expect(root).toHaveAttribute("data-audio-music-volume", "0.35");
   await expect(root).toHaveAttribute("data-audio-sfx-volume", "0.6");
-  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 0, resumes: [], decodes: 0, musicStarts: 0 });
+  expect(await readPublishedAudioProbe(page)).toMatchObject({
+    contexts: 1,
+    resumes: [{ active: false, state: "suspended" }],
+    decodes: 0,
+    musicStarts: 0,
+  });
 
   const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
   await page.getByRole("button", { name: /lines of 3/i }).click();
@@ -360,7 +374,10 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   await expect(page.locator("[data-music-sources='1']")).toBeVisible();
   expect(await readPublishedAudioProbe(page)).toMatchObject({
     contexts: 1,
-    resumes: [{ active: true, state: "suspended" }],
+    resumes: [
+      { active: false, state: "suspended" },
+      { active: true, state: "suspended" },
+    ],
     decodes: 1,
     musicStarts: 1
   });
@@ -372,7 +389,7 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   const firstEmpty = page.locator("[data-position-id]").filter({ has: page.locator("small") }).first();
   await firstEmpty.click();
   await expect.poll(async () => (await readPublishedAudioProbe(page)).effectStarts).toBeGreaterThanOrEqual(2);
-  expect((await readPublishedAudioProbe(page)).resumes).toHaveLength(1);
+  expect((await readPublishedAudioProbe(page)).resumes).toHaveLength(2);
 
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(page.getByRole("dialog", { name: /puzzle paused/i })).toBeVisible();
@@ -388,7 +405,8 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   const reentryCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Number Logic", exact: true }) });
   await reentryCard.getByRole("link", { name: "Play" }).click();
   const reentryRoot = page.locator("[data-audio-manager-count='1']");
-  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "suspended");
+  await expect(reentryRoot).toHaveAttribute("data-audio-permission", "LOCKED");
   await page.getByRole("button", { name: /product square/i }).click();
   await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "running");
   expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 1, decodes: 1, musicStarts: 1 });
