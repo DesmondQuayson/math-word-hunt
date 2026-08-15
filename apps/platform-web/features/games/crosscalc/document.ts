@@ -17,7 +17,7 @@ export function renderCrossCalcDocument(): string {
   <body>
     <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games">← Back to Games</a>
     <div id="root"></div>
-    <script type="module" src="./assets/index-DIwGVbWJ.js"></script>
+    <script type="module" src="./assets/index-C7Zij5Bt.js"></script>
   </body>
 </html>`;
 }

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title description">
+  <title id="title">CrossCalc arithmetic crossword</title>
+  <desc id="description">A connected turquoise and pink arithmetic puzzle on a deep navy game board.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071525"/><stop offset="1" stop-color="#0C2638"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#20CFE3" stop-opacity=".28"/><stop offset="1" stop-color="#20CFE3" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="11" flood-color="#020A10" flood-opacity=".7"/></filter>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" fill="none" stroke="#20CFE3" stroke-opacity=".055"/></pattern>
+  </defs>
+  <rect width="1200" height="675" rx="34" fill="url(#background)"/><rect width="1200" height="675" rx="34" fill="url(#grid)"/><circle cx="365" cy="318" r="420" fill="url(#glow)"/>
+  <g font-family="Arial,Helvetica,sans-serif">
+    <g transform="translate(58 54)"><rect width="56" height="56" rx="17" fill="#FF4F9A"/><text x="28" y="41" text-anchor="middle" font-size="42" font-weight="900" fill="#071525">×</text><text x="78" y="20" font-size="16" font-weight="800" letter-spacing="3" fill="#C9F8FC">MATHNEXA</text><text x="78" y="53" font-size="35" font-weight="900" fill="#FFFFFF">CrossCalc</text></g>
+    <g transform="translate(84 174)" filter="url(#shadow)" font-size="37" font-weight="900" text-anchor="middle">
+      <g fill="#102B3D" stroke="#20CFE3" stroke-width="4"><rect x="0" y="0" width="82" height="82" rx="19"/><rect x="96" y="0" width="82" height="82" rx="19"/><rect x="192" y="0" width="82" height="82" rx="19"/><rect x="288" y="0" width="82" height="82" rx="19"/></g>
+      <g fill="#FFFFFF"><text x="41" y="54">1</text><text x="137" y="54">2</text><text x="233" y="54">7</text><text x="329" y="54">5</text></g>
+      <g fill="#102B3D" stroke="#FF4F9A" stroke-width="4"><rect x="192" y="96" width="82" height="82" rx="19"/><rect x="192" y="192" width="82" height="82" rx="19"/></g>
+      <g fill="#FFFFFF"><text x="233" y="150">2</text><text x="233" y="246">9</text></g>
+      <g fill="#102B3D" stroke="#20CFE3" stroke-width="4"><rect x="288" y="192" width="82" height="82" rx="19"/><rect x="384" y="192" width="82" height="82" rx="19"/></g>
+      <g fill="#FFFFFF"><text x="329" y="246">1</text><text x="425" y="246">8</text></g>
+      <circle cx="258" cy="208" r="9" fill="#FF4F9A"/><path d="M253 208h10M258 203v10" stroke="#071525" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(650 160)">
+      <text x="0" y="0" font-size="17" font-weight="800" letter-spacing="3" fill="#20CFE3">EQUATION PATHS</text><text x="0" y="45" font-size="38" font-weight="900" fill="#FFFFFF">Connect every answer.</text>
+      <g transform="translate(0 82)" font-weight="800"><rect width="466" height="82" rx="21" fill="#102B3D" stroke="#20CFE3" stroke-width="3"/><circle cx="43" cy="41" r="23" fill="#20CFE3"/><text x="43" y="49" text-anchor="middle" font-size="22" fill="#071525">1</text><text x="84" y="51" font-size="27" fill="#FFFFFF">600 + 675 = 1275</text><text x="420" y="51" font-size="27" fill="#20CFE3">✓</text></g>
+      <g transform="translate(0 180)" font-weight="800"><rect width="466" height="82" rx="21" fill="#102B3D" stroke="#FF4F9A" stroke-width="3"/><circle cx="43" cy="41" r="23" fill="#FF4F9A"/><text x="43" y="49" text-anchor="middle" font-size="22" fill="#071525">2</text><text x="84" y="51" font-size="27" fill="#FFFFFF">27 × 27 = 729</text><text x="420" y="51" font-size="30" fill="#FF4F9A">·</text></g>
+      <g transform="translate(0 278)" font-weight="800"><rect width="466" height="82" rx="21" fill="#102B3D" stroke="#315265" stroke-width="2"/><circle cx="43" cy="41" r="23" fill="#1B394B"/><text x="43" y="49" text-anchor="middle" font-size="22" fill="#C9F8FC">3</text><text x="84" y="51" font-size="27" fill="#FFFFFF">1500 − 582 = 918</text><text x="420" y="51" font-size="30" fill="#C9F8FC">·</text></g>
+      <g transform="translate(0 389)"><rect width="210" height="58" rx="29" fill="#FF4F9A"/><text x="105" y="38" text-anchor="middle" font-size="20" font-weight="900" letter-spacing="1" fill="#071525">REASONING 92</text><text x="232" y="38" font-size="18" font-weight="700" fill="#C9F8FC">Every path matters.</text></g>
+    </g>
+  </g>
+</svg>

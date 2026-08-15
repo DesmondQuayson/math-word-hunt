@@ -5,7 +5,7 @@ CrossCalc is registered as one trusted same-origin MathNexa game at `/games/cros
 ## Provenance
 
 - Standalone source branch: `feature/crosscalc-v1`
-- Approved standalone source commit: `3a54b61`
+- Owner-preflight standalone source commit: `0befe8e`
 - CSS SHA-256: `2bb39ccb0b2cfa958b81e38037d8b33880a6207c22d0cda161e1a0b52baf5393`
 - JS SHA-256: `4586cab64b3842c36df6c07b41a1885d997c3548cc8706b05a5f0da2a5310db5`
 - Oldskool SHA-256: `888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88`

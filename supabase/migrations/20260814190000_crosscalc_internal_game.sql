@@ -15,18 +15,18 @@ begin
     'crosscalc','crosscalc','CrossCalc',
     'Connect whole-number equation answers through shared digits across Addition, Subtraction, Multiplication, Division, and Mixed Operations.',
     'internal','builtin:crosscalc',3,9,
-    array['addition','subtraction','multiplication','division','mental-math','arithmetic-reasoning','problem-solving'],
-    array['arithmetic','whole-numbers','logic-puzzles','number-operations'],
+    array['addition','arithmetic-reasoning','division','mental-math','multiplication','problem-solving','subtraction'],
+    array['arithmetic','logic-puzzles','number-operations','whole-numbers'],
     array['arithmetic-crossword','crosscalc','math-puzzle','reasoning'],
     'mixed','draft',32,'0.1.0',
     jsonb_build_object(
       'internal_registry_key','crosscalc',
       'internal_route','/games/crosscalc/play',
       'implementation_version','0.1.0',
-      'source_commit','3a54b61',
+      'source_commit','0befe8e',
       'migrated_at',statement_timestamp()
     ),
-    jsonb_build_object('strategy','catalog version rollback','standalone_release_commit','3a54b61')
+    jsonb_build_object('strategy','catalog version rollback','standalone_release_commit','0befe8e')
   )
   on conflict(stable_key) do update set
     resource_id=null,

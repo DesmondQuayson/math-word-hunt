@@ -42,7 +42,7 @@ describe("trusted internal game registry", () => {
     expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/crosscalc/"');
-    expect(body).toContain('<script type="module" src="./assets/index-DIwGVbWJ.js"');
+    expect(body).toContain('<script type="module" src="./assets/index-C7Zij5Bt.js"');
     expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");

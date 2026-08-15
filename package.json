@@ -143,6 +143,7 @@
     "phase11:number-logic:verify": "npm run test:number-logic && npm run test:number-logic:native && npm run test:number-logic:security && npm run test:e2e:number-logic",
     "test:crosscalc": "npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/games/internal-registry.test.ts lib/games/internal-game-route.test.ts",
     "test:crosscalc:native": "node --test scripts/crosscalc-native.test.mjs",
+    "test:e2e:crosscalc": "node scripts/run-crosscalc-e2e.mjs",
     "phase10:hosted": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-phase10-hosted-staging.ps1",
     "phase10:verify": "node scripts/verify-phase10.mjs",
     "test:phase11": "npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/auth/confirmation-actions.test.ts components/auth/email-confirmation-dialog.test.tsx components/public/teacher-first-home.test.tsx components/forms/auth-forms.test.tsx",
@@ -170,7 +171,7 @@
   "overrides": {
     "brace-expansion": "5.0.9",
     "minimatch": "10.2.5",
-    "nanoid": "3.3.17",
+    "nanoid": "3.3.18",
     "postcss": "8.5.23",
     "sharp": "0.35.3"
   }
