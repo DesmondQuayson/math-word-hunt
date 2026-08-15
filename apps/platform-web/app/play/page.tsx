@@ -4,10 +4,18 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { getLegacyGameDestination } from "@/lib/legacy-game";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { requireProductAccess } from "@/lib/access/server";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Play" };
 
-export default function PlayPage() {
+async function ConsumerPlayPage() {
+  await requireProductAccess("/games");
+  return redirect("/game/runtime/index.html");
+}
+
+function LegacyPlayPage() {
   const legacyGameUrl = getLegacyGameDestination();
 
   return (
@@ -75,4 +83,8 @@ export default function PlayPage() {
       </section>
     </Container>
   );
+}
+
+export default function PlayPage() {
+  return isProductionPlatformMode() ? <ConsumerPlayPage /> : <LegacyPlayPage />;
 }

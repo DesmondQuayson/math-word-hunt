@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" rx="36" fill="#e8f2f5"/>
+  <rect x="30" y="30" width="1140" height="740" rx="28" fill="#fff" stroke="#0d3b57" stroke-width="6"/>
+  <rect x="30" y="30" width="1140" height="116" rx="25" fill="#082c43"/>
+  <rect x="30" y="115" width="1140" height="31" fill="#082c43"/>
+  <text x="72" y="76" fill="#f5c542" font-family="Arial,sans-serif" font-size="19" font-weight="800" letter-spacing="4">MATHNEXA TOPIC QUIZ</text>
+  <text x="72" y="119" fill="#fff" font-family="Arial,sans-serif" font-size="34" font-weight="800">Proportional Relationships</text>
+  <rect x="892" y="62" width="222" height="52" rx="16" fill="#dcefe9"/>
+  <text x="1003" y="95" text-anchor="middle" fill="#12664f" font-family="Arial,sans-serif" font-size="19" font-weight="800">Answer key included</text>
+  <g font-family="Arial,sans-serif">
+    <text x="72" y="190" fill="#567181" font-size="18" font-weight="800" letter-spacing="2">GRADE 7  ·  TOPIC 2</text>
+    <text x="72" y="226" fill="#0b2239" font-size="25" font-weight="800">Name</text><path d="M148 228h340" stroke="#bdd1da" stroke-width="3"/>
+    <text x="720" y="226" fill="#0b2239" font-size="25" font-weight="800">Date</text><path d="M780 228h330" stroke="#bdd1da" stroke-width="3"/>
+  </g>
+  <line x1="72" y1="258" x2="1128" y2="258" stroke="#315b72" stroke-width="2"/>
+  <g font-family="Arial,sans-serif" fill="#0b2239">
+    <circle cx="100" cy="315" r="24" fill="#f5c542"/><text x="100" y="323" text-anchor="middle" font-size="22" font-weight="800">1</text>
+    <text x="144" y="307" font-size="22" font-weight="700">A recipe uses 3 cups of oats for 8 snack bars.</text>
+    <text x="144" y="341" fill="#294e63" font-size="20">How many cups are used per snack bar?</text>
+    <g transform="translate(144 365)" font-size="18" font-weight="700"><rect width="180" height="50" rx="12" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="90" y="32" text-anchor="middle">A  ·  3/8 cup</text><rect x="196" width="180" height="50" rx="12" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="286" y="32" text-anchor="middle">B  ·  8/3 cups</text></g>
+    <circle cx="100" cy="475" r="24" fill="#dcefe9"/><text x="100" y="483" text-anchor="middle" font-size="22" font-weight="800">2</text>
+    <text x="144" y="468" font-size="22" font-weight="700">Complete the table for y = 4x.</text>
+    <g transform="translate(144 500)"><rect width="418" height="112" rx="12" fill="#f8fbfc" stroke="#bdd1da" stroke-width="3"/><path d="M0 56h418M104 0v112M209 0v112M313 0v112" stroke="#bdd1da" stroke-width="2"/><text x="52" y="35" text-anchor="middle" font-size="19" font-weight="800">x</text><text x="156" y="35" text-anchor="middle" font-size="19">1</text><text x="261" y="35" text-anchor="middle" font-size="19">3</text><text x="365" y="35" text-anchor="middle" font-size="19">5</text><text x="52" y="91" text-anchor="middle" font-size="19" font-weight="800">y</text><text x="156" y="91" text-anchor="middle" font-size="19">4</text><text x="261" y="91" text-anchor="middle" font-size="19">12</text><rect x="334" y="68" width="62" height="30" rx="7" fill="#fff" stroke="#315b72" stroke-width="2"/></g>
+    <circle cx="652" cy="315" r="24" fill="#f5c542"/><text x="652" y="323" text-anchor="middle" font-size="22" font-weight="800">3</text>
+    <text x="696" y="307" font-size="22" font-weight="700">Which graph shows a constant</text><text x="696" y="339" font-size="22" font-weight="700">of proportionality of 2?</text>
+    <g transform="translate(708 366)" stroke="#bdd1da"><rect width="170" height="170" rx="12" fill="#f8fbfc"/><path d="M28 142h118M28 142V24M28 142 140 34" stroke="#1c7773" stroke-width="5"/></g>
+    <g transform="translate(912 366)" stroke="#bdd1da"><rect width="170" height="170" rx="12" fill="#f8fbfc"/><path d="M28 142h118M28 142V24M28 112 140 44" stroke="#d95d45" stroke-width="5"/></g>
+  </g>
+  <rect x="72" y="660" width="1056" height="66" rx="16" fill="#0d3b57"/>
+  <text x="104" y="702" fill="#fff" font-family="Arial,sans-serif" font-size="21" font-weight="700">Classroom-ready PDF  ·  Grade → Topic  ·  No lesson selection</text>
+  <rect x="900" y="673" width="194" height="40" rx="12" fill="#f5c542"/>
+  <text x="997" y="700" text-anchor="middle" fill="#0b2239" font-family="Arial,sans-serif" font-size="18" font-weight="800">Download quiz</text>
+</svg>

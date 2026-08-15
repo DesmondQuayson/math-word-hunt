@@ -1,0 +1,42 @@
+.native-back-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .65rem .9rem;
+  border: 1px solid rgba(16, 36, 62, .16);
+  border-radius: 999px;
+  color: #10243e;
+  background: rgba(255, 255, 255, .78);
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.native-back-link:hover {
+  background: #fff;
+  box-shadow: var(--soft-shadow);
+}
+
+.native-back-link:focus-visible {
+  outline: 3px solid #f3a712;
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .native-back-link {
+    width: 44px;
+    padding-inline: .4rem;
+    font-size: 0;
+  }
+
+  .native-back-link::before {
+    content: "←";
+    font-size: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .native-back-link { scroll-behavior: auto; }
+}

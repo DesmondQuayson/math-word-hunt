@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'legacy-preview'
+\ir ../helpers/select-identity-model.psql
 
 select has_table('public', 'teacher_profiles', 'teacher_profiles exists');
 select has_table('public', 'products', 'products exists');
@@ -58,8 +60,8 @@ insert into auth.users (
 
 select results_eq(
   $$select display_name, school_or_organization_label, account_status from public.teacher_profiles where user_id = '10000000-0000-0000-0000-000000000001'$$,
-  $$values ('Schema Teacher'::text, 'Example School'::text, 'active'::text)$$,
-  'signup provisions only safe profile fields and hard-codes active status'
+  $$values ('Schema Teacher'::text, null::text, 'active'::text)$$,
+  'signup provisions the minimum controlled-pilot profile and hard-codes active status'
 );
 select results_eq(
   $$select count(*)::bigint from public.teacher_profiles where user_id = '10000000-0000-0000-0000-000000000001'$$,
@@ -105,3 +107,4 @@ select throws_ok(
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

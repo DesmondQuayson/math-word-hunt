@@ -1,19 +1,47 @@
 import Link from "next/link";
 
+import { signOutAction } from "@/app/auth-actions";
 import { Container } from "@/components/layout/container";
 import { NavigationItem } from "@/components/layout/navigation-item";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { getGameAccessView } from "@/lib/game-access/server";
 
 const navigation = [
   { href: "/play", label: "Play" },
   { href: "/teacher", label: "Teacher" },
+  { href: "/pilot", label: "Pilot" },
   { href: "/account", label: "Account" }
 ] as const;
 
-export function SiteHeader() {
+const publicNavigation = [
+  { href: "/play", label: "Play" },
+  { href: "/about", label: "About" },
+  { href: "/help", label: "Help" },
+  { href: "/accessibility", label: "Accessibility" }
+] as const;
+
+const consumerNavigation = [
+  { href: "/", label: "Home" },
+  { href: "/games", label: "Games" },
+  { href: "/map-prep", label: "MAP Prep" },
+  { href: "/homework", label: "Homework" },
+  { href: "/quizzes", label: "Quizzes" },
+  { href: "/subscription", label: "Subscription" },
+  { href: "/account", label: "My Account" }
+] as const;
+
+export async function SiteHeader() {
+  const publicProduction = isProductionPublicMode();
+  const productionPlatform = isProductionPlatformMode();
+  const mathNexa = publicProduction || productionPlatform;
+  const items = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
+  const access = productionPlatform ? await getGameAccessView() : null;
+  const signedIn = access !== null && access.context.status !== "anonymous" && access.context.status !== "unconfigured";
   return (
     <header className="site-header">
       <Container className="header-inner">
-        <Link className="brand" href="/" aria-label="Math Vocabulary Hunt home">
+        <Link className="brand" href="/" aria-label={mathNexa ? "MathNexa home" : "Math Vocabulary Hunt home"}>
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" focusable="false">
               <path
@@ -34,17 +62,20 @@ export function SiteHeader() {
               <circle cx="23.5" cy="8.5" r="2.4" fill="currentColor" />
             </svg>
           </span>
-          <span className="brand-name">
-            Math Vocabulary <strong>Hunt</strong>
-          </span>
+          <span className="brand-name">{mathNexa ? <>Math<strong>Nexa</strong></> : <>Math Vocabulary <strong>Hunt</strong></>}</span>
         </Link>
         <nav aria-label="Primary navigation">
           <ul className="nav-list">
-            {navigation.map((item) => (
+            {items.map((item) => (
               <li key={item.href}>
                 <NavigationItem href={item.href} label={item.label} />
               </li>
             ))}
+            {signedIn ? <li className="nav-account-action">
+              <form action={signOutAction}>
+                <button type="submit">Sign out</button>
+              </form>
+            </li> : null}
           </ul>
         </nav>
       </Container>

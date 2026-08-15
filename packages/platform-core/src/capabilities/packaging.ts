@@ -1,4 +1,4 @@
-import { BILLING_PLAN_KEYS, isBillingPlanKey, type BillingPlanKey } from "../billing/plan-keys";
+import { isBillingPlanKey, type BillingPlanKey } from "../billing/plan-keys";
 import { CAPABILITY_REGISTRY } from "./registry";
 import type { CapabilityKey } from "./keys";
 
@@ -10,7 +10,13 @@ export type ProductPackage = Readonly<{
   capabilityKeys: readonly CapabilityKey[];
 }>;
 
-export const PRODUCT_PACKAGES: readonly ProductPackage[] = Object.freeze(BILLING_PLAN_KEYS.map((planKey) => Object.freeze({
+const LEGACY_CAPABILITY_PLAN_KEYS = [
+  "free",
+  "teacher-pro-monthly",
+  "teacher-pro-annual"
+] as const satisfies readonly BillingPlanKey[];
+
+export const PRODUCT_PACKAGES: readonly ProductPackage[] = Object.freeze(LEGACY_CAPABILITY_PLAN_KEYS.map((planKey) => Object.freeze({
   planKey,
   displayName: planKey === "free" ? "Free" : planKey === "teacher-pro-monthly" ? "Teacher Pro Monthly" : "Teacher Pro Annual",
   activeClassLimit: planKey === "free" ? 2 : 25,

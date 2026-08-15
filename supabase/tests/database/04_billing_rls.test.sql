@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'legacy-preview'
+\ir ../helpers/select-identity-model.psql
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data) values
   ('40000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'billing-rls-a@example.invalid', crypt('BillingPass123', gen_salt('bf')), now(), '{"display_name":"Billing RLS A"}'::jsonb),
@@ -81,3 +83,4 @@ reset role;
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

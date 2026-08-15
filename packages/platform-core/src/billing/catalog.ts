@@ -72,5 +72,16 @@ export const BILLING_CATALOG = defineBillingCatalog([
     pricingStatus: "test-mode-approved",
     lifecycle: "proposed",
     featureKeys: ["basic-play", "limited-content", "complete-library", "classroom-tools", "premium-game-modes"]
+  },
+  {
+    key: "mathnexa-monthly",
+    productKey: PRODUCT_KEYS[0],
+    displayName: "MathNexa Monthly",
+    interval: "month",
+    currency: "usd",
+    amountMinorUnits: 599,
+    pricingStatus: "test-mode-approved",
+    lifecycle: "active",
+    featureKeys: ["basic-play", "limited-content", "complete-library", "premium-game-modes"]
   }
 ]);

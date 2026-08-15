@@ -4,7 +4,9 @@
 
 | Table | Purpose | Owner boundary |
 | --- | --- | --- |
-| `teacher_profiles` | Display name, optional organization label, account status | `user_id` |
+| `teacher_profiles` | Display name, legacy nullable organization-label column, account status | `user_id` |
+
+During Phase 6B, profile provisioning stores the organization label as null and database controls reject insert or update attempts. The legacy nullable column is retained to avoid destructive migration or deletion of unrelated existing data.
 | `products` | Safe public product catalog | Public active reads; no ordinary writes |
 | `product_entitlements` | Server-authoritative grants | `teacher_user_id`; teacher read only |
 | `teacher_classes` | Privacy-minimized class labels | `owner_teacher_id` |

@@ -1,7 +1,7 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync, unlinkSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -91,4 +91,61 @@ export async function stopRegisteredVerificationNextProcesses() {
     if (command.includes("next") && command.includes(expectedAppPath)) await terminatePid(pid);
   }
   writeRegistry([]);
+}
+
+export async function cleanPlatformGeneratedNextState() {
+  await stopRegisteredVerificationNextProcesses();
+  const appRoot = realpathSync(resolve(repositoryRoot, "apps/platform-web"));
+  const buildRoot = resolve(appRoot, ".next");
+  if (dirname(buildRoot) !== appRoot || basename(buildRoot) !== ".next") {
+    throw new Error("Refusing unsafe generated Next state cleanup target");
+  }
+  if (!existsSync(buildRoot)) return;
+  if (process.platform === "win32") {
+    const cleanupScript = [
+      "$ErrorActionPreference = 'Stop'",
+      "$target = $env:MATH_HUNT_GENERATED_NEXT_ROOT",
+      "$extendedTarget = '\\\\?\\' + $target",
+      "$deadline = (Get-Date).AddSeconds(30)",
+      "while (Test-Path -LiteralPath $target) {",
+      "  try { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop }",
+      "  catch {",
+      "    if (Test-Path -LiteralPath $target) {",
+      "      Get-ChildItem -LiteralPath $target -Force -Recurse -ErrorAction SilentlyContinue |",
+      "        Sort-Object { $_.FullName.Length } -Descending |",
+      "        ForEach-Object {",
+      "          $extendedChild = '\\\\?\\' + $_.FullName",
+      "          try { if ($_.PSIsContainer) { [System.IO.Directory]::Delete($extendedChild, $false) } else { [System.IO.File]::Delete($extendedChild) } } catch { }",
+      "        }",
+      "      try { [System.IO.Directory]::Delete($extendedTarget, $true) } catch { }",
+      "    }",
+      "    if ((Test-Path -LiteralPath $target) -and (Get-Date) -ge $deadline) { throw }",
+      "    Start-Sleep -Milliseconds 500",
+      "  }",
+      "  if ((Test-Path -LiteralPath $target) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }",
+      "}"
+    ].join("\n");
+    const cleanup = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", cleanupScript], {
+      env: { ...process.env, MATH_HUNT_GENERATED_NEXT_ROOT: buildRoot },
+      stdio: "inherit",
+      windowsHide: true
+    });
+    const [exitCode] = await once(cleanup, "exit");
+    if (exitCode !== 0) throw new Error("Generated Next state could not be removed by PowerShell");
+  } else {
+    rmSync(buildRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+  }
+  if (existsSync(buildRoot)) throw new Error("Generated Next state still exists after cleanup");
+}
+
+export async function waitForLocalSupabaseAuth(client, timeoutMs = 180_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const result = await client.auth.admin.listUsers({ page: 1, perPage: 1 });
+      if (!result.error) return;
+    } catch { /* Local Auth is still restarting. */ }
+    await new Promise((done) => setTimeout(done, 200));
+  }
+  throw new Error("Local Supabase Auth did not become ready within the bounded verification window");
 }

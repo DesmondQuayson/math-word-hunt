@@ -1,7 +1,12 @@
-const allowedDestinations = new Set([
+import { ACCESS_INTENT_DESTINATIONS } from "./access-intent";
+
+const allowedDestinations = new Set<string>([
+  ...ACCESS_INTENT_DESTINATIONS,
   "/teacher",
-  "/account",
-  "/update-password"
+  "/update-password",
+  "/game-access",
+  "/play",
+  "/subscriber-management"
 ]);
 
 export function safeInternalRedirect(value: string | null | undefined, fallback = "/teacher"): string {

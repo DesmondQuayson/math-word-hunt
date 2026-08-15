@@ -1,0 +1,17 @@
+drop function if exists public.archive_cms_media(uuid,uuid,bigint);
+drop function if exists public.transition_cms_media(uuid,uuid,bigint,text);
+drop function if exists public.revise_cms_media(uuid,uuid,bigint,text,text,text,text,text,text,bigint,text,integer,integer,text,text,text,text,text,jsonb);
+drop function if exists public.register_cms_media(uuid,text,text,text,text,text,text,text,text,bigint,text,integer,integer,text,text,text,text,text,jsonb);
+drop function if exists public.rollback_cms_document(uuid,uuid,integer,bigint);
+drop function if exists public.transition_cms_document(uuid,uuid,integer,bigint,text);
+drop function if exists public.revise_cms_document(uuid,uuid,bigint,jsonb,jsonb);
+drop function if exists public.create_cms_document(uuid,text,text,jsonb,jsonb);
+drop table if exists public.cms_media_usage;
+drop table if exists public.cms_media_versions;
+drop table if exists public.cms_media_assets;
+drop table if exists public.cms_document_versions;
+drop table if exists public.cms_documents;
+drop function if exists private.protect_published_cms_version();
+drop function if exists private.valid_cms_content(text,jsonb,jsonb);
+delete from storage.objects where bucket_id in ('cms-media','cms-media-quarantine');
+delete from storage.buckets where id in ('cms-media','cms-media-quarantine');

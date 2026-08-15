@@ -2,7 +2,7 @@
 
 Consulted on 2026-07-26:
 
-- [Stripe API versioning](https://docs.stripe.com/api/versioning): deliberate SDK/request/endpoint version alignment. Stripe 20.4.0's generated types pin `2026-02-25.clover`; the repository pins the same version rather than inheriting an account default.
+- [Stripe API versioning](https://docs.stripe.com/api/versioning): deliberate SDK/request/endpoint version alignment. Stripe 22.4.0's generated types pin `2026-07-29.dahlia`; the repository pins the same version rather than inheriting an account default.
 - [Stripe webhook signatures](https://docs.stripe.com/webhooks/signature): raw UTF-8 body, `Stripe-Signature`, endpoint secret, and official `constructEvent` verification.
 - [Stripe subscription integration](https://docs.stripe.com/billing/subscriptions/build-subscriptions?payment-ui=checkout&ui=stripe-hosted): hosted subscription Checkout.
 - [Stripe customer portal](https://docs.stripe.com/customer-management/integrate-customer-portal): authenticated server-created short-lived sessions and webhook-driven subscription changes.
@@ -14,4 +14,3 @@ Consulted on 2026-07-26:
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys): secret/service credentials remain server-only and bypass RLS only in trusted code.
 
 Only first-party documentation and repository decision records informed implementation.
-

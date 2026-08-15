@@ -2,17 +2,26 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 
 import "./globals.css";
 
+const publicProduction = isProductionPublicMode();
+const productionPlatform = isProductionPlatformMode();
+const mathNexa = publicProduction || productionPlatform;
+
 export const metadata: Metadata = {
   title: {
-    default: "Math Vocabulary Hunt",
-    template: "%s · Math Vocabulary Hunt"
+    default: mathNexa ? "MathNexa" : "Math Vocabulary Hunt",
+    template: mathNexa ? "%s · MathNexa" : "%s · Math Vocabulary Hunt"
   },
-  description:
-    "A teacher-led classroom game for building fluency with the language of mathematics.",
-  robots: { index: false, follow: false, noarchive: true, nocache: true }
+  description: productionPlatform
+    ? "Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+    : "A teacher-led classroom game for building fluency with the language of mathematics.",
+  robots: publicProduction || productionPlatform
+    ? { index: true, follow: true }
+    : { index: false, follow: false, noarchive: true, nocache: true }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

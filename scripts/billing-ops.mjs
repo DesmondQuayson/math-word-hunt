@@ -12,7 +12,7 @@ if (!key && (owner || eventId)) { console.log("Billing operation unavailable: te
 const url = process.env.SUPABASE_URL?.trim() ?? "";
 const dbKey = process.env.SUPABASE_SECRET_KEY?.trim() ?? "";
 if (!url || !dbKey) throw new Error("Local server-only Supabase configuration is required");
-const stripe = key ? new Stripe(key, { apiVersion: "2026-02-25.clover" }) : null;
+const stripe = key ? new Stripe(key, { apiVersion: "2026-07-29.dahlia" }) : null;
 const db = createClient(url, dbKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
 if (args.has("--unresolved")) {

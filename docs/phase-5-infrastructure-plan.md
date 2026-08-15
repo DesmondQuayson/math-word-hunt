@@ -1,5 +1,10 @@
 # Phase 5 hosted-preview infrastructure plan
 
+Historical note: this plan remains authoritative for the protected Preview.
+Public Production uses a separate Vercel project and the provider-free contract
+in `production-public-architecture.md`; Preview Supabase and protection settings
+are not promoted or reused.
+
 Status: **proposal only**. No approval to create, link, deploy, or mutate an external resource has been received. Each resource below requires its own owner approval.
 
 ## Proposed topology and inventory

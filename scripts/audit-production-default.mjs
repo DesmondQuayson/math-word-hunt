@@ -10,7 +10,9 @@ const routes = [
   "/teacher/activities",
   "/teacher/sessions",
   "/teacher/reports",
-  "/account"
+  "/account",
+  "/pilot",
+  "/pilot/feedback"
 ];
 const forbiddenMarkers = [
   "Demonstration data",
@@ -36,7 +38,10 @@ const platformServer = spawn(
       ...process.env,
       NODE_ENV: "production",
       // An explicit fixture request must still be ignored by a production server.
-      MVH_TEACHER_PROTOTYPE_MODE: "enabled"
+      MVH_TEACHER_PROTOTYPE_MODE: "enabled",
+      MVH_PILOT_READINESS: "ready-for-owner-decision",
+      MVH_PILOT_ACTIVATION: "active",
+      NEXT_PUBLIC_MVH_PILOT_ACTIVATION: "active"
     },
     stdio: ["ignore", "inherit", "inherit"]
   }
@@ -73,6 +78,9 @@ try {
       if (html.includes(marker)) {
         throw new Error(`${route} exposed forbidden production fixture marker: ${marker}`);
       }
+    }
+    if (!html.includes('data-pilot-activation="inactive"') || html.includes('data-pilot-activation="active"')) {
+      throw new Error(`${route} did not preserve the default-inactive pilot policy.`);
     }
   }
   console.log(`Production-default audit passed for ${routes.length} fixture-sensitive routes.`);

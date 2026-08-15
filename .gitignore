@@ -8,10 +8,12 @@ qa-artifacts/
 dist/
 dist2/
 .next/
+.vercel/
 .verification-next-pids.json
 *.tsbuildinfo
 *.log
 
 .env
 .env.*
+!.env.production-public.example
 !.env.example

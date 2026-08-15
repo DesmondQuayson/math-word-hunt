@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" rx="36" fill="#dfeef1"/>
+  <rect x="24" y="24" width="1152" height="752" rx="28" fill="#f8fbfc" stroke="#0d3b57" stroke-width="6"/>
+  <path d="M24 52a28 28 0 0 1 28-28h1096a28 28 0 0 1 28 28v94H24z" fill="#082c43"/>
+  <rect x="60" y="56" width="54" height="54" rx="14" fill="#f5c542"/>
+  <path d="M72 70h30M72 83h30M72 96h30M78 64v38M90 64v38M102 64v38" stroke="#0b2239" stroke-width="3" opacity=".4"/>
+  <path d="m78 96 12-13 12-13" fill="none" stroke="#0b2239" stroke-width="6" stroke-linecap="round"/>
+  <text x="136" y="82" fill="#fff" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="4">MATHNEXA</text>
+  <text x="136" y="116" fill="#fff" font-family="Arial,sans-serif" font-size="32" font-weight="800">Missouri MAP Prep</text>
+  <rect x="900" y="58" width="226" height="52" rx="16" fill="#dcefe9"/>
+  <text x="1013" y="91" text-anchor="middle" fill="#12664f" font-family="Arial,sans-serif" font-size="19" font-weight="800">Practice workspace</text>
+  <rect x="54" y="174" width="360" height="566" rx="20" fill="#fff8e8" stroke="#315b72" stroke-width="3"/>
+  <text x="84" y="215" fill="#855a00" font-family="Arial,sans-serif" font-size="17" font-weight="800" letter-spacing="2">QUESTION 4 OF 12</text>
+  <text x="84" y="259" fill="#0b2239" font-family="Arial,sans-serif" font-size="25" font-weight="800">Graph a proportional</text>
+  <text x="84" y="290" fill="#0b2239" font-family="Arial,sans-serif" font-size="25" font-weight="800">relationship.</text>
+  <text x="84" y="336" fill="#294e63" font-family="Arial,sans-serif" font-size="20">The table shows the number</text>
+  <text x="84" y="365" fill="#294e63" font-family="Arial,sans-serif" font-size="20">of notebooks and total cost.</text>
+  <g transform="translate(84 395)" font-family="Arial,sans-serif">
+    <rect width="278" height="142" rx="14" fill="#fff" stroke="#bdd1da" stroke-width="3"/>
+    <path d="M0 48h278M0 95h278M139 0v142" stroke="#bdd1da" stroke-width="3"/>
+    <text x="69" y="31" text-anchor="middle" fill="#567181" font-size="16" font-weight="700">NOTEBOOKS</text>
+    <text x="209" y="31" text-anchor="middle" fill="#567181" font-size="16" font-weight="700">COST</text>
+    <text x="69" y="80" text-anchor="middle" fill="#0b2239" font-size="22" font-weight="800">2</text><text x="209" y="80" text-anchor="middle" fill="#0b2239" font-size="22" font-weight="800">$5</text>
+    <text x="69" y="127" text-anchor="middle" fill="#0b2239" font-size="22" font-weight="800">4</text><text x="209" y="127" text-anchor="middle" fill="#0b2239" font-size="22" font-weight="800">$10</text>
+  </g>
+  <text x="84" y="580" fill="#294e63" font-family="Arial,sans-serif" font-size="19">Plot two points and draw</text>
+  <text x="84" y="608" fill="#294e63" font-family="Arial,sans-serif" font-size="19">the line through the origin.</text>
+  <rect x="84" y="654" width="278" height="54" rx="14" fill="#0d3b57"/>
+  <text x="223" y="688" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="20" font-weight="800">Check response</text>
+  <rect x="438" y="174" width="708" height="566" rx="20" fill="#fff" stroke="#315b72" stroke-width="3"/>
+  <g font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#0b2239">
+    <g transform="translate(468 194)"><rect width="82" height="54" rx="13" fill="#dcefe9" stroke="#1c7773" stroke-width="3"/><text x="41" y="34" text-anchor="middle">Select</text></g>
+    <g transform="translate(558 194)"><rect width="64" height="54" rx="13" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="32" y="34" text-anchor="middle">Pen</text></g>
+    <g transform="translate(630 194)"><rect width="96" height="54" rx="13" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="48" y="34" text-anchor="middle">Highlight</text></g>
+    <g transform="translate(734 194)"><rect width="74" height="54" rx="13" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="37" y="34" text-anchor="middle">Erase</text></g>
+    <g transform="translate(816 194)"><rect width="74" height="54" rx="13" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="37" y="34" text-anchor="middle">Shape</text></g>
+    <g transform="translate(898 194)"><rect width="82" height="54" rx="13" fill="#fff8e8" stroke="#bdd1da" stroke-width="2"/><text x="41" y="34" text-anchor="middle">Formula</text></g>
+    <g transform="translate(988 194)"><rect width="122" height="54" rx="13" fill="#f5c542" stroke="#855a00" stroke-width="2"/><text x="61" y="34" text-anchor="middle">Calculator</text></g>
+  </g>
+  <rect x="468" y="272" width="642" height="430" rx="16" fill="#fbfeff" stroke="#bdd1da" stroke-width="2"/>
+  <g stroke="#d7eaf2" stroke-width="1">
+    <path d="M508 292v390M548 292v390M588 292v390M628 292v390M668 292v390M708 292v390M748 292v390M788 292v390M828 292v390M868 292v390M908 292v390M948 292v390M988 292v390M1028 292v390M1068 292v390"/>
+    <path d="M488 322h602M488 362h602M488 402h602M488 442h602M488 482h602M488 522h602M488 562h602M488 602h602M488 642h602"/>
+  </g>
+  <path d="M488 642h602M508 682V292" stroke="#315b72" stroke-width="3"/>
+  <path d="m1080 633 10 9-10 9M499 302l9-10 9 10" fill="none" stroke="#315b72" stroke-width="3" stroke-linecap="round"/>
+  <path d="M508 642 828 442 1068 292" fill="none" stroke="#1c7773" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#f5c542" stroke="#0b2239" stroke-width="3"><circle cx="668" cy="542" r="10"/><circle cx="828" cy="442" r="10"/></g>
+  <path d="M730 362c55-26 112-14 145 23" fill="none" stroke="#d95d45" stroke-width="7" stroke-linecap="round"/>
+  <text x="888" y="394" fill="#d95d45" font-family="Arial,sans-serif" font-size="24" font-weight="800">y = 2.5x</text>
+</svg>

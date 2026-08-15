@@ -2,8 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabasePublicConfig } from "./public-config";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
 
 export async function refreshSupabaseSession(request: NextRequest) {
+  if (isProductionPublicMode()) return NextResponse.next({ request });
   const config = getSupabasePublicConfig();
   if (!config) return NextResponse.next({ request });
 

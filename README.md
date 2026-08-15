@@ -4,6 +4,13 @@ Math Vocabulary Hunt is a classroom word-search game for middle-school math
 vocabulary. The current product is a static HTML, CSS, and JavaScript
 application designed for projectors, classroom displays, tablets, and phones.
 
+MathNexa public Production uses the explicit provider-free `production-public`
+contract documented in `docs/production-public-architecture.md`. It exposes
+public information and the canonical game only. Supabase/Auth, teacher
+accounts, pilot participation, invitations, billing, student data,
+organization labels, fixtures, deletion, and administrative operations remain
+unavailable. The authenticated platform Preview stays separate and protected.
+
 ## Canonical application
 
 - Playable deployment file: docs/index.html
@@ -43,6 +50,10 @@ continues to publish directly from docs without a build step.
   gateway.
 - npm run test:e2e:visual runs only the three stable platform visual snapshots.
 - npm run db:test runs the complete schema and Row Level Security assertion suite.
+- npm run test:number-cross:native verifies byte preservation, deterministic
+  puzzle/Reasoning Index parity, storage namespacing, and the optimized audio asset.
+- npm run test:e2e:number-cross exercises local MFA-backed Draft Preview and the
+  native same-origin Number Cross player flow, then restores local Supabase.
 - npm run test:e2e:phase1d tests local authentication, two-account isolation,
   profile/class/activity persistence, archive, deletion request, entitlement
   denial, and sign-out.
@@ -62,6 +73,12 @@ continues to publish directly from docs without a build step.
 - npm test runs content, unit, current/historical, and platform browser tests.
 
 ## Workspace foundation
+
+Number Cross is integrated as a trusted internal game at
+`/games/number-cross/play` while its standalone protected deployment remains a
+rollback backup. The source-owned registry, Draft Preview authorization,
+catalog migration, preservation hashes, and verification commands are
+documented in `docs/number-cross-native-integration.md`.
 
 Phase 1C uses npm workspaces. `apps/platform-web` is the isolated Next.js App
 Router shell, and `packages/platform-core` contains the portable catalog,
@@ -124,6 +141,19 @@ billing remain unavailable. Start with `docs/phase-3-capability-audit.md`,
 `docs/phase-3-packaging-and-downgrade.md`,
 `docs/phase-3-operations-runbook.md`, and
 `docs/phase-3-owner-decisions.md`.
+
+Phase 6B adds a fail-closed, server-owned controlled-pilot contract without
+activating the pilot. It represents inactive, preparing, ready, active, paused,
+and ended states; distinguishes four truthful Auth email delivery states; and
+removes and database-denies organization labels for the initial pilot. Run
+`npm run phase6b:verify` for the inherited Phase 6 gate plus Phase 6B database,
+browser, cleanup, security, build, hash, and diff checks. Start with
+`docs/phase-6b-implementation-and-activation.md`,
+`docs/phase-6b-participant-and-support-operations.md`,
+`docs/phase-6b-hosted-verification-and-evidence.md`, and
+`docs/phase-6b-owner-actions-invitation-and-go.md`. Hosted configuration,
+participant invitations, activation, Production, and billing remain separately
+controlled.
 
 ## Preservation rules
 

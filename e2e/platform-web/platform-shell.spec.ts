@@ -13,7 +13,12 @@ const routes = [
   ["/teacher/sessions/new", "Prepare the room before the clock starts"],
   ["/teacher/reports", "Review the lesson, not a prediction about a child"],
   ["/teacher/curriculum", "See what is playable before you plan"],
-  ["/account", "A future teacher account, with clear boundaries"]
+  ["/account", "A future teacher account, with clear boundaries"],
+  ["/pilot", "Evaluate the teacher experience without bringing student data."],
+  ["/pilot/privacy", "Bring teacher planning—not student records."],
+  ["/pilot/support", "Report the workflow, not the person."],
+  ["/pilot/feedback", "Prepare feedback without sending or saving it."],
+  ["/pilot/exit", "Stop participation without ambiguity."]
 ] as const;
 
 test("all platform routes render with one clear page heading", async ({ page }) => {

@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { BillingPlanKey, UserId } from "@math-vocabulary-hunt/platform-core";
+import type { UserId } from "@math-vocabulary-hunt/platform-core";
 
 export const BILLING_EVENT_ALLOWLIST = [
   "checkout.session.completed",
@@ -16,7 +16,7 @@ export const BILLING_RETURN_DESTINATIONS = ["/account", "/pricing"] as const;
 export type BillingReturnDestination = (typeof BILLING_RETURN_DESTINATIONS)[number];
 
 export type CheckoutIntent = Readonly<{
-  planKey: Exclude<BillingPlanKey, "free">;
+  planKey: "teacher-pro-monthly" | "teacher-pro-annual";
   returnDestination: BillingReturnDestination;
 }>;
 
@@ -45,4 +45,3 @@ export function parseCheckoutIntent(value: unknown): CheckoutIntent {
 export function isAllowlistedBillingEvent(value: unknown): value is BillingEventType {
   return typeof value === "string" && BILLING_EVENT_ALLOWLIST.includes(value as BillingEventType);
 }
-

@@ -1,6 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
+\set phase7d_identity_model 'legacy-preview'
+\ir ../helpers/select-identity-model.psql
 
 insert into public.billing_webhook_events (id, stripe_event_id, event_type, stripe_environment, event_created_at, payload_sha256) values
   ('51000000-0000-0000-0000-000000000001', 'evt_ClaimOne', 'invoice.paid', 'test', now(), repeat('a', 64));
@@ -73,3 +75,4 @@ reset role;
 
 select * from finish();
 rollback;
+\ir ../helpers/assert-identity-model-restored.psql

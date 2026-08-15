@@ -1,7 +1,8 @@
 export const BILLING_PLAN_KEYS = [
   "free",
   "teacher-pro-monthly",
-  "teacher-pro-annual"
+  "teacher-pro-annual",
+  "mathnexa-monthly"
 ] as const;
 
 export type BillingPlanKey = (typeof BILLING_PLAN_KEYS)[number];

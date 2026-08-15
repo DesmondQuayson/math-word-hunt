@@ -68,3 +68,149 @@ export { PLATFORM_ENVIRONMENTS, parseEnvironmentRegistry, type PlatformEnvironme
 export { DELETION_STATES, canTransitionDeletion, planDeletion, type DeletionState, type DeletionPlan } from "./deletion/lifecycle";
 export { OBSERVABILITY_CATEGORIES, createSafeEvent, type ObservabilityCategory, type SafeEvent } from "./observability/events";
 export { renderEmailTemplate, type EmailTemplate, type EmailTemplateKey } from "./email/templates";
+export {
+  AUTH_EMAIL_DELIVERY_STATES,
+  isTransactionalAuthEmailVerified,
+  parseAuthEmailDeliveryState,
+  type AuthEmailDeliveryState
+} from "./email/delivery-state";
+export {
+  GAME_ENTITLEMENT_STATES,
+  decideGameAccess,
+  isTrialEligible,
+  parseGameEntitlementEvidence,
+  type ConsumerAccountStatus,
+  type GameAccessDecision,
+  type GameAccessNextAction,
+  type GameEntitlementEvidence,
+  type GameEntitlementState
+} from "./game-access/entitlement";
+export {
+  MATHNEXA_ALL_ACCESS,
+  MATHNEXA_PRODUCT_MODULES,
+  decideMathNexaAccess,
+  hasMathNexaModuleAccess,
+  type MathNexaAccessDecision,
+  type MathNexaAllAccessEvidence,
+  type MathNexaProductModule
+} from "./product-access/all-access";
+export {
+  GAME_LAUNCH_TYPES,
+  parseExternalGameDestination,
+  parseGameLaunchTarget,
+  type GameLaunchTarget,
+  type GameLaunchType
+} from "./game-catalog/model";
+export {
+  PILOT_CHECKLIST_KEYS,
+  PILOT_READINESS_STATES,
+  createEmptyPilotChecklist,
+  evaluatePilotPolicy,
+  evaluatePilotReadiness,
+  type PilotChecklist,
+  type PilotChecklistKey,
+  type PilotPolicy,
+  type PilotPolicyInput,
+  type PilotReadinessEvaluation,
+  type PilotReadinessState
+} from "./pilot/policy";
+export { createSyntheticPilotFixture, verifySyntheticFixtureCleanup, type SyntheticFixtureCounts, type SyntheticPilotFixture } from "./pilot/fixtures";
+export { PILOT_EVENT_CODES, createPilotEvent, parsePilotCorrelationId, type PilotEnvironmentClass, type PilotEventCode, type PilotRouteCategory } from "./pilot/operations";
+export {
+  CONTROLLED_PILOT_STATES,
+  PILOT_ACTIVATION_PREREQUISITES,
+  createIncompletePilotPrerequisites,
+  evaluatePilotActivation,
+  type ControlledPilotState,
+  type PilotActivationInput,
+  type PilotActivationPolicy,
+  type PilotActivationPrerequisite,
+  type PilotActivationPrerequisites,
+  type PilotPrerequisiteState
+} from "./pilot/activation";
+export {
+  CONTENT_GRADE_NUMBERS,
+  CONTENT_PUBLICATION_STATES,
+  CONTENT_RESOURCE_TYPES,
+  canTransitionContentState,
+  isContentGradeNumber,
+  isContentPublicationState,
+  isContentResourceType,
+  normalizeContentTags,
+  parseContentResourceDraft,
+  parseContentSlug,
+  parsePrivateObjectPath,
+  planResourceRevision,
+  validateContentManifest,
+  type ContentGradeNumber,
+  type ContentManifest,
+  type ContentPublicationState,
+  type ContentResourceDraft,
+  type ContentResourceType,
+  type ResourceRevisionPlan
+} from "./admin-content/model";
+export {
+  PDF_FILE_ROLES,
+  inspectPdfUpload,
+  isPdfFileRole,
+  normalizePdfFilename,
+  type PdfFileRole,
+  type PdfInspection,
+  type PdfValidationFinding
+} from "./admin-files/pdf-validation";
+export {
+  inspectImageUpload,
+  type ImageInspection
+} from "./admin-files/image-validation";
+export {
+  GAME_PACKAGE_SCHEMA_VERSION,
+  MATHNEXA_RUNTIME_VERSION,
+  compareGamePackageVersions,
+  inspectGamePackage,
+  normalizeGameAssetPath,
+  parseGamePackageManifest,
+  type GamePackageAsset,
+  type GamePackageInspection,
+  type GamePackageManifest
+} from "./game-package/model";
+export {
+  inspectZipCentralDirectory,
+  type ZipEntryEvidence,
+  type ZipPreflight
+} from "./game-package/zip-preflight";
+export {
+  CMS_BLOCK_TYPES,
+  CMS_DOCUMENT_KEYS,
+  CMS_LEGAL_KEYS,
+  CMS_PUBLICATION_STATES,
+  MEDIA_KINDS,
+  canTransitionCmsState,
+  isCmsDocumentKey,
+  isLegalCmsKey,
+  parseMediaMetadata,
+  parseMapPrepDestination,
+  readMapPrepDestination,
+  parseStructuredCmsDraft,
+  type CmsBlock,
+  type CmsBlockType,
+  type CmsDocumentKey,
+  type CmsPublicationState,
+  type MediaKind,
+  type MapPrepDestination,
+  type StructuredCmsDraft
+} from "./admin-cms/model";
+export {
+  ADMIN_ACCOUNT_OPERATIONS,
+  HIGH_RISK_ADMIN_ACCOUNT_OPERATIONS,
+  parseAdminAccountAction,
+  type AdminAccountActionInput,
+  type AdminAccountOperation
+} from "./admin-accounts/model";
+export {
+  PLATFORM_FEATURE_FLAGS,
+  parseAdminAnalyticsRange,
+  parseAdminFeatureFlagAction,
+  type AdminAnalyticsRange,
+  type AdminFeatureFlagAction,
+  type PlatformFeatureFlag
+} from "./admin-operations/model";

@@ -5,9 +5,85 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { getProductCatalogView } from "@/lib/adapters/catalog";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
+import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import { TeacherFirstHome } from "@/components/public/teacher-first-home";
+import { getGameAccessView } from "@/lib/game-access/server";
+import { loadPublicGameCatalog } from "@/lib/games/catalog";
+import type { Metadata } from "next";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export function ConsumerHomePage() {
+  return <>
+    <section className="hero container" aria-labelledby="home-title">
+      <div className="hero-copy">
+        <p className="eyebrow">Math vocabulary game access</p>
+        <h1 id="home-title">Build fluency with the language of math.</h1>
+        <p className="hero-lede">Create an adult-owned account, confirm your email, and review subscription access to the preserved MathNexa game.</p>
+        <div className="button-row">
+          <LinkButton href="/sign-up">Create an account</LinkButton>
+          <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
+        </div>
+        <p className="truth-note">Checkout remains disabled in Phase 7B. Account creation alone never grants game access.</p>
+      </div>
+      <div className="vocabulary-board" aria-label="Math vocabulary examples">
+        <p className="board-label">Vocabulary trail</p>
+        <div className="term-track"><span>ratio</span><span>integer</span><span>variable</span><span>distance</span><span>opposite</span></div>
+        <div className="board-equation" aria-hidden="true"><span>language</span><b>+</b><span>practice</span><b>=</b><span>confidence</span></div>
+      </div>
+    </section>
+    <section className="paper-section" aria-labelledby="access-heading">
+      <Container>
+        <SectionHeader eyebrow="One simple subscription" title="$5.99 USD per month" id="access-heading" />
+        <div className="path-grid">
+          <Card variant="highlighted" className="path-card">
+            <p className="card-kicker">One-time trial</p>
+            <h3>24 hours of game access</h3>
+            <p>After future Stripe-hosted payment-method collection, one eligible account receives one non-renewable 24-hour trial before automatic monthly billing.</p>
+            <Link className="text-link" href="/pricing">Review pricing and access <span aria-hidden="true">→</span></Link>
+          </Card>
+          <Card variant="interactive" className="path-card">
+            <p className="card-kicker">Minimum data</p>
+            <h3>No learning profile</h3>
+            <p>MathNexa does not collect teacher, student, school, class, roster, organization, assignment, or cloud gameplay-progress data.</p>
+            <Link className="text-link" href="/privacy">Review the privacy boundary <span aria-hidden="true">→</span></Link>
+          </Card>
+        </div>
+      </Container>
+    </section>
+  </>;
+}
+
+export async function generateMetadata():Promise<Metadata>{
+  if(isProductionPlatformMode())return{
+    title:{absolute:"MathNexa | Math Games, MAP Prep, Homework and Quizzes"},
+    description:"Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+  };
+  const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
+}
+export default async function HomePage() {
+  if (isProductionPlatformMode()) {
+    const [access, catalog] = await Promise.all([
+      getGameAccessView(),
+      loadPublicGameCatalog()
+    ]);
+    const authState = access.context.status === "anonymous" || access.context.status === "unconfigured"
+      ? "signed-out"
+      : access.context.status === "unconfirmed"
+        ? "unconfirmed"
+        : "signed-in";
+    return <TeacherFirstHome
+      authState={authState}
+      entitled={access.decision.allowed}
+      numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
+    />;
+  }
+  const managed=await loadPublishedCmsDocument("homepage");if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   const catalog = getProductCatalogView();
+  const publicProduction = isProductionPublicMode();
 
   return (
     <>
@@ -21,9 +97,7 @@ export default function HomePage() {
           </p>
           <div className="button-row">
             <LinkButton href="/play">Launch the current game</LinkButton>
-            <LinkButton variant="secondary" href="/teacher">
-              Open teacher workspace
-            </LinkButton>
+            <LinkButton variant="secondary" href={publicProduction ? "/about" : "/teacher"}>{publicProduction ? "About MathNexa" : "Open teacher workspace"}</LinkButton>
           </div>
           <p className="truth-note">
             No account is required for the current classroom game.
@@ -72,6 +146,12 @@ export default function HomePage() {
             </article>
             <article>
               <Card variant="interactive" className="path-card">
+                {publicProduction ? <>
+                  <p className="card-kicker">Public guidance</p>
+                  <h3>Use it with confidence</h3>
+                  <p>Review gameplay help, accessibility behavior, privacy boundaries, and curriculum readiness without creating an account.</p>
+                  <Link className="text-link" href="/help">Open public help <span aria-hidden="true">→</span></Link>
+                </> : <>
                 <p className="card-kicker">Teacher account workspace</p>
                 <h3>Teacher workspace</h3>
                 <p>
@@ -81,6 +161,7 @@ export default function HomePage() {
                 <Link className="text-link" href="/teacher">
                   Open the workspace <span aria-hidden="true">→</span>
                 </Link>
+                </>}
               </Card>
             </article>
           </div>

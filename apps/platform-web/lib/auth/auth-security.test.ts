@@ -10,8 +10,16 @@ afterEach(() => { process.env = { ...original }; });
 describe("authentication security boundaries", () => {
   it("allows only explicit internal callback destinations", () => {
     expect(safeInternalRedirect("/account")).toBe("/account");
+    expect(safeInternalRedirect("/games")).toBe("/games");
+    expect(safeInternalRedirect("/map-prep")).toBe("/map-prep");
+    expect(safeInternalRedirect("/homework")).toBe("/homework");
+    expect(safeInternalRedirect("/quizzes")).toBe("/quizzes");
     expect(safeInternalRedirect("//attacker.example")).toBe("/teacher");
     expect(safeInternalRedirect("https://attacker.example")).toBe("/teacher");
+    expect(safeInternalRedirect("javascript:alert(1)")).toBe("/teacher");
+    expect(safeInternalRedirect("data:text/html,attack")).toBe("/teacher");
+    expect(safeInternalRedirect("file:///etc/passwd")).toBe("/teacher");
+    expect(safeInternalRedirect("%2Fgames")).toBe("/teacher");
     expect(safeInternalRedirect("/teacher?owner=foreign")).toBe("/teacher");
   });
 

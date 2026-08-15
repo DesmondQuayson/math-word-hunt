@@ -36,6 +36,7 @@ describe("product packaging", () => {
     expect(getProductPackage("free")).toMatchObject({ activeClassLimit: 2, activeActivityLimit: 3 });
     expect(getProductPackage("teacher-pro-monthly")).toMatchObject({ activeClassLimit: 25, activeActivityLimit: 100 });
     expect(getProductPackage("teacher-pro-annual")).toMatchObject({ activeClassLimit: 25, activeActivityLimit: 100 });
+    expect(getProductPackage("mathnexa-monthly")).toBeNull();
     expect(getProductPackage("enterprise")).toBeNull();
     expect(PRODUCT_PACKAGES).toHaveLength(3);
   });

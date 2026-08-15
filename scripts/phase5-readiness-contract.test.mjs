@@ -6,7 +6,7 @@ const safe = {
   PHASE5_HOSTED_APPROVAL: "owner-approved", PHASE5_HOSTED_CHECKS_ENABLED: "true",
   PHASE5_HOSTED_READ_ONLY_APPROVAL: "owner-approved", PHASE5_EXTERNAL_MUTATIONS: "false",
   PHASE5_PREVIEW_CLASSIFICATION: "isolated-preview", MVH_PREVIEW_URL: "https://mvh-preview.example.net",
-  MVH_APP_ENVIRONMENT: "preview", MVH_STRIPE_MODE: "test", MVH_EMAIL_DELIVERY: "capture",
+  MVH_APP_ENVIRONMENT: "preview", MVH_STRIPE_MODE: "test", MVH_EMAIL_DELIVERY: "local-capture",
   MVH_DELETION_MODE: "dry-run", BILLING_ENVIRONMENT: "preview", STRIPE_MODE: "test",
   SUPABASE_URL: "https://preview-ref.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture",
   SUPABASE_SECRET_KEY: "sb_secret_fixture", MVH_SUPABASE_PROJECT_REF: "preview-ref",

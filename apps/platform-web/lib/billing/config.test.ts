@@ -7,7 +7,7 @@ const valid = {
   BILLING_ENVIRONMENT: "local",
   BILLING_PROVIDER: "stripe",
   STRIPE_MODE: "test",
-  STRIPE_API_VERSION: "2026-02-25.clover",
+  STRIPE_API_VERSION: "2026-07-29.dahlia",
   STRIPE_PUBLISHABLE_KEY: "pk_test_example12345",
   STRIPE_SECRET_KEY: "sk_test_example12345",
   STRIPE_WEBHOOK_SECRET: "whsec_example12345",
@@ -60,6 +60,11 @@ describe("billing configuration", () => {
     };
     expect(() => parseBillingConfiguration(production)).toThrow(/production-not-owner-approved/);
     expect(parseBillingConfiguration({ ...production, BILLING_LIVE_ACTIVATION: "owner-approved" })).toMatchObject({ stripeMode: "live" });
+  });
+
+  it("allows only explicitly disabled billing in public Production", () => {
+    expect(parseBillingConfiguration({ BILLING_ENABLED: "false", BILLING_ENVIRONMENT: "production-public" })).toEqual({ enabled: false, applicationEnvironment: "production-public" });
+    expect(() => parseBillingConfiguration({ BILLING_ENABLED: "true", BILLING_ENVIRONMENT: "production-public" })).toThrow(/public-production-billing-disabled/);
   });
 
   it("never includes a supplied secret value in an error", () => {

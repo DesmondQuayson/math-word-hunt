@@ -40,9 +40,9 @@ reference. It is not a substitute for the canonical suite.
 
 ### Platform contracts and shell
 
-`npm run test:unit` runs fourteen platform-core tests, including public exports,
-and four platform-web adapter tests. `npm run test:e2e:platform` verifies all six
-routes, headings and landmarks, keyboard navigation, visible focus, responsive
+`npm run test:unit` runs the current platform-core and platform-web unit suites,
+including intentional public exports. `npm run test:e2e:platform` verifies
+platform and pilot routes, headings and landmarks, keyboard navigation, visible focus, responsive
 containment, 44px targets, reduced motion, anonymous teacher state,
 default-deny access, browser-authority negatives, the canonical game link,
 unavailable-game recovery, and absence of fabricated persistence.
@@ -51,6 +51,26 @@ unavailable-game recovery, and absence of fabricated persistence.
 `npm run test:security` scans client assets for secret markers and checks that
 platform-core production source has no framework, provider, browser, or Node
 business-logic dependency.
+
+### Phase 6 pilot readiness
+
+`npm run test:phase6` covers PilotPolicy, readiness evaluation, safe pilot
+events/correlation IDs, synthetic fixture construction/cleanup, content safety,
+and the server-only default-inactive adapter. `npm run test:e2e:phase6` runs a
+local-only disposable adult-teacher rehearsal with reciprocal RLS denial,
+canonical keyboard/Pointer Events gameplay, account restriction, and zero
+final fixture counts.
+
+The pilot browser suite covers persistent disclosures, non-persistent feedback,
+prohibited-content validation, honest recovery/exit copy, keyboard completion,
+visible focus, 44px controls, reduced motion, forced colors, text spacing,
+200% scaling, 400%-equivalent reflow, and the full viewport matrix. The Phase 6
+static audit rejects student-oriented persistence fields, feedback delivery,
+analytics/session replay, real-email dependencies, live keys, public pilot
+authority, and an active default.
+
+`npm run phase6:verify` nests the complete Phase 5 gate and all Phase 6 checks.
+It is a readiness gate only and cannot activate a pilot.
 
 ## Commands
 
@@ -63,6 +83,10 @@ business-logic dependency.
 - npm run test:e2e:platform
 - npm run build
 - npm run test:security
+- npm run test:phase6
+- npm run test:e2e:phase6
+- npm run test:phase6:security
+- npm run phase6:verify
 - npm test
 
 ## Manual release checks

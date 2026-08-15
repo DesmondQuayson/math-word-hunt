@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Use a Stripe sandbox/test secret in an untracked environment only. Never paste a secret into source, shell history intended for sharing, issue text, or test output. Phase 2 pins `stripe` 20.4.0 and API version `2026-02-25.clover`; configure a test webhook endpoint or Stripe CLI forwarding with that exact API version.
+Use a Stripe sandbox/test secret in an untracked environment only. Never paste a secret into source, shell history intended for sharing, issue text, or test output. The server pins `stripe` 22.4.0 and API version `2026-07-29.dahlia`; configure a test webhook endpoint or Stripe CLI forwarding with that exact API version.
 
 ## Provisioning
 
@@ -33,5 +33,4 @@ Do not configure a production endpoint. Automatic Stripe retry remains the prima
 
 Use Stripe test payment methods only. Confirm redirect-before-webhook remains processing with no entitlement; then confirm the signed event creates a subscription projection and feature provenance. Exercise cancellation at period end, payment failure, replay, old-after-new ordering, and annual Checkout. If Checkout-created subscriptions cannot be attached to a Test Clock, use a separate clock-owned deterministic sandbox customer and document that it is a lifecycle fixture rather than the Checkout-created customer.
 
-No Stripe credentials were available to Codex during implementation, so resource provisioning and end-to-end Stripe sandbox lifecycle execution require owner action.
-
+Reusable Stripe Sandbox resources have been provisioned, but the complete post-compatibility renewal lifecycle remains pending. Valid test credentials must be supplied through secure process-only input before the external lifecycle can be claimed complete.

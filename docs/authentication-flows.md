@@ -1,6 +1,6 @@
 # Authentication flows
 
-- `/sign-up`: teacher-only email/password registration, password confirmation, display name, optional organization label, privacy guidance, and email verification.
+- `/sign-up`: teacher-only email/password registration, password confirmation, display name, privacy guidance, and email verification. Phase 6B prohibits and server-rejects organization labels.
 - `/sign-in`: generic credential failure wording prevents account enumeration.
 - `/forgot-password`: sends the local recovery message and always returns generic receipt wording.
 - `/auth/callback`: exchanges an authorization code and allows only `/teacher`, `/account`, or `/update-password` redirects.

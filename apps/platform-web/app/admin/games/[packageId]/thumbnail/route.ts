@@ -1,0 +1,3 @@
+import{inspectAdminAccess}from"@/lib/admin/session";import{deliverPrivateGameAsset,loadGamePackageDelivery}from"@/lib/games/delivery";
+export const runtime="nodejs";export const dynamic="force-dynamic";
+export async function GET(request:Request,{params}:{params:Promise<{packageId:string}>}){const access=await inspectAdminAccess();if(access.state!=="authorized")return new Response("Not Found",{status:404});const game=await loadGamePackageDelivery((await params).packageId);if(!game||game.publicationState==="archived")return new Response("Not Found",{status:404});return deliverPrivateGameAsset(request,game.id,"thumbnail.png");}

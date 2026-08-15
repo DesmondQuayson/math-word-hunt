@@ -1,5 +1,17 @@
 # Current Deployment
 
+## MathNexa public Production boundary
+
+The public MathNexa platform is released from a separate Vercel Production
+project under the explicit `production-public` contract. It provides public
+information and links to the canonical GitHub Pages game. It has no
+Supabase/Auth, teacher workspace, pilot, invitation, billing, student-data,
+organization-label, fixture, email, or deletion integration. See
+`production-public-architecture.md` and `production-public-testing.md`.
+
+The canonical game deployment below remains independently operational and
+unchanged.
+
 ## Source
 
 The current production structure is GitHub Pages deployed from the main branch

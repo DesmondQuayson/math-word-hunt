@@ -6,8 +6,24 @@ import { resolveTeacherContext } from "@/lib/auth/teacher-context";
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { createBillingProvider } from "@/lib/billing/provider-factory";
 import { createBillingRepository, getCheckoutDisplayState, type CheckoutDisplayState } from "@/lib/billing/service";
+import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
+import { createConsumerBillingProvider } from "@/lib/billing/consumer-provider-factory";
+import {
+  createConsumerBillingRepository,
+  getConsumerCheckoutState
+} from "@/lib/billing/consumer-service";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { getGameAccessView } from "@/lib/game-access/server";
+import { CheckoutStatusPoller } from "@/components/consumer/checkout-status-poller";
+import { safeAccessIntentDestination } from "@/lib/auth/access-intent";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Checkout status" };
+export const metadata: Metadata = {
+  title: "Checkout status",
+  robots: { index: false, follow: false, noarchive: true, nocache: true }
+};
 export const dynamic = "force-dynamic";
 
 const copy: Record<CheckoutDisplayState, { title: string; message: string; tone: "information" | "success" | "warning" }> = {
@@ -20,8 +36,52 @@ const copy: Record<CheckoutDisplayState, { title: string; message: string; tone:
   "manual-review": { title: "Billing review needed", message: "Support must review the billing record before access can change.", tone: "warning" }
 };
 
-export default async function CheckoutStatusPage({ searchParams }: { searchParams: Promise<{ session_id?: string }> }) {
-  const sessionId = (await searchParams).session_id ?? "";
+const consumerCopy = {
+  processing: { title: "Activating your MathNexa access", message: "Stripe completed setup. The server is creating and verifying the subscription; this redirect cannot grant access.", tone: "information" },
+  trialing: { title: "24-hour trial active", message: "The server verified the subscription and exact trial expiration shown below.", tone: "success" },
+  active: { title: "Subscription active", message: "The server verified the paid monthly subscription.", tone: "success" },
+  "payment-required": { title: "Payment requires attention", message: "Game access remains locked until Stripe confirms successful payment or an approved renewal grace period.", tone: "warning" },
+  expired: { title: "Setup session expired", message: "No trial or subscription was activated. Start a new setup from Pricing.", tone: "warning" },
+  unavailable: { title: "Billing status unavailable", message: "The server could not verify this Setup Checkout. Access remains locked.", tone: "warning" },
+  "manual-review": { title: "Billing review required", message: "Ownership or provider data did not match. Access remains locked while support reviews the record.", tone: "warning" }
+} as const;
+
+async function ConsumerCheckoutStatus({ sessionId, nextDestination }: { sessionId: string; nextDestination: string }) {
+  const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
+  const config = tryGetConsumerBillingConfiguration();
+  const repository = config ? createConsumerBillingRepository(config) : null;
+  const state = config && repository
+    ? await getConsumerCheckoutState({
+      context,
+      config,
+        sessionId,
+        provider: createConsumerBillingProvider(config),
+        repository
+      })
+    : "unavailable";
+  const content = consumerCopy[state];
+  const destination = safeAccessIntentDestination(nextDestination, "/subscription");
+  const activatedDestination = destination === "/map-prep" ? "/map-prep/launch" : destination;
+  if ((state === "trialing" || state === "active") && access.decision.allowed) redirect(activatedDestination);
+  const awaitingAuthoritativeAccess = state === "processing" ||
+    ((state === "trialing" || state === "active") && !access.decision.allowed);
+  return <Container className="page-stack" width="compact">
+    <PageHeader eyebrow="Stripe billing" title={awaitingAuthoritativeAccess ? "Activating your MathNexa access" : "Subscription setup status"} description="Only verified Stripe, current consent, and server records can activate Games, MAP Prep, Homework, and Quizzes." />
+    <Notice label="Setup status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice>
+    {access.decision.accessEndsAt ? <Notice label="Authoritative access window" tone="success"><strong>Verified expiration</strong><p><time dateTime={access.decision.accessEndsAt}>{new Date(access.decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p></Notice> : null}
+    {awaitingAuthoritativeAccess ? <CheckoutStatusPoller /> : null}
+    <div className="button-row">
+      {access.decision.allowed ? <LinkButton href={activatedDestination}>Continue to your selected resource</LinkButton> : null}
+      {awaitingAuthoritativeAccess ? <LinkButton href={`/checkout/status?session_id=${encodeURIComponent(sessionId)}&next=${encodeURIComponent(destination)}`} variant="secondary">Refresh status</LinkButton> : null}
+      <LinkButton href="/subscriber-management" variant="secondary">Subscriber Management</LinkButton>
+    </div>
+  </Container>;
+}
+
+export default async function CheckoutStatusPage({ searchParams }: { searchParams: Promise<{ session_id?: string; next?: string }> }) {
+  const params = await searchParams;
+  const sessionId = params.session_id ?? "";
+  if (isProductionPlatformMode()) return <ConsumerCheckoutStatus sessionId={sessionId} nextDestination={params.next ?? ""} />;
   const config = tryGetBillingConfiguration();
   const context = await resolveTeacherContext();
   const repository = createBillingRepository();
@@ -29,4 +89,3 @@ export default async function CheckoutStatusPage({ searchParams }: { searchParam
   const content = copy[state];
   return <Container className="page-stack"><PageHeader eyebrow="Secure billing" title="Checkout status" description="Access changes only after verified server reconciliation."/><Notice label="Checkout status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice><div className="button-row"><LinkButton href="/account">Return to account</LinkButton><LinkButton href={`/checkout/status?session_id=${encodeURIComponent(sessionId)}`} variant="secondary">Refresh status</LinkButton></div></Container>;
 }
-

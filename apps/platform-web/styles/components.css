@@ -128,11 +128,16 @@
 .nav-list,
 .teacher-nav ul {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.nav-list {
+  justify-content: flex-end;
 }
 
 .nav-list a,
@@ -151,6 +156,27 @@
 
 .nav-list a:hover,
 .nav-list a[aria-current="page"] {
+  background: rgb(255 255 255 / 11%);
+}
+
+.nav-account-action form {
+  height: 100%;
+}
+
+.nav-account-action button {
+  min-height: var(--size-target-min);
+  height: 100%;
+  padding-inline: var(--space-4);
+  border: var(--border-width-thin) solid rgb(255 255 255 / 38%);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-brand);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.nav-account-action button:hover {
   background: rgb(255 255 255 / 11%);
 }
 
@@ -847,6 +873,53 @@
   }
 }
 
+/* The seven-item public product navigation stays readable from tablet to 320px. */
+@media (max-width: 72rem) {
+  .site-header .header-inner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+  }
+
+  .site-header .brand {
+    align-self: flex-start;
+  }
+
+  .site-header nav,
+  .site-header .nav-list {
+    width: 100%;
+  }
+
+  .site-header .nav-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .site-header .nav-list a {
+    width: 100%;
+    padding-inline: var(--space-2);
+  }
+
+  .site-header .nav-account-action button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 40rem) {
+  .site-header .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (forced-colors: active) {
+  .site-header .brand-mark,
+  .site-header .nav-list a[aria-current="page"] {
+    border: 2px solid CanvasText;
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 22.5rem) {
   .nav-list {
     align-items: stretch;
@@ -1021,4 +1094,12 @@
 
 @media (max-width: 360px) {
   .environment-banner > span:last-child { flex-basis: 100%; }
+}
+.form-field-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: var(--border-width-strong) solid var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface-elevated));
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
 }

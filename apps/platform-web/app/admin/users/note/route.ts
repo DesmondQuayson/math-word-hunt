@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
+import { createServiceSupabaseClient } from "@/lib/supabase/service";
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function back(r:Request,s:string){const u=new URL("/admin",process.env.MVH_APPLICATION_ORIGIN??r.url);u.searchParams.set("section","users");u.searchParams.set("account",s);return NextResponse.redirect(u,303)}
+export async function POST(request:Request){const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});const form=await request.formData();if(!await validateAdminMutationCsrf(form))return back(request,"csrf-denied");const target=String(form.get("targetUserId")??""),note=String(form.get("note")??"").trim();const client=createServiceSupabaseClient();if(!client||!uuid.test(target)||note.length<3||note.length>1000)return back(request,"invalid-note");const saved=await client.rpc("add_admin_user_support_note",{p_admin_user_id:access.admin.id,p_admin_session_id:access.session.id,p_target_user_id:target,p_note:note});return back(request,saved.error?"note-failed":"note-added")}

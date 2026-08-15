@@ -1,0 +1,4 @@
+import { parseAdminAnalyticsRange } from "@math-vocabulary-hunt/platform-core";
+import { aggregateAnalyticsCsv,loadAdminAnalyticsOperations } from "@/lib/admin/analytics-operations";
+import { inspectAdminAccess } from "@/lib/admin/session";
+export async function GET(request:Request){const access=await inspectAdminAccess();if(access.state!=="authorized")return new Response("Not Found",{status:404});const url=new URL(request.url);const range=parseAdminAnalyticsRange({from:url.searchParams.get("from")??"",to:url.searchParams.get("to")??""});if(!range)return new Response("Invalid date range",{status:400});const csv=aggregateAnalyticsCsv(await loadAdminAnalyticsOperations(range));return new Response(csv,{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":`attachment; filename="mathnexa-aggregate-${range.from}-${range.to}.csv"`,"Cache-Control":"no-store"}})}

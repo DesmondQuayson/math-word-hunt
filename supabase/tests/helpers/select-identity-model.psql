@@ -1,0 +1,43 @@
+\set ON_ERROR_STOP on
+
+-- Capture the durable project setting before selecting this file's fixture
+-- model. The caller must already be inside BEGIN; SET LOCAL is the guard that
+-- prevents a test helper from ever changing hosted identity outside rollback.
+select identity_model as phase7d_persisted_identity_model
+from private.platform_identity_policy
+where singleton
+\gset
+
+set local mathnexa.pgtap_identity_transaction_guard = 'armed';
+select set_config(
+  'mathnexa.pgtap_requested_identity_model',
+  :'phase7d_identity_model',
+  true
+);
+
+do $$
+begin
+  if current_setting('mathnexa.pgtap_identity_transaction_guard', true) is distinct from 'armed' then
+    raise exception using errcode = '25000', message = 'pgtap_identity_model_requires_transaction';
+  end if;
+  if current_setting('mathnexa.pgtap_requested_identity_model', true)
+     not in ('legacy-preview', 'consumer-v1') then
+    raise exception using errcode = '22023', message = 'pgtap_identity_model_invalid';
+  end if;
+end;
+$$;
+
+set local role service_role;
+select public.set_platform_identity_model(
+  current_setting('mathnexa.pgtap_requested_identity_model', true)
+);
+reset role;
+
+do $$
+begin
+  if (select identity_model from private.platform_identity_policy where singleton)
+     is distinct from current_setting('mathnexa.pgtap_requested_identity_model', true) then
+    raise exception using errcode = 'P0001', message = 'pgtap_identity_model_selection_failed';
+  end if;
+end;
+$$;
