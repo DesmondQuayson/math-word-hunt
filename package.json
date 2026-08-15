@@ -141,6 +141,8 @@
     "test:e2e:number-logic": "node scripts/run-number-logic-e2e.mjs",
     "test:number-logic:security": "node scripts/audit-number-logic-integration.mjs",
     "phase11:number-logic:verify": "npm run test:number-logic && npm run test:number-logic:native && npm run test:number-logic:security && npm run test:e2e:number-logic",
+    "test:crosscalc": "npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/games/internal-registry.test.ts lib/games/internal-game-route.test.ts",
+    "test:crosscalc:native": "node --test scripts/crosscalc-native.test.mjs",
     "phase10:hosted": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-phase10-hosted-staging.ps1",
     "phase10:verify": "node scripts/verify-phase10.mjs",
     "test:phase11": "npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/auth/confirmation-actions.test.ts components/auth/email-confirmation-dialog.test.tsx components/public/teacher-first-home.test.tsx components/forms/auth-forms.test.tsx",

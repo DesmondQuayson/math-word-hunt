@@ -10,8 +10,15 @@ import {
 } from "./internal-registry";
 
 describe("trusted internal game registry", () => {
-  it("registers the source-owned Number Cross and Number Logic keys and routes only", () => {
-    expect(internalGameKeys()).toEqual(["number-cross", "number-logic"]);
+  it("registers the source-owned CrossCalc, Number Cross, and Number Logic keys and routes only", () => {
+    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic"]);
+    expect(getInternalGameRegistration("crosscalc")).toMatchObject({
+      stableKey: "crosscalc",
+      route: "/games/crosscalc/play",
+      assetBase: "/internal-games/crosscalc/",
+      connectSource: "'self'"
+    });
+    expect(isInternalGameRegistered("crosscalc")).toBe(true);
     expect(getInternalGameRegistration("number-cross")).toMatchObject({
       stableKey: "number-cross",
       route: "/games/number-cross/play",
@@ -27,6 +34,19 @@ describe("trusted internal game registry", () => {
     });
     expect(isInternalGameRegistered("number-logic")).toBe(true);
     expect(getInternalGameRegistration("../../arbitrary-module")).toBeNull();
+  });
+
+  it("renders CrossCalc as a same-origin five-mode game", async () => {
+    const response = createInternalGameResponse("crosscalc");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
+    const body = await response.text();
+    expect(body).toContain('<base href="/internal-games/crosscalc/"');
+    expect(body).toContain('<script type="module" src="./assets/index-DIwGVbWJ.js"');
+    expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
+    expect(body).not.toContain("iframe");
+    expect(body).not.toContain("http://");
+    expect(body).not.toContain("https://");
   });
 
   it("renders Number Logic as one same-origin game with one six-mode runtime", async () => {

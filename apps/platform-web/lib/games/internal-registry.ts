@@ -1,5 +1,6 @@
 import "server-only";
 
+import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
 
@@ -12,6 +13,13 @@ export type InternalGameRegistration = Readonly<{
 }>;
 
 const INTERNAL_GAMES = Object.freeze({
+  "crosscalc": Object.freeze({
+    stableKey: "crosscalc",
+    route: "/games/crosscalc/play",
+    assetBase: "/internal-games/crosscalc/",
+    connectSource: "'self'",
+    renderDocument: renderCrossCalcDocument
+  }),
   "number-cross": Object.freeze({
     stableKey: "number-cross",
     route: "/games/number-cross/play",
