@@ -1,2 +1,3 @@
 apps/platform-web/public/internal-games/**/*.css text eol=lf
 apps/platform-web/public/internal-games/**/*.js text eol=lf
+apps/platform-web/features/games/crosscalc-v2/core/*.ts text eol=lf
