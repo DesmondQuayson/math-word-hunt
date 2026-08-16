@@ -1,6 +1,7 @@
 import "server-only";
 
 import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
+import { renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
 
@@ -36,6 +37,11 @@ const INTERNAL_GAMES = Object.freeze({
   })
 } satisfies Record<string, InternalGameRegistration>);
 
+const CROSSCALC_V2_PREVIEW = Object.freeze({
+  connectSource: "'self'" as const,
+  renderDocument: renderCrossCalcV2PreviewDocument
+});
+
 export function internalGameKeys(): readonly string[] {
   return Object.freeze(Object.keys(INTERNAL_GAMES));
 }
@@ -62,7 +68,7 @@ const INTERNAL_GAME_BASE_HEADERS = Object.freeze({
   "X-Robots-Tag": "noindex, nofollow"
 });
 
-function internalGameHeaders(registration: InternalGameRegistration): Readonly<Record<string, string>> {
+function internalGameHeaders(registration: Pick<InternalGameRegistration, "connectSource">): Readonly<Record<string, string>> {
   return Object.freeze({
     ...INTERNAL_GAME_BASE_HEADERS,
     "Content-Security-Policy": [
@@ -89,4 +95,11 @@ export function createInternalGameResponse(stableKey: string): Response {
   const registration = getInternalGameRegistration(stableKey);
   if (!registration) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "no-store" } });
   return new Response(registration.renderDocument(), { status: 200, headers: internalGameHeaders(registration) });
+}
+
+export function createCrossCalcV2PreviewResponse(): Response {
+  return new Response(CROSSCALC_V2_PREVIEW.renderDocument(), {
+    status: 200,
+    headers: internalGameHeaders(CROSSCALC_V2_PREVIEW)
+  });
 }

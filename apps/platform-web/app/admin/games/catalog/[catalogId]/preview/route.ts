@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { inspectAdminAccess } from "@/lib/admin/session";
 import { loadExternalGameLaunchRecord, loadInternalGameLaunchRecord } from "@/lib/games/catalog";
-import { createInternalGameResponse, isInternalGameRegistered } from "@/lib/games/internal-registry";
+import {
+  createCrossCalcV2PreviewResponse,
+  createInternalGameResponse,
+  isInternalGameRegistered
+} from "@/lib/games/internal-registry";
 import {
   createNumberCrossLaunchUrl,
   externalGameLaunchAction,
@@ -18,6 +22,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ cata
   const internalGame = await loadInternalGameLaunchRecord(catalogId);
   if (internalGame) {
     if (internalGame.status === "archived" || !isInternalGameRegistered(internalGame.stableKey)) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+    const requestedVersion = new URL(request.url).searchParams.get("version");
+    if (requestedVersion !== null) {
+      if (internalGame.stableKey === "crosscalc" && requestedVersion === "0.2.0") {
+        return createCrossCalcV2PreviewResponse();
+      }
       return new NextResponse("Not Found", { status: 404 });
     }
     return createInternalGameResponse(internalGame.stableKey);

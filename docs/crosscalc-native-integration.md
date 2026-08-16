@@ -1,21 +1,35 @@
 # CrossCalc native integration
 
-CrossCalc is registered as one trusted same-origin MathNexa game at `/games/crosscalc/play`. Addition, Subtraction, Multiplication, Division, and Mixed Operations remain state inside one source-owned runtime. Player authorization, Admin Draft Preview, publication transition, maintenance behavior, and catalog projection use the same internal-game mechanism as Number Logic.
+CrossCalc remains one catalog product. The published subscriber route `/games/crosscalc/play` continues to resolve the V1 `0.1.0` document and assets. V2 `0.2.0` is a private, same-origin release candidate at `/games/crosscalc/v2/preview` and through the existing catalog Admin Preview route with `?version=0.2.0`. Both V2 entry points require the server-verified MFA-backed admin session and return 404 to anonymous, non-entitled, and entitled non-admin users. V2 is not a public registry key, catalog row, sitemap entry, or client-side feature flag.
 
-## Provenance
+## Provenance and assets
 
-- Standalone source branch: `feature/crosscalc-v1`
-- Owner-preflight standalone source commit: `0befe8e`
-- CSS SHA-256: `2bb39ccb0b2cfa958b81e38037d8b33880a6207c22d0cda161e1a0b52baf5393`
-- JS SHA-256: `eec94165b4c2dfce13b1f6ea46c32c158c29f80883a67d91afe2a72e4ebc4b54`
-- Oldskool SHA-256: `888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88`
+- V1 standalone source: branch `feature/crosscalc-v1`, commit `0befe8e`; public version `0.1.0`.
+- V2 owner-approved core: branch `feature/crosscalc-v2-number-placement`, commit `9d27dbc21fce043569fae89ab5b4434ae2d0bac0`.
+- V2 integration-only result-provenance adapter: standalone follow-up `8bc4704`; no approved core gameplay commit was amended.
+- V2 runtime CSS SHA-256: `f5c39c4c16b25b5cdd24827147449ef11c5faaa2f0f769b8a7dec3897568bdbf`.
+- V2 runtime JS SHA-256: `5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac`.
+- Shared approved Oldskool SHA-256: `888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88`.
+- V2 thumbnail: original MathNexa release-candidate artwork derived from actual approved V2 board renders, resized without stretching to `1200×675`, then encoded as quality-94 WebP. Visual inspection and a 41.82 dB decode comparison confirmed no visible quality loss while reducing it from `1,112,176` bytes to `82,090` bytes (92.6%). Its visible arithmetic is valid (`8 + 6 = 14`, `18 ÷ 6 = 3`, and the tray-solvable `18 − 5 × 2 = 8`), and it uses `#20CFE3`, `#FF4F9A`, and `#071525`. It is shown only on the admin card; Production catalog art remains unchanged.
 
-## Boundaries
+The native core source and production assets are checked byte-for-byte against the standalone integration source. The V2 document adds only the same-origin base, an explicit `CrossCalc / Preview Version 0.2.0 / NOT LIVE` banner, and the admin return link. There is no iframe, remote runtime, source map, or debug/solution payload.
 
-The renderer adds only a same-origin base and a 44px Back to Games link. CrossCalc owns generation, validation, Settings, fullscreen, audio, local progress, Reasoning Index, achievements, mode navigation, and responsive behavior. Its storage namespace is `mathnexa.crosscalc.v1` and does not overlap Number Cross or Number Logic.
+## Result and storage contracts
 
-The CSP denies third-party origins. The catalog migration adds exactly one `internal` row and forcibly leaves it `draft`; only an explicit owner publication action can make it public.
+V2 active state and history are isolated at `mathnexa.crosscalc.v2.active` and `mathnexa.crosscalc.v2.results`; no V1 key is read, rewritten, or reinterpreted. A completed V2 game stores and emits `crosscalc-result/2` with `game=crosscalc`, `gameVersion=0.2.0`, `mechanic=number-placement`, mode, difficulty, seed/puzzle signature, RI total, RI components, attempt evidence, completion timestamp, and `completionValid=true`. The RI weights remain Complexity 25, Accuracy 25, Efficiency 20, Independence 20, Pace 10.
 
-## Visual decision
+At final cutover, a fresh V2 active puzzle is expected. V1 active-puzzle state, V1 results, and V1 RI history remain historical V1 data and are not imported. Only durable account-level data with unchanged meaning may carry forward; no current release-candidate code performs that migration. Existing dashboards remain unaffected because V2 history is still namespaced locally and the emitted schema is explicitly versioned.
 
-The final accent system is turquoise blue and pink: `#20CFE3` for primary gameplay energy and horizontal paths, `#FF4F9A` for vertical paths, combos, and achievements, over `#071525` navy. The earlier green/gold direction is superseded.
+## Release-candidate evidence
+
+- Fixed parity digests match the approved Beginner `matrix-mixed-beginner`, Medium `owner-medium-2026`, and Expert `matrix-mixed-expert` fixtures across geometry, equations, givens, blanks, tray instances, canonical values, uniqueness, and metrics.
+- A fresh integration-side matrix independently regenerated, solved, validated, and compared 2,500 deterministic puzzles: 100 seeds for each of 25 mode/difficulty combinations, with zero failures and `solutionCount === 1` throughout.
+- Chromium and WebKit passed the protected Admin Preview, V1 subscriber preservation, anonymous/non-entitled/entitled isolation, keyboard tile placement, persistence, result emission, audio toggle/singular source, 390×844, 844×390, 768×1024, WCAG axe, reduced-motion, and forced-colors checks.
+- Number Logic and Number Cross unit, native parity, security, Admin Preview, storage/result, responsive, and browser regressions passed without registry drift.
+- Typecheck, lint, optimized Next production build, and production dependency audit passed; audit reported zero vulnerabilities.
+
+## Authorized final cutover and rollback plan
+
+The approved dual-version infrastructure deployment leaves the Production catalog row, public route, V1 renderer, version `0.1.0`, and published thumbnail unchanged while making V2 `0.2.0` available only through the MFA-backed owner/admin preview routes. Do not encode cutover in an automatically applied migration. After separate owner authorization, prepare one controlled release that atomically preserves catalog ID `f457a0db-98bb-4401-8584-c8ba5cd93c98`, switches the public `crosscalc` renderer/assets from V1 to the already-reviewed V2 runtime, updates catalog version `0.1.0 → 0.2.0` and the approved thumbnail, and writes the normal release/version audit. Keep V1 assets and renderer deployable during the observation window.
+
+Before public cutover, rollback is application-only: restore the previously recorded Ready Production deployment; the untouched catalog row and V1 public runtime require no database reversal. After a separately authorized public cutover, rollback reverses the public renderer/assets, catalog version, and catalog thumbnail to the recorded V1 release while leaving all V1 and V2 historical result records intact and distinguishable. Neither this branch nor its migrations perform any public switch, Production catalog update, publication, or Production database write.

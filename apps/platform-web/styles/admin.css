@@ -301,6 +301,9 @@ body:has(.admin-command-center) > main {
 .admin-game-copy { min-width: 0; }
 .admin-game-copy > p:last-of-type { margin-top: var(--space-2); color: var(--admin-muted); }
 .admin-game-card > dl,.admin-game-card > .admin-package-actions,.admin-game-card > details { grid-column: 1/-1; }
+.admin-release-candidate-note { grid-column: 1/-1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid #ff4f9a; background: #ff4f9a14; }
+.admin-release-candidate-note strong { color: #20cfe3; }
+.admin-release-candidate-note span { color: var(--admin-muted); }
 .admin-game-card > dl { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: var(--space-3); }
 .admin-package-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .admin-package-actions form { margin: 0; }
