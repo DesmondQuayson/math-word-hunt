@@ -211,9 +211,12 @@ test("V2 is admin-only while the published V1 subscriber route remains unchanged
   expect(await page.locator("[aria-label*='equation' i], [aria-describedby]").count()).toBeGreaterThan(0);
 
   await page.evaluate(axeSource);
-  const accessibility = await page.evaluate(async () => (window as typeof window & { axe: { run: (options: unknown) => Promise<{ violations: unknown[] }> } }).axe.run({
-    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] }
-  }));
+  const accessibility = await page.evaluate(async (engine) => (window as typeof window & { axe: { run: (options: unknown) => Promise<{ violations: unknown[] }> } }).axe.run({
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+    // Playwright WebKit cannot read axe-core's text-measurement canvas and emits
+    // an engine console error. Chromium remains the authoritative contrast gate.
+    rules: { "color-contrast": { enabled: engine !== "webkit" } }
+  }), browserName);
   expect(accessibility.violations).toEqual([]);
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
   await expect(page.locator(".number-tray")).toBeVisible();

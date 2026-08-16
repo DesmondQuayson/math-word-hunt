@@ -67,12 +67,13 @@ test("only same-origin release runtime assets ship and the preview banner is exp
   assert.doesNotMatch(document, /iframe|https?:\/\//);
 });
 
-test("the unreleased V2 thumbnail is the exact 1200x675 PNG catalog format", () => {
-  const thumbnail = readFileSync(resolve(publicRoot, "media/games/crosscalc-v2-rc.png"));
-  assert.equal(thumbnail.subarray(1, 4).toString("ascii"), "PNG");
-  assert.equal(thumbnail.readUInt32BE(16), 1200);
-  assert.equal(thumbnail.readUInt32BE(20), 675);
-  assert.ok(thumbnail.byteLength > 50_000 && thumbnail.byteLength < 2_000_000, thumbnail.byteLength);
+test("the unreleased V2 thumbnail is the optimized exact 1200x675 WebP catalog format", () => {
+  const thumbnail = readFileSync(resolve(publicRoot, "media/games/crosscalc-v2-rc.webp"));
+  assert.equal(thumbnail.subarray(0, 4).toString("ascii"), "RIFF");
+  assert.equal(thumbnail.subarray(8, 16).toString("ascii"), "WEBPVP8X");
+  assert.equal(thumbnail.readUIntLE(24, 3) + 1, 1200);
+  assert.equal(thumbnail.readUIntLE(27, 3) + 1, 675);
+  assert.ok(thumbnail.byteLength > 50_000 && thumbnail.byteLength < 100_000, thumbnail.byteLength);
 });
 
 test("V1 public runtime and catalog identity remain intact while V2 stays private", () => {
