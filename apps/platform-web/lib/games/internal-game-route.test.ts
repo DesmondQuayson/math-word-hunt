@@ -19,6 +19,7 @@ vi.mock("@/lib/games/catalog", () => ({
 }));
 
 import { GET as adminPreview } from "@/app/admin/games/catalog/[catalogId]/preview/route";
+import { GET as crosscalcV2Preview } from "@/app/games/crosscalc/v2/preview/route";
 import { GET as playerPlay } from "@/app/games/[resourceId]/play/route";
 
 function numberCross(status: InternalGameLaunchRecord["status"], stableKey = "number-cross"): InternalGameLaunchRecord {
@@ -52,6 +53,19 @@ function numberLogic(status: InternalGameLaunchRecord["status"]): InternalGameLa
     description: "Six native number-placement puzzles.",
     thumbnailReference: "builtin:number-logic",
     tags: ["number-logic"],
+    version: "0.1.0"
+  };
+}
+
+function crosscalc(status: InternalGameLaunchRecord["status"]): InternalGameLaunchRecord {
+  return {
+    ...numberCross(status, "crosscalc"),
+    id: "f457a0db-98bb-4401-8584-c8ba5cd93c98",
+    slug: "crosscalc",
+    title: "CrossCalc",
+    description: "Connected arithmetic paths.",
+    thumbnailReference: "builtin:crosscalc",
+    tags: ["crosscalc"],
     version: "0.1.0"
   };
 }
@@ -134,5 +148,40 @@ describe("native internal game authorization routes", () => {
       params: Promise.resolve({ resourceId: "number-logic" })
     });
     expect(play.status).toBe(404);
+  });
+
+  it("serves V2 only to an authorized admin and keeps subscriber CrossCalc on V1", async () => {
+    mocks.inspectAdminAccess.mockResolvedValueOnce({ state: "not-authorized" });
+    expect((await crosscalcV2Preview()).status).toBe(404);
+
+    mocks.inspectAdminAccess.mockResolvedValueOnce({ state: "authorized", admin: { id: "admin-id" } });
+    const direct = await crosscalcV2Preview();
+    expect(direct.status).toBe(200);
+    expect(await direct.text()).toContain("Preview Version 0.2.0");
+
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(crosscalc("published"));
+    const publicV1 = await playerPlay(new Request("https://mathnexa.com/games/crosscalc/play?version=0.2.0"), {
+      params: Promise.resolve({ resourceId: "crosscalc" })
+    });
+    const publicBody = await publicV1.text();
+    expect(publicBody).toContain('<base href="/internal-games/crosscalc/"');
+    expect(publicBody).toContain("connect equations through shared digits");
+    expect(publicBody).not.toContain("/internal-games/crosscalc-v2/");
+    expect(publicBody).not.toContain("Preview Version 0.2.0");
+  });
+
+  it("requires explicit V2 version selection on the authorized Admin Preview route", async () => {
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(crosscalc("published"));
+    const v2 = await adminPreview(new Request("https://mathnexa.com/admin/games/catalog/id/preview?version=0.2.0"), {
+      params: Promise.resolve({ catalogId: "f457a0db-98bb-4401-8584-c8ba5cd93c98" })
+    });
+    expect(v2.status).toBe(200);
+    expect(await v2.text()).toContain("CrossCalc V2 · NOT LIVE");
+
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(crosscalc("published"));
+    const unknown = await adminPreview(new Request("https://mathnexa.com/admin/games/catalog/id/preview?version=9.9.9"), {
+      params: Promise.resolve({ catalogId: "f457a0db-98bb-4401-8584-c8ba5cd93c98" })
+    });
+    expect(unknown.status).toBe(404);
   });
 });
