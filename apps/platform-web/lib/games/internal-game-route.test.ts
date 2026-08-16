@@ -57,7 +57,7 @@ function numberLogic(status: InternalGameLaunchRecord["status"]): InternalGameLa
   };
 }
 
-function crosscalc(status: InternalGameLaunchRecord["status"]): InternalGameLaunchRecord {
+function crosscalc(status: InternalGameLaunchRecord["status"], version = "0.1.0"): InternalGameLaunchRecord {
   return {
     ...numberCross(status, "crosscalc"),
     id: "f457a0db-98bb-4401-8584-c8ba5cd93c98",
@@ -66,7 +66,7 @@ function crosscalc(status: InternalGameLaunchRecord["status"]): InternalGameLaun
     description: "Connected arithmetic paths.",
     thumbnailReference: "builtin:crosscalc",
     tags: ["crosscalc"],
-    version: "0.1.0"
+    version
   };
 }
 
@@ -157,7 +157,7 @@ describe("native internal game authorization routes", () => {
     mocks.inspectAdminAccess.mockResolvedValueOnce({ state: "authorized", admin: { id: "admin-id" } });
     const direct = await crosscalcV2Preview();
     expect(direct.status).toBe(200);
-    expect(await direct.text()).toContain("Preview Version 0.2.0");
+    expect(await direct.text()).toContain("Admin Preview · Version 0.2.0");
 
     mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(crosscalc("published"));
     const publicV1 = await playerPlay(new Request("https://mathnexa.com/games/crosscalc/play?version=0.2.0"), {
@@ -168,6 +168,19 @@ describe("native internal game authorization routes", () => {
     expect(publicBody).toContain("connect equations through shared digits");
     expect(publicBody).not.toContain("/internal-games/crosscalc-v2/");
     expect(publicBody).not.toContain("Preview Version 0.2.0");
+  });
+
+  it("atomically serves V2 when the existing CrossCalc catalog version advances to 0.2.0", async () => {
+    mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(crosscalc("published", "0.2.0"));
+    const publicV2 = await playerPlay(new Request("https://mathnexa.com/games/crosscalc/play"), {
+      params: Promise.resolve({ resourceId: "crosscalc" })
+    });
+    const body = await publicV2.text();
+    expect(publicV2.status).toBe(200);
+    expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
+    expect(body).toContain("place whole-number tiles");
+    expect(body).not.toContain("NOT LIVE");
+    expect(body).not.toContain("/internal-games/crosscalc/");
   });
 
   it("requires explicit V2 version selection on the authorized Admin Preview route", async () => {

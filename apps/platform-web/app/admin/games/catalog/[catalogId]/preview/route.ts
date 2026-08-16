@@ -27,11 +27,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ cata
     const requestedVersion = new URL(request.url).searchParams.get("version");
     if (requestedVersion !== null) {
       if (internalGame.stableKey === "crosscalc" && requestedVersion === "0.2.0") {
-        return createCrossCalcV2PreviewResponse();
+        return createCrossCalcV2PreviewResponse(internalGame.version === "0.2.0");
       }
       return new NextResponse("Not Found", { status: 404 });
     }
-    return createInternalGameResponse(internalGame.stableKey);
+    return createInternalGameResponse(internalGame.stableKey, internalGame.version);
   }
   const game = await loadExternalGameLaunchRecord(catalogId);
   if (!game) return new NextResponse("Not Found", { status: 404 });

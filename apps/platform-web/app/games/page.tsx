@@ -19,7 +19,7 @@ export default async function GamesPage() {
     </header>
     {catalog.games.length ? <div className="game-card-grid">{catalog.games.map((game) => <article key={game.id}>
       <div className="game-card-thumbnail" role="img" aria-label={`${game.title} thumbnail`} data-game={game.stableKey}>
-        {game.stableKey === "crosscalc" ? <Image unoptimized width={1200} height={675} src="/media/games/crosscalc.svg" alt="" aria-hidden="true" /> : <><span aria-hidden="true">MATHNEXA</span><strong aria-hidden="true">{game.title}</strong></>}
+        {game.stableKey === "crosscalc" ? <Image unoptimized width={1200} height={675} src={game.thumbnailReference === "builtin:crosscalc-v2" ? "/media/games/crosscalc-v2-rc.webp" : "/media/games/crosscalc.svg"} alt="" aria-hidden="true" /> : <><span aria-hidden="true">MATHNEXA</span><strong aria-hidden="true">{game.title}</strong></>}
       </div>
       <div className="game-card-content">
         <p className="game-path">{game.difficulty} · {game.recommendedGradeMin && game.recommendedGradeMax ? `Grades ${game.recommendedGradeMin}–${game.recommendedGradeMax}` : "Flexible classroom use"}</p>

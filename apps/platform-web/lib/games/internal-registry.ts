@@ -1,7 +1,7 @@
 import "server-only";
 
 import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
-import { renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
+import { renderCrossCalcV2Document, renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
 
@@ -91,14 +91,20 @@ function internalGameHeaders(registration: Pick<InternalGameRegistration, "conne
   });
 }
 
-export function createInternalGameResponse(stableKey: string): Response {
+export function createInternalGameResponse(stableKey: string, version?: string): Response {
   const registration = getInternalGameRegistration(stableKey);
   if (!registration) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "no-store" } });
+  if (stableKey === "crosscalc" && version !== undefined && !["0.1.0", "0.2.0"].includes(version)) {
+    return new Response("Not Found", { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+  if (stableKey === "crosscalc" && version === "0.2.0") {
+    return new Response(renderCrossCalcV2Document(), { status: 200, headers: internalGameHeaders(CROSSCALC_V2_PREVIEW) });
+  }
   return new Response(registration.renderDocument(), { status: 200, headers: internalGameHeaders(registration) });
 }
 
-export function createCrossCalcV2PreviewResponse(): Response {
-  return new Response(CROSSCALC_V2_PREVIEW.renderDocument(), {
+export function createCrossCalcV2PreviewResponse(isPublished: boolean | null = null): Response {
+  return new Response(renderCrossCalcV2PreviewDocument(isPublished), {
     status: 200,
     headers: internalGameHeaders(CROSSCALC_V2_PREVIEW)
   });

@@ -6,6 +6,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   devIndicators: false,
+  experimental: { cpus: 2 },
   async headers() {
     const concealmentHeaders = [
       { key: "Cache-Control", value: "no-store" },

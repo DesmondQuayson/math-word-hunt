@@ -15,5 +15,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   if (game.status === "maintenance") {
     return NextResponse.redirect(new URL(`/games/${game.slug}/maintenance`, request.url), 303);
   }
-  return createInternalGameResponse(game.stableKey);
+  return createInternalGameResponse(game.stableKey, game.version);
 }

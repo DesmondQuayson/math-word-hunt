@@ -100,7 +100,7 @@ test.beforeAll(async () => {
   if (entitlement.error) throw entitlement.error;
 });
 
-test("V2 is admin-only while the published V1 subscriber route remains unchanged", async ({ page, context, browserName }) => {
+test("V2 is public for entitled subscribers while preview and entitlement boundaries remain protected", async ({ page, context, browserName }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   const remoteRequests: string[] = [];
@@ -141,8 +141,15 @@ test("V2 is admin-only while the published V1 subscriber route remains unchanged
   await signIn(page, subscriberEmail, "/games");
   await expect(page.getByRole("heading", { name: "CrossCalc", exact: true })).toBeVisible();
   await page.goto("/games/crosscalc/play?version=0.2.0");
-  await expect(page.getByRole("heading", { name: "Every answer opens another." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Every answer opens another." })).toHaveCount(0);
+  await expect(page.locator("iframe")).toHaveCount(0);
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 768, height: 1024 }]) {
+    await page.setViewportSize(viewport);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    await expect(page.locator(".number-tray")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Hint/ })).toBeVisible();
+  }
   expect((await page.goto("/games/crosscalc/v2/preview"))?.status()).toBe(404);
 
   await context.clearCookies();
@@ -150,23 +157,23 @@ test("V2 is admin-only while the published V1 subscriber route remains unchanged
   await page.goto("/admin?section=games");
   const card = page.locator("article").filter({ has: page.getByRole("heading", { name: "CrossCalc", exact: true }) });
   await expect(card).toContainText("published");
-  await expect(card).toContainText("CrossCalc V2 · Preview Version 0.2.0");
-  await expect(card).toContainText("NOT LIVE · Public subscribers remain on 0.1.0.");
-  const thumbnail = card.getByAltText("Unreleased CrossCalc V2 number-placement thumbnail");
+  await expect(card).toContainText("CrossCalc V2 · Version 0.2.0");
+  await expect(card).toContainText("LIVE · Published subscriber runtime.");
+  const thumbnail = card.getByAltText("Published CrossCalc V2 number-placement thumbnail");
   await thumbnail.scrollIntoViewIfNeeded();
   await expect(thumbnail).toBeVisible();
   await expect.poll(() => thumbnail.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1200);
   const thumbnailMetrics = await thumbnail.evaluate((image) => ({ naturalWidth: (image as HTMLImageElement).naturalWidth, naturalHeight: (image as HTMLImageElement).naturalHeight, width: image.getBoundingClientRect().width, height: image.getBoundingClientRect().height }));
   expect(thumbnailMetrics).toMatchObject({ naturalWidth: 1200, naturalHeight: 675 });
   expect(thumbnailMetrics.width / thumbnailMetrics.height).toBeCloseTo(16 / 9, 1);
-  const previewHref = await card.getByRole("link", { name: "Preview V2 0.2.0 · NOT LIVE" }).getAttribute("href");
+  const previewHref = await card.getByRole("link", { name: "Inspect V2 0.2.0" }).getAttribute("href");
   expect(previewHref).toMatch(/^\/admin\/games\/catalog\/[0-9a-f-]{36}\/preview\?version=0\.2\.0$/);
 
   const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
   await page.goto(previewHref!);
   await expect(page.getByText("CrossCalc", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Preview Version 0.2.0", { exact: true })).toBeVisible();
-  await expect(page.getByText("NOT LIVE", { exact: true })).toBeVisible();
+  await expect(page.getByText("Admin Preview · Version 0.2.0", { exact: true })).toBeVisible();
+  await expect(page.getByText("LIVE", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
   await expect(page.locator("iframe")).toHaveCount(0);
   expect(new URL(page.url()).origin).toBe("http://127.0.0.1:3000");

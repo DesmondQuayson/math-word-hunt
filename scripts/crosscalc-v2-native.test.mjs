@@ -63,11 +63,11 @@ test("only same-origin release runtime assets ship and the preview banner is exp
   ]);
   assert.equal(shipped.some((path) => path.endsWith(".map") || path.endsWith(".zip")), false);
   const document = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/crosscalc-v2/document.ts"), "utf8");
-  for (const value of [approvedSource, adapterSource, "Preview Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
+  for (const value of [approvedSource, adapterSource, "Admin Preview · Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
   assert.doesNotMatch(document, /iframe|https?:\/\//);
 });
 
-test("the unreleased V2 thumbnail is the optimized exact 1200x675 WebP catalog format", () => {
+test("the V2 release thumbnail is the optimized exact 1200x675 WebP catalog format", () => {
   const thumbnail = readFileSync(resolve(publicRoot, "media/games/crosscalc-v2-rc.webp"));
   assert.equal(thumbnail.subarray(0, 4).toString("ascii"), "RIFF");
   assert.equal(thumbnail.subarray(8, 16).toString("ascii"), "WEBPVP8X");
@@ -76,11 +76,12 @@ test("the unreleased V2 thumbnail is the optimized exact 1200x675 WebP catalog f
   assert.ok(thumbnail.byteLength > 50_000 && thumbnail.byteLength < 100_000, thumbnail.byteLength);
 });
 
-test("V1 public runtime and catalog identity remain intact while V2 stays private", () => {
+test("one CrossCalc identity is version-gated between the V1 rollback and V2 public runtime", () => {
   const registry = readFileSync(resolve(repositoryRoot, "apps/platform-web/lib/games/internal-registry.ts"), "utf8");
   assert.match(registry, /"crosscalc"\s*:\s*Object\.freeze\(\{/);
   assert.ok(registry.includes('assetBase: "/internal-games/crosscalc/"'));
   assert.ok(registry.includes("CROSSCALC_V2_PREVIEW"));
+  assert.ok(registry.includes('version === "0.2.0"'));
   assert.doesNotMatch(registry, /"crosscalc-v2"\s*:/);
   const adminRoute = readFileSync(resolve(repositoryRoot, "apps/platform-web/app/admin/games/catalog/[catalogId]/preview/route.ts"), "utf8");
   const directRoute = readFileSync(resolve(repositoryRoot, "apps/platform-web/app/games/crosscalc/v2/preview/route.ts"), "utf8");
@@ -90,4 +91,9 @@ test("V1 public runtime and catalog identity remain intact while V2 stays privat
   const migration = readFileSync(resolve(repositoryRoot, "supabase/migrations/20260814190000_crosscalc_internal_game.sql"), "utf8");
   assert.ok(migration.includes("'mixed','draft',32,'0.1.0'"));
   assert.doesNotMatch(migration, /0\.2\.0|crosscalc-v2/);
+  const release = readFileSync(resolve(repositoryRoot, "supabase/migrations/20260816050000_crosscalc_v2_public_release.sql"), "utf8");
+  assert.ok(release.includes("f457a0db-98bb-4401-8584-c8ba5cd93c98"));
+  assert.ok(release.includes("version='0.2.0'"));
+  assert.ok(release.includes("version=target_row.snapshot->>'version'"));
+  assert.ok(release.includes("crosscalc-result/2"));
 });

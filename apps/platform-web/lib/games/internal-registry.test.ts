@@ -50,6 +50,18 @@ describe("trusted internal game registry", () => {
     expect(body).not.toContain("https://");
   });
 
+  it("serves the approved CrossCalc V2 document only for catalog version 0.2.0", async () => {
+    const response = createInternalGameResponse("crosscalc", "0.2.0");
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
+    expect(body).toContain('<script type="module" src="./assets/index-B0m_QJed.js"');
+    expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
+    expect(body).not.toContain("NOT LIVE");
+    expect(body).not.toContain("iframe");
+    expect(createInternalGameResponse("crosscalc", "9.9.9").status).toBe(404);
+  });
+
   it("keeps V2 outside the public registry while rendering its protected preview document", async () => {
     expect(internalGameKeys()).not.toContain("crosscalc-v2");
     expect(getInternalGameRegistration("crosscalc-v2")).toBeNull();
@@ -58,8 +70,8 @@ describe("trusted internal game registry", () => {
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
-    expect(body).toContain("Preview Version 0.2.0");
-    expect(body).toContain("NOT LIVE");
+    expect(body).toContain("Admin Preview · Version 0.2.0");
+    expect(body).toContain("VERSION INSPECTION");
     expect(body).toContain('<script type="module" src="./assets/index-B0m_QJed.js"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");
