@@ -65,6 +65,8 @@ test("only same-origin release runtime assets ship and the preview banner is exp
   const document = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/crosscalc-v2/document.ts"), "utf8");
   for (const value of [approvedSource, adapterSource, "Admin Preview · Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
   assert.doesNotMatch(document, /iframe|https?:\/\//);
+  const integration = readFileSync(resolve(nativeRoot, "integration.css"), "utf8");
+  assert.match(integration, /@media \(max-width: 560px\)[\s\S]*header \.toolbar \{ justify-content: flex-start; \}/);
 });
 
 test("the V2 release thumbnail is the optimized exact 1200x675 WebP catalog format", () => {

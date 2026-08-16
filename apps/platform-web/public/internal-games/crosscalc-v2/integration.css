@@ -43,6 +43,7 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
 @media (max-width: 560px) {
   .native-preview-banner { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
   .native-back-link { margin-inline: 0.625rem; }
+  header .toolbar { justify-content: flex-start; }
 }
 
 @media (forced-colors: active) {
