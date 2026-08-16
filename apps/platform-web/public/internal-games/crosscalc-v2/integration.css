@@ -1,0 +1,32 @@
+html, body { margin: 0; min-height: 100%; background: #071525; }
+
+.native-preview-banner {
+  position: sticky;
+  z-index: 100;
+  top: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 2vw, 1.25rem);
+  padding: 0.4rem 1rem;
+  border-bottom: 2px solid #ff4f9a;
+  background: #071525f2;
+  color: #f5fbff;
+  font: 800 0.8rem/1.2 "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.native-preview-banner span { color: #20cfe3; }
+.native-preview-banner b { padding: 0.25rem 0.5rem; background: #ff4f9a; color: #071525; }
+.native-preview-banner a { color: #f5fbff; text-underline-offset: 0.2rem; }
+.native-preview-banner a:focus-visible { outline: 3px solid #20cfe3; outline-offset: 3px; }
+
+@media (max-width: 560px) {
+  .native-preview-banner { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
+}
+
+@media (forced-colors: active) {
+  .native-preview-banner { border-color: Highlight; background: Canvas; color: CanvasText; }
+  .native-preview-banner span, .native-preview-banner a { color: LinkText; }
+}
