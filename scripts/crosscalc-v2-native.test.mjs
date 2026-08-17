@@ -16,9 +16,9 @@ const approvedSource = "9d27dbc21fce043569fae89ab5b4434ae2d0bac0";
 const adapterSource = "8bc4704";
 const assetHashes = Object.freeze({
   "assets/index-B-S_H4Ce.css": "f5c39c4c16b25b5cdd24827147449ef11c5faaa2f0f769b8a7dec3897568bdbf",
-  "assets/index-B0m_QJed.js": "5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac",
-  "assets/oldskool-cc0-CQNT44Pl.mp3": "888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88"
+  "assets/index-B0m_QJed.js": "5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac"
 });
+const musicHash = "6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369";
 
 function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
 function files(directory) {
@@ -28,7 +28,7 @@ function files(directory) {
   });
 }
 
-test("V2 native production assets are byte-identical to the verified standalone build", () => {
+test("V2 native production code and styles are byte-identical to the verified standalone build", () => {
   assert.equal(existsSync(standaloneRoot), true, `standalone source missing: ${standaloneRoot}`);
   for (const [path, hash] of Object.entries(assetHashes)) {
     const native = readFileSync(resolve(nativeRoot, path));
@@ -36,6 +36,7 @@ test("V2 native production assets are byte-identical to the verified standalone 
     assert.equal(sha256(native), hash, path);
     assert.deepEqual(native, standalone, path);
   }
+  assert.equal(sha256(readFileSync(resolve(nativeRoot, "assets/oldskool-cc0-CQNT44Pl.mp3"))), musicHash);
 });
 
 test("the auditable native TypeScript core is byte-identical to the integration-approved standalone core", () => {

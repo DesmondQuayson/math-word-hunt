@@ -369,7 +369,7 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   const response = await oldskool;
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("audio/mpeg");
-  expect(response.headers()["content-length"]).toBe("1295630");
+  expect(response.headers()["content-length"]).toBe("1024417");
   await expect(root).toHaveAttribute("data-audio-context-state", "running");
   await expect(root).toHaveAttribute("data-audio-track-decoded", "true");
   await expect(page.locator("[data-audio-activated=true]")).toHaveAttribute("data-playback", "PLAYING");

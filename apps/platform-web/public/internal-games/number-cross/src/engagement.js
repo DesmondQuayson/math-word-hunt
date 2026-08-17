@@ -4,10 +4,10 @@ import { STORAGE_KEYS } from "./storage-keys.js";
 export const ENGAGEMENT_PROFILE_VERSION = 1;
 export const ENGAGEMENT_PROFILE_KEY = STORAGE_KEYS.playerProfile;
 export const MUSIC_TRACK = Object.freeze({
-  title: "Determined Pursuit",
-  author: "Emma_MA",
-  license: "CC0",
-  path: "./audio/music/determined-pursuit.mp3"
+  title: "Cosmic Candy Catchers",
+  author: "Eric Matyas",
+  license: "CC BY 3.0",
+  path: "./audio/music/cosmic-candy-catchers.mp3"
 });
 
 const difficultyOrder = Object.keys(DIFFICULTIES);

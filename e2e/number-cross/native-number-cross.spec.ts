@@ -137,8 +137,15 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
   await page.getByRole("switch", { name: "Background music" }).click();
   await page.getByRole("button", { name: "Done" }).click();
   await page.getByRole("button", { name: "Start Addition" }).click();
-  for (let attempt = 0; attempt < 48 && await page.getByRole("heading", { name: "Puzzle complete!" }).count() === 0; attempt += 1) {
-    await page.getByRole("button", { name: /^Hint/ }).click();
+  const solvedAtLaunch = Number(await page.locator(".mobile-progress strong").textContent()) === 6;
+  if (solvedAtLaunch) {
+    const firstCell = page.getByRole("gridcell").first();
+    await firstCell.click();
+    await firstCell.click();
+  } else {
+    for (let attempt = 0; attempt < 48 && await page.getByRole("heading", { name: "Puzzle complete!" }).count() === 0; attempt += 1) {
+      await page.getByRole("button", { name: /^Hint/ }).click();
+    }
   }
   await expect(page.getByRole("heading", { name: "Puzzle complete!" })).toBeVisible();
   await expect(page.getByText("Reasoning Index", { exact: true })).toBeVisible();

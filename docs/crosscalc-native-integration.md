@@ -9,7 +9,7 @@ CrossCalc remains one catalog product. The published subscriber route `/games/cr
 - V2 integration-only result-provenance adapter: standalone follow-up `8bc4704`; no approved core gameplay commit was amended.
 - V2 runtime CSS SHA-256: `f5c39c4c16b25b5cdd24827147449ef11c5faaa2f0f769b8a7dec3897568bdbf`.
 - V2 runtime JS SHA-256: `5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac`.
-- Shared approved Oldskool SHA-256: `888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88`.
+- Shared approved Cosmic Candy Catchers runtime MP3 SHA-256: `6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369`.
 - V2 thumbnail: original MathNexa release-candidate artwork derived from actual approved V2 board renders, resized without stretching to `1200×675`, then encoded as quality-94 WebP. Visual inspection and a 41.82 dB decode comparison confirmed no visible quality loss while reducing it from `1,112,176` bytes to `82,090` bytes (92.6%). Its visible arithmetic is valid (`8 + 6 = 14`, `18 ÷ 6 = 3`, and the tray-solvable `18 − 5 × 2 = 8`), and it uses `#20CFE3`, `#FF4F9A`, and `#071525`. It is shown only on the admin card; Production catalog art remains unchanged.
 
 The native core source and production assets are checked byte-for-byte against the standalone integration source. The V2 document adds only the same-origin base, an explicit `CrossCalc / Preview Version 0.2.0 / NOT LIVE` banner, and the admin return link. There is no iframe, remote runtime, source map, or debug/solution payload.

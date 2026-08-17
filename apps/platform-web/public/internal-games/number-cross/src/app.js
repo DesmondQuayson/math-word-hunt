@@ -399,9 +399,9 @@ function settingsModal() {
     <span class="modal-icon">${icons.settings}</span><p class="modal-kicker">Make it yours</p><h2 id="settings-title">Sound & display</h2>
     <div class="setting-row"><div><strong>Sound effects</strong><small>Tiles, targets, and celebrations</small></div><button class="switch ${state.prefs.sound ? "on" : ""}" data-action="toggle-sound" role="switch" aria-label="Sound effects" aria-checked="${state.prefs.sound}"><span></span></button></div>
     <label class="volume-row"><span>Sound volume</span><input data-action="sound-volume" type="range" min="0" max="1" step="0.05" value="${state.prefs.soundVolume}" /></label>
-    <div class="setting-row"><div><strong>Background music</strong><small>Determined Pursuit · orchestral loop</small></div><button class="switch ${state.prefs.music ? "on" : ""}" data-action="toggle-music" role="switch" aria-label="Background music" aria-checked="${state.prefs.music}"><span></span></button></div>
+    <div class="setting-row"><div><strong>Background music</strong><small>Cosmic Candy Catchers · looping soundtrack</small></div><button class="switch ${state.prefs.music ? "on" : ""}" data-action="toggle-music" role="switch" aria-label="Background music" aria-checked="${state.prefs.music}"><span></span></button></div>
     <label class="volume-row"><span>Music volume</span><input data-action="music-volume" type="range" min="0" max="0.35" step="0.01" value="${state.prefs.musicVolume}" /></label>
-    <p class="asset-note">Music: Determined Pursuit by Emma_MA · CC0. Sound effects are original synthesized tones.</p>
+    <p class="asset-note">Music: “Cosmic Candy Catchers” by Eric Matyas · soundimage.org · CC BY 3.0. Sound effects are original synthesized tones.</p>
     <button class="primary-button" data-action="close-modal">Done</button>
   </section></div>`;
 }

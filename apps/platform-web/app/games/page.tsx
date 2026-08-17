@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 
+import { GameCatalogThumbnail } from "@/components/games/game-catalog-thumbnail";
 import { Container } from "@/components/layout/container";
 import { requireProductAccess } from "@/lib/access/server";
 import { gamePlayHref, loadPublicGameCatalog } from "@/lib/games/catalog";
@@ -14,12 +14,12 @@ export default async function GamesPage() {
   return <Container className="game-catalog page-stack" width="wide">
     <header className="game-catalog-hero">
       <p className="eyebrow">Choose a game</p>
-      <h1>MathNexa games</h1>
-      <p>Standalone, teacher-ready games open directly—no grade, topic, or lesson setup required.</p>
+      <h1>Pick a challenge.</h1>
+      <p>Four teacher-ready games. One subscription. Play in seconds.</p>
     </header>
     {catalog.games.length ? <div className="game-card-grid">{catalog.games.map((game) => <article key={game.id}>
-      <div className="game-card-thumbnail" role="img" aria-label={`${game.title} thumbnail`} data-game={game.stableKey}>
-        {game.stableKey === "crosscalc" ? <Image unoptimized width={1200} height={675} src={game.thumbnailReference === "builtin:crosscalc-v2" ? "/media/games/crosscalc-v2-rc.webp" : "/media/games/crosscalc.svg"} alt="" aria-hidden="true" /> : <><span aria-hidden="true">MATHNEXA</span><strong aria-hidden="true">{game.title}</strong></>}
+      <div className="game-card-thumbnail" data-game={game.stableKey}>
+        <GameCatalogThumbnail stableKey={game.stableKey} thumbnailReference={game.thumbnailReference} title={game.title} />
       </div>
       <div className="game-card-content">
         <p className="game-path">{game.difficulty} · {game.recommendedGradeMin && game.recommendedGradeMax ? `Grades ${game.recommendedGradeMin}–${game.recommendedGradeMax}` : "Flexible classroom use"}</p>

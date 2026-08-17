@@ -17,6 +17,10 @@ export function renderNumberLogicDocument(): string {
   <body>
     <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games">← Back to Games</a>
     <div id="root"></div>
+    <details class="native-music-credit">
+      <summary>Credits</summary>
+      <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
+    </details>
     <script type="module" src="./assets/index-DXexJzA-.js"></script>
   </body>
 </html>`;

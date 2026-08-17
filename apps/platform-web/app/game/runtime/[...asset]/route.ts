@@ -1,6 +1,7 @@
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { getGameAccessView } from "@/lib/game-access/server";
 import { isCanonicalAssetName, readCanonicalServerAsset } from "@/lib/game-access/canonical-assets";
+import { enhanceCanonicalGameHtml } from "@/lib/game-access/canonical-runtime-enhancements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,12 +20,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
     );
   }
   const asset = await readCanonicalServerAsset(requested[0]);
-  return new Response(new Uint8Array(asset.body), {
+  const body = requested[0] === "index.html" ? enhanceCanonicalGameHtml(asset.body) : asset.body;
+  return new Response(new Uint8Array(body), {
     status: 200,
     headers: {
       "Cache-Control": "private, no-store, max-age=0",
       "Content-Type": asset.contentType,
-      "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src 'none'; connect-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
+      "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data:; media-src 'self'; connect-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer"
     }
