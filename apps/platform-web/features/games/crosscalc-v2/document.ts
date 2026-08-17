@@ -38,6 +38,10 @@ function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | 
   </head>
   <body>${previewBanner}
     <div id="root"></div>
+    <details class="native-music-credit">
+      <summary>Credits</summary>
+      <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
+    </details>
     <script type="module" src="./assets/index-B0m_QJed.js"></script>
   </body>
 </html>`;

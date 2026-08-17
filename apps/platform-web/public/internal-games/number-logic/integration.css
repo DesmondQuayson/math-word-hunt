@@ -19,6 +19,27 @@
   outline-offset: 3px;
 }
 
+.native-music-credit {
+  max-width: 70rem;
+  margin: 0.75rem auto 1.25rem;
+  padding-inline: 1rem;
+  color: #30303a;
+  font: 700 0.82rem/1.5 "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+}
+
+.native-music-credit summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.native-music-credit p { margin: 0 0 0.75rem; }
+.native-music-credit a { color: #075f75; }
+.native-music-credit summary:focus-visible,.native-music-credit a:focus-visible { outline: 3px solid #006fbf; outline-offset: 3px; }
+
 @media (max-width: 430px) {
   .native-back-link {
     margin-inline: 0.625rem;
@@ -26,7 +47,7 @@
 }
 
 @media (forced-colors: active) {
-  .native-back-link {
+  .native-back-link,.native-music-credit summary,.native-music-credit a {
     border-color: ButtonText;
   }
 }

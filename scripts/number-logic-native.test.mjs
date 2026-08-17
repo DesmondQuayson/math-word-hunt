@@ -13,9 +13,9 @@ const standaloneRoot = process.env.NUMBER_LOGIC_SOURCE_DIR
 
 const assetHashes = Object.freeze({
   "assets/index-0S0ADVv9.css": "d29f4a432ea37e570e61ed9d83720ab0107922fc9f6ca15e0c3db54e20d2be29",
-  "assets/index-DXexJzA-.js": "52011f08ce86d8aa5220da1fbae9af1181507b3ad55e52dd63237096cb504a92",
-  "assets/oldskool-cc0-CQNT44Pl.mp3": "888052a10a8939c8fa543b5e383e9852e2682e123aa077097c83de9976337a88"
+  "assets/index-DXexJzA-.js": "553459a1b123299cd4d4f8248f596f1881e662e8e20e96dbe998ac836832d562"
 });
+const musicHash = "6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369";
 
 const sourceAggregates = Object.freeze({
   math: "0f125d147d628173dd883235b230186ba5617be49c00f3c8c2212977dc28c2a5",
@@ -48,15 +48,31 @@ function aggregate(paths) {
   return sha256(entries.map(({ path, hash }) => `${path}\0${hash}\n`).join(""));
 }
 
-test("the native assets are the verified build from the approved standalone source", () => {
+function withCurrentMusicCredit(source) {
+  return source
+    .replace("Oldskool · Of Far Different Nature", "Cosmic Candy Catchers · Eric Matyas")
+    .replace("children:`Oldskool`", "children:`Cosmic Candy Catchers`")
+    .replace(
+      "By Of Far Different Nature · CC0 1.0 Universal. The exact original MP3 is self-hosted and looped with a local in-memory seam crossfade.",
+      "By Eric Matyas · CC BY 3.0. The verified MP3 derivative is self-hosted and looped with a local in-memory seam crossfade."
+    )
+    .replace("https://opengameart.org/content/oldskool", "https://soundimage.org/")
+    .replace("View the verified Oldskool source on OpenGameArt", "Visit the credited artist at SoundImage");
+}
+
+test("the native code and styles retain the verified standalone build with only the approved display credit adaptation", () => {
   for (const [path, hash] of Object.entries(assetHashes)) {
     const nativePath = resolve(nativeRoot, path);
     assert.equal(sha256(readFileSync(nativePath)), hash, path);
     if (existsSync(standaloneRoot)) {
-      assert.deepEqual(readFileSync(nativePath), readFileSync(resolve(standaloneRoot, "dist", path)), path);
+      const standalone = readFileSync(resolve(standaloneRoot, "dist", path));
+      const expected = path.endsWith(".js") ? Buffer.from(withCurrentMusicCredit(standalone.toString("utf8"))) : standalone;
+      assert.deepEqual(readFileSync(nativePath), expected, path);
     }
   }
-  assert.equal(statSync(resolve(nativeRoot, "assets/oldskool-cc0-CQNT44Pl.mp3")).size, 1_295_630);
+  const music = resolve(nativeRoot, "assets/oldskool-cc0-CQNT44Pl.mp3");
+  assert.equal(sha256(readFileSync(music)), musicHash);
+  assert.equal(statSync(music).size, 1_024_417);
 });
 
 test("approved mathematical, result, adapter, and audio sources have no native drift", (context) => {
@@ -87,6 +103,8 @@ test("one bundle retains all six modes, exact contracts, and collision-safe stor
   assert.equal((source.match(/createBufferSource\(/g) ?? []).length, 1);
   assert.ok(source.includes("musicVolume:.35"));
   assert.ok(source.includes("soundEffectsVolume:.6"));
+  for (const credit of ["Cosmic Candy Catchers", "Eric Matyas", "CC BY 3.0", "https://soundimage.org/"]) assert.ok(source.includes(credit), credit);
+  assert.doesNotMatch(source, /Oldskool|Of Far Different Nature|opengameart\.org\/content\/oldskool/);
   assert.doesNotMatch(source, /number-cross|MATHNEXA_GAME_LAUNCH_SECRET|localhost|[A-Za-z]:\\\\/);
 });
 

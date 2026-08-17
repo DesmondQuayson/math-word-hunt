@@ -9,13 +9,16 @@ owner separately approves Publish.
 
 The standalone repository at `C:\Users\quays\OneDrive\Documents\Number cross`
 and verified commit `4737f5437ec3f04485abf312361d986d1b5e1a94` remain the
-source of truth. Native engine, engagement, preference, storage, style, and
-optimized music files were copied into
+source of truth for the game engine. Native engine, preference, storage, and
+style files were copied into
 `apps/platform-web/public/internal-games/number-cross`. The generator, solver,
-Reasoning Index, difficulty definitions, engagement rules, and audio logic were
-not rewritten. The copied `app.js` differs only by one accessible, 44-pixel
-`Back to MathNexa Games` link. `integration.css` styles that link without
-changing the preserved stylesheet.
+Reasoning Index, difficulty definitions, engagement rules, and audio lifecycle
+were not rewritten. The approved platform adaptation adds one accessible,
+44-pixel `Back to MathNexa Games` link and replaces the prior music asset and
+credit metadata with the shared, same-origin Cosmic Candy Catchers track. Its
+runtime MP3 SHA-256 is
+`6BA9A6B324807202BB148F77F2030086E7AA0B5FC0F81E1D3DDEA072B47C7369`.
+`integration.css` styles the platform link without changing puzzle geometry.
 
 The original protected deployment at `https://number-cross.vercel.app` remains
 online as a backup and still denies direct access with HTTP 401. Its shared

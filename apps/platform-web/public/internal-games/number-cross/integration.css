@@ -24,6 +24,11 @@
   outline-offset: 3px;
 }
 
+.mode-card small,
+.difficulty-chip:not(.selected) small {
+  color: #4e5d70;
+}
+
 @media (max-width: 680px) {
   .native-back-link {
     width: 44px;

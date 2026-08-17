@@ -18,6 +18,28 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
 
 .native-back-link:focus-visible { outline: 3px solid #ff4f9a; outline-offset: 3px; }
 
+.native-music-credit {
+  max-width: 72rem;
+  margin: 0.75rem auto 1.25rem;
+  padding-inline: 1rem;
+  color: #b8d3df;
+  font: 700 0.82rem/1.5 "Segoe UI", Arial, sans-serif;
+}
+
+.native-music-credit summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: #f5fbff;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.native-music-credit p { margin: 0 0 0.75rem; }
+.native-music-credit a { color: #20cfe3; }
+.native-music-credit summary:focus-visible,.native-music-credit a:focus-visible { outline: 3px solid #ff4f9a; outline-offset: 3px; }
+
 .native-preview-banner {
   position: sticky;
   z-index: 100;
@@ -48,6 +70,6 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
 
 @media (forced-colors: active) {
   .native-preview-banner { border-color: Highlight; background: Canvas; color: CanvasText; }
-  .native-preview-banner span, .native-preview-banner a { color: LinkText; }
+  .native-preview-banner span, .native-preview-banner a,.native-music-credit a { color: LinkText; }
   .native-back-link { border-color: ButtonText; }
 }

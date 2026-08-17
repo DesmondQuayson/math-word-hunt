@@ -13,19 +13,18 @@ const standaloneRoot = process.env.NUMBER_CROSS_SOURCE_DIR
 
 const preservedHashes = Object.freeze({
   "styles.css": "e5cfa20599767bce7ea12de62a4756a77cd9e5743b2b9b114f5fd8e4f5135c93",
-  "src/engagement.js": "6f649d22ed2a8ae18e7d618e6f855deb9d371e988fabb0d9e61f3c6b435bc78f",
   "src/game-engine.js": "77755f3124760720fd284db15da4ee7b8bc5c9e3d0de1846512442d40adcdcca",
   "src/preferences.js": "e7d83849afd55b11482cb5117bd26915a44ceb9f6e47188f261707a1e5e623a4",
   "src/storage-keys.js": "9f250ec9c27d13348847cb2572f717aa410d3ffd5399f2fd24c76c9a1e439887",
-  "src/version.js": "882aafbb7184a7bba1327eccec88b9f756653f5be78ed871ba4b4a8d3021a963",
-  "audio/music/determined-pursuit.mp3": "076a9cf5a8bec5f1c047b2c23e97a2e87c52776985b2a85c9c8a9b2893b8a58a"
+  "src/version.js": "882aafbb7184a7bba1327eccec88b9f756653f5be78ed871ba4b4a8d3021a963"
 });
+const musicHash = "6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369";
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-test("native Number Cross preserves every engine, engagement, storage, style, and audio source byte", () => {
+test("native Number Cross preserves every mathematical engine, storage, and base-style source byte", () => {
   for (const [relativePath, expectedHash] of Object.entries(preservedHashes)) {
     const nativePath = resolve(nativeRoot, relativePath);
     assert.equal(sha256(nativePath), expectedHash, relativePath);
@@ -75,8 +74,14 @@ test("native storage stays namespaced and the optimized music asset is the only 
   const storage = await import(pathToFileURL(resolve(nativeRoot, "src/storage-keys.js")).href);
   for (const value of Object.values(storage.STORAGE_KEYS)) assert.match(value, /^mathnexa:number-cross:/);
   assert.match(storage.bestTimeKey("addition", "expert"), /^mathnexa:number-cross:/);
-  const audio = resolve(nativeRoot, "audio/music/determined-pursuit.mp3");
-  assert.ok(statSync(audio).size > 1_000_000 && statSync(audio).size < 4_000_000);
-  assert.equal(readFileSync(audio).subarray(0, 3).toString("ascii"), "ID3");
+  const audio = resolve(nativeRoot, "audio/music/cosmic-candy-catchers.mp3");
+  assert.equal(statSync(audio).size, 1_024_417);
+  assert.equal(sha256(audio), musicHash);
+  assert.equal(readFileSync(audio).subarray(0, 2).toString("hex"), "fffb");
   assert.equal(existsSync(resolve(nativeRoot, "audio/music/determined-pursuit-source.wav")), false);
+  assert.equal(existsSync(resolve(nativeRoot, "audio/music/determined-pursuit.mp3")), false);
+  const engagement = readFileSync(resolve(nativeRoot, "src/engagement.js"), "utf8");
+  for (const credit of ["Cosmic Candy Catchers", "Eric Matyas", "CC BY 3.0", "cosmic-candy-catchers.mp3"]) {
+    assert.ok(engagement.includes(credit), credit);
+  }
 });

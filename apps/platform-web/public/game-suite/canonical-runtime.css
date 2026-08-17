@@ -1,0 +1,33 @@
+.mathnexa-music-credit,
+html,
+body {
+  min-width: 0;
+}
+
+.mathnexa-music-credit {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: .35rem 1rem max(1rem, env(safe-area-inset-bottom));
+  color: #bdd4e6;
+  font: 700 .78rem/1.5 "Avenir Next", Avenir, "Segoe UI", Arial, sans-serif;
+}
+
+.mathnexa-music-credit summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: .2rem;
+}
+
+.mathnexa-music-credit p { margin: 0 0 .5rem; }
+.mathnexa-music-credit a { color: #66e7f4; }
+.mathnexa-music-credit summary:focus-visible,.mathnexa-music-credit a:focus-visible { outline: 3px solid #ffcf4a; outline-offset: 3px; }
+.mathnexa-a11y-grid-row { display: contents; }
+.team-score small { color: #fff; }
+
+@media (forced-colors: active) {
+  .mathnexa-music-credit,.mathnexa-music-credit summary,.mathnexa-music-credit a { color: CanvasText; }
+}
