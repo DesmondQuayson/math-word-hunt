@@ -18,7 +18,7 @@ import {
   migrateEngagementProfile,
   updateEngagementProfile
 } from "./engagement.js";
-import { DEFAULT_PREFERENCES, PREFERENCES_KEY, migratePreferences, parseStoredJson } from "./preferences.js";
+import { PREFERENCES_KEY, migratePreferences, parseStoredJson } from "./preferences.js";
 import {
   LEGACY_STORAGE_KEYS,
   STORAGE_KEYS,
@@ -53,7 +53,13 @@ const storage = {
   }
 };
 
-const savedPrefs = migratePreferences(storage.readMigrated(PREFERENCES_KEY, LEGACY_STORAGE_KEYS.preferences, DEFAULT_PREFERENCES));
+const rawSavedPrefs = storage.readMigrated(PREFERENCES_KEY, LEGACY_STORAGE_KEYS.preferences, {});
+const savedPrefs = migratePreferences(rawSavedPrefs);
+const DEFAULT_ACTIVE_MUSIC_VOLUME = 0.24;
+// Music is part of the default Number Cross experience. Only an explicit saved
+// choice may silence it; an absent or older preference record starts with music on.
+if (!Object.prototype.hasOwnProperty.call(rawSavedPrefs, "music")) savedPrefs.music = true;
+if (savedPrefs.music && savedPrefs.musicVolume <= 0) savedPrefs.musicVolume = DEFAULT_ACTIVE_MUSIC_VOLUME;
 const savedProfile = migrateEngagementProfile(storage.readMigrated(ENGAGEMENT_PROFILE_KEY, LEGACY_STORAGE_KEYS.playerProfile, {}));
 const state = {
   screen: "home",
@@ -121,15 +127,32 @@ class GameAudio {
   context = null;
   music = null;
   musicFadeTimer = null;
+  musicPlayPromise = null;
+  musicRequestId = 0;
   visibilityPaused = false;
-  musicUnavailable = false;
+  musicPlayAttempts = 0;
+  lastMusicError = null;
+  disposed = false;
 
   ensure() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return null;
-    if (!this.context) this.context = new AudioContextClass();
-    if (this.context.state === "suspended") this.context.resume();
+    try {
+      if (!this.context) this.context = new AudioContextClass();
+      if (this.context.state === "suspended") {
+        const resumeAttempt = this.context.resume();
+        resumeAttempt?.catch?.(() => { /* The next real gesture retries activation. */ });
+      }
+    } catch {
+      return null;
+    }
     return this.context;
+  }
+
+  activate() {
+    if (this.disposed) return;
+    this.ensure();
+    this.startMusic();
   }
 
   tone(frequency, duration = 0.08, type = "sine", volume = state.prefs.soundVolume) {
@@ -159,17 +182,22 @@ class GameAudio {
   perfect() { [784, 988, 1175].forEach((note, index) => setTimeout(() => this.tone(note, 0.28, "sine"), index * 115)); }
 
   ensureMusic() {
+    if (this.disposed) return null;
     if (this.music) return this.music;
     this.music = new Audio(MUSIC_TRACK.path);
     this.music.loop = true;
-    this.music.preload = "auto";
+    this.music.preload = "none";
+    this.music.playsInline = true;
     this.music.volume = 0;
-    this.music.addEventListener("error", () => { this.musicUnavailable = true; });
+    this.music.addEventListener("error", () => {
+      this.lastMusicError = this.music?.error?.message || "Music unavailable";
+    });
     return this.music;
   }
 
   fadeMusic(target, duration = 220, onDone) {
     const track = this.ensureMusic();
+    if (!track) return;
     clearInterval(this.musicFadeTimer);
     const destination = Math.max(0, Math.min(1, target));
     if (duration <= 0) {
@@ -190,35 +218,126 @@ class GameAudio {
     }, 30);
   }
 
-  async startMusic() {
-    if (!state.prefs.music || state.screen !== "game" || !state.running || (state.modal && state.modal !== "settings")) return;
+  shouldPlayMusic() {
+    return !this.disposed
+      && state.prefs.music
+      && state.prefs.musicVolume > 0
+      && state.screen === "game"
+      && state.running
+      && state.modal !== "pause"
+      && state.modal !== "results"
+      && !document.hidden;
+  }
+
+  startMusic() {
+    if (!this.shouldPlayMusic()) return this.musicPlayPromise;
     const track = this.ensureMusic();
-    if (this.musicUnavailable) return;
+    if (!track) return null;
+    clearInterval(this.musicFadeTimer);
+    this.musicFadeTimer = null;
+    if (!track.paused) {
+      track.volume = state.prefs.musicVolume;
+      this.lastMusicError = null;
+      return this.musicPlayPromise;
+    }
+    if (this.musicPlayPromise) return this.musicPlayPromise;
+    const requestId = ++this.musicRequestId;
+    this.musicPlayAttempts += 1;
+    // Calling play() directly inside the pointer/key activation task is the
+    // important autoplay-policy boundary. Do not await fetch/decode first.
     try {
-      await track.play();
-      this.fadeMusic(state.prefs.musicVolume, 280);
-    } catch { /* Autoplay may be blocked until the next player gesture. */ }
+      const attempt = track.play();
+      if (!attempt || typeof attempt.then !== "function") {
+        track.volume = state.prefs.musicVolume;
+        this.lastMusicError = null;
+        return null;
+      }
+      this.musicPlayPromise = attempt.then(() => {
+        this.musicPlayPromise = null;
+        if (requestId !== this.musicRequestId || !this.shouldPlayMusic()) {
+          track.pause();
+          return;
+        }
+        this.lastMusicError = null;
+        this.fadeMusic(state.prefs.musicVolume, 280);
+      }).catch(error => {
+        this.musicPlayPromise = null;
+        // NotAllowedError is recoverable: every later gesture retries.
+        if (error?.name !== "NotAllowedError") {
+          this.lastMusicError = error instanceof Error ? error.message : "Music unavailable";
+        }
+      });
+      return this.musicPlayPromise;
+    } catch (error) {
+      this.musicPlayPromise = null;
+      if (error?.name !== "NotAllowedError") {
+        this.lastMusicError = error instanceof Error ? error.message : "Music unavailable";
+      }
+      return null;
+    }
   }
 
   pauseMusic() {
     if (!this.music) return;
-    this.fadeMusic(0, 160, () => this.music?.pause());
+    this.musicRequestId += 1;
+    this.musicPlayPromise = null;
+    clearInterval(this.musicFadeTimer);
+    this.musicFadeTimer = null;
+    this.music.pause();
+    this.music.volume = 0;
   }
 
   stopMusic({ reset = true } = {}) {
     if (!this.music) return;
-    this.fadeMusic(0, 160, () => {
-      this.music?.pause();
-      if (reset && this.music) this.music.currentTime = 0;
-    });
+    this.pauseMusic();
+    if (reset) this.music.currentTime = 0;
   }
 
   setMusicVolume(value) {
-    if (this.music && !this.music.paused) this.fadeMusic(value, 80);
+    if (value <= 0) {
+      this.pauseMusic();
+      return;
+    }
+    if (this.music && !this.music.paused) this.music.volume = value;
+    else this.startMusic();
+  }
+
+  snapshot() {
+    return Object.freeze({
+      paused: this.music?.paused ?? true,
+      loop: this.music?.loop ?? true,
+      currentTime: this.music?.currentTime ?? 0,
+      activeMusicSources: this.music && !this.music.paused ? 1 : 0,
+      playAttempts: this.musicPlayAttempts,
+      contextState: this.context?.state ?? "uninitialized",
+      error: this.lastMusicError,
+      disposed: this.disposed
+    });
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.stopMusic();
+    this.disposed = true;
+    if (this.music) {
+      this.music.removeAttribute("src");
+      this.music.load();
+      this.music = null;
+    }
+    const closeAttempt = this.context?.close?.();
+    closeAttempt?.catch?.(() => { /* The page is already leaving. */ });
+    this.context = null;
   }
 }
 
 const audio = new GameAudio();
+window.__MATHNEXA_GAME_MUSIC__ = Object.freeze({
+  source: MUSIC_TRACK.path,
+  title: `${MUSIC_TRACK.title} — ${MUSIC_TRACK.author}`,
+  start: () => audio.startMusic(),
+  stop: () => audio.stopMusic({ reset: false }),
+  snapshot: () => audio.snapshot()
+});
 const REASONING_HISTORY_KEY = STORAGE_KEYS.reasoningHistory;
 
 function announce(message) {
@@ -400,24 +519,66 @@ function settingsModal() {
     <div class="setting-row"><div><strong>Sound effects</strong><small>Tiles, targets, and celebrations</small></div><button class="switch ${state.prefs.sound ? "on" : ""}" data-action="toggle-sound" role="switch" aria-label="Sound effects" aria-checked="${state.prefs.sound}"><span></span></button></div>
     <label class="volume-row"><span>Sound volume</span><input data-action="sound-volume" type="range" min="0" max="1" step="0.05" value="${state.prefs.soundVolume}" /></label>
     <div class="setting-row"><div><strong>Background music</strong><small>Cosmic Candy Catchers · looping soundtrack</small></div><button class="switch ${state.prefs.music ? "on" : ""}" data-action="toggle-music" role="switch" aria-label="Background music" aria-checked="${state.prefs.music}"><span></span></button></div>
-    <label class="volume-row"><span>Music volume</span><input data-action="music-volume" type="range" min="0" max="0.35" step="0.01" value="${state.prefs.musicVolume}" /></label>
+    <label class="volume-row"><span>Music volume</span><input data-action="music-volume" type="range" min="0.05" max="0.35" step="0.01" value="${state.prefs.musicVolume}" /></label>
     <p class="asset-note">Music: “Cosmic Candy Catchers” by Eric Matyas · soundimage.org · CC BY 3.0. Sound effects are original synthesized tones.</p>
     <button class="primary-button" data-action="close-modal">Done</button>
   </section></div>`;
 }
 
+function tutorialBoard({ crossed = [], workedRow = null, solved = false } = {}) {
+  const values = [[2, 5, 1], [4, 3, 2], [1, 2, 4]];
+  const addition = state.mode === "addition";
+  const columnTargets = addition ? [7, 5, 6] : [8, 5, 8];
+  const rowTargets = addition ? [7, 6, 5] : [10, 8, 4];
+  const crossedSet = new Set(crossed);
+  const target = (value, axis, index) => `<span class="tutorial-demo-target ${solved || (axis === "row" && index === workedRow) ? "solved" : ""}" style="grid-${axis === "row" ? `row:${index + 2};grid-column:4` : `column:${index + 1};grid-row:1`}"><b>${value}</b></span>`;
+  const cells = values.flatMap((row, rowIndex) => row.map((value, columnIndex) => {
+    const index = rowIndex * 3 + columnIndex;
+    return `<span class="tutorial-demo-cell ${crossedSet.has(index) ? "crossed" : ""} ${rowIndex === workedRow ? "worked" : ""}" style="grid-row:${rowIndex + 2};grid-column:${columnIndex + 1}"><b>${value}</b><i></i><i></i></span>`;
+  })).join("");
+  const description = solved
+    ? `Solved ${modeLabel().toLowerCase()} board. Column targets ${columnTargets.join(", ")} and row targets ${rowTargets.join(", ")} all match after the extra numbers are crossed out.`
+    : workedRow === 0
+      ? `Worked first row. Keep 2 and 5, cross out 1, and reach the row target ${rowTargets[0]}.`
+      : `Example ${modeLabel().toLowerCase()} board. Column targets ${columnTargets.join(", ")} are above the grid and row targets ${rowTargets.join(", ")} are beside it.`;
+  return `<div class="tutorial-board-wrap" role="img" aria-label="${description}">
+    <div class="tutorial-board-key" aria-hidden="true"><span><i class="top"></i> Top = column</span><span><i class="side"></i> Side = row</span></div>
+    <div class="tutorial-demo-board" aria-hidden="true">
+      ${columnTargets.map((value, index) => target(value, "column", index)).join("")}
+      ${rowTargets.map((value, index) => target(value, "row", index)).join("")}
+      ${cells}<span class="tutorial-demo-corner" style="grid-row:1;grid-column:4">${modeSymbol()}</span>
+    </div>
+  </div>`;
+}
+
 function tutorialModal() {
+  const firstTarget = state.mode === "addition" ? 7 : 10;
   const slides = [
-    { kicker: "The goal", title: "Make every line match", body: "Each number at the top belongs to a column. Each number at the side belongs to a row.", visual: `<div class="tutorial-targets"><span>9</span><span>12</span><i></i><b>8</b><b>3</b></div>` },
-    { kicker: "Your move", title: "Cross out the extras", body: "Tap a tile to cross it out. Tap it again if you change your mind.", visual: `<div class="tutorial-row"><button data-action="sample-cell">2</button><button data-action="sample-cell" class="sample-crossed">7<i></i><i></i></button><button data-action="sample-cell">3</button><span>= 5</span></div>` },
-    { kicker: modeLabel(), title: state.mode === "addition" ? "Add what stays" : "Multiply what stays", body: state.mode === "addition" ? "Leave the numbers that add up to each target. A check appears when a line is right." : "Leave the factors that multiply to each target. A check appears when a line is right.", visual: `<div class="tutorial-equation"><span>2</span><b>${modeSymbol()}</b><span>3</span><b>=</b><strong>${state.mode === "addition" ? "5" : "6"}</strong>${icons.check}</div>` }
+    {
+      kicker: "The goal",
+      title: "Read the targets",
+      body: "Numbers above the board are column targets. Numbers beside the board are row targets.",
+      visual: tutorialBoard()
+    },
+    {
+      kicker: "Your move",
+      title: "Cross out the extra number",
+      body: `First row: keep 2 and 5. Cross out 1, so 2 ${modeSymbol()} 5 = ${firstTarget}. Tap again to restore a number.`,
+      visual: tutorialBoard({ crossed: [2], workedRow: 0 })
+    },
+    {
+      kicker: modeLabel(),
+      title: "Make both directions match",
+      body: "Each move changes one row and one column. Finish when every target has a check.",
+      visual: tutorialBoard({ crossed: [2, 4, 7], solved: true })
+    }
   ];
   const slide = slides[state.tutorialStep];
   return `<div class="modal-layer tutorial-layer" role="presentation"><section class="modal tutorial-modal" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
     <button class="text-close" data-action="skip-tutorial">Skip</button>
     <div class="tutorial-visual">${slide.visual}</div>
     <p class="modal-kicker">${slide.kicker}</p><h2 id="tutorial-title">${slide.title}</h2><p class="tutorial-copy">${slide.body}</p>
-    <div class="tutorial-footer"><div class="page-dots">${slides.map((_, index) => `<i class="${index === state.tutorialStep ? "active" : ""}"></i>`).join("")}</div><button class="primary-button" data-action="tutorial-next">${state.tutorialStep === slides.length - 1 ? "Got it" : "Next"} ${icons.next}</button></div>
+    <div class="tutorial-footer"><div class="page-dots" role="img" aria-label="Tutorial step ${state.tutorialStep + 1} of ${slides.length}">${slides.map((_, index) => `<i class="${index === state.tutorialStep ? "active" : ""}"></i>`).join("")}</div><button class="primary-button" data-action="tutorial-next">${state.tutorialStep === slides.length - 1 ? "Start solving" : "Next"} ${icons.next}</button></div>
   </section></div>`;
 }
 
@@ -624,7 +785,7 @@ function startGame() {
   }
   render();
   window.scrollTo({ top: 0, left: 0 });
-  if (state.prefs.music && !state.modal) audio.startMusic();
+  if (state.prefs.music) audio.startMusic();
 }
 
 function completePuzzle() {
@@ -863,7 +1024,13 @@ root.addEventListener("click", event => {
   else if (action === "help") { state.tutorialStep = 0; state.modal = "tutorial"; render(); }
   else if (action === "close-modal") { state.modal = null; render(); }
   else if (action === "toggle-sound") { state.prefs.sound = !state.prefs.sound; persistPrefs(); render(); }
-  else if (action === "toggle-music") { state.prefs.music = !state.prefs.music; persistPrefs(); state.prefs.music ? audio.startMusic() : audio.stopMusic({ reset: false }); render(); }
+  else if (action === "toggle-music") {
+    state.prefs.music = !state.prefs.music;
+    if (state.prefs.music && state.prefs.musicVolume <= 0) state.prefs.musicVolume = DEFAULT_ACTIVE_MUSIC_VOLUME;
+    persistPrefs();
+    state.prefs.music ? audio.startMusic() : audio.stopMusic({ reset: false });
+    render();
+  }
   else if (action === "reasoning-info") { state.reasoningInfoOpen = !state.reasoningInfoOpen; render(); }
   else if (action === "accept-adaptive") {
     const recommendation = state.adaptiveRecommendation;
@@ -964,6 +1131,18 @@ document.addEventListener("visibilitychange", () => {
     audio.visibilityPaused = false;
     if (state.screen === "game" && state.running && (!state.modal || state.modal === "settings")) audio.startMusic();
   }
+});
+
+// Keep activation synchronous with the browser gesture. A rejected autoplay
+// attempt is harmless; the next pointer or keyboard gesture retries it.
+document.addEventListener("pointerdown", () => audio.activate(), { capture: true });
+document.addEventListener("keydown", event => {
+  if (!event.repeat) audio.activate();
+}, { capture: true });
+
+window.addEventListener("pagehide", event => {
+  if (event.persisted) audio.pauseMusic();
+  else audio.dispose();
 });
 
 render();

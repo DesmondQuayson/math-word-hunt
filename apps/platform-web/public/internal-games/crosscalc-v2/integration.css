@@ -40,6 +40,9 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
 .native-music-credit a { color: #20cfe3; }
 .native-music-credit summary:focus-visible,.native-music-credit a:focus-visible { outline: 3px solid #ff4f9a; outline-offset: 3px; }
 
+/* Icon-only controls retain the same touch area as their text siblings. */
+.toolbar button { min-width: 44px; }
+
 .native-preview-banner {
   position: sticky;
   z-index: 100;
@@ -66,6 +69,335 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
   .native-preview-banner { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
   .native-back-link { margin-inline: 0.625rem; }
   header .toolbar { justify-content: flex-start; }
+}
+
+/*
+ * Portrait play surface
+ *
+ * The released board remains byte-identical. This adapter gives it a compact
+ * phone composition: a light calculation surface nested between the navy
+ * MathNexa header and a thumb-reachable tile dock. Wide expert networks keep
+ * their full-size 48px cells inside one clearly scrollable board viewport;
+ * the document itself never scrolls sideways.
+ */
+@media (max-width: 560px) and (orientation: portrait) {
+  :root { --cell: 48px; }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body { background: #071525; }
+
+  .app-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    background:
+      radial-gradient(circle at 80% 8%, #164a68 0, transparent 32%),
+      linear-gradient(180deg, #071525 0, #04101e 100%);
+  }
+
+  .ambient-weave { opacity: 0.1; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem 0.65rem;
+    min-height: 0;
+    padding: 0.6rem;
+    border-bottom: 1px solid #20cfe352;
+    background: #071525f7;
+    box-shadow: 0 12px 34px #020913a8;
+    backdrop-filter: blur(18px);
+  }
+
+  .brand-lockup {
+    min-width: 0;
+    gap: 0.55rem;
+  }
+
+  .brand-mark {
+    width: 44px;
+    border-radius: 0.55rem;
+  }
+
+  .brand-lockup small { font-size: 0.58rem; }
+  .brand-lockup strong { font-size: 1.05rem; }
+
+  .status-cluster {
+    order: initial;
+    width: auto;
+    margin: 0;
+    gap: 0.3rem;
+  }
+
+  .status-cluster span {
+    min-width: 48px;
+    padding: 0.28rem 0.35rem;
+  }
+
+  .status-cluster small { font-size: 0.5rem; }
+  .status-cluster strong { font-size: 0.9rem; }
+
+  .toolbar,
+  header .toolbar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.1rem 0 0.28rem;
+    gap: 0.4rem;
+    overflow: visible;
+  }
+
+  .toolbar button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 0.35rem;
+    border-color: #8bc6d13d;
+    background: #102c46;
+    font-size: 0.76rem;
+  }
+
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    gap: 0.65rem;
+    padding: 0.55rem;
+  }
+
+  .play-stage {
+    order: 1;
+    min-height: 0;
+    border-color: #9ee9ed70;
+    border-radius: 1rem;
+    overflow: clip;
+    color: #071525;
+    background: #f7f8f4;
+    box-shadow: 0 22px 55px #0009, 0 0 0 1px #ffffff0d;
+  }
+
+  .stage-heading {
+    min-height: 64px;
+    padding: 0.72rem 0.85rem;
+    border-bottom-color: #20cfe35c;
+    color: #f5fbff;
+    background:
+      linear-gradient(90deg, #20cfe3 0 34%, transparent 34%) top / 100% 3px no-repeat,
+      linear-gradient(135deg, #0b2944, #071525);
+  }
+
+  .stage-heading .eyebrow { margin-bottom: 0.35rem; }
+  .stage-heading h2 { font-size: 1.08rem; letter-spacing: 0.025em; }
+  .stage-heading > p { margin: 0; color: #b8cbd8; }
+
+  .board-scroll {
+    width: 100%;
+    min-height: 260px;
+    max-height: min(54vh, 430px);
+    padding: 1.1rem 0.7rem 1.35rem;
+    place-items: start safe center;
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-color: #079cad #dbe5e5;
+    background:
+      linear-gradient(90deg, transparent, #ffffffb5 11%, #ffffffb5 89%, transparent),
+      radial-gradient(circle at 50% 42%, #ffffff 0, #f7f8f4 68%, #e8eeec 100%);
+  }
+
+  .board-scroll:focus-visible {
+    outline: 3px solid #007e8d;
+    outline-offset: -4px;
+  }
+
+  .board { gap: 4px; }
+
+  .symbol {
+    color: #49616f;
+    font-size: 1.42rem;
+    text-shadow: none;
+  }
+
+  .symbol.equals { color: #008b99; }
+
+  .number-cell {
+    min-width: 48px;
+    min-height: 48px;
+    border: 2px solid #0a8d97;
+    border-radius: 0.72rem;
+    color: #082745;
+    background: linear-gradient(145deg, #ffffff, #f0f1ed 72%);
+    box-shadow: inset 0 1px #fff, 0 4px 0 #b8c5c3, 0 8px 15px #05223b26;
+    font-size: 1.22rem;
+  }
+
+  .number-cell.given {
+    color: #082745;
+    background: #eef5f3;
+    box-shadow: inset 0 0 0 1px #ffffff, 0 3px 0 #aab9b7;
+  }
+
+  .number-cell.empty:not(.selected):has(> span) {
+    color: #d32c68;
+    border-style: dashed;
+    background: #fff8fa;
+  }
+
+  .number-cell.selected {
+    border-color: #008b99;
+    color: #071525;
+    background: #bff8f4;
+    box-shadow: inset 0 0 16px #20cfe33b, 0 4px 0 #058595, 0 0 0 3px #ffffff, 0 0 0 6px #20cfe3;
+  }
+
+  .number-cell.intersection::after {
+    inset: -5px;
+    border-width: 2px;
+    border-color: #ec3f7c;
+  }
+
+  .number-cell i { color: #d32c68; }
+
+  .tray-shell {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    padding: 0.8rem 0.8rem 0.9rem;
+    border-top: 2px solid #20cfe3;
+    color: #f5fbff;
+    background:
+      linear-gradient(90deg, #20cfe31a, transparent 38%),
+      #082440f7;
+    box-shadow: 0 -14px 32px #0715254d;
+  }
+
+  .tray-title { margin-bottom: 0.65rem; }
+  .tray-title span { font-size: 0.68rem; }
+  .tray-title small { color: #c1d3df; }
+  .tray-title b { color: #ff7db5; }
+
+  .number-tray {
+    min-height: 58px;
+    flex-wrap: nowrap;
+    gap: 0.65rem;
+    padding: 0.1rem 0.15rem 0.72rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-color: #20cfe3 #102c46;
+    scrollbar-width: thin;
+  }
+
+  .number-tray button {
+    flex: 0 0 54px;
+    min-width: 54px;
+    min-height: 52px;
+    scroll-snap-align: start;
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+  }
+
+  .action-row button {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.5rem;
+    border-color: #8fcbd24a;
+    background: #102f4d;
+  }
+
+  .action-row button:last-child:nth-child(3) { grid-column: 1 / -1; }
+
+  .hint-card {
+    margin: 0;
+    padding: 0.8rem;
+    color: #071525;
+    background: #fff0f6;
+  }
+
+  .mission-panel {
+    order: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    padding: 0.9rem;
+  }
+
+  .mission-panel > .eyebrow,
+  .mission-panel > h1,
+  .mission-panel > .lede,
+  .mission-panel > .logic-spec,
+  .mission-panel > .secondary-action {
+    grid-column: 1 / -1;
+  }
+
+  .mission-panel h1 {
+    max-width: none;
+    font-size: 2rem;
+    line-height: 0.95;
+  }
+
+  .mission-panel .lede { margin: 0; font-size: 0.88rem; }
+  .mission-panel label { margin: 0; }
+  .logic-spec { grid-template-columns: 1fr; margin-top: 0.25rem; }
+  .secondary-action { margin-top: 0.15rem; }
+
+  .equation-panel {
+    order: 3;
+    max-height: none;
+    padding: 0.95rem;
+  }
+
+  .equation-list { grid-template-columns: 1fr; }
+
+  .native-music-credit {
+    margin-top: 0.3rem;
+    padding-inline: 0.8rem;
+  }
+}
+
+@media (max-width: 340px) and (orientation: portrait) {
+  :root { --cell: 46px; }
+
+  .topbar { padding-inline: 0.45rem; }
+  .brand-mark { display: none; }
+  .status-cluster span { min-width: 44px; }
+  .game-layout { padding-inline: 0.4rem; }
+  .stage-heading { padding-inline: 0.7rem; }
+  .board-scroll { min-height: 238px; padding-inline: 0.5rem; }
+  .board { gap: 3px; }
+  .number-cell { min-width: 46px; min-height: 46px; }
+  .tray-shell { padding-inline: 0.65rem; }
+  .tray-title small { font-size: 0.68rem; }
+  .mission-panel { grid-template-columns: 1fr; }
+  .mission-panel > * { grid-column: 1; }
+}
+
+@media (max-width: 560px) and (orientation: portrait) and (max-height: 620px) {
+  .topbar { position: relative; }
+  .status-cluster { display: none; }
+  .board-scroll { min-height: 230px; max-height: 58vh; }
+  .tray-title small { display: none; }
 }
 
 @media (forced-colors: active) {

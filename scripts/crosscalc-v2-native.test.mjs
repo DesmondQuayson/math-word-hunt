@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { runInNewContext } from "node:vm";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const publicRoot = resolve(repositoryRoot, "apps/platform-web/public");
@@ -49,6 +50,7 @@ test("V2 retains its versioned provenance, result, storage, audio, and palette c
   const bundle = readFileSync(resolve(nativeRoot, "assets/index-B0m_QJed.js"), "utf8");
   for (const contract of ["mathnexa.crosscalc.v2", "crosscalc-result/2", "0.2.0", "number-placement", "mathnexa:game-result"]) assert.ok(bundle.includes(contract), contract);
   for (const mode of ["addition", "subtraction", "multiplication", "division", "mixed"]) assert.ok(bundle.includes(mode), mode);
+  for (const difficulty of ["beginner", "easy", "medium", "hard", "expert"]) assert.ok(bundle.includes(difficulty), difficulty);
   assert.doesNotMatch(bundle, /MATHNEXA_GAME_LAUNCH_SECRET|localhost|[A-Za-z]:\\\\/);
   const styles = readFileSync(resolve(nativeRoot, "assets/index-B-S_H4Ce.css"), "utf8").toLowerCase();
   for (const color of ["#071525", "#20cfe3", "#ff4f9a"]) assert.ok(styles.includes(color), color);
@@ -60,14 +62,192 @@ test("only same-origin release runtime assets ship and the preview banner is exp
     "assets/index-B-S_H4Ce.css",
     "assets/index-B0m_QJed.js",
     "assets/oldskool-cc0-CQNT44Pl.mp3",
-    "integration.css"
+    "integration.css",
+    "runtime-music.js"
   ]);
   assert.equal(shipped.some((path) => path.endsWith(".map") || path.endsWith(".zip")), false);
   const document = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/crosscalc-v2/document.ts"), "utf8");
   for (const value of [approvedSource, adapterSource, "Admin Preview · Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
   assert.doesNotMatch(document, /iframe|https?:\/\//);
+  assert.ok(document.indexOf("./assets/index-B-S_H4Ce.css") < document.indexOf("./integration.css"));
+  assert.ok(document.indexOf("./runtime-music.js") < document.indexOf("./assets/index-B0m_QJed.js"));
   const integration = readFileSync(resolve(nativeRoot, "integration.css"), "utf8");
   assert.match(integration, /@media \(max-width: 560px\)[\s\S]*header \.toolbar \{ justify-content: flex-start; \}/);
+  assert.match(integration, /@media \(max-width: 560px\) and \(orientation: portrait\)/);
+  for (const contract of ["--cell: 48px", "overflow-x: clip", "min-height: 48px", "position: sticky", "scrollbar-gutter: stable both-edges"]) assert.ok(integration.includes(contract), contract);
+  const browserSpec = readFileSync(resolve(repositoryRoot, "e2e/crosscalc-v2/native-crosscalc-v2.spec.ts"), "utf8");
+  assert.match(browserSpec, /\{ width: 844, height: 390 \}/);
+});
+
+test("CrossCalc music hotfix starts one same-origin HTML media source inside the user gesture", () => {
+  const runtime = readFileSync(resolve(nativeRoot, "runtime-music.js"), "utf8");
+  for (const contract of [
+    'new Audio()',
+    'if (!audio.src) audio.src = TRACK_URL',
+    'audio.play()',
+    'audio.pause()',
+    'audio.loop = true',
+    'audio.addEventListener("playing"',
+    'audio.addEventListener("error"',
+    'externalControllerAvailable = suppressNativeMusic()',
+    'if (!externalControllerAvailable || !suppressNativeMusic())',
+    'useNativeFallback()',
+    'NATIVE_FALLBACK',
+    'document.addEventListener("pointerdown", requestStart',
+    'document.addEventListener("keydown", requestStart',
+    'target.closest(',
+    'event.repeat',
+    'setEnabled(control.checked)',
+    'data-external-music-sources',
+    'mathnexa.crosscalc.v2.music-hotfix',
+    'window.__MATHNEXA_CROSSCALC_MUSIC__'
+  ]) assert.ok(runtime.includes(contract), contract);
+  assert.match(runtime, /new URL\("\.\/assets\/oldskool-cc0-CQNT44Pl\.mp3", document\.baseURI\)/);
+  assert.match(runtime, /writePreference\(\);\s+externalControllerAvailable = suppressNativeMusic\(\);/);
+  assert.ok(runtime.indexOf("writePreference();") < runtime.indexOf("suppressNativeMusic();"));
+  assert.ok(runtime.indexOf("playAttempts += 1") < runtime.indexOf("audio.src = TRACK_URL"));
+  assert.doesNotMatch(runtime, /https?:\/\//);
+  assert.equal((runtime.match(/new Audio\(/g) ?? []).length, 1);
+});
+
+test("storage failure leaves the released native controller as the only music path", () => {
+  const runtime = readFileSync(resolve(nativeRoot, "runtime-music.js"), "utf8");
+  const documentListeners = new Map();
+  const windowListeners = new Map();
+  const attributes = new Map();
+  const shell = {
+    getAttribute: (name) => attributes.get(name) ?? null,
+    setAttribute: (name, value) => attributes.set(name, value)
+  };
+  class FakeElement { closest() { return null; } }
+  class FakeInput extends FakeElement {}
+  class FakeKeyboardEvent {}
+  class FakeAudio {
+    constructor() {
+      this.src = "";
+      this.paused = true;
+      this.currentTime = 0;
+      this.readyState = 0;
+      this.networkState = 0;
+      this.error = null;
+      this.playCalls = 0;
+      FakeAudio.instance = this;
+    }
+    addEventListener() {}
+    canPlayType() { return "probably"; }
+    load() {}
+    pause() { this.paused = true; }
+    play() { this.playCalls += 1; this.paused = false; return Promise.resolve(); }
+    removeAttribute(name) { if (name === "src") this.src = ""; }
+  }
+  class FakeMutationObserver { observe() {} disconnect() {} }
+  const document = {
+    baseURI: "https://mathnexa.example/internal-games/crosscalc-v2/",
+    body: {},
+    hidden: false,
+    addEventListener: (name, listener) => documentListeners.set(name, listener),
+    querySelector: (selector) => selector === ".app-shell" ? shell : null
+  };
+  const window = {
+    addEventListener: (name, listener) => windowListeners.set(name, listener)
+  };
+  const localStorage = {
+    getItem() { throw new Error("storage unavailable"); },
+    setItem() { throw new Error("storage unavailable"); }
+  };
+  runInNewContext(runtime, {
+    AbortController,
+    Audio: FakeAudio,
+    Element: FakeElement,
+    HTMLInputElement: FakeInput,
+    KeyboardEvent: FakeKeyboardEvent,
+    MutationObserver: FakeMutationObserver,
+    URL,
+    document,
+    localStorage,
+    queueMicrotask,
+    window
+  });
+  const controller = window.__MATHNEXA_CROSSCALC_MUSIC__;
+  assert.deepEqual(JSON.parse(JSON.stringify(controller.snapshot())), {
+    enabled: true,
+    paused: true,
+    loop: true,
+    currentTime: 0,
+    playAttempts: 0,
+    activeSources: 0,
+    playbackState: "NATIVE_FALLBACK",
+    controller: "native-fallback",
+    unavailable: false,
+    error: null,
+    playReturnKind: "not-attempted",
+    hasSource: false,
+    mediaErrorCode: null,
+    mediaErrorMessage: null,
+    readyState: 0,
+    networkState: 0,
+    canPlayMpeg: "probably"
+  });
+  controller.start();
+  controller.setEnabled(true);
+  documentListeners.get("pointerdown")({ target: new FakeElement() });
+  let intercepted = false;
+  documentListeners.get("click")({
+    target: new FakeElement(),
+    preventDefault: () => { intercepted = true; },
+    stopImmediatePropagation: () => { intercepted = true; }
+  });
+  assert.equal(FakeAudio.instance.playCalls, 0);
+  assert.equal(FakeAudio.instance.src, "");
+  assert.equal(intercepted, false);
+  assert.equal(attributes.get("data-external-music-playback"), "NATIVE_FALLBACK");
+  assert.equal(attributes.get("data-external-music-sources"), "0");
+
+  const dynamicDocumentListeners = new Map();
+  const dynamicAttributes = new Map();
+  const dynamicShell = {
+    getAttribute: (name) => dynamicAttributes.get(name) ?? null,
+    setAttribute: (name, value) => dynamicAttributes.set(name, value)
+  };
+  const dynamicDocument = {
+    ...document,
+    addEventListener: (name, listener) => dynamicDocumentListeners.set(name, listener),
+    querySelector: (selector) => selector === ".app-shell" ? dynamicShell : null
+  };
+  const dynamicWindow = { addEventListener() {} };
+  const stored = new Map();
+  let storageAvailable = true;
+  const dynamicStorage = {
+    getItem(name) {
+      if (!storageAvailable) throw new Error("storage became unavailable");
+      return stored.get(name) ?? null;
+    },
+    setItem(name, value) {
+      if (!storageAvailable) throw new Error("storage became unavailable");
+      stored.set(name, value);
+    }
+  };
+  runInNewContext(runtime, {
+    AbortController,
+    Audio: FakeAudio,
+    Element: FakeElement,
+    HTMLInputElement: FakeInput,
+    KeyboardEvent: FakeKeyboardEvent,
+    MutationObserver: FakeMutationObserver,
+    URL,
+    document: dynamicDocument,
+    localStorage: dynamicStorage,
+    queueMicrotask,
+    window: dynamicWindow
+  });
+  assert.equal(dynamicWindow.__MATHNEXA_CROSSCALC_MUSIC__.snapshot().controller, "external-media");
+  storageAvailable = false;
+  dynamicDocumentListeners.get("pointerdown")({ target: new FakeElement() });
+  assert.equal(FakeAudio.instance.playCalls, 0);
+  assert.equal(FakeAudio.instance.src, "");
+  assert.equal(dynamicWindow.__MATHNEXA_CROSSCALC_MUSIC__.snapshot().controller, "native-fallback");
+  assert.equal(dynamicAttributes.get("data-external-music-playback"), "NATIVE_FALLBACK");
+  assert.equal(dynamicAttributes.get("data-external-music-sources"), "0");
 });
 
 test("the V2 release thumbnail is the optimized exact 1200x675 WebP catalog format", () => {

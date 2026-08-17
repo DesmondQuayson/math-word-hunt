@@ -45,3 +45,217 @@
 @media (prefers-reduced-motion: reduce) {
   .native-back-link { scroll-behavior: auto; }
 }
+
+/* Authentic tutorial board: the same targets-and-tiles language as gameplay. */
+.tutorial-modal {
+  width: min(580px, 100%);
+}
+
+.tutorial-visual {
+  min-height: 292px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background:
+    linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px),
+    radial-gradient(circle at 50% 40%, #173b5c 0, #10243e 70%);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+
+.tutorial-visual::before {
+  width: 250px;
+  height: 250px;
+  border-color: rgba(86, 206, 193, .12);
+  box-shadow: 0 0 0 34px rgba(86, 206, 193, .025);
+}
+
+.tutorial-board-wrap {
+  width: min(100%, 360px);
+  padding: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-board-key {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 0 .6rem;
+  color: #d8e5ef;
+  font: 750 .64rem/1.2 "Trebuchet MS", sans-serif;
+  letter-spacing: .025em;
+}
+
+.tutorial-board-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.tutorial-board-key i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px rgba(242, 189, 87, .17);
+}
+
+.tutorial-board-key i.side {
+  background: var(--coral);
+  box-shadow: 0 0 0 2px rgba(237, 107, 94, .17);
+}
+
+.tutorial-demo-board {
+  --tutorial-cell: 52px;
+  --tutorial-target: 40px;
+  display: grid;
+  grid-template-columns: repeat(3, var(--tutorial-cell)) var(--tutorial-target);
+  grid-template-rows: var(--tutorial-target) repeat(3, var(--tutorial-cell));
+  justify-content: center;
+  gap: 7px;
+}
+
+.tutorial-demo-cell,
+.tutorial-demo-target,
+.tutorial-demo-corner {
+  display: grid;
+  place-items: center;
+  position: relative;
+  font-family: "Trebuchet MS", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.tutorial-demo-cell {
+  border: 2px solid rgba(16, 36, 62, .08);
+  border-radius: 12px 12px 12px 4px;
+  background: var(--tile);
+  color: var(--ink);
+  box-shadow: 0 4px 0 #d8d3c9, 0 8px 15px rgba(0, 0, 0, .18);
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.tutorial-demo-cell.worked {
+  border-color: #6fd1c7;
+  box-shadow: 0 4px 0 #3f9d94, 0 0 0 3px rgba(111, 209, 199, .16);
+}
+
+.tutorial-demo-cell.crossed {
+  border-color: #aab6bf;
+  background: #d8dfe1;
+  color: #6c7c8a;
+  box-shadow: 0 4px 0 #8697a1;
+}
+
+.tutorial-demo-cell > i {
+  width: 68%;
+  height: 3px;
+  position: absolute;
+  left: 16%;
+  top: calc(50% - 1px);
+  border-radius: 999px;
+  background: var(--coral);
+  opacity: 0;
+  transform: rotate(43deg);
+}
+
+.tutorial-demo-cell > i:nth-of-type(2) {
+  transform: rotate(-43deg);
+}
+
+.tutorial-demo-cell.crossed > i {
+  opacity: 1;
+}
+
+.tutorial-demo-target {
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 10px 10px 10px 3px;
+  background: #294764;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+  font-size: .82rem;
+}
+
+.tutorial-demo-target[style*="grid-row:1"] {
+  color: #10243e;
+  background: var(--gold);
+}
+
+.tutorial-demo-target.solved {
+  border-color: #71d8cd;
+  background: var(--teal);
+  color: white;
+  box-shadow: 0 0 0 2px rgba(111, 209, 199, .14);
+}
+
+.tutorial-demo-target.solved::after {
+  content: "✓";
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  border-radius: 50%;
+  background: #ecfff8;
+  color: var(--teal-deep);
+  font-size: .58rem;
+  font-weight: 900;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+}
+
+.tutorial-demo-corner {
+  border-radius: 10px 10px 10px 3px;
+  background: var(--coral);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.tutorial-copy {
+  max-width: 430px;
+}
+
+@media (max-width: 430px), (max-height: 640px) {
+  .tutorial-modal {
+    padding: 1.1rem;
+  }
+
+  .tutorial-visual {
+    min-height: 228px;
+    margin: -.2rem -.2rem 1rem;
+  }
+
+  .tutorial-board-wrap {
+    padding: .65rem .4rem;
+  }
+
+  .tutorial-demo-board {
+    --tutorial-cell: clamp(40px, 13.5vw, 48px);
+    --tutorial-target: clamp(32px, 10.5vw, 38px);
+    gap: 5px;
+  }
+
+  .tutorial-board-key {
+    gap: .65rem;
+    margin-bottom: .45rem;
+    font-size: .57rem;
+  }
+
+  .tutorial-demo-cell {
+    border-radius: 10px 10px 10px 3px;
+    font-size: 1rem;
+  }
+
+  .tutorial-modal h2 {
+    margin-block: .35rem .5rem;
+    font-size: 1.55rem;
+  }
+
+  .tutorial-copy {
+    min-height: 42px;
+    margin-bottom: .9rem;
+    font-size: .78rem;
+    line-height: 1.42;
+  }
+}
