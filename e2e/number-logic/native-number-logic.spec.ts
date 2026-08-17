@@ -1,10 +1,13 @@
 import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_TEST_URL ?? "";
 const secretKey = process.env.SUPABASE_TEST_SECRET_KEY ?? "";
+const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf8");
 const run = `number-logic-native-${Date.now()}`;
 const password = "SyntheticAdult42!";
 const ownerEmail = `${run}-owner@example.test`;
@@ -60,7 +63,22 @@ type PublishedAudioProbe = Readonly<{
   musicStarts: number;
   musicStops: number;
   effectStarts: number;
+  eligibleResumeRejections: number;
 }>;
+
+async function expectNoTutorialAxeViolations(page: Page) {
+  await page.evaluate(axeSource);
+  const result = await page.evaluate(async () => {
+    const tutorial = document.querySelector(".nl-tutorial-shell");
+    if (!tutorial) throw new Error("The visible Number Logic tutorial was not found for Axe.");
+    return (window as typeof window & {
+      axe: { run: (context: Element, options: unknown) => Promise<{ violations: unknown[] }> };
+    }).axe.run(tutorial, {
+      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
+    });
+  });
+  expect(result.violations).toEqual([]);
+}
 
 async function installStrictPublishedAudioPolicy(page: Page) {
   await page.addInitScript(() => {
@@ -71,9 +89,11 @@ async function installStrictPublishedAudioPolicy(page: Page) {
       musicStarts: number;
       musicStops: number;
       effectStarts: number;
+      eligibleResumeRejections: number;
     } };
+    const rejectionKey = "__mathnexa_number_logic_eligible_resume_rejected__";
     const probe = host.__numberLogicPublishedAudioProbe = {
-      contexts: 0, resumes: [], decodes: 0, musicStarts: 0, musicStops: 0, effectStarts: 0,
+      contexts: 0, resumes: [], decodes: 0, musicStarts: 0, musicStops: 0, effectStarts: 0, eligibleResumeRejections: 0,
     };
     class StrictAudioContext {
       state: AudioContextState = "suspended";
@@ -105,7 +125,12 @@ async function installStrictPublishedAudioPolicy(page: Page) {
       resume() {
         const active = navigator.userActivation?.isActive === true;
         probe.resumes.push({ active, state: this.state });
-        if (probe.resumes.length === 1 || !active) return Promise.reject(new DOMException("User activation required", "NotAllowedError"));
+        if (!active) return Promise.reject(new DOMException("User activation required", "NotAllowedError"));
+        if (sessionStorage.getItem(rejectionKey) !== "true") {
+          sessionStorage.setItem(rejectionKey, "true");
+          probe.eligibleResumeRejections += 1;
+          return Promise.reject(new DOMException("Synthetic first-gesture rejection", "NotAllowedError"));
+        }
         this.state = "running";
         return Promise.resolve();
       }
@@ -123,8 +148,11 @@ async function readPublishedAudioProbe(page: Page): Promise<PublishedAudioProbe>
 async function completeMode(page: Page, mode: (typeof modes)[number], modeIndex: number) {
   await page.getByRole("button", { name: new RegExp(mode.name, "i") }).click();
   await expect(page.locator("[data-audio-manager-count='1'] [data-music-sources='1']")).toBeVisible();
-  await page.getByRole("button", { name: /skip tutorial/i }).click();
-  await page.getByRole("button", { name: /play beginner/i }).click();
+  const skipTutorial = page.getByRole("button", { name: /skip tutorial/i });
+  const playBeginner = page.getByRole("button", { name: /play beginner/i });
+  await expect(skipTutorial.or(playBeginner)).toBeVisible();
+  if (await skipTutorial.isVisible()) await skipTutorial.click();
+  await playBeginner.click();
   const game = page.locator("main[data-puzzle-id]");
   await expect(game).toBeVisible();
   expect(await game.getAttribute("data-puzzle-id")).toBeTruthy();
@@ -321,7 +349,7 @@ test("Draft Admin Preview completes all six modes and preserves native lifecycle
   expect(failedRequests).toEqual([]);
 });
 
-test("published normal-user Play unlocks music and SFX on the first in-game gesture", async ({ page }) => {
+test("published normal-user Play recovers after an eligible gesture is rejected and keeps one music source", async ({ page, context }) => {
   const current = await admin.from("game_catalog_entries").select("id,status,lock_version").eq("stable_key", "number-logic").single();
   if (current.error) throw current.error;
   if (current.data.status !== "published") {
@@ -350,22 +378,41 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   await expect(page).toHaveURL("/games/number-logic/play");
 
   const root = page.locator("[data-audio-manager-count='1']");
-  await expect(root).toHaveAttribute("data-audio-context-state", "suspended");
-  await expect(root).toHaveAttribute("data-audio-permission", "LOCKED");
+  const sound = root.locator("[data-playback]");
+  await expect(root).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(root).toHaveAttribute("data-audio-permission", "UNKNOWN");
   await expect(root).toHaveAttribute("data-audio-track-decoded", "false");
   await expect(root).toHaveAttribute("data-audio-music-volume", "0.35");
   await expect(root).toHaveAttribute("data-audio-sfx-volume", "0.6");
   expect(await readPublishedAudioProbe(page)).toMatchObject({
-    contexts: 1,
-    // Chromium can retain transient activation from the catalog Play link across navigation.
-    // The strict context still rejects this automatic first resume, so LOCKED is authoritative.
-    resumes: [{ state: "suspended" }],
+    contexts: 0,
+    resumes: [],
     decodes: 0,
     musicStarts: 0,
+    eligibleResumeRejections: 0,
   });
 
-  const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
   await page.getByRole("button", { name: /lines of 3/i }).click();
+  await expect(root).toHaveAttribute("data-audio-context-state", "suspended");
+  await expect(root).toHaveAttribute("data-audio-permission", "LOCKED");
+  await expect(root).toHaveAttribute("data-audio-track-decoded", "false");
+  await expect(sound).toHaveAttribute("data-music-sources", "0");
+  expect(await readPublishedAudioProbe(page)).toMatchObject({
+    contexts: 1,
+    resumes: [{ active: true, state: "suspended" }],
+    decodes: 0,
+    musicStarts: 0,
+    eligibleResumeRejections: 1,
+  });
+  const tutorialProgress = page.getByRole("progressbar", { name: "Tutorial progress" });
+  await expect(tutorialProgress).toHaveAttribute("aria-valuemin", "1");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuemax", "3");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuenow", "1");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuetext", "Step 1 of 3");
+  await expectNoTutorialAxeViolations(page);
+
+  const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
+  await page.getByRole("button", { name: /settings/i }).click();
   const response = await oldskool;
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("audio/mpeg");
@@ -376,15 +423,58 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   await expect(page.locator("[data-music-sources='1']")).toBeVisible();
   expect(await readPublishedAudioProbe(page)).toMatchObject({
     contexts: 1,
-    resumes: [
-      { state: "suspended" },
-      { active: true, state: "suspended" },
-    ],
+    resumes: [{ active: true, state: "suspended" }, { active: true, state: "suspended" }],
     decodes: 1,
-    musicStarts: 1
+    musicStarts: 1,
+    eligibleResumeRejections: 1,
   });
 
-  await page.getByRole("button", { name: /skip tutorial/i }).click();
+  await page.getByRole("button", { name: /close settings/i }).click();
+  await page.getByRole("button", { name: /settings/i }).click();
+  const musicToggle = page.getByLabel("Music", { exact: true });
+  await musicToggle.uncheck();
+  await expect(root).toHaveAttribute("data-audio-music-enabled", "false");
+  await expect(sound).toHaveAttribute("data-music-sources", "0");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").musicEnabled)).toBe(false);
+
+  await page.reload();
+  await expect(root).toHaveAttribute("data-audio-music-enabled", "false");
+  await expect(root).toHaveAttribute("data-audio-context-state", "uninitialized");
+  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 0, decodes: 0, musicStarts: 0 });
+  await page.getByRole("button", { name: /settings/i }).click();
+  await expect(page.getByLabel("Music", { exact: true })).not.toBeChecked();
+  await page.getByLabel("Music", { exact: true }).check();
+  await expect(root).toHaveAttribute("data-audio-music-enabled", "true");
+  await expect(root).toHaveAttribute("data-audio-context-state", "running");
+  await expect(sound).toHaveAttribute("data-music-sources", "1");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").musicEnabled)).toBe(true);
+  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 1, decodes: 1, musicStarts: 1 });
+  await page.getByRole("button", { name: /close settings/i }).click();
+  await page.getByRole("button", { name: /lines of 3/i }).click();
+  await expect(sound).toHaveAttribute("data-music-sources", "1");
+  expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 1, decodes: 1, musicStarts: 1 });
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.getByRole("heading", { name: "Make every line match." })).toBeVisible();
+  await expect(page.getByRole("img", { name: /blank is 2/i })).toBeVisible();
+  await expect(page.getByText("7 + ? + 3 = 12", { exact: true })).toBeVisible();
+  await expect(page.getByText("? = 2", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await expect(tutorialProgress).toHaveAttribute("aria-valuenow", "1");
+  await page.getByRole("button", { name: "Next", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuenow", "2");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuetext", "Step 2 of 3");
+  await expect(page.getByRole("heading", { name: "Place each number once." })).toBeVisible();
+  await expect(page.getByRole("img", { name: /remaining number tiles 2, 5, and 6/i })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(tutorialProgress).toHaveAttribute("aria-valuenow", "3");
+  await expect(tutorialProgress).toHaveAttribute("aria-valuetext", "Step 3 of 3");
+  await expect(page.getByRole("heading", { name: "Five green lines means solved." })).toBeVisible();
+  await expect(page.getByRole("img", { name: /all five lines total 12/i })).toBeVisible();
+  await page.getByRole("button", { name: "Choose a puzzle" }).click();
   await page.getByRole("button", { name: /play beginner/i }).click();
   const firstTile = page.locator("[data-drag-tile-id]").first();
   await firstTile.click();
@@ -407,11 +497,42 @@ test("published normal-user Play unlocks music and SFX on the first in-game gest
   const reentryCard = page.locator("article").filter({ has: page.getByRole("heading", { name: "Number Logic", exact: true }) });
   await reentryCard.getByRole("link", { name: "Play" }).click();
   const reentryRoot = page.locator("[data-audio-manager-count='1']");
-  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "suspended");
-  await expect(reentryRoot).toHaveAttribute("data-audio-permission", "LOCKED");
+  await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(reentryRoot).toHaveAttribute("data-audio-permission", "UNKNOWN");
   await page.getByRole("button", { name: /product square/i }).click();
   await expect(reentryRoot).toHaveAttribute("data-audio-context-state", "running");
   expect(await readPublishedAudioProbe(page)).toMatchObject({ contexts: 1, decodes: 1, musicStarts: 1 });
   await page.getByRole("link", { name: "Back to MathNexa Games" }).click();
   await expect(page.locator("[data-audio-manager-count]")).toHaveCount(0);
+
+  // A second page shares only the authenticated subscriber context; it does not
+  // inherit the strict AudioContext probe. These assertions exercise Chromium's
+  // real Web Audio implementation and reject a visual-only "Music on" result.
+  const realPage = await context.newPage();
+  await realPage.goto("/games");
+  const realCard = realPage.locator("article").filter({ has: realPage.getByRole("heading", { name: "Number Logic", exact: true }) });
+  await expect(realCard).toBeVisible();
+  await realCard.getByRole("link", { name: "Play" }).click();
+  const realRoot = realPage.locator("[data-audio-manager-count='1']");
+  const realSound = realRoot.locator("[data-playback]");
+  await expect(realRoot).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await realPage.getByRole("button", { name: /lines of 3/i }).click();
+  await expect(realRoot).toHaveAttribute("data-audio-context-state", "running");
+  await expect(realRoot).toHaveAttribute("data-audio-permission", "UNLOCKED");
+  await expect(realRoot).toHaveAttribute("data-audio-track-decoded", "true");
+  await expect(realSound).toHaveAttribute("data-playback", "PLAYING");
+  await expect(realSound).toHaveAttribute("data-music-sources", "1");
+
+  await realPage.getByRole("button", { name: /settings/i }).click();
+  await realPage.getByLabel("Music", { exact: true }).uncheck();
+  await expect(realSound).toHaveAttribute("data-playback", "PAUSED");
+  await expect(realSound).toHaveAttribute("data-music-sources", "0");
+  await realPage.getByLabel("Music", { exact: true }).check();
+  await expect(realRoot).toHaveAttribute("data-audio-context-state", "running");
+  await expect(realSound).toHaveAttribute("data-playback", "PLAYING");
+  await expect(realSound).toHaveAttribute("data-music-sources", "1");
+  await realPage.getByRole("button", { name: /close settings/i }).click();
+  await realPage.getByRole("link", { name: "Back to MathNexa Games" }).click();
+  await expect(realPage.locator("[data-audio-manager-count]")).toHaveCount(0);
+  await realPage.close();
 });

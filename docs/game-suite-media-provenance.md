@@ -18,7 +18,7 @@ The original was acquired from the cited OpenGameArt entry and hashed before int
 | --- | ---: | --- | --- |
 | MP3 (`audio/mpeg`, OpenGameArt derivative `cosmic_candy_catchers.ogg.mp3`) | 1,024,417 bytes | `6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369` | Safari/macOS, Safari/iPadOS, Chromium, and Smart Board browsers |
 
-Every current runtime copy has the derivative hash above. Number Logic and CrossCalc V2 retain their established asset filenames; CrossCalc V2 remains byte-identical, while Number Logic has only a verified display-credit string adaptation and no puzzle/audio-code rewrite. Number Cross uses the descriptive `cosmic-candy-catchers.mp3` filename. Math Vocabulary Hunt uses `/media/audio/cosmic-candy-catchers.mp3` through the authenticated canonical runtime adapter. No game fetches OpenGameArt or SoundImage during play.
+Every current runtime copy has the derivative hash above. Number Logic and CrossCalc V2 retain their established asset filenames. The CrossCalc V2 release bundle and MP3 remain byte-identical, with playback corrected by an additive platform-owned runtime adapter. Number Logic keeps its generator, solver, scoring, persistence, and MP3 bytes intact; a deterministic integration patch updates its tutorial and user-gesture audio lifecycle, with a conditional same-origin HTMLMedia fallback only where Web Audio is unavailable. Number Cross uses the descriptive `cosmic-candy-catchers.mp3` filename. Math Vocabulary Hunt uses `/media/audio/cosmic-candy-catchers.mp3` through the authenticated canonical runtime adapter. No game fetches OpenGameArt or SoundImage during play.
 
 ## Catalog thumbnails
 

@@ -55,7 +55,9 @@ describe("trusted internal game registry", () => {
     expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
+    expect(body).toContain('<script src="./runtime-music.js"');
     expect(body).toContain('<script type="module" src="./assets/index-B0m_QJed.js"');
+    expect(body.indexOf("./runtime-music.js")).toBeLessThan(body.indexOf("./assets/index-B0m_QJed.js"));
     expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
     expect(body).not.toContain("NOT LIVE");
     expect(body).not.toContain("iframe");
@@ -72,6 +74,7 @@ describe("trusted internal game registry", () => {
     expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
     expect(body).toContain("Admin Preview · Version 0.2.0");
     expect(body).toContain("VERSION INSPECTION");
+    expect(body).toContain('<script src="./runtime-music.js"');
     expect(body).toContain('<script type="module" src="./assets/index-B0m_QJed.js"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");
@@ -84,7 +87,9 @@ describe("trusted internal game registry", () => {
     expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/number-logic/"');
+    expect(body).toContain('<script src="./media-fallback-loader.js"></script>');
     expect(body).toContain('<script type="module" src="./assets/index-DXexJzA-.js"');
+    expect(body.indexOf("./media-fallback-loader.js")).toBeLessThan(body.indexOf("./assets/index-DXexJzA-.js"));
     expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");

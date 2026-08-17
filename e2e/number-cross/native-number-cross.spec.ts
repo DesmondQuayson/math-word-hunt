@@ -109,6 +109,7 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
   const reducedDuration = await page.locator('[data-action="set-mode"][data-mode="addition"]').evaluate((element) => Number.parseFloat(getComputedStyle(element).transitionDuration));
   expect(reducedDuration).toBeLessThanOrEqual(0.001);
 
+  let blockedMusicRetryVerified = false;
   for (const [mode, difficulty, size] of [
     ["Addition", "Beginner", 3],
     ["Addition", "Expert", 6],
@@ -120,8 +121,21 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
     await page.getByRole("button", { name: `Start ${mode}` }).click();
     await expect(page.getByRole("grid", { name: `${size} by ${size} Number Cross board` })).toBeVisible();
     const firstCell = page.getByRole("gridcell").first();
+    const attemptsBeforeGesture = await page.evaluate(() => (window as typeof window & {
+      __MATHNEXA_GAME_MUSIC__: { snapshot: () => { playAttempts: number } };
+    }).__MATHNEXA_GAME_MUSIC__.snapshot().playAttempts);
     await firstCell.click();
     await expect(firstCell).toHaveAttribute("aria-pressed", "true");
+    if (!blockedMusicRetryVerified) {
+      await expect.poll(() => page.evaluate(() => (window as typeof window & {
+        __MATHNEXA_GAME_MUSIC__: { snapshot: () => { playAttempts: number } };
+      }).__MATHNEXA_GAME_MUSIC__.snapshot().playAttempts)).toBeGreaterThan(attemptsBeforeGesture);
+      const blockedMusic = await page.evaluate(() => (window as typeof window & {
+        __MATHNEXA_GAME_MUSIC__: { snapshot: () => { activeMusicSources: number; error: string | null } };
+      }).__MATHNEXA_GAME_MUSIC__.snapshot());
+      expect(blockedMusic).toMatchObject({ activeMusicSources: 0, error: null });
+      blockedMusicRetryVerified = true;
+    }
     await firstCell.focus();
     await page.keyboard.press("Space");
     await expect(firstCell).toHaveAttribute("aria-pressed", "false");
@@ -194,6 +208,86 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
   await expect(page).toHaveURL("/games/number-cross/play");
   await expect(page.getByRole("heading", { name: /Every line has an answer/i })).toBeVisible();
   expect(page.url()).not.toContain("number-cross.vercel.app");
+
+  const audioPage = await context.newPage();
+  await audioPage.goto("/games/number-cross/play");
+  await audioPage.evaluate(() => {
+    for (const key of [
+      "mathnexa:number-cross:preferences",
+      "number-cross-preferences",
+      "mathnexa:number-cross:tutorial-complete",
+      "number-cross-tutorial-complete"
+    ]) localStorage.removeItem(key);
+  });
+  await audioPage.reload();
+  await audioPage.getByRole("button", { name: "Sound and settings" }).click();
+  await expect(audioPage.getByRole("switch", { name: "Background music" })).toHaveAttribute("aria-checked", "true");
+  await audioPage.getByRole("button", { name: "Done" }).click();
+  await audioPage.getByRole("button", { name: /^Beginner/ }).click();
+  await audioPage.getByRole("button", { name: "Start Addition" }).click();
+
+  await expect(audioPage.getByRole("heading", { name: "Read the targets" })).toBeVisible();
+  await expect(audioPage.getByText("Numbers above the board are column targets. Numbers beside the board are row targets.", { exact: true })).toBeVisible();
+  await expect(audioPage.getByRole("img", { name: /Example addition board\. Column targets 7, 5, 6/ })).toBeVisible();
+  await expect(audioPage.locator(".tutorial-demo-cell")).toHaveCount(9);
+  await expect(audioPage.locator(".tutorial-demo-target")).toHaveCount(6);
+  await expect.poll(() => audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { paused: boolean; currentTime: number; activeMusicSources: number; contextState: string; error: string | null } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot().paused)).toBe(false);
+  await expect.poll(() => audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { currentTime: number } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot().currentTime)).toBeGreaterThan(0.05);
+
+  await audioPage.getByRole("button", { name: /^Next/ }).click();
+  await expect(audioPage.getByRole("heading", { name: "Cross out the extra number" })).toBeVisible();
+  await expect(audioPage.getByText("First row: keep 2 and 5. Cross out 1, so 2 + 5 = 7. Tap again to restore a number.", { exact: true })).toBeVisible();
+  await expect(audioPage.locator(".tutorial-demo-cell.crossed")).toHaveCount(1);
+  await audioPage.getByRole("button", { name: /^Next/ }).click();
+  await expect(audioPage.getByRole("heading", { name: "Make both directions match" })).toBeVisible();
+  await expect(audioPage.locator(".tutorial-demo-target.solved")).toHaveCount(6);
+  await audioPage.getByRole("button", { name: /^Start solving/ }).click();
+
+  const beforeMove = await audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { playAttempts: number } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot().playAttempts);
+  await audioPage.getByRole("button", { name: "How to play" }).click();
+  const afterMove = await audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { playAttempts: number; activeMusicSources: number; contextState: string; error: string | null } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot());
+  expect(afterMove).toMatchObject({ playAttempts: beforeMove, activeMusicSources: 1, contextState: "running", error: null });
+  await audioPage.getByRole("button", { name: "Skip" }).click();
+
+  await audioPage.getByRole("button", { name: "Sound and settings" }).click();
+  await audioPage.getByRole("switch", { name: "Background music" }).click();
+  await expect.poll(() => audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { paused: boolean; activeMusicSources: number } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot())).toMatchObject({ paused: true, activeMusicSources: 0 });
+  await audioPage.reload();
+  await audioPage.getByRole("button", { name: "Sound and settings" }).click();
+  await expect(audioPage.getByRole("switch", { name: "Background music" })).toHaveAttribute("aria-checked", "false");
+  await audioPage.getByRole("switch", { name: "Background music" }).click();
+  await audioPage.getByRole("button", { name: "Done" }).click();
+  await audioPage.getByRole("button", { name: /^Beginner/ }).click();
+  await audioPage.getByRole("button", { name: "Start Addition" }).click();
+  await expect.poll(() => audioPage.evaluate(() => (window as typeof window & {
+    __MATHNEXA_GAME_MUSIC__: { snapshot: () => { paused: boolean; activeMusicSources: number } };
+  }).__MATHNEXA_GAME_MUSIC__.snapshot())).toMatchObject({ paused: false, activeMusicSources: 1 });
+  await audioPage.evaluate(() => {
+    window.addEventListener("pagehide", (event) => {
+      const music = (window as typeof window & {
+        __MATHNEXA_GAME_MUSIC__: { snapshot: () => unknown };
+      }).__MATHNEXA_GAME_MUSIC__;
+      sessionStorage.setItem("number-cross-pagehide-audio", JSON.stringify({
+        ...(music.snapshot() as object),
+        persisted: event.persisted
+      }));
+    }, { once: true });
+  });
+  await audioPage.goto("/games");
+  const disposedAudio = await audioPage.evaluate(() => JSON.parse(sessionStorage.getItem("number-cross-pagehide-audio") ?? "{}"));
+  expect(disposedAudio).toMatchObject({ paused: true, activeMusicSources: 0 });
+  expect(disposedAudio.disposed || disposedAudio.persisted).toBe(true);
+  await audioPage.close();
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();

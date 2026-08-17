@@ -48,6 +48,76 @@ async function signIn(page: Page, email: string, destination: string) {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
+async function expectResponsiveCrossCalc(page: Page, viewport: { width: number; height: number }) {
+  await page.setViewportSize(viewport);
+  const metrics = await page.evaluate(() => {
+    const stage = document.querySelector(".play-stage")!.getBoundingClientRect();
+    const boardViewport = document.querySelector(".board-scroll")!.getBoundingClientRect();
+    const toolbar = document.querySelector(".toolbar")!;
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const toolbarButtons = [...toolbar.querySelectorAll("button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      return rect.left >= toolbarRect.left - 1 && rect.right <= toolbarRect.right + 1
+        && rect.left >= -1 && rect.right <= innerWidth + 1;
+    });
+    const tapTargets = [...document.querySelectorAll(".toolbar button, .number-tray button, .action-row button, .number-cell")]
+      .map((target) => {
+        const rect = target.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      });
+    return {
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      stageWithinViewport: stage.left >= -1 && stage.right <= innerWidth + 1,
+      boardWithinViewport: boardViewport.left >= -1 && boardViewport.right <= innerWidth + 1,
+      boardOverflowMode: getComputedStyle(document.querySelector(".board-scroll")!).overflowX,
+      smallestTarget: Math.min(...tapTargets.map((target) => Math.min(target.width, target.height))),
+      toolbarOverflow: toolbar.scrollWidth - toolbar.clientWidth,
+      toolbarButtonsVisible: toolbarButtons.every(Boolean)
+    };
+  });
+  expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+  expect(metrics.stageWithinViewport).toBe(true);
+  expect(metrics.boardWithinViewport).toBe(true);
+  expect(metrics.smallestTarget).toBeGreaterThanOrEqual(44);
+  if (viewport.width <= 560 && viewport.height > viewport.width) {
+    expect(["auto", "scroll"]).toContain(metrics.boardOverflowMode);
+    expect(metrics.toolbarOverflow).toBeLessThanOrEqual(1);
+    expect(metrics.toolbarButtonsVisible).toBe(true);
+  }
+  await expect(page.locator(".number-tray")).toBeVisible();
+  await page.locator(".action-row").scrollIntoViewIfNeeded();
+  await expect(page.getByRole("button", { name: /^Hint/ })).toBeVisible();
+  const actions = await page.locator(".action-row button").evaluateAll((buttons) => buttons.map((button) => {
+    const rect = button.getBoundingClientRect();
+    return rect.left >= -1 && rect.right <= innerWidth + 1 && rect.width >= 44 && rect.height >= 44;
+  }));
+  expect(actions.every(Boolean)).toBe(true);
+}
+
+async function crossCalcMusicSnapshot(page: Page) {
+  return page.evaluate(() => (window as typeof window & {
+    __MATHNEXA_CROSSCALC_MUSIC__: {
+      snapshot: () => {
+        enabled: boolean;
+        paused: boolean;
+        currentTime: number;
+        playAttempts: number;
+        activeSources: number;
+        playbackState: string;
+        unavailable: boolean;
+        error: string | null;
+        playReturnKind: string;
+        hasSource: boolean;
+        mediaErrorCode: number | null;
+        mediaErrorMessage: string | null;
+        readyState: number;
+        networkState: number;
+        canPlayMpeg: string;
+      };
+    };
+  }).__MATHNEXA_CROSSCALC_MUSIC__.snapshot());
+}
+
 async function installAudioAndResultProbes(page: Page) {
   await page.addInitScript(() => {
     const host = window as typeof window & {
@@ -144,12 +214,15 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Every answer opens another." })).toHaveCount(0);
   await expect(page.locator("iframe")).toHaveCount(0);
-  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 768, height: 1024 }]) {
-    await page.setViewportSize(viewport);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
-    await expect(page.locator(".number-tray")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Hint/ })).toBeVisible();
-  }
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 740 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1920, height: 1080 }
+  ]) await expectResponsiveCrossCalc(page, viewport);
   expect((await page.goto("/games/crosscalc/v2/preview"))?.status()).toBe(404);
 
   await context.clearCookies();
@@ -169,7 +242,10 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   const previewHref = await card.getByRole("link", { name: "Inspect V2 0.2.0" }).getAttribute("href");
   expect(previewHref).toMatch(/^\/admin\/games\/catalog\/[0-9a-f-]{36}\/preview\?version=0\.2\.0$/);
 
-  const oldskool = page.waitForResponse((response) => response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3"));
+  const musicResponses: number[] = [];
+  page.on("response", (response) => {
+    if (response.url().endsWith("/assets/oldskool-cc0-CQNT44Pl.mp3")) musicResponses.push(response.status());
+  });
   await page.goto(previewHref!);
   await expect(page.getByText("CrossCalc", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Admin Preview · Version 0.2.0", { exact: true })).toBeVisible();
@@ -177,20 +253,71 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
   await expect(page.locator("iframe")).toHaveCount(0);
   expect(new URL(page.url()).origin).toBe("http://127.0.0.1:3000");
+  expect(await crossCalcMusicSnapshot(page)).toMatchObject({
+    enabled: true,
+    playAttempts: 0,
+    activeSources: 0,
+    playbackState: "IDLE",
+    hasSource: false
+  });
+  expect(await page.evaluate(() => (window as typeof window & {
+    __crossCalcV2AudioProbe: { contexts: number; decodes: number; starts: number };
+  }).__crossCalcV2AudioProbe)).toMatchObject({ contexts: 0, decodes: 0, starts: 0 });
 
   await page.getByRole("button", { name: "Settings" }).click();
-  expect((await oldskool).status()).toBe(200);
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-audio-playback", "PLAYING");
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-music-sources", "1");
-  await page.getByRole("checkbox", { name: "Music" }).uncheck();
+  await expect.poll(() => crossCalcMusicSnapshot(page).then((snapshot) => snapshot.playAttempts)).toBeGreaterThan(0);
+  const musicSource = await page.evaluate(() => (window as typeof window & {
+    __MATHNEXA_CROSSCALC_MUSIC__: { source: string };
+  }).__MATHNEXA_CROSSCALC_MUSIC__.source);
+  expect(new URL(musicSource).origin).toBe(new URL(page.url()).origin);
+  expect(new URL(musicSource).pathname).toBe("/internal-games/crosscalc-v2/assets/oldskool-cc0-CQNT44Pl.mp3");
+  // Playwright WebKit does not emit a page `response` event for its native
+  // media transaction. Its PLAYING/readyState/currentTime assertions below
+  // prove the same-origin asset was decoded; Chromium additionally pins the
+  // observable HTTP status.
+  if (browserName === "chromium") {
+    await expect.poll(() => musicResponses.some((status) => status === 200 || status === 206)).toBe(true);
+  }
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-playback", "PLAYING");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-sources", "1");
+  await expect.poll(() => crossCalcMusicSnapshot(page).then((snapshot) => snapshot.paused)).toBe(false);
+  await expect.poll(() => crossCalcMusicSnapshot(page).then((snapshot) => snapshot.currentTime)).toBeGreaterThan(0);
+  expect(await crossCalcMusicSnapshot(page)).toMatchObject({
+    playAttempts: 1,
+    activeSources: 1,
+    playbackState: "PLAYING",
+    unavailable: false,
+    error: null,
+    playReturnKind: "promise",
+    hasSource: true,
+    mediaErrorCode: null,
+    readyState: 4,
+    canPlayMpeg: "probably"
+  });
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-music-sources", "0");
-  await page.getByRole("checkbox", { name: "Music" }).check();
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-music-sources", "1");
+  await page.getByRole("checkbox", { name: "Music" }).uncheck();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-sources", "0");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-playback", "PAUSED");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Music off" })).toBeVisible();
+  expect(await crossCalcMusicSnapshot(page)).toMatchObject({
+    enabled: false,
+    paused: true,
+    playAttempts: 0,
+    activeSources: 0,
+    playbackState: "PAUSED",
+    hasSource: false
+  });
+  await page.getByRole("button", { name: "Music off" }).click();
+  await expect.poll(() => crossCalcMusicSnapshot(page).then((snapshot) => snapshot.playAttempts)).toBeGreaterThan(0);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-playback", "PLAYING");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-external-music-sources", "1");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByRole("checkbox", { name: "Music" })).toBeChecked();
+  expect((await crossCalcMusicSnapshot(page)).playAttempts).toBe(1);
   await page.getByRole("button", { name: "Save settings" }).click();
   const audioProbe = await page.evaluate(() => (window as typeof window & { __crossCalcV2AudioProbe: { contexts: number; decodes: number; starts: number; stops: number } }).__crossCalcV2AudioProbe);
-  expect(audioProbe).toMatchObject({ contexts: 1, decodes: 1 });
-  expect(audioProbe.starts).toBeGreaterThanOrEqual(2);
-  expect(audioProbe.stops).toBeGreaterThanOrEqual(1);
+  expect(audioProbe).toMatchObject({ contexts: 1, decodes: 0, starts: 0 });
 
   const tile = page.locator(".number-tray button").first();
   const cell = page.locator(".number-cell.empty").first();
@@ -208,12 +335,7 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   expect(await page.evaluate(() => localStorage.getItem("mathnexa.crosscalc.v1.progress"))).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem("mathnexa.crosscalc.v2.active"))).not.toBeNull();
 
-  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 768, height: 1024 }]) {
-    await page.setViewportSize(viewport);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
-    await expect(page.locator(".number-tray")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Hint/ })).toBeVisible();
-  }
+  await expectResponsiveCrossCalc(page, { width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await page.locator("[aria-label*='equation' i], [aria-describedby]").count()).toBeGreaterThan(0);
 
@@ -240,6 +362,14 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   expect(results[0]).toMatchObject({ schema: "crosscalc-result/2", game: "crosscalc", gameVersion: "0.2.0", mechanic: "number-placement", completionValid: true });
   const storedResults = await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa.crosscalc.v2.results") ?? "[]"));
   expect(storedResults).toHaveLength(1);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: false })));
+  expect(await crossCalcMusicSnapshot(page)).toMatchObject({
+    activeSources: 0,
+    playbackState: "DISPOSED",
+    hasSource: false
+  });
+  await page.goto("/admin?section=games");
+  await expect(page.locator(".app-shell")).toHaveCount(0);
   expect(remoteRequests).toEqual([]);
   expect(consoleErrors.filter((message) => !message.includes("status of 404"))).toEqual([]);
   expect(pageErrors).toEqual([]);

@@ -34,12 +34,41 @@ test("native Number Cross preserves every mathematical engine, storage, and base
   }
 });
 
-test("the copied application has exactly one documented integration-only navigation change", () => {
+test("the integrated application keeps native routing and one same-origin music source", () => {
   const application = readFileSync(resolve(nativeRoot, "src/app.js"), "utf8");
   assert.equal((application.match(/class="native-back-link"/g) ?? []).length, 1);
   assert.match(application, /href="\/games" aria-label="Back to MathNexa Games"/);
   assert.equal((application.match(/new Audio\(/g) ?? []).length, 1);
   assert.doesNotMatch(application, /number-cross\.vercel\.app|launch=/);
+});
+
+test("the hotfix tutorial teaches an authentic solvable board and music activation lifecycle", () => {
+  const application = readFileSync(resolve(nativeRoot, "src/app.js"), "utf8");
+  const integration = readFileSync(resolve(nativeRoot, "integration.css"), "utf8");
+  for (const lesson of [
+    "Read the targets",
+    "Numbers above the board are column targets",
+    "Cross out the extra number",
+    "First row: keep 2 and 5",
+    "Make both directions match",
+    "Each move changes one row and one column"
+  ]) assert.ok(application.includes(lesson), lesson);
+  assert.match(application, /values = \[\[2, 5, 1\], \[4, 3, 2\], \[1, 2, 4\]\]/);
+  assert.match(application, /columnTargets = addition \? \[7, 5, 6\] : \[8, 5, 8\]/);
+  assert.match(application, /rowTargets = addition \? \[7, 6, 5\] : \[10, 8, 4\]/);
+  assert.match(application, /crossed: \[2, 4, 7\], solved: true/);
+  assert.match(application, /role="img" aria-label="\$\{description\}"/);
+  assert.match(integration, /Authentic tutorial board/);
+  assert.match(integration, /--tutorial-cell: 52px/);
+
+  assert.match(application, /hasOwnProperty\.call\(rawSavedPrefs, "music"\)/);
+  assert.match(application, /musicVolume <= 0\) savedPrefs\.musicVolume = DEFAULT_ACTIVE_MUSIC_VOLUME/);
+  assert.match(application, /data-action="music-volume" type="range" min="0\.05"/);
+  assert.match(application, /document\.addEventListener\("pointerdown", \(\) => audio\.activate\(\), \{ capture: true \}\)/);
+  assert.match(application, /window\.__MATHNEXA_GAME_MUSIC__ = Object\.freeze/);
+  assert.match(application, /activeMusicSources: this\.music && !this\.music\.paused \? 1 : 0/);
+  assert.match(application, /window\.addEventListener\("pagehide"/);
+  assert.match(application, /else audio\.dispose\(\)/);
 });
 
 test("representative native puzzles and Reasoning Index outputs match the standalone source", async (context) => {

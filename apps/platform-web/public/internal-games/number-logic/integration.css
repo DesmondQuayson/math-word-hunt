@@ -40,14 +40,328 @@
 .native-music-credit a { color: #075f75; }
 .native-music-credit summary:focus-visible,.native-music-credit a:focus-visible { outline: 3px solid #006fbf; outline-offset: 3px; }
 
+/* Platform-owned hotfix for the approved bundled Lines of 3 tutorial. */
+.nl-tutorial-shell.nl-tutorial-shell {
+  width: min(calc(100% - 2rem), 46rem);
+  margin: 1.25rem auto 4rem;
+  padding: clamp(1.1rem, 4vw, 2.25rem);
+  border: 2px solid #17151d;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: 10px 10px 0 #e6dcff;
+}
+
+.nl-tutorial-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #17151d;
+}
+
+.nl-tutorial-heading > p { grid-column: 1; }
+
+.nl-tutorial-heading > strong {
+  grid-column: 1;
+  color: #3a119e;
+  font: 950 clamp(1.8rem, 6vw, 3rem)/0.95 "Arial Black", "Avenir Next", "Segoe UI", sans-serif;
+  letter-spacing: -0.06em;
+}
+
+.nl-tutorial-heading > button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-height: 44px;
+}
+
+.nl-tutorial-shell.nl-tutorial-shell .nl-tutorial-step {
+  float: right;
+  margin: 0;
+  color: #625e6b;
+  font: 800 0.72rem/1.4 "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.nl-tutorial-shell.nl-tutorial-shell h1 {
+  max-width: 12ch;
+  margin-block: 0.35rem 0.7rem;
+  font-size: clamp(2.15rem, 8vw, 4.2rem);
+  line-height: 0.98;
+}
+
+.nl-tutorial-shell.nl-tutorial-shell .nl-tutorial-copy {
+  max-width: 40rem;
+  margin: 0 0 1.25rem;
+  color: #4d4956;
+  font-size: clamp(1rem, 2vw, 1.15rem);
+}
+
+.nl-tutorial-visual.nl-tutorial-visual {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) minmax(10rem, 0.52fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 23rem;
+  margin: 1rem 0 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  overflow: hidden;
+  border: 2px solid #17151d;
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 22% 15%, rgba(255, 242, 117, 0.72), transparent 26%),
+    linear-gradient(145deg, #fffdf5 0%, #f4efff 100%);
+  box-shadow: inset 0 -7px 0 rgba(58, 17, 158, 0.08);
+}
+
+.nl-tutorial-target {
+  position: absolute;
+  z-index: 4;
+  top: 0.8rem;
+  right: 0.8rem;
+  display: grid;
+  min-width: 6.8rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #17151d;
+  color: #fff;
+  text-align: center;
+}
+
+.nl-tutorial-target small {
+  color: #fff275;
+  font: 800 0.56rem/1.2 "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nl-tutorial-visual .nl-tutorial-target strong {
+  margin-left: 0;
+  font: 900 1.25rem/1.2 "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.nl-tutorial-board {
+  position: relative;
+  width: min(100%, 22rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.nl-tutorial-rails {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  overflow: visible;
+}
+
+.nl-tutorial-rails path {
+  fill: none;
+  stroke: #2e2740;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.nl-tutorial-rails .nl-tutorial-focus {
+  stroke: #087a6b;
+  stroke-width: 5;
+}
+
+.nl-tutorial-visual[data-step="2"] .nl-tutorial-focus { display: none; }
+.nl-tutorial-visual[data-step="3"] .nl-tutorial-rails path { stroke: #087a6b; }
+
+.nl-tutorial-visual .nl-tutorial-node {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: clamp(2.8rem, 12vw, 4rem);
+  height: clamp(2.8rem, 12vw, 4rem);
+  place-items: center;
+  border: 3px solid #17151d;
+  border-radius: 50%;
+  background: #fff275;
+  color: #17151d;
+  font: 900 clamp(1.1rem, 5vw, 1.55rem)/1 "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  transform: translate(-50%, -50%);
+  box-shadow: 3px 3px 0 #3a119e;
+}
+
+.nl-tutorial-visual .nl-tutorial-node[data-empty="true"] {
+  border-color: #087a6b;
+  background: #fff;
+  color: #087a6b;
+  box-shadow: 3px 3px 0 #bde6df;
+}
+
+.nl-tutorial-node-t { left: 50%; top: 9%; }
+.nl-tutorial-node-ml { left: 17%; top: 48%; }
+.nl-tutorial-node-mc { left: 50%; top: 48%; }
+.nl-tutorial-node-mr { left: 83%; top: 48%; }
+.nl-tutorial-node-bl { left: 17%; top: 87%; }
+.nl-tutorial-node-bc { left: 50%; top: 87%; }
+.nl-tutorial-node-br { left: 83%; top: 87%; }
+
+.nl-tutorial-proof,
+.nl-tutorial-tray {
+  z-index: 4;
+  display: grid;
+  align-content: center;
+  gap: 0.7rem;
+  min-height: 9rem;
+  padding: 1rem;
+  border: 2px solid #3a119e;
+  border-radius: 1rem;
+  background: #fff;
+  color: #17151d;
+  text-align: center;
+  box-shadow: 5px 5px 0 #fff275;
+}
+
+.nl-tutorial-visual .nl-tutorial-proof span {
+  display: inline;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: 850 clamp(0.85rem, 2.5vw, 1rem)/1.4 "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.nl-tutorial-visual .nl-tutorial-proof strong {
+  margin-left: 0;
+  color: #087a6b;
+  font: 950 clamp(1.4rem, 4vw, 2rem)/1.15 "Arial Black", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.nl-tutorial-tray {
+  grid-template-columns: repeat(3, minmax(2.75rem, 1fr));
+  gap: 0.45rem;
+  background: #17151d;
+  box-shadow: 5px 5px 0 #3a119e;
+}
+
+.nl-tutorial-visual .nl-tutorial-tray small {
+  grid-column: 1 / -1;
+  color: #fff;
+  font-weight: 800;
+}
+
+.nl-tutorial-visual .nl-tutorial-tray span {
+  display: grid;
+  width: auto;
+  height: auto;
+  min-width: 44px;
+  min-height: 44px;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: #fff275;
+  color: #17151d;
+  font: 900 1.1rem "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.nl-tutorial-proof-complete {
+  border-color: #087a6b;
+  background: #e7f7f2;
+  box-shadow: 5px 5px 0 #bde6df;
+}
+
+.nl-tutorial-actions.nl-tutorial-actions {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) auto minmax(7rem, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.nl-tutorial-actions > button:first-child { justify-self: start; }
+.nl-tutorial-actions > button:last-child { justify-self: end; }
+
+.nl-tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.nl-tutorial-shell .nl-tutorial-dots span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #cbc5d5;
+}
+
+.nl-tutorial-shell .nl-tutorial-dots span[data-current="true"] {
+  width: 1.6rem;
+  border-radius: 999px;
+  background: #087a6b;
+}
+
 @media (max-width: 430px) {
   .native-back-link {
     margin-inline: 0.625rem;
   }
+
+  .nl-tutorial-shell.nl-tutorial-shell {
+    width: calc(100% - 0.75rem);
+    margin-top: 0.5rem;
+    padding: 0.9rem;
+    border-radius: 1rem;
+    box-shadow: 5px 5px 0 #e6dcff;
+  }
+
+  .nl-tutorial-heading { margin-bottom: 0.9rem; }
+  .nl-tutorial-heading > strong { font-size: 1.65rem; }
+  .nl-tutorial-shell.nl-tutorial-shell h1 { font-size: clamp(2rem, 11vw, 2.75rem); }
+  .nl-tutorial-shell.nl-tutorial-shell .nl-tutorial-step { float: none; margin-bottom: 0.65rem; }
+
+  .nl-tutorial-visual.nl-tutorial-visual {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    min-height: 0;
+    padding: 3.7rem 0.6rem 0.9rem;
+  }
+
+  .nl-tutorial-board { width: min(100%, 18rem); }
+
+  .nl-tutorial-proof,
+  .nl-tutorial-tray {
+    width: 100%;
+    min-height: 5.5rem;
+  }
+
+  .nl-tutorial-actions.nl-tutorial-actions {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.45rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .nl-tutorial-heading > p { display: none; }
+  .nl-tutorial-heading > strong { font-size: 1.45rem; }
+  .nl-tutorial-actions.nl-tutorial-actions { grid-template-columns: 1fr 1fr; }
+  .nl-tutorial-dots { grid-row: 2; grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-tutorial-shell *,
+  .nl-tutorial-shell *::before,
+  .nl-tutorial-shell *::after { transition: none !important; }
 }
 
 @media (forced-colors: active) {
   .native-back-link,.native-music-credit summary,.native-music-credit a {
     border-color: ButtonText;
   }
+
+  .nl-tutorial-shell,
+  .nl-tutorial-visual,
+  .nl-tutorial-node,
+  .nl-tutorial-proof,
+  .nl-tutorial-tray { border-color: CanvasText; box-shadow: none; }
+
+  .nl-tutorial-node,
+  .nl-tutorial-tray span,
+  .nl-tutorial-target { forced-color-adjust: auto; }
 }

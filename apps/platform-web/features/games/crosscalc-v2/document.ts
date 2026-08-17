@@ -33,8 +33,8 @@ function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | 
     <meta name="robots" content="noindex, nofollow, noarchive" />
     <base href="${ASSET_BASE}" />
     <title>${title}</title>
-    <link rel="stylesheet" href="./integration.css" />
     <link rel="stylesheet" href="./assets/index-B-S_H4Ce.css" />
+    <link rel="stylesheet" href="./integration.css" />
   </head>
   <body>${previewBanner}
     <div id="root"></div>
@@ -42,6 +42,7 @@ function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | 
       <summary>Credits</summary>
       <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
     </details>
+    <script src="./runtime-music.js"></script>
     <script type="module" src="./assets/index-B0m_QJed.js"></script>
   </body>
 </html>`;

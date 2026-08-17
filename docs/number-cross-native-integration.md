@@ -2,8 +2,8 @@
 
 Number Cross is a trusted, source-controlled MathNexa game. Its catalog
 identity is `number-cross`, its launch type is `internal`, and its native player
-route is `/games/number-cross/play`. The catalog record remains Draft until the
-owner separately approves Publish.
+route is `/games/number-cross/play`. The owner-published catalog record remains
+the single authoritative Number Cross identity.
 
 ## Preservation boundary
 
@@ -13,12 +13,15 @@ source of truth for the game engine. Native engine, preference, storage, and
 style files were copied into
 `apps/platform-web/public/internal-games/number-cross`. The generator, solver,
 Reasoning Index, difficulty definitions, engagement rules, and audio lifecycle
-were not rewritten. The approved platform adaptation adds one accessible,
-44-pixel `Back to MathNexa Games` link and replaces the prior music asset and
-credit metadata with the shared, same-origin Cosmic Candy Catchers track. Its
+were initially copied byte-for-byte. The approved platform adaptation adds one
+accessible, 44-pixel `Back to MathNexa Games` link and replaces the prior music
+asset and credit metadata with the shared, same-origin Cosmic Candy Catchers track. Its
 runtime MP3 SHA-256 is
 `6BA9A6B324807202BB148F77F2030086E7AA0B5FC0F81E1D3DDEA072B47C7369`.
-`integration.css` styles the platform link without changing puzzle geometry.
+The generator, solver, preference module, storage keys, base styles, puzzle
+geometry, and music asset remain byte-preserved. The post-release hotfix changes
+only the integrated application lifecycle and `integration.css` presentation
+described below.
 
 The original protected deployment at `https://number-cross.vercel.app` remains
 online as a backup and still denies direct access with HTTP 401. Its shared
@@ -47,15 +50,34 @@ additive catalog migration before they can be published.
 - Native gameplay is a top-level, same-origin document. It uses no external
   redirect, iframe, signed launch JWT, cross-site session exchange, or uploaded
   code.
-- Leaving the document tears down its one audio element, timers, and listeners
-  through normal browser document lifecycle. No player history is sent to
-  Supabase.
+- Leaving the document pauses its one audio element before a back/forward-cache
+  transition, or disposes its element, fade timer, source URL, and AudioContext
+  when the document is discarded. No player history is sent to Supabase.
 - Local storage remains under the existing `mathnexa:number-cross:*` namespace,
   with explicit legacy-key migration inputs only.
 
 The native response is private and non-cacheable and sets a restrictive CSP,
 same-origin resource policy, no-referrer policy, frame denial, and a bounded
 Permissions Policy. Fullscreen remains available to the top-level game.
+
+## Post-release tutorial and audio hotfix
+
+The Number Cross tutorial now uses the real 3×3 target-and-tile grammar rather
+than abstract placeholder blocks. It labels column targets above and row
+targets beside a mathematically consistent board, works the first line by
+crossing out `1` from `2, 5, 1`, and finishes the same board so every row and
+column target visibly checks. Addition and multiplication use separately valid
+target sets. The visual is exposed as a concise labelled image, while the only
+focusable tutorial controls are Skip and Next/Start solving.
+
+Music now defaults on only when no explicit preference exists. The Start
+gesture may begin the same-origin track while the tutorial is open, and every
+pointer or keyboard gesture safely retries a browser-blocked attempt without
+creating another element or source. `play()` is called directly inside the
+activation task, before any asynchronous fetch/decode boundary. OFF pauses
+immediately, ON restarts, the preference survives reload, and a frozen
+`__MATHNEXA_GAME_MUSIC__` diagnostic reports real media state for regression
+tests. `NotAllowedError` remains recoverable and never blocks gameplay.
 
 ## Catalog migration and publication
 
@@ -82,13 +104,14 @@ paths are revalidated after successful owner updates.
   preview denial, and the retained external backup launch contract.
 - `npm run test:e2e:number-cross` exercises real local MFA-backed Draft Preview,
   pointer and keyboard input, four representative mode/difficulty combinations,
-  one completed round, blocked audio, reduced motion, mobile/tablet/desktop/
-  smart-board viewports, Draft concealment, a local-only Publish transition,
-  entitled catalog visibility, and native same-origin Play. It resets local
-  Supabase after the run.
+  one completed round, blocked-audio retry, real advancing media time, ON/OFF
+  persistence, single-source and pagehide cleanup, the three tutorial steps,
+  reduced motion, mobile/tablet/desktop/smart-board viewports, Draft
+  concealment, a local-only Publish transition, entitled catalog visibility,
+  and native same-origin Play. It resets local Supabase after the run.
 - pgTAP verifies one catalog identity, exact metadata, append-only history,
   browser denial, transactional publication, maintenance, and audit evidence.
 
-Production must remain Draft after deployment. Once the real owner session
-successfully previews the native game, the handoff state is `READY FOR OWNER
-PUBLISH TEST`; automation must not click Publish.
+Number Cross is now an owner-published catalog product. A hotfix may change its
+trusted runtime only through the normal reviewed branch, verification, and
+Production deployment flow; it must not create another catalog identity.
