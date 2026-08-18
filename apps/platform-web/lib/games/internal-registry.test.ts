@@ -90,7 +90,10 @@ describe("trusted internal game registry", () => {
     expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
     const body = await response.text();
     expect(body).toContain('<base href="/internal-games/number-logic/"');
-    expect(body).toContain('<script type="module" src="./assets/index-DXexJzA-.js"');
+    expect(body).toContain(
+      '<script type="module" src="./assets/index-DXexJzA-.js?v=1801220e5b7688626aaf926c7f023f3bc2d108d9f91bdb5426f142e9726fabda"'
+    );
+    expect(body.match(/index-DXexJzA-[.]js[?]v=/g)).toHaveLength(1);
     expect(body).toContain('href="/games" aria-label="Back to MathNexa Games"');
     expect(body).not.toContain("iframe");
     expect(body).not.toContain("http://");

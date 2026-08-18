@@ -142,7 +142,9 @@ test("one gesture-synchronous HTMLMedia music backend serves every browser witho
   const source = readFileSync(resolve(nativeRoot, "assets/index-DXexJzA-.js"), "utf8");
   const documentSource = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/number-logic/document.ts"), "utf8");
   assert.doesNotMatch(documentSource, /media-fallback|runtime-music/);
-  assert.match(documentSource, /<script type="module" src="\.\/assets\/index-DXexJzA-\.js"><\/script>/);
+  assert.match(documentSource, /const RUNTIME_SHA256 = "1801220e5b7688626aaf926c7f023f3bc2d108d9f91bdb5426f142e9726fabda";/);
+  assert.match(documentSource, /const RUNTIME_SRC = `\.\/assets\/index-DXexJzA-\.js\?v=\$\{RUNTIME_SHA256\}`;/);
+  assert.match(documentSource, /<script type="module" src="\$\{RUNTIME_SRC\}"><\/script>/);
 
   for (const contract of [
     "ensureMusicElement(e)",
