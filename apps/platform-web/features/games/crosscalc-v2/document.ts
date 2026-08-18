@@ -3,6 +3,7 @@ const ASSET_BASE = "/internal-games/crosscalc-v2/";
 export const CROSSCALC_V2_VERSION = "0.2.0" as const;
 export const CROSSCALC_V2_APPROVED_SOURCE = "9d27dbc21fce043569fae89ab5b4434ae2d0bac0" as const;
 export const CROSSCALC_V2_ADAPTER_SOURCE = "8bc4704" as const;
+export const CROSSCALC_V2_LAYOUT_ADAPTER_SHA256 = "c0ec52bee2e27c3584b0953b018b583bb24c4456389c8d65c50196adee143014" as const;
 
 function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | "inspection" | null): string {
   const previewBanner = previewState === null ? `
@@ -43,6 +44,7 @@ function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | 
       <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
     </details>
     <script src="./runtime-music.js"></script>
+    <script src="./runtime-layout.js"></script>
     <script type="module" src="./assets/index-B0m_QJed.js"></script>
   </body>
 </html>`;

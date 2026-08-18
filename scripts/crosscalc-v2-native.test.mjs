@@ -5,6 +5,7 @@ import { dirname, relative, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
+import { JSDOM } from "jsdom";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const publicRoot = resolve(repositoryRoot, "apps/platform-web/public");
@@ -15,6 +16,7 @@ const standaloneRoot = process.env.CROSSCALC_SOURCE_DIR
   : resolve(repositoryRoot, "..", "..", "crosscalc");
 const approvedSource = "9d27dbc21fce043569fae89ab5b4434ae2d0bac0";
 const adapterSource = "8bc4704";
+const layoutHash = "c0ec52bee2e27c3584b0953b018b583bb24c4456389c8d65c50196adee143014";
 const assetHashes = Object.freeze({
   "assets/index-B-S_H4Ce.css": "f5c39c4c16b25b5cdd24827147449ef11c5faaa2f0f769b8a7dec3897568bdbf",
   "assets/index-B0m_QJed.js": "5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac"
@@ -63,20 +65,118 @@ test("only same-origin release runtime assets ship and the preview banner is exp
     "assets/index-B0m_QJed.js",
     "assets/oldskool-cc0-CQNT44Pl.mp3",
     "integration.css",
+    "runtime-layout.js",
     "runtime-music.js"
   ]);
   assert.equal(shipped.some((path) => path.endsWith(".map") || path.endsWith(".zip")), false);
   const document = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/crosscalc-v2/document.ts"), "utf8");
-  for (const value of [approvedSource, adapterSource, "Admin Preview · Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
+  for (const value of [approvedSource, adapterSource, layoutHash, "Admin Preview · Version 0.2.0", "NOT LIVE", "/internal-games/crosscalc-v2/"]) assert.ok(document.includes(value), value);
   assert.doesNotMatch(document, /iframe|https?:\/\//);
   assert.ok(document.indexOf("./assets/index-B-S_H4Ce.css") < document.indexOf("./integration.css"));
   assert.ok(document.indexOf("./runtime-music.js") < document.indexOf("./assets/index-B0m_QJed.js"));
+  assert.ok(document.indexOf("./runtime-layout.js") < document.indexOf("./assets/index-B0m_QJed.js"));
   const integration = readFileSync(resolve(nativeRoot, "integration.css"), "utf8");
   assert.match(integration, /@media \(max-width: 560px\)[\s\S]*header \.toolbar \{ justify-content: flex-start; \}/);
   assert.match(integration, /@media \(max-width: 560px\) and \(orientation: portrait\)/);
   for (const contract of ["--cell: 48px", "overflow-x: clip", "min-height: 48px", "position: sticky", "scrollbar-gutter: stable both-edges"]) assert.ok(integration.includes(contract), contract);
+  for (const contract of [
+    'data-crosscalc-layout="compact"',
+    ".compact-disclosure__trigger",
+    "min-height: 52px",
+    "grid-template-columns: repeat(2, minmax(0, 1fr))",
+    'data-crosscalc-expanded-panel="setup"',
+    "@media (max-width: 360px)",
+    "status-cluster"
+  ]) assert.ok(integration.includes(contract), contract);
   const browserSpec = readFileSync(resolve(repositoryRoot, "e2e/crosscalc-v2/native-crosscalc-v2.spec.ts"), "utf8");
   assert.match(browserSpec, /\{ width: 844, height: 390 \}/);
+  assert.match(browserSpec, /\{ width: 1366, height: 768 \}/);
+});
+
+test("compact setup and equation disclosures preserve the native panels and accessible keyboard state", async () => {
+  const runtime = readFileSync(resolve(nativeRoot, "runtime-layout.js"), "utf8");
+  assert.equal(sha256(runtime), layoutHash);
+  const dom = new JSDOM(`<!doctype html><html><body><div class="app-shell">
+    <main class="game-layout">
+      <aside class="mission-panel" aria-label="Puzzle setup and progression">
+        <p class="eyebrow">Chapter 1</p>
+        <h1>Place the numbers. Prove every path.</h1>
+        <p class="lede">One tile changes both sides.</p>
+        <label>Mode<select><option value="addition" selected>Addition</option><option value="mixed">Mixed</option></select></label>
+        <label>Difficulty<select><option value="beginner" selected>Beginner</option><option value="hard">Hard</option></select></label>
+        <div class="logic-spec"><span>4 equations</span></div>
+        <button class="secondary-action" type="button">Restart puzzle</button>
+      </aside>
+      <section class="play-stage"><div class="stage-heading"><h2>Beginner · Addition</h2></div></section>
+      <aside class="equation-panel" aria-label="Live equation proof">
+        <div class="panel-heading"><h2>Equation paths</h2><span>0/4</span></div>
+        <ol class="equation-list"><li>1 + ? = 3</li></ol>
+      </aside>
+    </main>
+  </div></body></html>`, {
+    runScripts: "outside-only",
+    url: "https://mathnexa.example/internal-games/crosscalc-v2/"
+  });
+  dom.window.eval(runtime);
+
+  const { document } = dom.window;
+  const setup = document.querySelector(".compact-disclosure__trigger--setup");
+  const paths = document.querySelector(".compact-disclosure__trigger--paths");
+  const mission = document.querySelector(".mission-panel");
+  const equations = document.querySelector(".equation-panel");
+  assert.ok(setup instanceof dom.window.HTMLButtonElement);
+  assert.ok(paths instanceof dom.window.HTMLButtonElement);
+  assert.equal(setup.getAttribute("aria-controls"), mission.id);
+  assert.equal(paths.getAttribute("aria-controls"), equations.id);
+  assert.equal(setup.getAttribute("aria-expanded"), "false");
+  assert.equal(paths.getAttribute("aria-expanded"), "false");
+  assert.equal(setup.getAttribute("aria-label"), "Puzzle Setup · Addition · Beginner");
+  assert.equal(paths.getAttribute("aria-label"), "Equation Paths · 0/4 proven");
+  assert.equal(mission.hidden, true);
+  assert.equal(equations.hidden, true);
+  assert.equal(document.querySelector(".play-stage").nextElementSibling, equations);
+  assert.equal(document.querySelector(".compact-game-title").textContent, "CrossCalc connected arithmetic puzzle");
+  assert.equal(document.querySelector(".mission-panel h1").getAttribute("aria-level"), "2");
+  assert.match(setup.textContent, /Puzzle Setup\s*Addition · Beginner/);
+  assert.match(paths.textContent, /Equation Paths\s*0\/4 proven/);
+
+  setup.click();
+  assert.equal(setup.getAttribute("aria-expanded"), "true");
+  assert.equal(mission.hidden, false);
+  assert.equal(equations.hidden, true);
+  assert.equal(document.querySelector(".secondary-action").textContent, "Restart puzzle");
+
+  paths.click();
+  assert.equal(setup.getAttribute("aria-expanded"), "false");
+  assert.equal(paths.getAttribute("aria-expanded"), "true");
+  assert.equal(mission.hidden, true);
+  assert.equal(equations.hidden, false);
+
+  const proofRow = document.querySelector(".equation-list li");
+  proofRow.focus();
+  proofRow.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(paths.getAttribute("aria-expanded"), "false");
+  assert.equal(document.activeElement, paths);
+
+  setup.click();
+  const selects = mission.querySelectorAll("select");
+  selects[0].value = "mixed";
+  selects[1].value = "hard";
+  selects[1].dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  assert.match(setup.textContent, /Mixed · Hard/);
+
+  document.querySelector(".panel-heading > span").textContent = "2/4";
+  await new Promise((resolvePromise) => dom.window.setTimeout(resolvePromise, 0));
+  assert.match(paths.textContent, /2\/4 proven/);
+  assert.deepEqual(JSON.parse(JSON.stringify(dom.window.__MATHNEXA_CROSSCALC_LAYOUT__.snapshot())), {
+    initialized: true,
+    expandedPanel: "setup",
+    setupExpanded: true,
+    pathsExpanded: false,
+    setupSummary: "Mixed · Hard",
+    pathsSummary: "2/4 proven"
+  });
+  dom.window.close();
 });
 
 test("CrossCalc music hotfix starts one same-origin HTML media source inside the user gesture", () => {

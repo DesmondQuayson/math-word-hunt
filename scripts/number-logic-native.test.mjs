@@ -16,13 +16,9 @@ const standaloneRoot = process.env.NUMBER_LOGIC_SOURCE_DIR
 
 const assetHashes = Object.freeze({
   "assets/index-0S0ADVv9.css": "d29f4a432ea37e570e61ed9d83720ab0107922fc9f6ca15e0c3db54e20d2be29",
-  "assets/index-DXexJzA-.js": "963c14f064885b972c303e90bd412f71e4eba11865c2285d741e99b81d42dc20"
+  "assets/index-DXexJzA-.js": "1801220e5b7688626aaf926c7f023f3bc2d108d9f91bdb5426f142e9726fabda"
 });
 const musicHash = "6ba9a6b324807202bb148f77f2030086e7aa0b5fc0f81e1d3ddea072b47c7369";
-const fallbackHashes = Object.freeze({
-  "media-fallback-loader.js": "6cc6703116a285930a7c74bf0d0aa19a8f53e0c3242434746e1678e8360e198e",
-  "media-fallback.js": "724096ee7ec42343fb4ae77567a93680d582e8c0ea5863ce1eefd60833857d54"
-});
 
 const sourceAggregates = Object.freeze({
   math: "0f125d147d628173dd883235b230186ba5617be49c00f3c8c2212977dc28c2a5",
@@ -61,7 +57,7 @@ function withCurrentMusicCredit(source) {
     .replace("children:`Oldskool`", "children:`Cosmic Candy Catchers`")
     .replace(
       "By Of Far Different Nature · CC0 1.0 Universal. The exact original MP3 is self-hosted and looped with a local in-memory seam crossfade.",
-      "By Eric Matyas · CC BY 3.0. The verified MP3 derivative is self-hosted and looped with a local in-memory seam crossfade."
+      "By Eric Matyas · CC BY 3.0. The verified MP3 derivative is self-hosted and loops through the browser's native audio player."
     )
     .replace("https://opengameart.org/content/oldskool", "https://soundimage.org/")
     .replace("View the verified Oldskool source on OpenGameArt", "Visit the credited artist at SoundImage");
@@ -82,9 +78,6 @@ test("the native code and styles retain the verified standalone build with only 
   const music = resolve(nativeRoot, "assets/oldskool-cc0-CQNT44Pl.mp3");
   assert.equal(sha256(readFileSync(music)), musicHash);
   assert.equal(statSync(music).size, 1_024_417);
-  for (const [path, hash] of Object.entries(fallbackHashes)) {
-    assert.equal(sha256(readFileSync(resolve(nativeRoot, path))), hash, path);
-  }
 });
 
 test("approved mathematical, result, adapter, and audio sources have no native drift", (context) => {
@@ -112,10 +105,13 @@ test("one bundle retains all six modes, exact contracts, and collision-safe stor
     "mathnexa:number-logic-progress:1",
     "mathnexa:number-logic-audio:1"
   ]) assert.ok(source.includes(contract), contract);
-  assert.equal((source.match(/createBufferSource\(/g) ?? []).length, 1);
+  assert.equal((source.match(/createBufferSource\(/g) ?? []).length, 0, "background music must not create a Web Audio buffer source");
+  assert.equal((source.match(/createOscillator\(/g) ?? []).length, 1, "Web Audio remains available for sound effects");
   assert.ok(source.includes("musicVolume:.35"));
   assert.ok(source.includes("soundEffectsVolume:.6"));
   for (const credit of ["Cosmic Candy Catchers", "Eric Matyas", "CC BY 3.0", "https://soundimage.org/"]) assert.ok(source.includes(credit), credit);
+  assert.ok(source.includes("loops through the browser's native audio player"));
+  assert.doesNotMatch(source, /in-memory seam crossfade/);
   assert.doesNotMatch(source, /Oldskool|Of Far Different Nature|opengameart\.org\/content\/oldskool/);
   assert.doesNotMatch(source, /number-cross|MATHNEXA_GAME_LAUNCH_SECRET|localhost|[A-Za-z]:\\\\/);
 });
@@ -139,183 +135,201 @@ test("the Lines of 3 tutorial and gesture-gated audio hotfix remain deterministi
   ]) assert.ok(source.includes(tutorialContract), tutorialContract);
   assert.doesNotMatch(source, /lines-of-3\/tutorial-v1|One shared total|4 \+ \? \+ 7/);
   assert.ok(source.includes("initialize(){return Promise.resolve()}"), "mount must not create a pre-gesture AudioContext");
-  assert.ok(source.includes("t.state===`running`?`UNLOCKED`:`BLOCKED`"), "resume must verify the real context state");
+  assert.ok(source.includes(".then(()=>`UNLOCKED`,e=>"), "a fulfilled resume contract must not be misclassified before Safari publishes its state transition");
 });
 
-test("the parser-blocking media fallback is conditional, same-origin, single-source, and lifecycle safe", async () => {
+test("one gesture-synchronous HTMLMedia music backend serves every browser without duplicate sources", () => {
+  const source = readFileSync(resolve(nativeRoot, "assets/index-DXexJzA-.js"), "utf8");
   const documentSource = readFileSync(resolve(repositoryRoot, "apps/platform-web/features/games/number-logic/document.ts"), "utf8");
-  const loaderSource = readFileSync(resolve(nativeRoot, "media-fallback-loader.js"), "utf8");
-  const fallbackSource = readFileSync(resolve(nativeRoot, "media-fallback.js"), "utf8");
-  const loaderIndex = documentSource.indexOf('<script src="./media-fallback-loader.js"></script>');
-  const moduleIndex = documentSource.indexOf('<script type="module" src="./assets/index-DXexJzA-.js"></script>');
-  assert.ok(loaderIndex >= 0 && loaderIndex < moduleIndex, "fallback capability loader must precede the module bundle");
-  assert.match(loaderSource, /typeof window\.AudioContext === "function"/);
-  assert.match(loaderSource, /typeof window\.webkitAudioContext === "function"/);
-  assert.match(loaderSource, /document\.write\('<script src="\.\/media-fallback\.js"/);
+  assert.doesNotMatch(documentSource, /media-fallback|runtime-music/);
+  assert.match(documentSource, /<script type="module" src="\.\/assets\/index-DXexJzA-\.js"><\/script>/);
 
-  const nativeWrites = [];
-  function NativeAudioContext() {}
-  runInNewContext(loaderSource, {
-    window: { AudioContext: NativeAudioContext },
-    document: { write: (value) => nativeWrites.push(value) }
-  });
-  assert.deepEqual(nativeWrites, [], "native Web Audio must remain untouched");
+  for (const contract of [
+    "ensureMusicElement(e)",
+    "new globalThis.Audio",
+    "e.preload=`none`",
+    "primeMusic(e,t=!1)",
+    "primeMusic(this.assetUrl,!0)",
+    "this.mediaPlayPromise",
+    "this.musicRequestId",
+    "this.musicPlayAttempts",
+    "__MATHNEXA_NUMBER_LOGIC_MUSIC__",
+    "snapshot:()=>e.musicStatus()",
+    "currentTime:Number.isFinite",
+    "mediaElements:e?1:0",
+    "activeSources:e&&!e.paused?1:0",
+    "muted:e?.muted??this.masterMuted",
+    "volume:e?.volume??this.musicVolume*so",
+    "blocked:this.mediaGestureBlocked??!1",
+    "fatal:this.mediaFatal??!1",
+    "this.musicElement.removeAttribute(`src`)",
+    "this.musicElement.load()",
+    ".then(()=>`UNLOCKED`,e=>",
+    "globalThis.AudioContext??globalThis.webkitAudioContext",
+    "if(!this.AudioContextClass)return Promise.resolve(`UNLOCKED`)",
+    "if(!this.AudioContextClass)return;let t=this.ensureContext()",
+    "window.addEventListener(`pagehide`,n)",
+    "t.persisted?e.setDocumentHidden(!0):e.dispose()",
+    "window.addEventListener(`pageshow`,r)",
+    "t.persisted&&e.setDocumentHidden(document.hidden)",
+    "window.removeEventListener(`pageshow`,r)",
+    "onPointerDownCapture",
+    "onKeyDownCapture",
+  ]) assert.ok(source.includes(contract), contract);
 
-  const webkitOnlyWrites = [];
-  function NativeWebkitAudioContext() {}
-  const webkitOnlyWindow = { webkitAudioContext: NativeWebkitAudioContext };
-  runInNewContext(loaderSource, {
-    window: webkitOnlyWindow,
-    document: { write: (value) => webkitOnlyWrites.push(value) }
-  });
-  assert.deepEqual(webkitOnlyWrites, [], "prefixed native Web Audio must not load the media fallback");
-  assert.equal(webkitOnlyWindow.AudioContext, NativeWebkitAudioContext, "the bundle must receive Safari's native constructor under the standards name");
+  assert.ok(source.includes("this.backend.primeMusic(this.assetUrl,!0),this.playback!==`UNAVAILABLE`"));
+  assert.ok(source.includes("setMusicEnabled(e){this.update({musicEnabled:e}),e?this.activate()"));
+  assert.ok(source.includes("if(this.mediaPlayPromise)return this.mediaPlayPromise"));
+  assert.ok(source.includes("this.mediaFatal=!0,this.onStatusChange?.()"));
+  assert.ok(source.includes("this.permission=`UNAVAILABLE`,this.playback=`UNAVAILABLE`"));
+  assert.ok(source.includes("e.emitApprovedGameEvent({type:`mode_preview_opened`,mode:t}),window.scrollTo"));
+  assert.doesNotMatch(source, /mode_preview_opened`,mode:t\}\),D\.activate\(\)/);
+  assert.equal((source.match(/new globalThis\.Audio/g) ?? []).length, 1);
+  assert.doesNotMatch(source, /t\.state===`running`\?`UNLOCKED`:`BLOCKED`|media-fallback/);
+});
 
-  const fallbackWrites = [];
-  runInNewContext(loaderSource, {
-    window: {},
-    document: { write: (value) => fallbackWrites.push(value) }
-  });
-  assert.deepEqual(fallbackWrites, ['<script src="./media-fallback.js" data-number-logic-media-fallback></script>']);
+test("the shipped music backend retries only on a later gesture and preserves one honest media lifecycle", async () => {
+  const source = readFileSync(resolve(nativeRoot, "assets/index-DXexJzA-.js"), "utf8");
+  const start = source.indexOf("lo=class{");
+  const end = source.indexOf(",bo=new URL(", start);
+  assert.ok(start >= 0 && end > start, "audio backend and manager must remain extractable from the approved bundle");
 
-  const listeners = new Map();
-  const storage = new Map();
   const audioInstances = [];
-  const root = { contains: () => true };
+  const playPlan = ["blocked", "success"];
   class FakeAudio {
-    constructor(source) {
-      this.src = source;
+    constructor() {
+      this.src = "";
       this.paused = true;
-      this.ended = false;
-      this.currentTime = 0;
       this.loop = false;
-      this.muted = false;
+      this.preload = "";
+      this.playsInline = false;
+      this.currentTime = 0;
       this.volume = 1;
+      this.muted = false;
+      this.error = null;
+      this.playCalls = 0;
+      this.pauseCalls = 0;
+      this.loadCalls = 0;
+      this.listeners = new Map();
       audioInstances.push(this);
     }
-    canPlayType(type) { return type === "audio/mpeg" ? "probably" : ""; }
-    setAttribute() {}
+    addEventListener(name, listener) { this.listeners.set(name, listener); }
+    removeEventListener(name, listener) { if (this.listeners.get(name) === listener) this.listeners.delete(name); }
     removeAttribute(name) { if (name === "src") this.src = ""; }
-    addEventListener(name, listener) { listeners.set(`audio:${name}`, listener); }
-    removeEventListener(name) { listeners.delete(`audio:${name}`); }
-    load() {}
+    load() { this.loadCalls += 1; }
+    pause() { this.paused = true; this.pauseCalls += 1; }
     play() {
+      this.playCalls += 1;
+      const outcome = playPlan.shift() ?? "success";
+      if (outcome === "blocked") return Promise.reject(new DOMException("Gesture required", "NotAllowedError"));
+      if (outcome === "fatal") return Promise.reject(new DOMException("Codec unavailable", "NotSupportedError"));
       this.paused = false;
-      this.currentTime += 0.125;
+      this.currentTime += 0.25;
       return Promise.resolve();
     }
-    pause() { this.paused = true; }
   }
-  const document = {
-    baseURI: "https://mathnexa.test/internal-games/number-logic/",
-    hidden: false,
-    getElementById: (id) => id === "root" ? root : null,
-    addEventListener: (name, listener) => listeners.set(`document:${name}`, listener),
-    removeEventListener: (name) => listeners.delete(`document:${name}`)
+  class FakeWebkitAudioContext {
+    constructor() { this.state = "suspended"; this.currentTime = 0; this.destination = {}; }
+    createGain() { return { gain: { setValueAtTime() {} }, connect() {} }; }
+    resume() { this.state = "running"; return Promise.resolve(); }
+    close() { this.state = "closed"; return Promise.resolve(); }
+  }
+  const sandbox = {
+    Audio: FakeAudio,
+    webkitAudioContext: FakeWebkitAudioContext,
+    DOMException,
+    structuredClone,
+    performance,
   };
-  const window = {
-    location: { origin: "https://mathnexa.test" },
-    addEventListener: (name, listener) => listeners.set(`window:${name}`, listener),
-    removeEventListener: (name) => listeners.delete(`window:${name}`)
-  };
-  const localStorage = {
-    getItem: (key) => storage.get(key) ?? null,
-    setItem: (key, value) => storage.set(key, value)
-  };
-  runInNewContext(fallbackSource, { window, document, localStorage, Audio: FakeAudio, URL, DOMException });
-  const hook = window.__MATHNEXA_NUMBER_LOGIC_MEDIA_FALLBACK__;
-  assert.ok(Object.isFrozen(hook));
-  const initialSnapshot = hook.snapshot();
-  assert.ok(Object.isFrozen(initialSnapshot));
-  assert.deepEqual(JSON.parse(JSON.stringify(initialSnapshot)), {
-    supported: true,
-    contextState: "suspended",
-    contextCount: 0,
-    mediaElements: 1,
-    sourceAssigned: false,
-    activeSources: 0,
-    paused: true,
-    currentTime: 0,
-    loop: true,
-    muted: false,
-    volume: 0.35 * 0.92,
-    musicEnabled: true,
+  runInNewContext(
+    `var so=.92,q=.08,co={};var ${source.slice(start, end)};globalThis.__audioExports={Backend:lo,Manager:_o,MemoryStorage:yo};`,
+    sandbox,
+  );
+  const { Backend, Manager, MemoryStorage } = sandbox.__audioExports;
+  const settings = {
+    version: "number-logic-audio/1",
     masterMuted: false,
-    playAttempts: 0,
-    successfulStarts: 0,
-    pauseCount: 0,
-    lastError: null,
-    listenersInstalled: true
-  });
-  assert.equal(hook.source, "/internal-games/number-logic/assets/oldskool-cc0-CQNT44Pl.mp3");
+    musicEnabled: true,
+    musicVolume: 0.35,
+    soundEffectsEnabled: true,
+    soundEffectsVolume: 0.6,
+  };
+
+  const prefixedBackend = new Backend();
+  assert.equal(prefixedBackend.AudioContextClass, FakeWebkitAudioContext, "webkitAudioContext remains the Safari sound-effect constructor");
+  await prefixedBackend.dispose();
+
+  const storage = new MemoryStorage(settings);
+  const backend = new Backend(null);
+  const manager = new Manager("/internal-games/number-logic/assets/oldskool-cc0-CQNT44Pl.mp3", storage, backend);
+  assert.equal(audioInstances.length, 0, "route mount must not create or request media");
+  await manager.activate();
+  assert.equal(audioInstances.length, 1);
+  assert.equal(audioInstances[0].playCalls, 1, "one rejected gesture is not retried in a hidden loop");
+  assert.deepEqual({ permission: manager.snapshot().permission, playback: manager.snapshot().playback }, { permission: "LOCKED", playback: "IDLE" });
+  assert.deepEqual(
+    { blocked: backend.musicStatus().blocked, fatal: backend.musicStatus().fatal, activeSources: backend.musicStatus().activeSources },
+    { blocked: true, fatal: false, activeSources: 0 },
+  );
+
+  await manager.activate();
+  assert.equal(audioInstances[0].playCalls, 2, "the next eligible gesture retries once");
+  assert.equal(audioInstances[0].currentTime, 0.25, "successful media playback advances");
+  assert.deepEqual(
+    { permission: manager.snapshot().permission, playback: manager.snapshot().playback, active: backend.musicStatus().activeSources },
+    { permission: "UNLOCKED", playback: "PLAYING", active: 1 },
+  );
+  await Promise.all([manager.activate(), manager.activate(), manager.activate()]);
+  assert.equal(audioInstances[0].playCalls, 2, "rapid gestures reuse the playing element without overlap");
   assert.equal(audioInstances.length, 1);
 
-  listeners.get("document:keydown")({ type: "keydown", key: "Enter", target: root });
-  await Promise.resolve();
-  await Promise.resolve();
-  assert.equal(hook.snapshot().activeSources, 1);
-  assert.equal(hook.snapshot().currentTime, 0.125);
-  assert.equal(hook.snapshot().sourceAssigned, true, "the source must be assigned inside the trusted gesture");
+  manager.setMusicEnabled(false);
+  assert.equal(backend.musicStatus().activeSources, 0);
+  assert.equal(storage.read().musicEnabled, false);
+  const persistedOff = storage.read();
+  await manager.dispose();
+  assert.deepEqual(
+    { disposed: backend.musicStatus().disposed, mediaElements: backend.musicStatus().mediaElements, hasSource: backend.musicStatus().hasSource },
+    { disposed: true, mediaElements: 0, hasSource: false },
+  );
+  assert.equal(audioInstances[0].listeners.size, 0, "navigation disposal removes the media error listener");
+  assert.ok(audioInstances[0].loadCalls >= 1, "navigation disposal releases the source");
 
-  const context = new window.AudioContext();
-  const firstSource = context.createBufferSource();
-  firstSource.start();
+  const reloadedBackend = new Backend(null);
+  const reloadedStorage = new MemoryStorage(persistedOff);
+  const reloadedManager = new Manager("/internal-games/number-logic/assets/oldskool-cc0-CQNT44Pl.mp3", reloadedStorage, reloadedBackend);
+  await reloadedManager.activate();
+  assert.equal(reloadedBackend.musicStatus().mediaElements, 0, "stored OFF survives reload without creating media");
+  reloadedManager.setMusicEnabled(true);
   await Promise.resolve();
-  assert.equal(audioInstances.length, 1, "buffer-source starts must reuse the one HTMLMediaElement");
-  assert.equal(hook.snapshot().activeSources, 1);
+  await Promise.resolve();
+  assert.equal(reloadedStorage.read().musicEnabled, true);
+  assert.equal(reloadedBackend.musicStatus().activeSources, 1);
+  assert.equal(audioInstances.length, 2, "OFF/ON creates only the one element owned by the new document");
 
-  storage.set("mathnexa:number-logic-audio:1", JSON.stringify({
-    version: "number-logic-audio/1",
-    masterMuted: false,
-    musicEnabled: false,
-    musicVolume: 0.35
-  }));
-  firstSource.stop();
-  const disabledSource = context.createBufferSource();
-  disabledSource.start();
-  await Promise.resolve();
-  assert.equal(hook.snapshot().activeSources, 0, "a persisted OFF preference must deny playback");
+  reloadedManager.setDocumentHidden(true);
+  assert.equal(reloadedBackend.musicStatus().activeSources, 0, "BFCache-style hiding pauses music");
+  reloadedManager.setDocumentHidden(false);
+  await reloadedManager.reconcile();
+  assert.equal(reloadedBackend.musicStatus().activeSources, 1, "returning from visibility pause reuses the source");
 
-  storage.set("mathnexa:number-logic-audio:1", JSON.stringify({
-    version: "number-logic-audio/1",
-    masterMuted: false,
-    musicEnabled: true,
-    musicVolume: 0.5
-  }));
-  const enabledSource = context.createBufferSource();
-  enabledSource.start();
-  await Promise.resolve();
-  assert.equal(hook.snapshot().activeSources, 1);
-  assert.equal(hook.snapshot().volume, 0.5 * 0.92);
+  const activeAudio = audioInstances[1];
+  activeAudio.error = { code: 3, message: "Decode failed" };
+  activeAudio.listeners.get("error")();
+  assert.deepEqual(
+    { playback: reloadedManager.snapshot().playback, permission: reloadedManager.snapshot().permission, active: reloadedBackend.musicStatus().activeSources, fatal: reloadedBackend.musicStatus().fatal },
+    { playback: "UNAVAILABLE", permission: "UNAVAILABLE", active: 0, fatal: true },
+  );
+  assert.match(reloadedManager.snapshot().error, /MediaError 3/);
+  await reloadedManager.dispose();
 
-  storage.set("mathnexa:number-logic-audio:1", JSON.stringify({
-    version: "number-logic-audio/1",
-    masterMuted: true,
-    musicEnabled: true,
-    musicVolume: 0.5
-  }));
-  context.createGain().gain.setValueAtTime(0, 0);
-  assert.equal(hook.snapshot().muted, true, "master mute must synchronize with persisted settings");
-  listeners.get("window:pagehide")({ persisted: true });
-  assert.equal(hook.snapshot().activeSources, 0);
-  assert.equal(hook.snapshot().contextState, "suspended");
-  assert.equal(hook.snapshot().sourceAssigned, true, "BFCache keeps the paused source available");
-  listeners.get("document:keydown")({ type: "keydown", key: " ", target: root });
-  await Promise.resolve();
-  await Promise.resolve();
-  audioInstances[0].error = { code: 3 };
-  listeners.get("audio:error")();
-  assert.equal(hook.snapshot().lastError, "MediaError:3");
-  assert.equal(hook.snapshot().activeSources, 0);
-  listeners.get("window:pagehide")({ persisted: false });
-  assert.equal(hook.snapshot().listenersInstalled, false);
-  assert.equal(hook.snapshot().contextState, "closed");
-  assert.equal(hook.snapshot().sourceAssigned, false, "non-BFCache pagehide must release the source");
-  await context.close();
-
-  assert.doesNotMatch(fallbackSource, /https?:\/\//);
-  assert.equal((fallbackSource.match(/new Audio\(/g) ?? []).length, 1);
-  assert.match(fallbackSource, /audio\.preload = "none"/);
+  const silentBackend = new Backend(null);
+  const silentManager = new Manager("/internal-games/number-logic/assets/oldskool-cc0-CQNT44Pl.mp3", new MemoryStorage({ ...settings, musicVolume: 0 }), silentBackend);
+  await silentManager.activate();
+  assert.equal(silentBackend.musicStatus().currentTime, 0.25, "explicit zero volume still advances and is distinct from failed playback");
+  assert.equal(silentBackend.musicStatus().volume, 0, "the user's explicit zero-volume state is not rewritten");
+  assert.equal(silentManager.snapshot().settings.musicVolume, 0);
+  await silentManager.dispose();
 });
 
 test("only production runtime assets ship and navigation stays native", () => {
@@ -324,9 +338,7 @@ test("only production runtime assets ship and navigation stays native", () => {
     "assets/index-0S0ADVv9.css",
     "assets/index-DXexJzA-.js",
     "assets/oldskool-cc0-CQNT44Pl.mp3",
-    "integration.css",
-    "media-fallback-loader.js",
-    "media-fallback.js"
+    "integration.css"
   ]);
   assert.equal(shipped.some((path) => path.endsWith(".map") || path.endsWith(".zip")), false);
   const integration = readFileSync(resolve(nativeRoot, "integration.css"), "utf8");
