@@ -179,6 +179,7 @@ describe("native internal game authorization routes", () => {
     expect(publicV2.status).toBe(200);
     expect(body).toContain('<base href="/internal-games/crosscalc-v2/"');
     expect(body).toContain('<script src="./runtime-music.js"');
+    expect(body).toContain('<script src="./runtime-layout.js"');
     expect(body).toContain("place whole-number tiles");
     expect(body).not.toContain("NOT LIVE");
     expect(body).not.toContain("/internal-games/crosscalc/");

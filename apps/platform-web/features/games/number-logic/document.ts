@@ -21,7 +21,6 @@ export function renderNumberLogicDocument(): string {
       <summary>Credits</summary>
       <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
     </details>
-    <script src="./media-fallback-loader.js"></script>
     <script type="module" src="./assets/index-DXexJzA-.js"></script>
   </body>
 </html>`;

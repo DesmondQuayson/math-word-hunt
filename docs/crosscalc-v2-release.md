@@ -28,7 +28,19 @@ unchanged. V2 uses `crosscalc-result/2` and `mathnexa.crosscalc.v2`.
   visible wrapping toolbar, reachable tray/actions, and 44px minimum controls.
   The document does not scroll horizontally; wide expert boards and number
   trays use their own clearly bounded scrolling regions. Tablet, landscape,
-  and 1920×1080 desktop layouts remain in the regression matrix.
+  1366×768 desktop, and 1920×1080 Smart Board layouts remain in the regression
+  matrix.
+- Gameplay space: a platform-owned, DOM-preserving layout adapter presents the
+  existing Puzzle Setup and Equation Paths panels as compact, collapsed-by-
+  default disclosures immediately above the board. Their summaries expose the
+  live mode/difficulty and proof count, opening either closes the other, and
+  Escape closes an expanded panel and returns focus to its trigger. The native
+  selectors, Restart action, equation rows, engine bundle, generator, solver,
+  storage, result, and Reasoning Index contracts remain unchanged. A persistent
+  accessible game H1 remains available while the setup is collapsed; proof
+  content follows the board in both DOM and visual order. At narrow reflow the
+  two controls stack without truncating their state, and compact-height status
+  values remain available to assistive technology.
 
 V1 remains the rollback target. Rollback restores the V1 renderer through the
 catalog version gate and restores the V1 version, thumbnail, and metadata from

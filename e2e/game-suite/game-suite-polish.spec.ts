@@ -20,7 +20,7 @@ const games = [
   { title: "Math Word Hunt", cardTitle: "Math Vocabulary Hunt", route: "/game/runtime/index.html", heading: /Math Word Hunt/i },
   { title: "Number Logic", cardTitle: "Number Logic", route: "/games/number-logic/play", heading: "Number Logic" },
   { title: "Number Cross", cardTitle: "Number Cross", route: "/games/number-cross/play", heading: /Every line has an answer/i },
-  { title: "CrossCalc", cardTitle: "CrossCalc", route: "/games/crosscalc/play", heading: "Place the numbers. Prove every path." }
+  { title: "CrossCalc", cardTitle: "CrossCalc", route: "/games/crosscalc/play", heading: "CrossCalc connected arithmetic puzzle" }
 ] as const;
 
 const viewports = [
@@ -269,75 +269,70 @@ test("trusted gestures start one real music source per game and navigation tears
   }).__MATHNEXA_GAME_MUSIC__.snapshot().currentTime)).toBeGreaterThan(0.05);
 
   await page.goto("/games/number-logic/play");
-  type NumberLogicFallbackSnapshot = {
-    sourceAssigned: boolean;
-    supported: boolean;
-    contextState: string;
-    contextCount: number;
-    mediaElements: number;
-    activeSources: number;
+  await page.evaluate(() => localStorage.setItem("mathnexa:number-logic-audio:1", JSON.stringify({
+    version: "number-logic-audio/1",
+    masterMuted: false,
+    musicEnabled: true,
+    musicVolume: 0.35,
+    soundEffectsEnabled: true,
+    soundEffectsVolume: 0.6
+  })));
+  await page.reload();
+  type NumberLogicMusicSnapshot = {
     paused: boolean;
-    currentTime: number;
     loop: boolean;
+    currentTime: number;
+    activeSources: number;
+    mediaElements: number;
+    playAttempts: number;
+    playPending: boolean;
+    hasSource: boolean;
     muted: boolean;
-    musicEnabled: boolean;
-    masterMuted: boolean;
-    lastError: string | null;
+    volume: number;
+    blocked: boolean;
+    fatal: boolean;
+    error: string | null;
+    disposed: boolean;
   };
-  const readNumberLogicFallback = () => page.evaluate(() => {
+  const readNumberLogicMusic = () => page.evaluate(() => {
     const hook = (window as typeof window & {
-      __MATHNEXA_NUMBER_LOGIC_MEDIA_FALLBACK__?: { source: string; snapshot: () => NumberLogicFallbackSnapshot };
-    }).__MATHNEXA_NUMBER_LOGIC_MEDIA_FALLBACK__;
-    return hook ? { source: hook.source, ...hook.snapshot() } : null;
+      __MATHNEXA_NUMBER_LOGIC_MUSIC__: { source: string; snapshot: () => NumberLogicMusicSnapshot };
+    }).__MATHNEXA_NUMBER_LOGIC_MUSIC__;
+    return { source: hook.source, frozen: Object.isFrozen(hook), ...hook.snapshot() };
   });
-  const numberLogicAudioMode = await page.evaluate(() => ({
-    fallback: "__MATHNEXA_NUMBER_LOGIC_MEDIA_FALLBACK__" in window,
-    webAudioConstructor: typeof window.AudioContext === "function"
-      || typeof (window as typeof window & { webkitAudioContext?: unknown }).webkitAudioContext === "function"
-  }));
-  expect(numberLogicAudioMode.webAudioConstructor).toBe(true);
-  if (numberLogicAudioMode.fallback) {
-    expect(await readNumberLogicFallback()).toMatchObject({
-      supported: true,
-      contextState: "suspended",
-      contextCount: 0,
-      mediaElements: 1,
-      sourceAssigned: false,
-      activeSources: 0,
-      paused: true,
-      currentTime: 0,
-      loop: true,
-      musicEnabled: true,
-      masterMuted: false,
-      lastError: null
-    });
-    expect((await readNumberLogicFallback())?.source).toBe("/internal-games/number-logic/assets/oldskool-cc0-CQNT44Pl.mp3");
-  }
+  expect(await readNumberLogicMusic()).toMatchObject({
+    source: expect.stringMatching(/\/internal-games\/number-logic\/assets\/oldskool-cc0-CQNT44Pl\.mp3$/),
+    frozen: true,
+    mediaElements: 0,
+    activeSources: 0,
+    paused: true,
+    currentTime: 0,
+    playAttempts: 0,
+    hasSource: false,
+    error: null
+  });
   const numberLogicRoot = page.locator("[data-audio-manager-count='1']");
   await expect(numberLogicRoot).toHaveAttribute("data-audio-context-state", "uninitialized");
+  await expect(numberLogicRoot).toHaveAttribute("data-audio-music-volume", "0.35");
   await page.getByRole("button", { name: /Lines of 3/i }).click();
   await expect(numberLogicRoot).toHaveAttribute("data-audio-context-state", "running");
   await expect(numberLogicRoot).toHaveAttribute("data-audio-permission", "UNLOCKED");
   await expect(numberLogicRoot).toHaveAttribute("data-audio-track-decoded", "true");
   await expect(numberLogicRoot.locator("[data-music-sources='1']")).toBeVisible();
-  if (numberLogicAudioMode.fallback) {
-    await expect.poll(readNumberLogicFallback).toMatchObject({
-      supported: true,
-      contextState: "running",
-      contextCount: 1,
-      mediaElements: 1,
-      sourceAssigned: true,
-      activeSources: 1,
-      paused: false,
-      loop: true,
-      musicEnabled: true,
-      masterMuted: false,
-      lastError: null
-    });
-    await expect.poll(async () => (await readNumberLogicFallback())?.currentTime ?? 0).toBeGreaterThan(0.05);
-  } else {
-    expect(await readNumberLogicFallback()).toBeNull();
-  }
+  await expect.poll(readNumberLogicMusic).toMatchObject({
+    mediaElements: 1,
+    activeSources: 1,
+    paused: false,
+    loop: true,
+    playAttempts: 1,
+    hasSource: true,
+    muted: false,
+    volume: 0.322,
+    blocked: false,
+    fatal: false,
+    error: null
+  });
+  await expect.poll(async () => (await readNumberLogicMusic()).currentTime).toBeGreaterThan(0.05);
   const skipNumberLogicTutorial = page.getByRole("button", { name: /skip tutorial/i });
   await expect(skipNumberLogicTutorial.or(page.getByRole("button", { name: /play beginner/i }))).toBeVisible();
   if (await skipNumberLogicTutorial.isVisible()) await skipNumberLogicTutorial.click();
@@ -345,26 +340,29 @@ test("trusted gestures start one real music source per game and navigation tears
   const numberLogicMasterSound = page.getByLabel("Master sound", { exact: true });
   await numberLogicMasterSound.uncheck();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").masterMuted)).toBe(true);
-  if (numberLogicAudioMode.fallback) {
-    await expect.poll(readNumberLogicFallback).toMatchObject({ mediaElements: 1, activeSources: 1, muted: true, masterMuted: true });
-  }
+  await expect.poll(readNumberLogicMusic).toMatchObject({ mediaElements: 1, activeSources: 1, muted: true });
   await numberLogicMasterSound.check();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").masterMuted)).toBe(false);
-  if (numberLogicAudioMode.fallback) {
-    await expect.poll(readNumberLogicFallback).toMatchObject({ mediaElements: 1, activeSources: 1, muted: false, masterMuted: false });
-  }
+  await expect.poll(readNumberLogicMusic).toMatchObject({ mediaElements: 1, activeSources: 1, muted: false });
   await page.getByLabel("Music", { exact: true }).uncheck();
   await expect(numberLogicRoot.locator("[data-music-sources='0']")).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").musicEnabled)).toBe(false);
-  if (numberLogicAudioMode.fallback) {
-    await expect.poll(readNumberLogicFallback).toMatchObject({ mediaElements: 1, activeSources: 0, paused: true, musicEnabled: false });
-  }
+  await expect.poll(readNumberLogicMusic).toMatchObject({ mediaElements: 1, activeSources: 0, paused: true });
   await page.getByLabel("Music", { exact: true }).check();
   await expect(numberLogicRoot.locator("[data-music-sources='1']")).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathnexa:number-logic-audio:1") ?? "null").musicEnabled)).toBe(true);
-  if (numberLogicAudioMode.fallback) {
-    await expect.poll(readNumberLogicFallback).toMatchObject({ mediaElements: 1, activeSources: 1, paused: false, musicEnabled: true });
-  }
+  await expect.poll(readNumberLogicMusic).toMatchObject({ mediaElements: 1, activeSources: 1, paused: false });
+
+  // Re-enter a fresh Number Logic document. Enter is the first eligible
+  // interaction and must start the same track without opening Music settings.
+  await page.goto("/games");
+  await page.goto("/games/number-logic/play");
+  expect(await readNumberLogicMusic()).toMatchObject({ mediaElements: 0, activeSources: 0, playAttempts: 0, hasSource: false });
+  const keyboardMode = page.getByRole("button", { name: /Product Square/i });
+  await keyboardMode.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(readNumberLogicMusic).toMatchObject({ mediaElements: 1, activeSources: 1, paused: false, playAttempts: 1, error: null });
+  await expect.poll(async () => (await readNumberLogicMusic()).currentTime).toBeGreaterThan(0.05);
 
   await page.goto("/games/crosscalc/play");
   await page.getByRole("button", { name: "How to play" }).click();
@@ -395,14 +393,14 @@ test("trusted gestures start one real music source per game and navigation tears
   const cleanup = await page.evaluate(() => ({
     numberCrossOrVocabulary: "__MATHNEXA_GAME_MUSIC__" in window,
     crossCalc: "__MATHNEXA_CROSSCALC_MUSIC__" in window,
-    numberLogicFallback: "__MATHNEXA_NUMBER_LOGIC_MEDIA_FALLBACK__" in window,
+    numberLogicMusic: "__MATHNEXA_NUMBER_LOGIC_MUSIC__" in window,
     numberLogicRoot: document.querySelectorAll("[data-audio-manager-count]").length,
     gameAudioElements: document.querySelectorAll("audio").length
   }));
   expect(cleanup).toEqual({
     numberCrossOrVocabulary: false,
     crossCalc: false,
-    numberLogicFallback: false,
+    numberLogicMusic: false,
     numberLogicRoot: 0,
     gameAudioElements: 0
   });

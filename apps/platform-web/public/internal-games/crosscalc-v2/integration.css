@@ -405,3 +405,334 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
   .native-preview-banner span, .native-preview-banner a,.native-music-credit a { color: LinkText; }
   .native-back-link { border-color: ButtonText; }
 }
+
+/*
+ * Compact equation workbench
+ *
+ * The immutable V2 application still owns every puzzle control and proof row.
+ * The layout adapter only adds two real disclosure buttons and collapses the
+ * existing side panels so the connected network remains the visual hero.
+ */
+.app-shell[data-crosscalc-layout="compact"] .game-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+  width: min(100%, 100rem);
+  min-height: calc(100vh - 76px);
+  margin-inline: auto;
+  gap: clamp(0.55rem, 1vw, 0.85rem);
+  padding-top: clamp(0.55rem, 1vw, 0.85rem);
+}
+
+.app-shell[data-crosscalc-layout="compact"] .puzzle-console {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.45rem, 0.9vw, 0.7rem);
+  width: min(100%, 96rem);
+  margin-inline: auto;
+}
+
+.compact-disclosure__trigger {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0.55rem 2.65rem 0.55rem 0.8rem;
+  border: 1px solid #20cfe34d;
+  border-radius: 0.65rem;
+  color: #f5fbff;
+  text-align: left;
+  cursor: pointer;
+  background: #0c2237;
+  box-shadow: inset 0 1px #ffffff0c;
+}
+
+.compact-disclosure__trigger--paths { border-color: #ff4f9a4d; }
+
+.compact-disclosure__trigger:hover,
+.compact-disclosure__trigger[aria-expanded="true"] {
+  border-color: #20cfe3;
+  background: #102c46;
+}
+
+.compact-disclosure__trigger--paths:hover,
+.compact-disclosure__trigger--paths[aria-expanded="true"] { border-color: #ff4f9a; }
+
+.compact-disclosure__trigger:focus-visible {
+  outline: 3px solid #f5fbff;
+  outline-offset: 3px;
+}
+
+.compact-disclosure__label {
+  grid-column: 1;
+  color: #f5fbff;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font: 900 0.72rem/1.15 "Segoe UI", Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.compact-disclosure__summary {
+  grid-column: 1;
+  min-width: 0;
+  margin-top: 0.18rem;
+  color: #9bb0c3;
+  font: 750 0.78rem/1.2 "Segoe UI", Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.compact-disclosure__trigger--setup .compact-disclosure__summary { color: #74e3ed; }
+.compact-disclosure__trigger--paths .compact-disclosure__summary { color: #ff91bd; }
+
+.compact-disclosure__arrow {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  color: #f5fbff;
+  font-size: 1.35rem;
+  line-height: 1;
+  transform: translateY(-55%);
+  transition: transform 160ms ease;
+}
+
+.compact-disclosure__trigger[aria-expanded="true"] .compact-disclosure__arrow {
+  transform: translateY(-42%) rotate(180deg);
+}
+
+.app-shell[data-crosscalc-layout="compact"] [data-compact-panel][hidden] {
+  display: none !important;
+}
+
+.app-shell[data-crosscalc-layout="compact"] [data-compact-panel]:not([hidden]) {
+  grid-column: 1;
+  grid-row: 2;
+  width: min(100%, 96rem);
+  margin-inline: auto;
+  border-color: #20cfe33d;
+  border-radius: 0.75rem;
+  background: #081a2bf2;
+  box-shadow: 0 18px 46px #0005;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .equation-panel:not([hidden]) {
+  grid-row: 3;
+  display: flex;
+  max-height: min(43vh, 370px);
+  border-color: #ff4f9a3d;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.8rem;
+  padding: clamp(0.8rem, 1.25vw, 1rem);
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > .eyebrow,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > h1,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > .lede,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > .logic-spec,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > .secondary-action {
+  grid-column: 1 / -1;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel > .eyebrow { margin: 0; }
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.45rem, 2.3vw, 2.2rem);
+  line-height: 0.95;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .lede {
+  max-width: 72ch;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel label,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .logic-spec,
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .secondary-action {
+  margin-top: 0;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .logic-spec {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .logic-spec span {
+  min-width: 0;
+  padding-block: 0.35rem;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .mission-panel .secondary-action { min-height: 44px; }
+
+.app-shell[data-crosscalc-layout="compact"] .equation-panel {
+  padding: clamp(0.8rem, 1.25vw, 1rem);
+}
+
+.app-shell[data-crosscalc-layout="compact"] .equation-panel .panel-heading .eyebrow { margin-bottom: 0.3rem; }
+
+.app-shell[data-crosscalc-layout="compact"] .equation-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-block: 0.7rem;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .legend {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-shell[data-crosscalc-layout="compact"] .play-stage {
+  grid-column: 1;
+  grid-row: 2;
+  width: min(100%, 96rem);
+  min-height: 0;
+  margin-inline: auto;
+}
+
+.app-shell[data-crosscalc-layout="compact"][data-crosscalc-expanded-panel="setup"] .play-stage {
+  grid-row: 3;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .board-scroll {
+  min-height: clamp(320px, 50vh, 600px);
+  max-height: min(64vh, 680px);
+}
+
+@media (min-width: 1101px) {
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel:not([hidden]) {
+    grid-template-columns: minmax(250px, 1.25fr) repeat(2, minmax(140px, 0.62fr)) minmax(190px, 0.8fr) minmax(150px, 0.58fr);
+    grid-template-rows: auto auto auto;
+    align-items: center;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > .eyebrow { grid-column: 1; grid-row: 1; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > h1 { grid-column: 1; grid-row: 2; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > .lede { grid-column: 1; grid-row: 3; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > label:first-of-type { grid-column: 2; grid-row: 1 / 4; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > label:nth-of-type(2) { grid-column: 3; grid-row: 1 / 4; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > .logic-spec { grid-column: 4; grid-row: 1 / 4; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel > .secondary-action { grid-column: 5; grid-row: 1 / 4; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel .logic-spec { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 780px) {
+  .app-shell[data-crosscalc-layout="compact"] .game-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .puzzle-console {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .equation-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) and (orientation: portrait) {
+  .app-shell[data-crosscalc-layout="compact"] .game-layout {
+    gap: 0.5rem;
+    padding-top: 0.45rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .puzzle-console { gap: 0.4rem; }
+
+  .compact-disclosure__trigger {
+    min-height: 52px;
+    padding: 0.48rem 2rem 0.48rem 0.62rem;
+  }
+
+  .compact-disclosure__label { font-size: 0.66rem; letter-spacing: 0.075em; }
+  .compact-disclosure__summary { font-size: 0.69rem; }
+  .compact-disclosure__arrow { right: 0.62rem; font-size: 1.15rem; }
+
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel:not([hidden]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    padding: 0.75rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel h1 { font-size: 1.65rem; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel .lede { font-size: 0.78rem; }
+  .app-shell[data-crosscalc-layout="compact"] .mission-panel .logic-spec { grid-template-columns: 1fr; }
+
+  .app-shell[data-crosscalc-layout="compact"] .equation-panel:not([hidden]) {
+    max-height: min(48vh, 360px);
+    padding: 0.75rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .equation-list { grid-template-columns: 1fr; }
+  .app-shell[data-crosscalc-layout="compact"] .legend { grid-template-columns: 1fr; }
+
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll {
+    min-height: 260px;
+    max-height: min(54vh, 430px);
+  }
+}
+
+@media (max-width: 340px) and (orientation: portrait) {
+  .compact-disclosure__trigger { padding-left: 0.52rem; }
+  .compact-disclosure__label { font-size: 0.62rem; }
+  .compact-disclosure__summary { font-size: 0.65rem; }
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll { min-height: 238px; }
+}
+
+@media (max-width: 360px) and (orientation: portrait) {
+  .app-shell[data-crosscalc-layout="compact"] .puzzle-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) and (orientation: portrait) and (max-height: 620px) {
+  .app-shell[data-crosscalc-layout="compact"] .status-cluster {
+    position: absolute;
+    display: flex;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .app-shell[data-crosscalc-layout="compact"] .game-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .equation-panel:not([hidden]) { display: flex; }
+
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll {
+    min-height: 230px;
+    max-height: 62vh;
+  }
+}
+
+@media (forced-colors: active) {
+  .compact-disclosure__trigger,
+  .compact-disclosure__trigger:hover,
+  .compact-disclosure__trigger[aria-expanded="true"] {
+    border-color: ButtonText;
+    color: ButtonText;
+    background: ButtonFace;
+  }
+
+  .compact-disclosure__summary,
+  .compact-disclosure__trigger--setup .compact-disclosure__summary,
+  .compact-disclosure__trigger--paths .compact-disclosure__summary { color: ButtonText; }
+}

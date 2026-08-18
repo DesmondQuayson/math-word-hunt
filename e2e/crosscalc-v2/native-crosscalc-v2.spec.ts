@@ -48,11 +48,34 @@ async function signIn(page: Page, email: string, destination: string) {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
+async function expectAxeClean(page: Page, browserName: string) {
+  const hasAxe = await page.evaluate(() => Boolean((window as typeof window & { axe?: unknown }).axe));
+  if (!hasAxe) await page.evaluate(axeSource);
+  const accessibility = await page.evaluate(async (engine) => (window as typeof window & {
+    axe: { run: (options: unknown) => Promise<{ violations: unknown[] }> };
+  }).axe.run({
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+    // Playwright WebKit cannot read axe-core's text-measurement canvas and emits
+    // an engine console error. Chromium remains the authoritative contrast gate.
+    rules: { "color-contrast": { enabled: engine !== "webkit" } }
+  }), browserName);
+  expect(accessibility.violations).toEqual([]);
+}
+
+async function restartCrossCalcPuzzle(page: Page) {
+  const setupDisclosure = page.getByRole("button", { name: /^Puzzle Setup/i });
+  if (await setupDisclosure.getAttribute("aria-expanded") !== "true") await setupDisclosure.click();
+  await page.getByRole("button", { name: "Restart puzzle" }).click();
+  await setupDisclosure.click();
+  await expect(setupDisclosure).toHaveAttribute("aria-expanded", "false");
+}
+
 async function expectResponsiveCrossCalc(page: Page, viewport: { width: number; height: number }) {
   await page.setViewportSize(viewport);
   const metrics = await page.evaluate(() => {
     const stage = document.querySelector(".play-stage")!.getBoundingClientRect();
     const boardViewport = document.querySelector(".board-scroll")!.getBoundingClientRect();
+    const consoleRect = document.querySelector(".puzzle-console")!.getBoundingClientRect();
     const toolbar = document.querySelector(".toolbar")!;
     const toolbarRect = toolbar.getBoundingClientRect();
     const toolbarButtons = [...toolbar.querySelectorAll("button")].map((button) => {
@@ -60,7 +83,7 @@ async function expectResponsiveCrossCalc(page: Page, viewport: { width: number; 
       return rect.left >= toolbarRect.left - 1 && rect.right <= toolbarRect.right + 1
         && rect.left >= -1 && rect.right <= innerWidth + 1;
     });
-    const tapTargets = [...document.querySelectorAll(".toolbar button, .number-tray button, .action-row button, .number-cell")]
+    const tapTargets = [...document.querySelectorAll(".toolbar button, .compact-disclosure__trigger, .number-tray button, .action-row button, .number-cell")]
       .map((target) => {
         const rect = target.getBoundingClientRect();
         return { width: rect.width, height: rect.height };
@@ -69,20 +92,30 @@ async function expectResponsiveCrossCalc(page: Page, viewport: { width: number; 
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       stageWithinViewport: stage.left >= -1 && stage.right <= innerWidth + 1,
       boardWithinViewport: boardViewport.left >= -1 && boardViewport.right <= innerWidth + 1,
+      consoleWithinViewport: consoleRect.left >= -1 && consoleRect.right <= innerWidth + 1,
+      consoleBeforeStage: consoleRect.bottom <= stage.top + 1,
       boardOverflowMode: getComputedStyle(document.querySelector(".board-scroll")!).overflowX,
       smallestTarget: Math.min(...tapTargets.map((target) => Math.min(target.width, target.height))),
       toolbarOverflow: toolbar.scrollWidth - toolbar.clientWidth,
-      toolbarButtonsVisible: toolbarButtons.every(Boolean)
+      toolbarButtonsVisible: toolbarButtons.every(Boolean),
+      setupCollapsed: (document.querySelector(".mission-panel") as HTMLElement).hidden,
+      pathsCollapsed: (document.querySelector(".equation-panel") as HTMLElement).hidden,
+      statusAvailableToAssistiveTechnology: getComputedStyle(document.querySelector(".status-cluster")!).display !== "none"
     };
   });
   expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
   expect(metrics.stageWithinViewport).toBe(true);
   expect(metrics.boardWithinViewport).toBe(true);
+  expect(metrics.consoleWithinViewport).toBe(true);
+  expect(metrics.consoleBeforeStage).toBe(true);
   expect(metrics.smallestTarget).toBeGreaterThanOrEqual(44);
+  expect(metrics.setupCollapsed).toBe(true);
+  expect(metrics.pathsCollapsed).toBe(true);
   if (viewport.width <= 560 && viewport.height > viewport.width) {
     expect(["auto", "scroll"]).toContain(metrics.boardOverflowMode);
     expect(metrics.toolbarOverflow).toBeLessThanOrEqual(1);
     expect(metrics.toolbarButtonsVisible).toBe(true);
+    expect(metrics.statusAvailableToAssistiveTechnology).toBe(true);
   }
   await expect(page.locator(".number-tray")).toBeVisible();
   await page.locator(".action-row").scrollIntoViewIfNeeded();
@@ -92,6 +125,57 @@ async function expectResponsiveCrossCalc(page: Page, viewport: { width: number; 
     return rect.left >= -1 && rect.right <= innerWidth + 1 && rect.width >= 44 && rect.height >= 44;
   }));
   expect(actions.every(Boolean)).toBe(true);
+
+  if (viewport.width <= 390 && viewport.height > viewport.width) {
+    const tray = page.locator(".number-tray");
+    const pointerTile = tray.locator("button").first();
+    const pointerCell = page.locator(".number-cell.empty").first();
+    await tray.scrollIntoViewIfNeeded();
+    await expect(tray).toBeVisible();
+    await pointerTile.click();
+    await pointerCell.click();
+    await expect(pointerCell).not.toContainText("?");
+    await restartCrossCalcPuzzle(page);
+    await expect(pointerCell).toContainText("?");
+
+    await pointerTile.focus();
+    await pointerTile.press("Enter");
+    await pointerCell.focus();
+    await pointerCell.press("Enter");
+    await expect(pointerCell).not.toContainText("?");
+    await restartCrossCalcPuzzle(page);
+    await expect(pointerCell).toContainText("?");
+
+    await tray.scrollIntoViewIfNeeded();
+    const reachable = await tray.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.top < innerHeight && rect.bottom > 0 && rect.left >= -1 && rect.right <= innerWidth + 1;
+    });
+    expect(reachable).toBe(true);
+  }
+}
+
+async function expectZoomEquivalentReflow(page: Page, zoom: 2 | 4) {
+  await page.setViewportSize({ width: 1280 / zoom, height: 720 });
+  const metrics = await page.evaluate(() => {
+    const triggers = [...document.querySelectorAll(".compact-disclosure__trigger")];
+    const summaries = [...document.querySelectorAll(".compact-disclosure__summary")];
+    const first = triggers[0].getBoundingClientRect();
+    const second = triggers[1].getBoundingClientRect();
+    return {
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      summariesUnclipped: summaries.every((summary) => summary.scrollWidth <= summary.clientWidth + 1),
+      triggersWithinViewport: triggers.every((trigger) => {
+        const rect = trigger.getBoundingClientRect();
+        return rect.left >= -1 && rect.right <= innerWidth + 1 && rect.height >= 44;
+      }),
+      stacked: second.top >= first.bottom - 1
+    };
+  });
+  expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+  expect(metrics.summariesUnclipped).toBe(true);
+  expect(metrics.triggersWithinViewport).toBe(true);
+  if (zoom === 4) expect(metrics.stacked).toBe(true);
 }
 
 async function crossCalcMusicSnapshot(page: Page) {
@@ -211,7 +295,36 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   await signIn(page, subscriberEmail, "/games");
   await expect(page.getByRole("heading", { name: "CrossCalc", exact: true })).toBeVisible();
   await page.goto("/games/crosscalc/play?version=0.2.0");
+  const setupDisclosure = page.getByRole("button", { name: /Puzzle Setup.*Mixed · Medium/i });
+  const pathsDisclosure = page.getByRole("button", { name: /Equation Paths.*0\//i });
+  await expect(setupDisclosure).toBeVisible();
+  await expect(pathsDisclosure).toBeVisible();
+  await expect(setupDisclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(pathsDisclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeHidden();
+  await expect(page.locator(".equation-panel")).toBeHidden();
+  await setupDisclosure.click();
+  await expect(setupDisclosure).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Restart puzzle" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "CrossCalc connected arithmetic puzzle" })).toBeAttached();
+  await expectAxeClean(page, browserName);
+  await page.keyboard.press("Escape");
+  await expect(setupDisclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(setupDisclosure).toBeFocused();
+  await pathsDisclosure.focus();
+  await page.keyboard.press("Enter");
+  await expect(pathsDisclosure).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(".equation-panel")).toBeVisible();
+  expect(await page.evaluate(() => {
+    const stage = document.querySelector(".play-stage")!.getBoundingClientRect();
+    const proof = document.querySelector(".equation-panel")!.getBoundingClientRect();
+    return proof.top >= stage.bottom - 1;
+  })).toBe(true);
+  await expectAxeClean(page, browserName);
+  await page.keyboard.press("Escape");
+  await expect(pathsDisclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(pathsDisclosure).toBeFocused();
   await expect(page.getByRole("heading", { name: "Every answer opens another." })).toHaveCount(0);
   await expect(page.locator("iframe")).toHaveCount(0);
   for (const viewport of [
@@ -221,8 +334,11 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
     { width: 844, height: 390 },
     { width: 768, height: 1024 },
     { width: 1024, height: 768 },
+    { width: 1366, height: 768 },
     { width: 1920, height: 1080 }
   ]) await expectResponsiveCrossCalc(page, viewport);
+  await expectZoomEquivalentReflow(page, 2);
+  await expectZoomEquivalentReflow(page, 4);
   expect((await page.goto("/games/crosscalc/v2/preview"))?.status()).toBe(404);
 
   await context.clearCookies();
@@ -250,7 +366,9 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   await expect(page.getByText("CrossCalc", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Admin Preview · Version 0.2.0", { exact: true })).toBeVisible();
   await expect(page.getByText("LIVE", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Puzzle Setup/i })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: /Equation Paths/i })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("heading", { name: "Place the numbers. Prove every path." })).toBeHidden();
   await expect(page.locator("iframe")).toHaveCount(0);
   expect(new URL(page.url()).origin).toBe("http://127.0.0.1:3000");
   expect(await crossCalcMusicSnapshot(page)).toMatchObject({
@@ -339,19 +457,16 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await page.locator("[aria-label*='equation' i], [aria-describedby]").count()).toBeGreaterThan(0);
 
-  await page.evaluate(axeSource);
-  const accessibility = await page.evaluate(async (engine) => (window as typeof window & { axe: { run: (options: unknown) => Promise<{ violations: unknown[] }> } }).axe.run({
-    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
-    // Playwright WebKit cannot read axe-core's text-measurement canvas and emits
-    // an engine console error. Chromium remains the authoritative contrast gate.
-    rules: { "color-contrast": { enabled: engine !== "webkit" } }
-  }), browserName);
-  expect(accessibility.violations).toEqual([]);
+  await expectAxeClean(page, browserName);
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
   await expect(page.locator(".number-tray")).toBeVisible();
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "none" });
 
+  const previewSetupDisclosure = page.getByRole("button", { name: /Puzzle Setup/i });
+  await previewSetupDisclosure.click();
   await page.getByLabel("Difficulty").selectOption("beginner");
+  await expect(previewSetupDisclosure).toContainText("Beginner");
+  await previewSetupDisclosure.click();
   for (let index = 0; index < 30; index += 1) {
     if (await page.getByRole("heading", { name: "Network complete." }).isVisible()) break;
     await page.getByRole("button", { name: /^Hint/ }).click();
