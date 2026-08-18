@@ -1,4 +1,6 @@
 const ASSET_BASE = "/internal-games/number-logic/";
+const RUNTIME_SHA256 = "1801220e5b7688626aaf926c7f023f3bc2d108d9f91bdb5426f142e9726fabda";
+const RUNTIME_SRC = `./assets/index-DXexJzA-.js?v=${RUNTIME_SHA256}`;
 
 export function renderNumberLogicDocument(): string {
   return `<!doctype html>
@@ -21,7 +23,7 @@ export function renderNumberLogicDocument(): string {
       <summary>Credits</summary>
       <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
     </details>
-    <script type="module" src="./assets/index-DXexJzA-.js"></script>
+    <script type="module" src="${RUNTIME_SRC}"></script>
   </body>
 </html>`;
 }
