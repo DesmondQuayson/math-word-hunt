@@ -25,7 +25,7 @@ export type CmsBlock = Readonly<{
   destinationUrl?: string;
   adminDestinationUrl?: string | null;
   enabled?: boolean;
-  openMode?: "same_tab" | "new_tab";
+  openMode?: "same_tab";
   allowedHosts?: readonly string[];
   lastVerifiedAt?: string;
   status?: "verified";
@@ -48,7 +48,7 @@ export type MapPrepDestination = Readonly<{
   destinationUrl: string;
   adminDestinationUrl: string | null;
   enabled: boolean;
-  openMode: "same_tab" | "new_tab";
+  openMode: "same_tab";
   allowedHosts: readonly string[];
   lastVerifiedAt: string;
   status: "verified";
@@ -103,7 +103,10 @@ export function parseMapPrepDestination(input: unknown, verifiedAt: string): Map
     destinationUrl: destination.toString(),
     adminDestinationUrl: adminDestination?.toString() ?? null,
     enabled,
-    openMode,
+    // V1 launch is a server-owned 303 redirect and therefore always opens in
+    // the current tab. Legacy new_tab records are normalized instead of
+    // failing closed so an existing verified destination remains readable.
+    openMode: "same_tab",
     allowedHosts: Object.freeze(allowedHosts),
     lastVerifiedAt: timestamp.toISOString(),
     status: "verified"

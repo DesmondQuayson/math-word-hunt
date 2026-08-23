@@ -19,6 +19,7 @@ describe("structured CMS",()=>{
   });
   it("builds and revalidates an explicit MAP Prep host policy",()=>{
     const destination=parseMapPrepDestination({label:"MAP Prep",publicDescription:"Reviewed practice destination.",destinationUrl:"https://learn.showmemath.example.com/path",adminDestinationUrl:"https://admin.showmemath.example.com",enabled:true,openMode:"new_tab"},"2026-08-04T12:00:00Z");
+    expect(destination?.openMode).toBe("same_tab");
     expect(destination?.allowedHosts).toEqual(["learn.showmemath.example.com","admin.showmemath.example.com"]);
     expect(readMapPrepDestination(destination)).toEqual(destination);
     expect(parseMapPrepDestination({label:"Unsafe",destinationUrl:"https://127.0.0.1/admin",enabled:true,openMode:"same_tab"},"2026-08-04T12:00:00Z")).toBeNull();

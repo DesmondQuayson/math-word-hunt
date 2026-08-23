@@ -12,7 +12,7 @@ export async function POST(request:Request){
   const form=await request.formData();if(!await validateAdminMutationCsrf(form))return back(request,"csrf-denied");
   const allowedHost=String(form.get("allowedHost")??"").trim().toLowerCase();const destinationUrl=String(form.get("destinationUrl")??"");const adminDestinationUrl=String(form.get("adminDestinationUrl")??"");
   const health=await checkAdminExternalDestination(destinationUrl,allowedHost);if(health.state!=="verified")return back(request,health.state==="unsafe"?"invalid-destination":"health-check-failed");
-  const destination=parseMapPrepDestination({label:String(form.get("label")??""),publicDescription:String(form.get("publicDescription")??""),destinationUrl,adminDestinationUrl,enabled:form.get("enabled")==="true",openMode:String(form.get("openMode")??"")},health.checkedAt);
+  const destination=parseMapPrepDestination({label:String(form.get("label")??""),publicDescription:String(form.get("publicDescription")??""),destinationUrl,adminDestinationUrl,enabled:form.get("enabled")==="true",openMode:"same_tab"},health.checkedAt);
   if(!destination||destination.allowedHosts.some((host)=>host!==allowedHost))return back(request,"invalid-destination");
   const client=createServiceSupabaseClient();if(!client)return back(request,"failed-closed");
   const content={key:"map-prep",title:destination.label,description:destination.publicDescription,seoTitle:destination.label,seoDescription:destination.publicDescription,socialTitle:destination.label,socialDescription:destination.publicDescription,blocks:[{type:"external-link",href:destination.destinationUrl,...destination,lastHealthCheck:health.checkedAt,healthStatus:health.state,healthStatusCode:health.statusCode}]};
