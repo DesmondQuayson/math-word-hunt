@@ -1,12 +1,11 @@
-import { redirect } from "next/navigation";
-
+import { signOutAction } from "@/app/auth-actions";
+import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access-active-panel";
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import {
-  confirmationRequiredHref,
   destinationLabel,
   safeAccessIntentDestination
 } from "@/lib/auth/access-intent";
@@ -27,25 +26,41 @@ export default async function AccessIntentPage({
 }) {
   const destination = safeAccessIntentDestination((await searchParams).next);
   const context = await resolveConsumerContext();
-  if (context.status === "unconfirmed") redirect(confirmationRequiredHref(destination));
-  if (context.status !== "anonymous" && context.status !== "unconfigured") redirect(destination);
-  if (await resolveSchoolAccessSession()) redirect(destination);
+  const signedIn = context.status !== "anonymous" && context.status !== "unconfigured";
+  const schoolSession = signedIn ? null : await resolveSchoolAccessSession();
 
   return <Container className="page-stack access-intent-page" width="compact">
     <PageHeader
       eyebrow="Your MathNexa path"
       title={`Continue to ${destinationLabel(destination)}`}
-      description="Create an account or sign in. After confirmation, MathNexa will return you to the resource you selected."
+      description={signedIn
+        ? "Continue with your MathNexa account."
+        : "Create an account or sign in. After confirmation, MathNexa will return you to the resource you selected."}
     />
+    <div className="access-intent-actions" aria-label="Account choices">
+      {schoolSession ? <>
+        <LinkButton href={destination}>Continue</LinkButton>
+        <LinkButton href="/account" variant="secondary">Access status</LinkButton>
+      </> : signedIn ? <>
+        <LinkButton href="/account">Account</LinkButton>
+        <LinkButton href="/subscription" variant="secondary">Subscription</LinkButton>
+      </> : <>
+        <LinkButton href={`/sign-in?next=${destination}`}>Sign in</LinkButton>
+        <LinkButton href={`/sign-up?next=${destination}`} variant="secondary">Create account</LinkButton>
+      </>}
+    </div>
+    {schoolSession
+      ? <AuthorizedAccessActivePanel />
+      : <AuthorizedCodeForm nextDestination={destination} compact />}
+    {signedIn && !schoolSession
+      ? <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
+      : null}
+    {!signedIn && !schoolSession
+      ? <p className="truth-note">Account and subscription details appear only after you sign in.</p>
+      : null}
     <Notice label="Selected destination" tone="information">
       <strong>{destinationLabel(destination)}</strong>
       <p>Your destination is checked against MathNexa&apos;s server-owned list before it is used.</p>
     </Notice>
-    <div className="access-intent-actions" aria-label="Account choices">
-      <LinkButton href={`/sign-up?next=${destination}`}>Create an account</LinkButton>
-      <LinkButton href={`/sign-in?next=${destination}`} variant="secondary">Sign in</LinkButton>
-    </div>
-    <AuthorizedCodeForm nextDestination={destination} />
-    <p className="truth-note">Account and subscription details appear only after you sign in.</p>
   </Container>;
 }

@@ -18,12 +18,15 @@ test.beforeAll(() => {
 
 test("the existing access screen keeps public account choices and shows the masked code field inline", async ({ page }) => {
   await page.goto("/access?next=/map-prep");
-  await expect(page.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up?next=/map-prep");
   await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?next=/map-prep");
+  await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/sign-up?next=/map-prep");
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toHaveAttribute("type", "password");
+  const input = page.getByLabel("Authorized code (required)");
+  await expect(input).toHaveAttribute("type", "password");
+  await expect(input).toBeInViewport();
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(authorizedCode);
+  await expect(page.locator("body")).not.toContainText("Use the code provided by your school. No personal account is created.");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.addScriptTag({ content: axeSource });
@@ -91,8 +94,8 @@ test("unsafe next is rejected and account UI contains no fake identity or billin
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByText("Access provided through an authorized school code.")).toBeVisible();
   await expect(page.locator("#main-content").getByRole("button", { name: "Exit authorized access" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorized access active" })).toBeVisible();
+  await expect(page.getByLabel("Authorized code (required)")).toHaveCount(0);
   await expect(page.getByTestId("consumer-account-summary")).toHaveCount(0);
   await expect(page.locator('input[type="email"], a[href="/subscriber-management"]')).toHaveCount(0);
 });

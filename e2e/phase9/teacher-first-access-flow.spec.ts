@@ -193,6 +193,11 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
   await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await page.goto("/access?next=/map-prep");
+  await expect(page).toHaveURL("/access?next=/map-prep");
+  await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
+  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
   await page.goto("/games?access=active");
   await expect(page).toHaveURL("/subscription?next=/games");
   await page.goto("/map-prep?destinationUrl=https://evil.example/override");
@@ -216,6 +221,11 @@ test("server-entitled accounts reach all four selected products and validated MA
   await expect(page.getByRole("link", { name: "My Account" })).toBeVisible();
   await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
   await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
+  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await page.goto("/access?next=/map-prep");
+  await expect(page).toHaveURL("/access?next=/map-prep");
+  await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
   await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
   await page.goto("/games");

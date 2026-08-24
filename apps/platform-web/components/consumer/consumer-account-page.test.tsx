@@ -59,10 +59,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("permanent authorized-code visibility on consumer account controls", () => {
-  it("remains visible to an active authorized-code session", async () => {
+  it("shows active status instead of asking an active authorized-code session again", async () => {
     state.schoolSession = { id: "11111111-1111-4111-8111-111111111111" };
     await renderAccount();
-    expectAuthorizedCodeField();
+    expect(screen.getByRole("heading", { name: "Authorized access active" })).toBeTruthy();
+    expect(screen.queryByLabelText(/^Authorized code/)).toBeNull();
     expect(screen.getByRole("button", { name: "Exit authorized access" })).toBeTruthy();
   });
 

@@ -25,11 +25,8 @@ export function AuthorizedCodeForm({ nextDestination, compact = false }: Authori
     className={`authorized-access-panel${compact ? " authorized-access-panel--compact" : ""}`}
     aria-labelledby="authorized-access-heading"
   >
-    <div className="authorized-access-divider" aria-hidden="true"><span>School access</span></div>
     <div className="authorized-access-copy">
-      <p className="eyebrow">Authorized staff access</p>
       <h2 id="authorized-access-heading">Enter authorized code to access MathNexa</h2>
-      <p>Use the code provided by your school. No personal account is created.</p>
     </div>
     <form className="authorized-access-form" action={action} noValidate>
       {state.status === "error" ? <div className="error-summary" role="alert" tabIndex={-1} ref={messageRef}>

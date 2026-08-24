@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requestConsumerDeletionAction } from "@/app/consumer-actions";
 import { signOutAction } from "@/app/auth-actions";
-import { exitSchoolAccessAction } from "@/app/school-access-actions";
+import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access-active-panel";
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
@@ -22,8 +22,7 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
       <PageHeader eyebrow="Authorized school access" title="MathNexa access is active" description="This temporary session provides MathNexa access without creating a personal account." />
       <Notice label="Access status" tone="success"><strong>Access provided through an authorized school code.</strong><p>This session contains no email, billing profile, password, subscription history, or personal account information.</p></Notice>
       <div className="button-row"><LinkButton href="/games">Open MathNexa products</LinkButton><LinkButton href="/sign-in" variant="secondary">Sign in to a personal account</LinkButton></div>
-      <AuthorizedCodeForm nextDestination="/account" compact />
-      <form action={exitSchoolAccessAction}><button className="button button-secondary" type="submit">Exit authorized access</button></form>
+      <AuthorizedAccessActivePanel />
     </Container>;
   }
   const params = searchParams ? await searchParams : {};

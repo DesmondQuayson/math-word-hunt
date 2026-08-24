@@ -19,6 +19,9 @@ describe("inline authorized-code access", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
     expect((container.querySelector('input[name="next"]') as HTMLInputElement | null)?.value).toBe("/map-prep");
     expect(container.textContent).not.toContain("AESM");
+    expect(container.textContent).not.toContain("Use the code provided by your school. No personal account is created.");
+    expect(container.textContent).not.toContain("Authorized staff access");
+    expect(container.textContent).not.toContain("School access");
   });
 
   it("supports the compact account-control presentation without hiding the field", () => {
