@@ -451,6 +451,15 @@
   min-width: 8.5rem;
 }
 
+.authorized-access-panel--compact {
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.authorized-access-panel--compact .authorized-access-copy h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
 .subscription-review-card > * + *,
 .checkout-polling > * + * {
   margin-top: var(--space-4);

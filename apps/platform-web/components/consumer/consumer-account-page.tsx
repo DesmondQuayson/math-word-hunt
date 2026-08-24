@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requestConsumerDeletionAction } from "@/app/consumer-actions";
 import { signOutAction } from "@/app/auth-actions";
 import { exitSchoolAccessAction } from "@/app/school-access-actions";
+import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -21,16 +22,17 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
       <PageHeader eyebrow="Authorized school access" title="MathNexa access is active" description="This temporary session provides MathNexa access without creating a personal account." />
       <Notice label="Access status" tone="success"><strong>Access provided through an authorized school code.</strong><p>This session contains no email, billing profile, password, subscription history, or personal account information.</p></Notice>
       <div className="button-row"><LinkButton href="/games">Open MathNexa products</LinkButton><LinkButton href="/sign-in" variant="secondary">Sign in to a personal account</LinkButton></div>
+      <AuthorizedCodeForm nextDestination="/account" compact />
       <form action={exitSchoolAccessAction}><button className="button button-secondary" type="submit">Exit authorized access</button></form>
     </Container>;
   }
   const params = searchParams ? await searchParams : {};
   const access = await getGameAccessView();
   if (context.status === "unconfirmed") {
-    return <Container className="page-stack" width="compact"><PageHeader eyebrow="Account confirmation" title="Confirm your email" description="Game and subscription access remain unavailable until your email is confirmed."/><Notice label="Confirmation required" tone="warning" live><strong>Check your email.</strong><p>Use the confirmation link, then sign in again. No game access has been granted.</p></Notice></Container>;
+    return <Container className="page-stack" width="compact"><PageHeader eyebrow="Account confirmation" title="Confirm your email" description="Game and subscription access remain unavailable until your email is confirmed."/><Notice label="Confirmation required" tone="warning" live><strong>Check your email.</strong><p>Use the confirmation link, then sign in again. No game access has been granted.</p></Notice><AuthorizedCodeForm nextDestination="/account" compact /></Container>;
   }
   if (context.status === "missing-account" || !context.account) {
-    return <Container className="page-stack" width="compact"><PageHeader eyebrow="Account unavailable" title="Your account could not be verified" description="The server could not resolve the minimal account record."/><Notice label="Access denied" tone="warning" live><strong>Account access remains blocked.</strong><p>Contact support. Do not create another account to bypass this state.</p></Notice><form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form></Container>;
+    return <Container className="page-stack" width="compact"><PageHeader eyebrow="Account unavailable" title="Your account could not be verified" description="The server could not resolve the minimal account record."/><Notice label="Access denied" tone="warning" live><strong>Account access remains blocked.</strong><p>Contact support. Do not create another account to bypass this state.</p></Notice><AuthorizedCodeForm nextDestination="/account" compact /><form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form></Container>;
   }
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow="MathNexa account" title="Your account" description="Only authentication, security, subscription, entitlement, support, and deletion information is associated with this account." />
@@ -45,6 +47,7 @@ export async function ConsumerAccountPage({ searchParams }: { searchParams?: Pro
     </dl>
     <Notice label="Data boundary" tone="information"><strong>No learning profile is stored.</strong><p>MathNexa does not save school, class, roster, assignment, result, score, lesson history, or gameplay progress data.</p></Notice>
     <div className="button-row"><LinkButton href="/subscriber-management">Manage or cancel billing</LinkButton><LinkButton href="/refunds" variant="secondary">Refund review</LinkButton><LinkButton href="/game-access" variant="secondary">Game-access decision</LinkButton></div>
+    <AuthorizedCodeForm nextDestination="/account" compact />
     {context.status === "active" ? <form action={requestConsumerDeletionAction}><button className="button button-secondary" type="submit">Request account deletion</button></form> : null}
     <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
   </Container>;

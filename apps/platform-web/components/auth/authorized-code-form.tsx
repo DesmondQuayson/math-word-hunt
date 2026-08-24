@@ -9,18 +9,26 @@ import { TextField } from "@/components/forms/text-field";
 import { Button } from "@/components/ui/button";
 import { initialAuthorizedCodeFormState } from "@/lib/school-access/form-state";
 
-export function AuthorizedCodeForm({ nextDestination }: Readonly<{ nextDestination: string }>) {
+type AuthorizedCodeFormProps = Readonly<{
+  nextDestination: string;
+  compact?: boolean;
+}>;
+
+export function AuthorizedCodeForm({ nextDestination, compact = false }: AuthorizedCodeFormProps) {
   const [state, action, pending] = useActionState(authorizeSchoolAccessAction, initialAuthorizedCodeFormState);
   const messageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (state.status === "error") messageRef.current?.focus();
   }, [state.status]);
 
-  return <section className="authorized-access-panel" aria-labelledby="authorized-access-heading">
+  return <section
+    className={`authorized-access-panel${compact ? " authorized-access-panel--compact" : ""}`}
+    aria-labelledby="authorized-access-heading"
+  >
     <div className="authorized-access-divider" aria-hidden="true"><span>School access</span></div>
     <div className="authorized-access-copy">
       <p className="eyebrow">Authorized staff access</p>
-      <h2 id="authorized-access-heading">Enter authorized code to sign in</h2>
+      <h2 id="authorized-access-heading">Enter authorized code to access MathNexa</h2>
       <p>Use the code provided by your school. No personal account is created.</p>
     </div>
     <form className="authorized-access-form" action={action} noValidate>

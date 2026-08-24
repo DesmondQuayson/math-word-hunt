@@ -1,5 +1,6 @@
 import { Notice } from "@/components/feedback/notice";
 import { AuthEmailStatus } from "@/components/auth-email-status";
+import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { SignInForm } from "@/components/forms/auth-forms";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -25,5 +26,6 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     <AuthEmailStatus label="Confirmation and recovery delivery" />
     {!configured ? <Notice label="Account service unavailable" tone="warning"><strong>Local accounts are not configured.</strong><p>Start the local Supabase stack and platform together before signing in.</p></Notice> : null}
     <SignInForm configured={configured} nextDestination={nextDestination} />
+    {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? "/account"} compact /> : null}
   </Container>;
 }

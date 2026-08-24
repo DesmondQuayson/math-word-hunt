@@ -190,6 +190,9 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
   await expect(page.getByRole("button", { name: "Accept terms and continue to Stripe" })).toBeEnabled();
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
+  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
   await page.goto("/games?access=active");
   await expect(page).toHaveURL("/subscription?next=/games");
   await page.goto("/map-prep?destinationUrl=https://evil.example/override");
@@ -199,7 +202,7 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
 test("server-entitled accounts reach all four selected products and validated MAP Prep state", async ({ page }) => {
   await signIn(page, entitledEmail, "/games");
   await expect(page).toHaveURL("/games");
-  await expect(page.getByRole("heading", { name: "MathNexa games" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pick a challenge." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Math Vocabulary Hunt" })).toBeVisible();
   const vocabularyGameCard = page.locator("article").filter({ hasText: "Math Vocabulary Hunt" });
   await expect(vocabularyGameCard.getByRole("link", { name: "Play" })).toBeVisible();
@@ -212,6 +215,9 @@ test("server-entitled accounts reach all four selected products and validated MA
   await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
   await expect(page.getByRole("link", { name: "My Account" })).toBeVisible();
   await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
+  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
   await page.goto("/games");
   await vocabularyGameCard.getByRole("link", { name: "Play" }).click();
   await expect(page).toHaveURL("/game/runtime/index.html");
