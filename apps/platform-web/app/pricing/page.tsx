@@ -35,6 +35,7 @@ function money(amount: number | null, currency: string | null): string {
 
 async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: string; billing?: string; consent?: string }) {
   const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
+  if (access.source === "school-access") redirect("/account");
   if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
   if (context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref("/subscription"));
   const config = tryGetConsumerBillingConfiguration();

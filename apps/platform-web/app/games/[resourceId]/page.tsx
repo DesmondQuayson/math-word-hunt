@@ -21,8 +21,8 @@ export default async function GameDetail({ params }: { params: Promise<{ resourc
     if (!registration) notFound();
     redirect(registration.route);
   }
-  const ticket = access.decision.allowed && access.context.userId
-    ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.context.userId })
+  const ticket = access.decision.allowed && access.principal
+    ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.principal.id })
     : null;
   return <Container className="game-detail page-stack" width="wide">
     <header><p className="eyebrow">Standalone game</p><h1>{game.title}</h1><p>{game.description}</p></header>

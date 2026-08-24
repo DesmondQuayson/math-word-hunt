@@ -1,20 +1,52 @@
 import "server-only";
 
-import { decideMathNexaAccess, type MathNexaAccessDecision } from "@math-vocabulary-hunt/platform-core";
+import {
+  MATHNEXA_ALL_ACCESS,
+  decideMathNexaAccess,
+  type MathNexaAccessDecision
+} from "@math-vocabulary-hunt/platform-core";
 
 import { resolveConsumerContext, type ConsumerContext } from "@/lib/auth/consumer-context";
 import { SupabaseConsumerEntitlementRepository } from "@/lib/repositories/consumer-entitlement.repository";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { resolveSchoolAccessSession } from "@/lib/school-access/session";
+
+export type AccessPrincipal = Readonly<{
+  kind: "consumer" | "school-access";
+  id: string;
+}>;
 
 export type GameAccessView = Readonly<{
   context: ConsumerContext;
   decision: MathNexaAccessDecision;
-  source: "server-authoritative" | "default-deny";
+  source: "server-authoritative" | "school-access" | "default-deny";
+  principal: AccessPrincipal | null;
 }>;
 
 export async function getGameAccessView(serverNow = new Date()): Promise<GameAccessView> {
   const context = await resolveConsumerContext();
   if (context.status === "unconfigured" || context.status === "anonymous") {
+    const schoolSession = await resolveSchoolAccessSession(serverNow);
+    if (schoolSession) {
+      return {
+        context,
+        decision: decideMathNexaAccess({
+          authenticated: true,
+          accountStatus: "active",
+          emailConfirmed: true,
+          evidence: {
+            capabilityKey: MATHNEXA_ALL_ACCESS,
+            entitlement: {
+              state: "subscription-active",
+              periodEndsAt: new Date(schoolSession.expiresAt * 1000).toISOString()
+            }
+          },
+          serverNow
+        }),
+        source: "school-access",
+        principal: { kind: "school-access", id: schoolSession.id }
+      };
+    }
     return {
       context,
       decision: decideMathNexaAccess({
@@ -24,7 +56,8 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
         evidence: {},
         serverNow
       }),
-      source: "default-deny"
+      source: "default-deny",
+      principal: null
     };
   }
   if (context.status === "unconfirmed" || context.status === "missing-account" || !context.account) {
@@ -37,7 +70,8 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
         evidence: {},
         serverNow
       }),
-      source: "default-deny"
+      source: "default-deny",
+      principal: context.userId ? { kind: "consumer", id: context.userId } : null
     };
   }
   const supabase = await createServerSupabaseClient();
@@ -51,6 +85,7 @@ export async function getGameAccessView(serverNow = new Date()): Promise<GameAcc
       evidence,
       serverNow
     }),
-    source: supabase ? "server-authoritative" : "default-deny"
+    source: supabase ? "server-authoritative" : "default-deny",
+    principal: { kind: "consumer", id: context.userId }
   };
 }

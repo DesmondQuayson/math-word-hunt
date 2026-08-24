@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requestConsumerDeletionAction } from "@/app/consumer-actions";
 import { signOutAction } from "@/app/auth-actions";
+import { exitSchoolAccessAction } from "@/app/school-access-actions";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,10 +10,20 @@ import { LinkButton } from "@/components/ui/link-button";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
 import { getGameAccessView } from "@/lib/game-access/server";
 import { accessIntentHref } from "@/lib/auth/access-intent";
+import { resolveSchoolAccessSession } from "@/lib/school-access/session";
 
 export async function ConsumerAccountPage({ searchParams }: { searchParams?: Promise<{ deletion?: string }> }) {
   const context = await resolveConsumerContext();
-  if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/account"));
+  if (context.status === "anonymous" || context.status === "unconfigured") {
+    const schoolSession = await resolveSchoolAccessSession();
+    if (!schoolSession) redirect(accessIntentHref("/account"));
+    return <Container className="page-stack" width="compact">
+      <PageHeader eyebrow="Authorized school access" title="MathNexa access is active" description="This temporary session provides MathNexa access without creating a personal account." />
+      <Notice label="Access status" tone="success"><strong>Access provided through an authorized school code.</strong><p>This session contains no email, billing profile, password, subscription history, or personal account information.</p></Notice>
+      <div className="button-row"><LinkButton href="/games">Open MathNexa products</LinkButton><LinkButton href="/sign-in" variant="secondary">Sign in to a personal account</LinkButton></div>
+      <form action={exitSchoolAccessAction}><button className="button button-secondary" type="submit">Exit authorized access</button></form>
+    </Container>;
+  }
   const params = searchParams ? await searchParams : {};
   const access = await getGameAccessView();
   if (context.status === "unconfirmed") {

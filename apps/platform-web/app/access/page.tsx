@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,6 +11,7 @@ import {
   safeAccessIntentDestination
 } from "@/lib/auth/access-intent";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { resolveSchoolAccessSession } from "@/lib/school-access/session";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -27,6 +29,7 @@ export default async function AccessIntentPage({
   const context = await resolveConsumerContext();
   if (context.status === "unconfirmed") redirect(confirmationRequiredHref(destination));
   if (context.status !== "anonymous" && context.status !== "unconfigured") redirect(destination);
+  if (await resolveSchoolAccessSession()) redirect(destination);
 
   return <Container className="page-stack access-intent-page" width="compact">
     <PageHeader
@@ -42,6 +45,7 @@ export default async function AccessIntentPage({
       <LinkButton href={`/sign-up?next=${destination}`}>Create an account</LinkButton>
       <LinkButton href={`/sign-in?next=${destination}`} variant="secondary">Sign in</LinkButton>
     </div>
+    <AuthorizedCodeForm nextDestination={destination} />
     <p className="truth-note">Account and subscription details appear only after you sign in.</p>
   </Container>;
 }

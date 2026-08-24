@@ -1,11 +1,9 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { decideMathNexaAccess, hasMathNexaModuleAccess } from "@math-vocabulary-hunt/platform-core";
+import { hasMathNexaModuleAccess } from "@math-vocabulary-hunt/platform-core";
 
-import type { ConsumerAccountRecord } from "@/lib/auth/consumer-context";
-import { SupabaseConsumerEntitlementRepository } from "@/lib/repositories/consumer-entitlement.repository";
-import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { getGameAccessView } from "@/lib/game-access/server";
 
 type TicketAudience="admin-preview"|"subscriber";
 type TicketPayload=Readonly<{v:1;aud:TicketAudience;packageId:string;principalId:string;issuedAt:number;expiresAt:number}>;
@@ -27,8 +25,6 @@ export function verifyGameAssetTicket(value:string,audience:TicketAudience,packa
 }
 
 export async function authorizeSubscriberGameAsset(ticket:string,packageId:string,now=new Date()):Promise<boolean>{
-  const payload=verifyGameAssetTicket(ticket,"subscriber",packageId,now),client=createServiceSupabaseClient();if(!payload||!client)return false;
-  const accountResult=await client.from("consumer_accounts").select("user_id,account_status,email_confirmed_at,trial_redeemed_at,deletion_requested_at,deletion_completed_at,created_at,updated_at").eq("user_id",payload.principalId).maybeSingle();if(accountResult.error||!accountResult.data||!accountResult.data.email_confirmed_at||!["active","suspended","deletion_pending"].includes(accountResult.data.account_status))return false;
-  const row=accountResult.data,account:ConsumerAccountRecord={userId:row.user_id,accountStatus:row.account_status==="deletion_pending"?"deletion-pending":row.account_status as "active"|"suspended",emailConfirmedAt:row.email_confirmed_at,trialRedeemedAt:row.trial_redeemed_at,deletionRequestedAt:row.deletion_requested_at,deletionCompletedAt:row.deletion_completed_at,createdAt:row.created_at,updatedAt:row.updated_at};
-  const evidence=await new SupabaseConsumerEntitlementRepository(client).getEvidence(account);return hasMathNexaModuleAccess(decideMathNexaAccess({authenticated:true,accountStatus:account.accountStatus,emailConfirmed:true,evidence,serverNow:now}),"games");
+  const payload=verifyGameAssetTicket(ticket,"subscriber",packageId,now);if(!payload)return false;
+  const access=await getGameAccessView(now);return access.principal?.id===payload.principalId&&hasMathNexaModuleAccess(access.decision,"games");
 }

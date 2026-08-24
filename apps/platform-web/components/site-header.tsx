@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/app/auth-actions";
+import { exitSchoolAccessAction } from "@/app/school-access-actions";
 import { Container } from "@/components/layout/container";
 import { NavigationItem } from "@/components/layout/navigation-item";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
@@ -37,7 +38,8 @@ export async function SiteHeader() {
   const mathNexa = publicProduction || productionPlatform;
   const items = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
   const access = productionPlatform ? await getGameAccessView() : null;
-  const signedIn = access !== null && access.context.status !== "anonymous" && access.context.status !== "unconfigured";
+  const schoolAccess = access?.source === "school-access";
+  const signedIn = schoolAccess || (access !== null && access.context.status !== "anonymous" && access.context.status !== "unconfigured");
   return (
     <header className="site-header">
       <Container className="header-inner">
@@ -72,8 +74,8 @@ export async function SiteHeader() {
               </li>
             ))}
             {signedIn ? <li className="nav-account-action">
-              <form action={signOutAction}>
-                <button type="submit">Sign out</button>
+              <form action={schoolAccess ? exitSchoolAccessAction : signOutAction}>
+                <button type="submit">{schoolAccess ? "Exit authorized access" : "Sign out"}</button>
               </form>
             </li> : null}
           </ul>

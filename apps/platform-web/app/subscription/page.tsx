@@ -24,6 +24,11 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
   const view = await getGameAccessView();
   const params = await searchParams;
   const destination = safeAccessIntentDestination(params.next, "/subscription");
+  if (view.source === "school-access") return <Container className="page-stack" width="compact">
+    <PageHeader eyebrow="Authorized school access" title="No subscription is required for this session" description="Your temporary school access already includes MathNexa products." />
+    <Notice label="Billing boundary" tone="information"><strong>Access provided through an authorized school code.</strong><p>No Stripe customer, subscription, trial, Checkout session, or invoice is created.</p></Notice>
+    <div className="button-row"><LinkButton href={destination === "/subscription" ? "/games" : destination}>Continue to MathNexa</LinkButton><LinkButton href="/account" variant="secondary">View access status</LinkButton></div>
+  </Container>;
   if (view.context.status === "anonymous" || view.context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
   if (view.context.status === "unconfirmed" || view.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref(destination));
   const config = tryGetConsumerBillingConfiguration();

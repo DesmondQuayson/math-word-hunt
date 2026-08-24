@@ -22,14 +22,12 @@ const destinationModule: Readonly<Record<ProductDestination, MathNexaProductModu
 export async function requireProductAccess(destination: ProductDestination): Promise<GameAccessView> {
   const safeDestination = safeProductDestination(destination);
   const access = await getGameAccessView();
+  if (hasMathNexaModuleAccess(access.decision, destinationModule[safeDestination])) return access;
   if (access.context.status === "anonymous" || access.context.status === "unconfigured") {
     redirect(accessIntentHref(safeDestination));
   }
   if (access.context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") {
     redirect(confirmationRequiredHref(safeDestination));
   }
-  if (!hasMathNexaModuleAccess(access.decision, destinationModule[safeDestination])) {
-    redirect(subscriptionReviewHref(safeDestination));
-  }
-  return access;
+  redirect(subscriptionReviewHref(safeDestination));
 }
