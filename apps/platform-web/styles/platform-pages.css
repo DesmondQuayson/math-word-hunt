@@ -399,8 +399,8 @@
   margin-bottom: 0;
 }
 
-.access-intent-page > * + * {
-  margin-top: var(--space-4);
+.page-stack.access-intent-page > * + * {
+  margin-top: var(--space-3);
 }
 
 .authorized-access-panel {
