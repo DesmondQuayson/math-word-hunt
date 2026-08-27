@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, isProductionPublicMode, isProductionPublicRestrictedPath } from "@/lib/environment/production-public";
+import { getPlatformCanonicalRedirectUrl, getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, isProductionPublicMode, isProductionPublicRestrictedPath } from "@/lib/environment/production-public";
 import { getServerEnvironment } from "@/lib/environment/server";
 import { isProductionPlatformDeferredBillingPath, isProductionPlatformMode, isProductionPlatformRestrictedPath } from "@/lib/environment/production-platform";
 import {
@@ -34,6 +34,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
   if (isProductionPlatformMode()) {
+    // Normalize www.mathnexa.com and *.vercel.app aliases onto the apex so
+    // search engines and stale links converge on one host. Applies only when
+    // this deployment's configured origin IS https://mathnexa.com.
+    const canonicalRedirect = getPlatformCanonicalRedirectUrl(request.url, request.headers.get("host"));
+    if (canonicalRedirect) return NextResponse.redirect(canonicalRedirect, 308);
     const pathname = request.nextUrl.pathname;
     if (isStagingAccessRequired() && pathname !== STAGING_ACCESS_BOOTSTRAP_PATH && pathname !== STAGING_ACCESS_WEBHOOK_PATH &&
       !isTicketedGameAssetPath(pathname) &&

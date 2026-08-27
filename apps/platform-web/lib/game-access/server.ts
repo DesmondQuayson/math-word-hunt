@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   MATHNEXA_ALL_ACCESS,
   decideMathNexaAccess,
@@ -23,7 +25,14 @@ export type GameAccessView = Readonly<{
   principal: AccessPrincipal | null;
 }>;
 
-export async function getGameAccessView(serverNow = new Date()): Promise<GameAccessView> {
+// Deduped per request: the header, the homepage, and product pages all ask
+// the same question during one render; without cache() each ran its own
+// Supabase round trips. Explicit serverNow values bypass the shared entry.
+export const getGameAccessView = cache(
+  (serverNow?: Date): Promise<GameAccessView> => computeGameAccessView(serverNow ?? new Date())
+);
+
+async function computeGameAccessView(serverNow = new Date()): Promise<GameAccessView> {
   const context = await resolveConsumerContext();
   if (context.status === "unconfigured" || context.status === "anonymous") {
     const schoolSession = await resolveSchoolAccessSession(serverNow);

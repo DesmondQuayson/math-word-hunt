@@ -1,7 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { parseGameLaunchTarget, type GameLaunchTarget } from "@math-vocabulary-hunt/platform-core";
 
+import { withTimeout } from "@/lib/async/with-timeout";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { getInternalGameRegistration, internalGameKeys } from "@/lib/games/internal-registry";
 
@@ -47,7 +50,15 @@ function reportCatalogFailure(code: "query-unavailable" | "canonical-entry-missi
   console.error(`mathnexa-game-catalog:${code}`);
 }
 
-export async function loadPublicGameCatalog(reconcileCanonical = true): Promise<PublicGameCatalog> {
+// Deduped per request and time-boxed: the catalog backs the homepage and the
+// games grid; a cold provider degrades to the existing "unavailable" state
+// instead of hanging the render.
+export const loadPublicGameCatalog = cache(
+  (reconcileCanonical?: boolean): Promise<PublicGameCatalog> =>
+    withTimeout(computePublicGameCatalog(reconcileCanonical ?? true), 4000, { state: "unavailable", games: [] })
+);
+
+async function computePublicGameCatalog(reconcileCanonical = true): Promise<PublicGameCatalog> {
   const client = createServiceSupabaseClient();
   if (!client) return { state: "unavailable", games: [] };
   const [entries, allowedHosts] = await Promise.all([

@@ -56,6 +56,29 @@ export function getProductionPublicCanonicalRedirectUrl(requestUrl: string, host
   return destination;
 }
 
+/**
+ * Production-platform host normalization. Only when this deployment IS the
+ * canonical production origin (MVH_APPLICATION_ORIGIN === https://mathnexa.com)
+ * do www.mathnexa.com and any *.vercel.app deployment alias 308 to the apex.
+ * The staging project's origin points at its own URL, so staging never
+ * redirects, and preview/pilot environments are untouched.
+ */
+export function getPlatformCanonicalRedirectUrl(
+  requestUrl: string,
+  hostHeader: string | null,
+  source: EnvironmentSource = process.env
+): URL | null {
+  if (source.MVH_APPLICATION_ORIGIN?.trim().replace(/\/+$/, "") !== `https://${PRODUCTION_PUBLIC_CANONICAL_HOST}`) return null;
+  const host = hostHeader?.split(":", 1)[0]?.trim().toLowerCase();
+  if (!host || host === PRODUCTION_PUBLIC_CANONICAL_HOST) return null;
+  if (host !== PRODUCTION_PUBLIC_WWW_HOST && !host.endsWith(".vercel.app")) return null;
+  const destination = new URL(requestUrl);
+  destination.protocol = "https:";
+  destination.hostname = PRODUCTION_PUBLIC_CANONICAL_HOST;
+  destination.port = "";
+  return destination;
+}
+
 export function getProductionPublicConfigurationErrors(source: EnvironmentSource = process.env): readonly string[] {
   if (!isProductionPublicMode(source)) return Object.freeze([]);
   const errors: string[] = [];

@@ -17,3 +17,5 @@ dist2/
 .env.*
 !.env.production-public.example
 !.env.example
+.vercel
+.env*

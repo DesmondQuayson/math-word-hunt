@@ -1,5 +1,8 @@
 import "server-only";
 
+import { cache } from "react";
+
+import { withTimeout } from "@/lib/async/with-timeout";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 export type ServerFeatureFlag = Readonly<{
@@ -43,7 +46,14 @@ export async function isCheckoutOperational(): Promise<boolean> {
   return !result.flags.some((flag) => flag.enabled && (flag.key === "maintenance-mode" || flag.key === "checkout-emergency-disabled"));
 }
 
-export async function loadPublicOperationalNotices(): Promise<readonly Readonly<{ kind: "maintenance" | "announcement"; message: string }>[]> {
+// Deduped per request and time-boxed: notices render on every page via the
+// shell, must never block first paint, and fail open to "no notices".
+export const loadPublicOperationalNotices = cache(
+  (): Promise<readonly Readonly<{ kind: "maintenance" | "announcement"; message: string }>[]> =>
+    withTimeout(computePublicOperationalNotices(), 3000, [])
+);
+
+async function computePublicOperationalNotices(): Promise<readonly Readonly<{ kind: "maintenance" | "announcement"; message: string }>[]> {
   if (process.env.MVH_ADMIN_ENABLED !== "true") return [];
   const result = await loadServerFeatureFlags();
   if (result.state === "unavailable") return [];
