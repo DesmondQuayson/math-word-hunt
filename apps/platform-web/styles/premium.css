@@ -1,0 +1,389 @@
+/*
+ * MathNexa premium experience layer (V1.2).
+ *
+ * Loaded last so it refines — never forks — the established system in
+ * components.css / platform-pages.css. Signature accents: deep-navy ink with
+ * restrained turquoise (#20CFE3) and pink (#FF4F9A). Bright accent values are
+ * reserved for dark surfaces; -ink derivatives carry contrast on light ones.
+ *
+ * Motion policy (hard rule): every animation here is ONE-SHOT (fill-mode
+ * both, finite iteration) or user-triggered (hover/focus). No infinite
+ * animation exists in this file. The global reduced-motion override in
+ * foundations.css collapses all of it to instant final states.
+ */
+
+/* ---------- 1. Accent discipline on light surfaces ---------- */
+
+.teacher-home-copy .eyebrow,
+.product-showcase-intro .eyebrow,
+.teacher-home-proof .eyebrow {
+  color: var(--color-accent-turquoise-ink);
+}
+
+.teacher-home-audience {
+  border-left-color: var(--color-accent-turquoise-ink);
+}
+
+/* ---------- 2. Learning constellation (signature hero) ---------- */
+
+.learning-constellation {
+  position: relative;
+  min-width: 0;
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
+  border: var(--border-width-strong) solid var(--color-ink);
+  border-radius: var(--radius-large) var(--radius-large) var(--radius-small) var(--radius-large);
+  background-color: var(--color-surface-dark);
+  background-image:
+    radial-gradient(circle at 82% 12%, rgb(255 79 154 / 14%), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgb(32 207 227 / 12%), transparent 46%),
+    linear-gradient(rgb(255 255 255 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px);
+  background-size: auto, auto, 1.25rem 1.25rem, 1.25rem 1.25rem;
+  box-shadow: 0.65rem 0.65rem 0 var(--color-accent-turquoise), var(--shadow-glow-turquoise);
+  color: var(--color-on-brand);
+}
+
+.constellation-paths {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.constellation-paths path {
+  fill: none;
+  stroke: var(--color-accent-turquoise);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.55;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: constellation-path-draw 900ms var(--ease-standard) 480ms both;
+}
+
+.constellation-paths circle {
+  fill: var(--color-accent-pink);
+  opacity: 0;
+  animation: constellation-node-settle 340ms var(--ease-standard) 1150ms both;
+}
+
+@keyframes constellation-path-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes constellation-node-settle {
+  to {
+    opacity: 0.9;
+  }
+}
+
+.constellation-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.constellation-node {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  border: var(--border-width-thin) solid rgb(255 255 255 / 28%);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-dark-elevated);
+  color: var(--color-on-brand);
+  text-decoration: none;
+  box-shadow: 0 10px 26px rgb(2 10 20 / 45%);
+  transition:
+    transform var(--motion-fast) var(--ease-emphasized),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+  animation: constellation-node-rise var(--motion-hero) var(--ease-emphasized) both;
+}
+
+.constellation-node:nth-child(2) { animation-delay: 110ms; }
+.constellation-node:nth-child(3) { animation-delay: 210ms; }
+.constellation-node:nth-child(4) { animation-delay: 310ms; }
+.constellation-node:nth-child(5) { animation-delay: 410ms; }
+
+@keyframes constellation-node-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.constellation-node:hover,
+.constellation-node:focus-visible {
+  border-color: var(--color-accent-turquoise);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px rgb(2 10 20 / 55%), var(--shadow-glow-turquoise);
+}
+
+.constellation-node-wide {
+  grid-column: 1 / -1;
+}
+
+.constellation-node img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--color-surface-dark-elevated);
+}
+
+.constellation-node-wide img {
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+}
+
+.constellation-node:not(.constellation-node-wide) img {
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.constellation-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width-thin) solid rgb(255 255 255 / 22%);
+}
+
+.constellation-caption strong {
+  font-family: var(--font-display);
+  font-size: var(--font-size-label);
+  letter-spacing: 0.01em;
+}
+
+.constellation-caption span {
+  color: var(--color-accent-turquoise);
+  font-family: var(--font-utility);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.constellation-lede {
+  margin-top: var(--space-4);
+  color: rgb(255 255 255 / 82%);
+  font-size: var(--font-size-label);
+  animation: constellation-node-rise var(--motion-hero) var(--ease-emphasized) 520ms both;
+}
+
+.constellation-lede strong {
+  color: var(--color-accent-turquoise);
+}
+
+/* ---------- 3. Hero copy entrance (one-shot page-load choreography) ---------- */
+
+.teacher-home-copy > * {
+  animation: hero-copy-rise var(--motion-hero) var(--ease-emphasized) both;
+}
+
+.teacher-home-copy > *:nth-child(2) { animation-delay: 70ms; }
+.teacher-home-copy > *:nth-child(3) { animation-delay: 140ms; }
+.teacher-home-copy > *:nth-child(4) { animation-delay: 210ms; }
+.teacher-home-copy > *:nth-child(5) { animation-delay: 280ms; }
+
+@keyframes hero-copy-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 4. One-shot scroll reveals (armed only by JS; see Reveal) ---------- */
+
+.reveal-armed {
+  opacity: 0;
+  transform: translateY(0.85rem);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-section) var(--ease-standard) var(--reveal-delay, 0ms),
+    transform var(--motion-section) var(--ease-emphasized) var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-armed {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 5. Product card depth (hover/focus only) ---------- */
+
+.product-showcase-resource {
+  transition:
+    transform var(--motion-fast) var(--ease-emphasized),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.product-showcase-resource:hover,
+.product-showcase-resource:focus-within {
+  border-color: var(--color-accent-turquoise-ink);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-medium), var(--shadow-glow-turquoise);
+}
+
+.product-showcase-media img {
+  transition: transform var(--motion-standard) var(--ease-standard);
+}
+
+.product-showcase-resource:hover .product-showcase-media img,
+.product-showcase-resource:focus-within .product-showcase-media img {
+  transform: scale(1.025);
+}
+
+.game-preview {
+  transition:
+    transform var(--motion-fast) var(--ease-emphasized),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.game-preview:is(a):hover,
+.game-preview:is(a):focus-visible {
+  border-color: var(--color-accent-turquoise);
+  transform: translateY(-3px);
+}
+
+.game-preview-caption {
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.product-showcase-games .card-kicker {
+  color: var(--color-accent-turquoise);
+}
+
+.game-preview-caption small {
+  color: var(--color-accent-turquoise);
+}
+
+/* ---------- 6. Premium footer ---------- */
+
+.site-footer-premium .footer-inner {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(16rem, 1.2fr) repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-8);
+  padding-block: var(--space-10) var(--space-8);
+}
+
+.footer-brand {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.footer-brand .brand-name {
+  color: var(--color-on-brand);
+  font-family: var(--font-display);
+  font-size: var(--font-size-heading-3);
+  font-weight: 800;
+}
+
+.footer-brand .brand-name strong {
+  color: var(--color-accent-turquoise);
+}
+
+.footer-brand p {
+  max-width: 30rem;
+  font-size: var(--font-size-label);
+}
+
+.footer-column {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.footer-column h2 {
+  margin-bottom: var(--space-2);
+  color: var(--color-on-brand);
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.site-footer-premium .footer-column a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: #c9dce5;
+  font-weight: 600;
+}
+
+.site-footer-premium .footer-column a:hover,
+.site-footer-premium .footer-column a:focus-visible {
+  color: var(--color-accent-turquoise);
+}
+
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-8);
+  padding-block: var(--space-4);
+  border-top: var(--border-width-thin) solid rgb(255 255 255 / 22%);
+}
+
+.footer-meta p {
+  margin: 0;
+  font-size: var(--font-size-label);
+}
+
+.footer-attribution a {
+  color: var(--color-accent-turquoise);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.footer-attribution a:hover,
+.footer-attribution a:focus-visible {
+  color: var(--color-on-brand);
+}
+
+@media (max-width: 54rem) {
+  .site-footer-premium .footer-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .site-footer-premium .footer-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- 7. Responsive constellation ---------- */
+
+@media (max-width: 54rem) {
+  .learning-constellation {
+    box-shadow: 0.45rem 0.45rem 0 var(--color-accent-turquoise);
+  }
+}

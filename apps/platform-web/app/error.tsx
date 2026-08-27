@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 // Route-level error boundary: without it a thrown server error surfaced the
 // unbranded framework error screen — indistinguishable from "the site did not
 // open". Keeps navigation and a retry path on screen.
@@ -15,9 +17,9 @@ export default function RouteError({ reset }: { reset: () => void }) {
         <button type="button" className="button" onClick={() => reset()}>
           Try again
         </button>
-        <a className="button button-secondary" href="/">
+        <Link className="button button-secondary" href="/">
           Back to MathNexa home
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -15,16 +15,22 @@ describe("teacher-first public homepage", () => {
     render(<TeacherFirstHome numberCrossPublished />);
     expect(screen.getByText("Teacher-led classroom math resources")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeTruthy();
-    expect(screen.getByText("Interactive games, Missouri MAP Prep, image-rich homework, and classroom-ready quizzes—all in one teacher-friendly math platform.")).toBeTruthy();
+    expect(screen.getByText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes—one teacher-friendly platform.")).toBeTruthy();
     expect(screen.getByText("Built for teachers. Useful for families. Engaging for learners.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/sign-up");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
-    expect(screen.getByAltText(/Math Word Hunt game artwork/).getAttribute("src")).toContain("math-word-hunt.webp");
-    expect(screen.getByAltText(/Number Cross addition puzzle/).getAttribute("src")).toContain("number-cross.webp");
-    expect(screen.getByAltText(/MAP Prep workspace/).getAttribute("src")).toContain("map-prep-preview.webp");
-    expect(screen.getByAltText(/snack-bag unit-rate problem/).getAttribute("src")).toContain("homework-preview.webp");
-    expect(screen.getByAltText(/Grade 7 topic quiz/).getAttribute("src")).toContain("quiz-preview.webp");
-    expect(screen.getByText("Homework is organized by grade, topic, and lesson. Quizzes are organized by grade and topic.")).toBeTruthy();
+    // The constellation and the showcase both use the real product art, so
+    // several alt texts legitimately appear twice.
+    expect(screen.getAllByAltText(/Math Word Hunt game artwork/)[0]!.getAttribute("src")).toContain("math-word-hunt.webp");
+    expect(screen.getAllByAltText(/Number Cross addition puzzle/)[0]!.getAttribute("src")).toContain("number-cross.webp");
+    expect(screen.getAllByAltText(/MAP Prep workspace/)[0]!.getAttribute("src")).toContain("map-prep-preview.webp");
+    expect(screen.getAllByAltText(/homework/i)[0]!.getAttribute("src")).toContain("homework-preview.webp");
+    expect(screen.getAllByAltText(/topic quiz/i)[0]!.getAttribute("src")).toContain("quiz-preview.webp");
+    // Every constellation node is a working product link.
+    expect(screen.getByRole("link", { name: /Math Word Hunt Engage · Games/ }).getAttribute("href")).toBe("/play");
+    expect(screen.getByRole("link", { name: /MAP Prep Prepare/ }).getAttribute("href")).toBe("/map-prep");
+    expect(screen.getByRole("link", { name: /Homework Practice/ }).getAttribute("href")).toBe("/homework");
+    expect(screen.getByRole("link", { name: /Topic Quizzes Check/ }).getAttribute("href")).toBe("/quizzes");
   });
 
   it("removes signed-out calls to action for an authenticated entitled subscriber", () => {

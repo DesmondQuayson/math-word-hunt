@@ -24,6 +24,17 @@
   --color-information: #176684;
   --color-focus-ring: #ffca3a;
   --color-on-brand: #ffffff;
+  /* MathNexa signature accents: deep-navy ink with restrained turquoise and
+     pink. Bright values live on dark surfaces; -ink derivatives carry
+     accessible contrast on light surfaces. */
+  --color-ink: #071525;
+  --color-surface-dark: #071525;
+  --color-surface-dark-elevated: #0d2338;
+  --color-accent-turquoise: #20cfe3;
+  --color-accent-turquoise-ink: #0b7c8c;
+  --color-accent-pink: #ff4f9a;
+  --color-accent-pink-ink: #d6336c;
+  --shadow-glow-turquoise: 0 14px 44px rgb(32 207 227 / 22%);
 
   /* Typography */
   --font-display: "Trebuchet MS", "Avenir Next", Avenir, "Segoe UI", sans-serif;
@@ -52,6 +63,7 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
+  --space-14: 3.5rem;
   --space-16: 4rem;
   --space-20: 5rem;
   --space-24: 6rem;
@@ -84,6 +96,8 @@
   --motion-instant: 80ms;
   --motion-fast: 140ms;
   --motion-standard: 200ms;
+  --motion-section: 460ms;
+  --motion-hero: 700ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
 
