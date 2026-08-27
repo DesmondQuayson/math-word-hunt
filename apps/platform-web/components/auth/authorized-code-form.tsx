@@ -27,6 +27,7 @@ export function AuthorizedCodeForm({ nextDestination, compact = false }: Authori
   >
     <div className="authorized-access-copy">
       <h2 id="authorized-access-heading">Enter authorized code to access MathNexa</h2>
+      <p className="form-field-note">For school and program access. If your school gave you a code, enter it here—no subscription needed.</p>
     </div>
     <form className="authorized-access-form" action={action} noValidate>
       {state.status === "error" ? <div className="error-summary" role="alert" tabIndex={-1} ref={messageRef}>

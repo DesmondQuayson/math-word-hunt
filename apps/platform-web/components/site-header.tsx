@@ -3,7 +3,7 @@ import Link from "next/link";
 import { signOutAction } from "@/app/auth-actions";
 import { exitSchoolAccessAction } from "@/app/school-access-actions";
 import { Container } from "@/components/layout/container";
-import { NavigationItem } from "@/components/layout/navigation-item";
+import { PrimaryNav } from "@/components/layout/primary-nav";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { getGameAccessView } from "@/lib/game-access/server";
@@ -67,18 +67,13 @@ export async function SiteHeader() {
           <span className="brand-name">{mathNexa ? <>Math<strong>Nexa</strong></> : <>Math Vocabulary <strong>Hunt</strong></>}</span>
         </Link>
         <nav aria-label="Primary navigation">
-          <ul className="nav-list">
-            {items.map((item) => (
-              <li key={item.href}>
-                <NavigationItem href={item.href} label={item.label} />
-              </li>
-            ))}
+          <PrimaryNav items={items}>
             {signedIn ? <li className="nav-account-action">
               <form action={schoolAccess ? exitSchoolAccessAction : signOutAction}>
                 <button type="submit">{schoolAccess ? "Exit authorized access" : "Sign out"}</button>
               </form>
             </li> : null}
-          </ul>
+          </PrimaryNav>
         </nav>
       </Container>
     </header>
