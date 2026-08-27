@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mathnexa-platform",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:platform"],
+      "port": 3000
+    }
+  ]
+}

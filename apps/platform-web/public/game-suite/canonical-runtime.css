@@ -31,3 +31,33 @@ body {
 @media (forced-colors: active) {
   .mathnexa-music-credit,.mathnexa-music-credit summary,.mathnexa-music-credit a { color: CanvasText; }
 }
+
+.mathnexa-back-link {
+  position: fixed;
+  top: max(.6rem, env(safe-area-inset-top));
+  left: max(.6rem, env(safe-area-inset-left));
+  z-index: 60;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .85rem;
+  border: 2px solid #66e7f4;
+  border-radius: 999px;
+  background: rgba(7, 21, 37, .92);
+  color: #fff;
+  font: 800 .82rem/1.2 "Avenir Next", Avenir, "Segoe UI", Arial, sans-serif;
+  letter-spacing: .02em;
+  text-decoration: none;
+}
+
+.mathnexa-back-link:hover { background: rgba(13, 35, 56, .96); color: #66e7f4; }
+.mathnexa-back-link:focus-visible { outline: 3px solid #ffcf4a; outline-offset: 3px; }
+
+@media (forced-colors: active) {
+  .mathnexa-back-link { border-color: CanvasText; color: CanvasText; background: Canvas; }
+}
+
+@media print {
+  .mathnexa-back-link { display: none; }
+}

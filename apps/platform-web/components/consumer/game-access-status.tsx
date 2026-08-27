@@ -19,12 +19,12 @@ const copy: Record<GameAccessDecision["reason"], { title: string; message: strin
   "malformed-entitlement": { title: "Access could not be verified", message: "Unknown or incomplete server data denies access. Contact support.", tone: "warning" }
 };
 
-export function GameAccessStatus({ decision }: { decision: GameAccessDecision }) {
+export function GameAccessStatus({ decision, hideSubscriptionLink = false }: { decision: GameAccessDecision; hideSubscriptionLink?: boolean }) {
   const content = copy[decision.reason];
   return <><Notice label="Game-access status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p>{decision.accessEndsAt ? <p>Access ends: <time dateTime={decision.accessEndsAt}>{new Date(decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p> : null}</Notice>
     <div className="button-row">
-      {decision.allowed ? <LinkButton href="/play">Continue to protected game gateway</LinkButton> : null}
-      {decision.nextAction === "start-checkout" || decision.nextAction === "manage-subscription" ? <LinkButton href="/subscription" variant="secondary">Review subscription</LinkButton> : null}
+      {decision.allowed ? <LinkButton href="/play">Play now</LinkButton> : null}
+      {!hideSubscriptionLink && (decision.nextAction === "start-checkout" || decision.nextAction === "manage-subscription") ? <LinkButton href="/subscription" variant="secondary">Review subscription</LinkButton> : null}
       {decision.nextAction === "sign-in" ? <LinkButton href="/sign-in?next=/game-access">Sign in</LinkButton> : null}
       <LinkButton href="/account" variant="secondary">Account</LinkButton>
     </div>

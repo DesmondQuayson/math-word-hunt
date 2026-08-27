@@ -24,9 +24,16 @@ export default async function GameDetail({ params }: { params: Promise<{ resourc
   const ticket = access.decision.allowed && access.principal
     ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.principal.id })
     : null;
+  // Gameplay is the hero: compact chrome above the frame, supporting notes
+  // below it, and an always-visible way back at the top.
   return <Container className="game-detail page-stack" width="wide">
-    <header><p className="eyebrow">Standalone game</p><h1>{game.title}</h1><p>{game.description}</p></header>
-    {access.decision.allowed && ticket ? <section aria-labelledby="game-frame-title"><h2 id="game-frame-title">Ready to play</h2><p>The game runs in a restricted frame and cannot access MathNexa account data.</p><iframe data-testid="package-game-frame" title={game.title} src={`/games/${game.slug}/runtime?ticket=${encodeURIComponent(ticket)}`} sandbox="allow-scripts" allow="camera 'none'; microphone 'none'; geolocation 'none'; clipboard-read 'none'; clipboard-write 'none'; payment 'none'; usb 'none'; fullscreen 'none'" referrerPolicy="no-referrer" /></section> : <GameAccessStatus decision={access.decision} />}
-    <Link className="button button-secondary" href="/games">Back to games</Link>
+    <header className="game-detail-header">
+      <Link className="game-detail-back" href="/games"><span aria-hidden="true">←</span> Back to Games</Link>
+      <h1>{game.title}</h1>
+    </header>
+    {access.decision.allowed && ticket ? <>
+      <iframe data-testid="package-game-frame" title={game.title} src={`/games/${game.slug}/runtime?ticket=${encodeURIComponent(ticket)}`} sandbox="allow-scripts" allow="camera 'none'; microphone 'none'; geolocation 'none'; clipboard-read 'none'; clipboard-write 'none'; payment 'none'; usb 'none'; fullscreen 'none'" referrerPolicy="no-referrer" />
+      <p className="game-detail-note">{game.description} The game runs in a restricted frame and cannot access MathNexa account data.</p>
+    </> : <GameAccessStatus decision={access.decision} />}
   </Container>;
 }

@@ -15,7 +15,7 @@ export default async function GamesPage() {
     <header className="game-catalog-hero">
       <p className="eyebrow">Choose a game</p>
       <h1>Pick a challenge.</h1>
-      <p>Four teacher-ready games. One subscription. Play in seconds.</p>
+      <p>Teacher-ready games. One subscription. Play in seconds.</p>
     </header>
     {catalog.games.length ? <div className="game-card-grid">{catalog.games.map((game) => <article key={game.id}>
       <div className="game-card-thumbnail" data-game={game.stableKey}>
@@ -28,6 +28,6 @@ export default async function GamesPage() {
         {game.skills.length ? <ul className="game-tag-list" aria-label="Skills">{game.skills.map((skill) => <li key={skill}>{skill}</li>)}</ul> : null}
         <Link className="button button-primary" href={gamePlayHref(game)}>Play</Link>
       </div>
-    </article>)}</div> : catalog.state === "ready" ? <div className="public-resource-empty"><strong>No games have been published yet</strong><p>Your subscription is active. Published games will appear here without another Checkout.</p></div> : <div className="public-resource-empty" role="status"><strong>Games are temporarily unavailable</strong><p>Your subscription remains active. Refresh this page, or contact support if the catalog does not return.</p><Link className="button button-secondary" href="/games">Retry games</Link></div>}
+    </article>)}</div> : catalog.state === "ready" ? <div className="public-resource-empty"><strong>No games have been published yet</strong><p>Your subscription is active. Published games will appear here without another Checkout.</p></div> : <div className="public-resource-empty" role="status"><strong>Games are temporarily unavailable</strong><p>Your subscription remains active. Refresh this page, or contact support if the catalog does not return.</p><Link className="button button-secondary" href="/games">Refresh</Link></div>}
   </Container>;
 }

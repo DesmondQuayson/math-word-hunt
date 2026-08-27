@@ -169,8 +169,8 @@
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.07em;
+  text-align: right;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .constellation-lede {
@@ -228,6 +228,20 @@
   }
 }
 
+/* Proof section: heading beside the list instead of a half-empty row. */
+.teacher-home-proof .reveal {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+  gap: clamp(var(--space-8), 4vw, var(--space-16));
+  align-items: start;
+}
+
+@media (max-width: 54rem) {
+  .teacher-home-proof .reveal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- 5. Product card depth (hover/focus only) ---------- */
 
 .product-showcase-resource {
@@ -275,6 +289,34 @@
 
 .game-preview-caption small {
   color: var(--color-accent-turquoise);
+}
+
+/* ---------- 5b. Game detail: gameplay is the hero ---------- */
+
+.game-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-5);
+}
+
+.game-detail-back {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent-turquoise-ink);
+  font-weight: 800;
+}
+
+.game-detail-header h1 {
+  font-size: var(--font-size-heading-3);
+}
+
+.game-detail-note {
+  max-width: var(--line-length-body);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
 }
 
 /* ---------- 6. Premium footer ---------- */

@@ -3,6 +3,7 @@ import { BILLING_CATALOG, CAPABILITIES_BY_KEY, getProductPackage } from "@math-v
 import { startCheckoutAction } from "@/app/billing-actions";
 import { ExistingDataSafeNotice } from "@/components/capabilities/existing-data-safe-notice";
 import { CommercialConsentForm } from "@/components/consumer/commercial-consent-form";
+import { SubscriptionTermsList } from "@/components/consumer/subscription-terms";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -50,14 +51,7 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
     <Card variant="highlighted">
       <p className="card-kicker">MathNexa monthly subscription</p>
       <h2>$5.99 USD / month</h2>
-      <ul>
-        <li>A payment method is required in Stripe-hosted Checkout before trial activation.</li>
-        <li>Eligible accounts receive one full, non-renewable 24-hour trial, timed exactly by the server.</li>
-        <li>Trial access ends exactly 24 hours after activation. Billing begins after the trial.</li>
-        <li>Stripe controls invoice creation and the payment-attempt time, so MathNexa does not promise an exact card-charge minute.</li>
-        <li>The subscription renews automatically for $5.99 monthly until canceled.</li>
-        <li>Cancel before the verified trial end to prevent the first charge.</li>
-      </ul>
+      <SubscriptionTermsList />
       {canCheckout
         ? <CommercialConsentForm />
         : access.decision.allowed

@@ -32,7 +32,7 @@ describe("public resource hierarchy", () => {
     fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "topic-fractions" } });
     expect(screen.getByRole("heading", { name: "Topic 2 Quiz" })).toBeTruthy();
     expect(screen.getByText("Available")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Download answer key" }).getAttribute("href")).toBe(`/resources/${resource.answerKeyResourceId}/download`);
+    expect(screen.getByRole("link", { name: "Answer key" }).getAttribute("href")).toBe(`/resources/${resource.answerKeyResourceId}/download`);
     expect(document.body.textContent).not.toContain("resource-files");
   });
 });

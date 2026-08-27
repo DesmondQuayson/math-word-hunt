@@ -10,6 +10,7 @@ import { openBillingPortalAction } from "@/app/billing-actions";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { CommercialConsentForm } from "@/components/consumer/commercial-consent-form";
+import { SubscriptionTermsList } from "@/components/consumer/subscription-terms";
 import { Card } from "@/components/ui/card";
 import { accessIntentHref, confirmationRequiredHref, safeAccessIntentDestination } from "@/lib/auth/access-intent";
 import type { Metadata } from "next";
@@ -43,18 +44,11 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
     {params.billing === "unavailable" ? <Notice label="Billing management" tone="warning" live><strong>Billing management is unavailable.</strong><p>No subscription or access change was made.</p></Notice> : null}
     {params.consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}
     {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active.</strong><p>Subscription setup remains safely unavailable until the server has a complete approved billing configuration.</p></Notice> : null}
-    <GameAccessStatus decision={view.decision} />
+    <GameAccessStatus decision={view.decision} hideSubscriptionLink />
     {view.context.status === "active" && !view.decision.allowed && view.decision.nextAction === "start-checkout" ? <Card variant="highlighted" className="subscription-review-card">
       <p className="card-kicker">MathNexa monthly subscription</p>
       <h2>$5.99 USD / month</h2>
-      <ul>
-        <li>A payment method is required in Stripe-hosted Checkout before trial activation.</li>
-        <li>Eligible accounts receive one full, non-renewable 24-hour trial, timed exactly by the server.</li>
-        <li>Trial access ends exactly 24 hours after activation. Billing begins after the trial.</li>
-        <li>Stripe controls invoice creation and payment-attempt timing; MathNexa does not promise an exact card-charge minute.</li>
-        <li>The subscription renews automatically for $5.99 USD monthly until canceled.</li>
-        <li>Cancel before the verified trial end to prevent the first charge. First-charge refund requests made within seven days receive manual review.</li>
-      </ul>
+      <SubscriptionTermsList />
       <CommercialConsentForm returnDestination={destination} enabled={config?.checkoutEnabled === true} />
     </Card> : null}
     {subscription ? <dl className="definition-grid" data-testid="consumer-subscription-summary">
@@ -66,7 +60,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
     <div className="button-row">
       {view.decision.allowed && destination !== "/subscription" ? <LinkButton href={destination}>Continue to your selected resource</LinkButton> : null}
       {subscription && config?.portalEnabled ? <form action={openBillingPortalAction}><button className="button button-primary" type="submit">Manage or cancel in Stripe</button></form> : null}
-      <LinkButton href="/subscriber-management" variant="secondary">Stable billing-management route</LinkButton>
+      <LinkButton href="/subscriber-management" variant="secondary">Manage billing (backup link)</LinkButton>
     </div>
     <Notice label="Stripe Customer Portal" tone="information"><strong>Self-service billing.</strong><p>The Portal supports payment-method updates, invoice history, and cancellation at period end. Deletion-pending subscribers retain this route until cancellation is secured.</p></Notice>
   </Container>;

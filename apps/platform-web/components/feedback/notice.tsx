@@ -28,7 +28,9 @@ export function Notice({
     <aside
       className={`notice notice-${tone} ${className}`.trim()}
       aria-label={label}
-      role={live ? "alert" : "note"}
+      // Only danger interrupts assertively; informational live notices are
+      // polite so screen readers stop announcing boilerplate on page load.
+      role={live ? (tone === "danger" ? "alert" : "status") : "note"}
     >
       <span className="notice-mark" aria-hidden="true">
         {marks[tone]}
