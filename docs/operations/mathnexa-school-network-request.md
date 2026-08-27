@@ -1,44 +1,36 @@
-# Network Access Request — MathNexa (ready to send to school/district IT)
+# School IT Email — final copy (paste as-is)
 
-Subject: Educational site review request — mathnexa.com (ERR_CONNECTION_CLOSED on district network)
+Subject: Request to allow educational website MathNexa
 
 Hello,
 
-Could you review network access to an educational mathematics website that does not open on
-the district network?
+I am requesting a review of the educational website MathNexa:
 
-**Product:** MathNexa — educational mathematics platform for math games, MAP preparation,
-homework, quizzes and visual learning.
+https://mathnexa.com/
 
-**Website:** https://mathnexa.com/
+MathNexa provides mathematics games, MAP preparation, homework, quizzes, and visual
+learning resources.
 
-**Owner:** Desmond Quayson · **Contact:** quaysondesmond@yahoo.com
+The website works on standard residential networks, but on the school network the
+connection is closed with ERR_CONNECTION_CLOSED.
 
-**Observed problem:** On district WiFi, browsers show "This site can't be reached —
-mathnexa.com unexpectedly closed the connection" (ERR_CONNECTION_CLOSED). The same device
-opens the site normally on standard residential networks, and comparable education sites
-open normally on the district network. The domain is recent (July 2026), so a
-"newly observed / uncategorized domain" policy is the likely trigger.
+Could you please check whether mathnexa.com is currently blocked, uncategorized, newly
+observed, or affected by SSL inspection, and allowlist or reclassify it as an educational
+website if appropriate?
 
-**Please allowlist (HTTPS on standard TCP 443 only):**
+Primary domain:
+mathnexa.com
 
-- `mathnexa.com` — primary site (all first-load content is served from this single host)
-- `www.mathnexa.com` — redirect to the above
-- `showme.mathnexa.com` — the MAP Prep practice module
+MAP Prep:
+showme.mathnexa.com
 
-**Technical notes:**
-- HTTPS-only; modern TLS (1.2/1.3) with a publicly trusted certificate; no special ports,
-  no VPN, no UDP/QUIC requirement.
-- First page load contacts only mathnexa.com — no ads, trackers, analytics or third-party
-  scripts; no downloads required; no student personal information required for general use.
-- A no-JavaScript connectivity test page is available at https://mathnexa.com/network-check
-- Suggested category: Education / Educational Technology.
+Protocol:
+HTTPS TCP 443
 
-Could you check whether the domain is currently **blocked, uncategorized, newly-observed,
-or affected by SSL inspection**, and allowlist/reclassify it as an educational website if
-appropriate?
-
-Thank you,
-
+Owner:
 Desmond Quayson
+
+Contact:
 quaysondesmond@yahoo.com
+
+Thank you.
