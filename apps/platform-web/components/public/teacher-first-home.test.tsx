@@ -8,49 +8,44 @@ vi.mock("@/app/auth-actions", () => ({
   resendConfirmationAction: vi.fn(async (state) => state)
 }));
 
+vi.mock("@/app/school-access-actions", () => ({
+  authorizeSchoolAccessAction: vi.fn(async (state) => state)
+}));
+
 afterEach(cleanup);
 
 describe("teacher-first public homepage", () => {
-  it("shows signed-out account actions, accurate resource copy, and real product visuals", () => {
-    render(<TeacherFirstHome numberCrossPublished />);
+  it("shows account actions, the approved hero art, and every constellation product link", () => {
+    render(<TeacherFirstHome />);
     expect(screen.getByText("Teacher-led classroom math resources")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeTruthy();
-    expect(screen.getByText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes—one teacher-friendly platform.")).toBeTruthy();
-    expect(screen.getByText("Built for teachers. Useful for families. Engaging for learners.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/sign-up");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
-    // The constellation and the showcase both use the real product art, so
-    // several alt texts legitimately appear twice.
-    expect(screen.getAllByAltText(/Math Word Hunt game artwork/)[0]!.getAttribute("src")).toContain("math-word-hunt.webp");
-    expect(screen.getAllByAltText(/Number Cross addition puzzle/)[0]!.getAttribute("src")).toContain("number-cross.webp");
-    expect(screen.getAllByAltText(/MAP Prep workspace/)[0]!.getAttribute("src")).toContain("map-prep-preview.webp");
-    expect(screen.getAllByAltText(/homework/i)[0]!.getAttribute("src")).toContain("homework-preview.webp");
-    expect(screen.getAllByAltText(/topic quiz/i)[0]!.getAttribute("src")).toContain("quiz-preview.webp");
-    // Every constellation node is a working product link.
-    expect(screen.getByRole("link", { name: /Math Word Hunt Engage · Games/ }).getAttribute("href")).toBe("/play");
+    // The approved Math Vocabulary Hunt key art, not the Math Word Hunt split art.
+    expect(decodeURIComponent(screen.getByAltText(/Math Vocabulary Hunt game artwork/).getAttribute("src") ?? "")).toContain("/media/games/math-vocabulary-hunt.webp");
+    expect(screen.getByRole("link", { name: /Math Vocabulary Hunt Engage · Games/ }).getAttribute("href")).toBe("/play");
     expect(screen.getByRole("link", { name: /MAP Prep Prepare/ }).getAttribute("href")).toBe("/map-prep");
     expect(screen.getByRole("link", { name: /Homework Practice/ }).getAttribute("href")).toBe("/homework");
     expect(screen.getByRole("link", { name: /Topic Quizzes Check/ }).getAttribute("href")).toBe("/quizzes");
   });
 
-  it("removes signed-out calls to action for an authenticated entitled subscriber", () => {
-    render(<TeacherFirstHome authState="signed-in" entitled numberCrossPublished />);
-    expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
-    expect(screen.getByText("Your MathNexa resource shelf is ready below.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Math Word Hunt Play now/ }).getAttribute("href")).toBe("/play");
-    expect(screen.getByRole("link", { name: /Number Cross Play now/ }).getAttribute("href")).toBe("/games/number-cross/play");
-  });
-
-  it("labels Number Cross honestly when the authoritative catalog does not publish it", () => {
+  it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {
     render(<TeacherFirstHome />);
-    expect(screen.getByLabelText("Number Cross preview, coming soon")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Number Cross/ })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeTruthy();
+    expect(screen.getByLabelText(/Authorized code/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
   });
 
-  it("keeps commercial details out of the signed-out homepage", () => {
+  it("does not prompt subscribers or signed-in users for a code on the homepage", () => {
+    render(<TeacherFirstHome authState="signed-in" entitled />);
+    expect(screen.queryByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeNull();
+    expect(screen.getByText("Your MathNexa resource shelf is ready below.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
+  });
+
+  it("keeps the homepage concise: no showcase span, no commercial details", () => {
     const { container } = render(<TeacherFirstHome />);
+    expect(container.textContent).not.toMatch(/MathNexa in action|real resources waiting|Designed around teaching|calmer path|Whole-class energy|Interactive Games/i);
     expect(container.textContent).not.toMatch(/\$5\.99|24-hour|stripe|checkout|consent|automatic renewal|phase \d/i);
-    expect(container.textContent).not.toContain("quizzes—organized by grade, topic, and lesson");
   });
 });

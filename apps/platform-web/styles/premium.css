@@ -153,9 +153,12 @@
   background: var(--color-surface-dark-elevated);
 }
 
+/* The approved Math Vocabulary Hunt art is 16:9; matching the card to the
+   image keeps the full title and word-grid uncropped. */
 .constellation-node-wide img {
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
+  object-position: center;
 }
 
 .constellation-node:not(.constellation-node-wide) img {

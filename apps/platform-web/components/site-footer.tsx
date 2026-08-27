@@ -38,7 +38,7 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
       </Container>
       <Container className="footer-meta">
         <p className="footer-attribution">
-          Author: Desmond Quayson · Contact: <a href="mailto:quaysondesmond@yahoo.cm">quaysondesmond@yahoo.cm</a>
+          Author: Desmond Quayson · Contact: <a href="mailto:quaysondesmond@yahoo.com">quaysondesmond@yahoo.com</a>
         </p>
         <p className="footer-copyright">© {new Date().getFullYear()} MathNexa</p>
       </Container>

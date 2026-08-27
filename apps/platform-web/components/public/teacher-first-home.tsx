@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ConfirmationReminder } from "@/components/auth/email-confirmation-dialog";
+import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
-import { Reveal } from "@/components/motion/reveal";
 import { LinkButton } from "@/components/ui/link-button";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
@@ -50,15 +50,15 @@ function LearningConstellation() {
     <div className="constellation-grid">
       <Link className="constellation-node constellation-node-wide" href="/play">
         <Image
-          src="/media/home/math-word-hunt.webp"
-          alt="Math Word Hunt game artwork with a glowing vocabulary grid"
-          width={1400}
-          height={700}
+          src="/media/games/math-vocabulary-hunt.webp"
+          alt="Math Vocabulary Hunt game artwork: a neon letter grid highlighting FRACTION, INTEGER, RATIO, AREA, and EQUATION"
+          width={1200}
+          height={675}
           sizes="(max-width: 54rem) 88vw, 38vw"
           loading="eager"
           priority
         />
-        <span className="constellation-caption"><strong>Math Word Hunt</strong><span>Engage · Games</span></span>
+        <span className="constellation-caption"><strong>Math Vocabulary Hunt</strong><span>Engage · Games</span></span>
       </Link>
       <Link className="constellation-node" href="/map-prep">
         <Image
@@ -98,90 +98,9 @@ function LearningConstellation() {
   </div>;
 }
 
-function GamesShowcase({ published }: Readonly<{ published: boolean }>) {
-  return <article className="product-showcase-card product-showcase-games">
-    <div className="product-showcase-heading">
-      <div>
-        <p className="card-kicker">Whole-class energy</p>
-        <h3>Interactive Games</h3>
-      </div>
-      <p>Teacher-ready math games, one secure click away.</p>
-    </div>
-    <div className="game-preview-strip" aria-label="Published MathNexa games">
-      <Link className="game-preview game-preview-landscape" href="/play">
-        <span className="game-preview-image">
-          <Image
-            src="/media/home/math-word-hunt.webp"
-            alt="Math Word Hunt game artwork with a glowing vocabulary grid and grades 6 through 8 classroom features"
-            width={1400}
-            height={700}
-            sizes="(max-width: 48rem) 86vw, 52vw"
-          />
-        </span>
-        <span className="game-preview-caption"><strong>Math Word Hunt</strong><small>Play now</small></span>
-      </Link>
-      {published ? <Link className="game-preview game-preview-portrait" href="/games/number-cross/play">
-        <span className="game-preview-image">
-          <Image
-            src="/media/home/number-cross.webp"
-            alt="Number Cross addition puzzle with crossed-out number tiles and solved row and column targets"
-            width={720}
-            height={1223}
-            sizes="(max-width: 48rem) 72vw, 28vw"
-          />
-        </span>
-        <span className="game-preview-caption"><strong>Number Cross</strong><small>Play now</small></span>
-      </Link> : <div className="game-preview game-preview-portrait" aria-label="Number Cross preview, coming soon">
-        <span className="game-preview-image">
-          <Image
-            src="/media/home/number-cross.webp"
-            alt="Number Cross addition puzzle preview"
-            width={720}
-            height={1223}
-            sizes="(max-width: 48rem) 72vw, 28vw"
-          />
-        </span>
-        <span className="game-preview-caption"><strong>Number Cross</strong><small>Coming soon</small></span>
-      </div>}
-    </div>
-    <Link className="product-showcase-link" href="/games">Explore all games <span aria-hidden="true">→</span></Link>
-  </article>;
-}
-
-function ProductCard({
-  href,
-  eyebrow,
-  title,
-  description,
-  image,
-  alt,
-  cta
-}: Readonly<{
-  href: "/map-prep" | "/homework" | "/quizzes";
-  eyebrow: string;
-  title: string;
-  description: string;
-  image: string;
-  alt: string;
-  cta: string;
-}>) {
-  return <article className="product-showcase-card product-showcase-resource">
-    <div className="product-showcase-media">
-      <Image src={image} alt={alt} width={1200} height={800} sizes="(max-width: 48rem) 92vw, 30vw" loading="lazy" />
-    </div>
-    <div className="product-showcase-body">
-      <p className="card-kicker">{eyebrow}</p>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <Link className="product-showcase-link" href={href}>{cta} <span aria-hidden="true">→</span></Link>
-    </div>
-  </article>;
-}
-
 export function TeacherFirstHome({
   authState = "signed-out",
-  entitled = false,
-  numberCrossPublished = false
+  entitled = false
 }: TeacherFirstHomeProps) {
   return <>
     <section className="teacher-home-hero container" aria-labelledby="home-title">
@@ -191,76 +110,11 @@ export function TeacherFirstHome({
         <p className="teacher-home-lede">Games, Missouri MAP Prep, image-rich homework, and topic quizzes—one teacher-friendly platform.</p>
         <p className="teacher-home-audience">Built for teachers. Useful for families. Engaging for learners.</p>
         <HeroActions authState={authState} entitled={entitled} />
+        {authState === "signed-out" ? <AuthorizedCodeForm nextDestination="/games" compact /> : null}
       </div>
       <LearningConstellation />
     </section>
 
     {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
-
-    <section className="product-showcase-section" aria-labelledby="product-showcase-title">
-      <Container width="wide">
-        <Reveal>
-          <header className="product-showcase-intro">
-            <div>
-              <p className="eyebrow">MathNexa in action</p>
-              <h2 id="product-showcase-title">See the real resources waiting for your next lesson.</h2>
-            </div>
-            <p>Move from active practice to independent work and a quick check for understanding.</p>
-          </header>
-        </Reveal>
-        <Reveal delay={80}>
-          <GamesShowcase published={numberCrossPublished} />
-        </Reveal>
-        <div className="product-showcase-grid">
-          <Reveal delay={80}>
-            <ProductCard
-              href="/map-prep"
-              eyebrow="Interactive workspace"
-              title="Missouri MAP Prep"
-              description="Practice MAP-style questions and tools in an interactive workspace."
-              image="/media/home/map-prep-preview.webp"
-              alt="Sanitized MathNexa MAP Prep workspace showing a proportional-relationship question, working board, graph, calculator, pen, eraser, highlighter, shape, and formula tools"
-              cta="Open MAP Prep"
-            />
-          </Reveal>
-          <Reveal delay={160}>
-            <ProductCard
-              href="/homework"
-              eyebrow="Grade → Topic → Lesson"
-              title="Interactive Homework"
-              description="Image-rich practice with downloadable PDFs and answer keys."
-              image="/media/home/homework-preview.webp"
-              alt="Original MathNexa homework preview with a snack-bag unit-rate problem, fruit diagrams, writing space, and an answer-key indicator"
-              cta="Browse Homework"
-            />
-          </Reveal>
-          <Reveal delay={240}>
-            <ProductCard
-              href="/quizzes"
-              eyebrow="Grade → Topic"
-              title="Topic Quizzes"
-              description="Classroom-ready assessments with downloadable PDFs and answer keys."
-              image="/media/home/quiz-preview.webp"
-              alt="Original MathNexa Grade 7 topic quiz preview with proportional-relationship questions, a table, graphs, and an answer-key indicator"
-              cta="Browse Quizzes"
-            />
-          </Reveal>
-        </div>
-      </Container>
-    </section>
-
-    <section className="teacher-home-proof container" aria-labelledby="teacher-proof-heading">
-      <Reveal>
-        <div>
-          <p className="eyebrow">Designed around teaching</p>
-          <h2 id="teacher-proof-heading">A calmer path from lesson idea to classroom use.</h2>
-        </div>
-        <ul>
-          <li><strong>Find the right level</strong><span>Resource-specific grade, topic, and lesson choices—no extra setup.</span></li>
-          <li><strong>Teach your way</strong><span>An interactive game, printable practice, assessment prep, or a topic quiz.</span></li>
-          <li><strong>Keep learners moving</strong><span>Focused materials on phones, laptops, tablets, or a classroom display.</span></li>
-        </ul>
-      </Reveal>
-    </section>
   </>;
 }
