@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-08-28T02:02:03.840Z",
+  "provider": "google-cloud-tts",
+  "engine": "chirp3-hd",
+  "voice": "en-US-Chirp3-HD-Aoede",
+  "vocabularyTerms": 506,
+  "termsRequiringPronunciation": 506,
+  "definitionsRequiringNarration": 0,
+  "generalGamePhrases": 7,
+  "totalClips": 513,
+  "missingClips": 0,
+  "missing": [],
+  "staleClips": 0,
+  "totalAudioBytes": 2903808,
+  "totalAudioMB": 2.77
+}

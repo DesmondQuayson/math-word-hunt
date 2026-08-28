@@ -13,7 +13,11 @@ describe("canonical game runtime enhancements", () => {
     expect(after.equals(before)).toBe(true);
     expect(enhanced.match(/data-mathnexa-game-suite="music"/g)).toHaveLength(1);
     expect(enhanced.match(/data-mathnexa-game-suite="credit"/g)).toHaveLength(1);
+    expect(enhanced.match(/data-mathnexa-game-suite="voice"/g)).toHaveLength(1);
     expect(enhanced).toContain('src="/game-suite/math-vocabulary-music.js"');
+    expect(enhanced).toContain('src="/game-suite/natural-voice.js"');
+    // The voice adapter must sit in <head>, ahead of the inline game script.
+    expect(enhanced.indexOf("natural-voice.js")).toBeLessThan(enhanced.indexOf("</head>"));
     expect(enhanced).toContain("Cosmic Candy Catchers");
     expect(enhanced).toContain("CC BY 3.0");
   });

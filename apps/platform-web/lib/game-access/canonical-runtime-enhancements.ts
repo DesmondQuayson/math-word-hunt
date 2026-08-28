@@ -4,6 +4,10 @@ const CREDIT = `<details class="mathnexa-music-credit" data-mathnexa-game-suite=
   <p>Music: “Cosmic Candy Catchers” by Eric Matyas — soundimage.org · CC BY 3.0</p>
 </details>`;
 const SCRIPT = '<script src="/game-suite/math-vocabulary-music.js" data-mathnexa-game-suite="music"></script>';
+// Natural-voice engine: must load BEFORE the inline game script so the game's
+// speechSynthesis feature check finds the prebuilt-audio adapter, never the
+// robotic browser voice.
+const VOICE = '<script src="/game-suite/natural-voice.js" data-mathnexa-game-suite="voice"></script>';
 // Math Vocabulary Hunt was the only game with no way back to MathNexa — a
 // navigational dead end reached from the homepage's most prominent link. The
 // injected link matches the other games' Back to Games affordance.
@@ -16,7 +20,7 @@ export function enhanceCanonicalGameHtml(source: Buffer): Buffer {
   }
   return Buffer.from(
     html
-      .replace("</head>", `  ${STYLESHEET}\n</head>`)
+      .replace("</head>", `  ${STYLESHEET}\n  ${VOICE}\n</head>`)
       .replace(/<body([^>]*)>/, (match) => `${match}\n  ${BACK_LINK}`)
       .replace("</body>", `  ${CREDIT}\n  ${SCRIPT}\n</body>`),
     "utf8"
