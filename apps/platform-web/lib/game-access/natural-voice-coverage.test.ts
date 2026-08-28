@@ -37,6 +37,9 @@ describe("math vocabulary hunt natural voice", () => {
     };
     expect(manifest.engine).toBe("chirp3-hd");
     expect(manifest.voice).toBe("en-US-Chirp3-HD-Aoede");
+    // Deterministic mapping gate: no two displays may collapse to one key.
+    const normalizedDisplays = displays.map(normalize);
+    expect(new Set(normalizedDisplays).size, "normalization collision between term displays").toBe(displays.length);
     const corpus = [...displays, ...phrases].map(normalize);
     const missing = corpus.filter((phrase) => !manifest.clips[phrase]);
     expect(missing, `phrases without a natural clip: ${missing.slice(0, 5).join(" | ")}`).toHaveLength(0);
