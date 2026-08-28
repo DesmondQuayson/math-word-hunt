@@ -31,6 +31,10 @@
   window.__mathnexaNaturalVoice = true;
 
   var MANIFEST_URL = "/game-suite/voice/manifest.json";
+  // A short silent WAV: primes/unlocks the shared audio element inside the
+  // first real user gesture so later clip playback (which follows async
+  // manifest/sequence steps) is allowed by Safari/Chrome autoplay policy.
+  var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
   var PRAISE = {
     "Good job, Chief!": true,
     "Nice find, Chief!": true,
@@ -43,11 +47,37 @@
   var DUPLICATE_WINDOW_MS = 600;
 
   var manifestPromise = null;
-  var clipCache = Object.create(null);
   var sequenceToken = 0;
   var active = null; // { token, utterance, audio, texts }
   var lastRequest = { text: "", at: 0 };
   var spokenTermMemory = { term: "", at: 0 };
+
+  // ONE shared element for every clip: once it has played inside a user
+  // gesture, subsequent src-swapped playback stays allowed even when it
+  // starts from async continuations (manifest load, sequence gaps).
+  var sharedAudio = null;
+  var unlocked = false;
+  function ensureSharedAudio() {
+    if (!sharedAudio) {
+      sharedAudio = new Audio();
+      sharedAudio.preload = "auto";
+      sharedAudio.loop = false;
+    }
+    return sharedAudio;
+  }
+  function unlockPlayback() {
+    if (unlocked) return;
+    unlocked = true;
+    try {
+      var audio = ensureSharedAudio();
+      audio.muted = true;
+      audio.src = SILENT_WAV;
+      var played = audio.play();
+      var finish = function () { try { audio.pause(); } catch (_) {} audio.muted = false; };
+      if (played && typeof played.then === "function") played.then(finish).catch(function () { audio.muted = false; });
+      else finish();
+    } catch (_) {}
+  }
 
   function normalize(text) {
     return String(text == null ? "" : text).replace(/\s+/g, " ").trim();
@@ -70,15 +100,9 @@
     return manifest && manifest.clips ? manifest.clips[phrase] || null : null;
   }
 
-  function audioFor(file) {
-    var audio = clipCache[file];
-    if (!audio) {
-      audio = new Audio("/game-suite/voice/" + file);
-      audio.preload = "auto";
-      clipCache[file] = audio;
-    }
-    audio.loop = false;
-    return audio;
+  function warmClip(file) {
+    // HTTP-cache warm only; playback always goes through the shared element.
+    try { fetch("/game-suite/voice/" + file, { credentials: "same-origin" }).catch(function () {}); } catch (_) {}
   }
 
   function settle(utterance, kind) {
@@ -103,11 +127,12 @@
   function playOne(file, token) {
     return new Promise(function (resolve) {
       if (token !== sequenceToken) return resolve("superseded");
-      var audio = audioFor(file);
-      try { audio.currentTime = 0; } catch (_) {}
-      if (active) active.audio = audio;
+      var audio = ensureSharedAudio();
+      audio.muted = false;
       audio.onended = function () { resolve("ended"); };
       audio.onerror = function () { resolve("error"); };
+      audio.src = "/game-suite/voice/" + file;
+      if (active) active.audio = audio;
       var played = audio.play();
       if (played && typeof played.then === "function") {
         played.then(function () {
@@ -270,15 +295,15 @@
     else engine.resume();
   });
 
-  var warmed = false;
-  function warm() {
-    if (warmed) return;
-    warmed = true;
-    loadManifest().then(function (manifest) {
-      if (!manifest || !manifest.preload) return;
-      manifest.preload.forEach(function (file) { audioFor(file); });
-    });
-  }
-  window.addEventListener("pointerdown", warm, { once: true, passive: true });
-  window.addEventListener("keydown", warm, { once: true });
+  // Manifest loads immediately (a fetch needs no gesture) so the first
+  // spoken selection has no async gap waiting on it.
+  loadManifest().then(function (manifest) {
+    if (manifest && manifest.preload) manifest.preload.forEach(warmClip);
+  });
+
+  // Unlock inside the FIRST real user gesture (capture phase, before game
+  // handlers) — the whole reason selection speech works on real Safari.
+  window.addEventListener("pointerdown", unlockPlayback, { once: true, capture: true });
+  window.addEventListener("keydown", unlockPlayback, { once: true, capture: true });
+  window.addEventListener("touchend", unlockPlayback, { once: true, capture: true });
 })();
