@@ -26,7 +26,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
     headers: {
       "Cache-Control": "private, no-store, max-age=0",
       "Content-Type": asset.contentType,
-      "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data:; media-src 'self'; connect-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
+      // connect-src 'self' (was 'none'): the natural-voice engine loads its
+      // same-origin manifest and clip bytes via fetch — 'none' silently
+      // blocked every voice lookup inside the real game document, which is
+      // why word-bank pronunciation never played for real users while every
+      // CSP-less harness passed. Still no external origins.
+      "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src data:; media-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer"
     }

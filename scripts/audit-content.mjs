@@ -7,7 +7,7 @@ const canonicalHtmlPath = "docs/index.html";
 const canonicalVocabPath = "docs/vocab.js";
 const historicalVocabPath = "vocab.js";
 const expectedHashes = {
-  html: "10D0E49CD5DECF316615A10F6BDE37DC89796B2D8817EB1CF5D9EE25D263747E",
+  html: "7F00ED6789A2FAF23B90E96C3DFDEE0167ACED87BEB08DABF10B89C3E72C9FC5",
   vocab: "CAEB8FBB590FFFD8CBC169F88F174A38C26DE2D16A7E1B0C1CF5E83AC9F01C46"
 };
 

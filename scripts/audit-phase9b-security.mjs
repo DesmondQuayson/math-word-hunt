@@ -41,7 +41,7 @@ for (const forbidden of [
   if (forbidden.test(migration)) throw new Error(`Phase 9B migration crossed its strict Admin non-scope: ${forbidden}`);
 }
 const protectedHashes = new Map([
-  ["docs/index.html", "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"],
+  ["docs/index.html", "7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5"],
   ["docs/vocab.js", "caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46"]
 ]);
 for (const [path, expected] of protectedHashes) {

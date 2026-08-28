@@ -217,7 +217,7 @@ test("server-authenticated exact 24-hour trial unlocks only protected canonical 
   expect(vocab.status()).toBe(200);
   expect(index.headers()["cache-control"]).toContain("private, no-store");
   expect(vocab.headers()["cache-control"]).toContain("private, no-store");
-  expect(createHash("sha256").update(await index.body()).digest("hex")).toBe("10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e");
+  expect(createHash("sha256").update(await index.body()).digest("hex")).toBe("7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5");
   expect(createHash("sha256").update(await vocab.body()).digest("hex")).toBe("caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46");
   expect((await page.request.get("/game/runtime/index-v6-backup.html")).status()).toBe(404);
 });

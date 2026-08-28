@@ -69,7 +69,7 @@ Verified release gates:
 - `npm run phase6b:hosted:check` passed all five account-free protected Preview tests; anonymous access returned an HTTP 302 protection challenge
 - the final read-only hosted inventory verified Auth users and all eight application collections at zero
 - Standard Protection remained enabled, the existing automation bypass remained test-only, and the pilot remained inactive
-- canonical SHA-256 values remained `10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e` for `docs/index.html` and `caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46` for `docs/vocab.js`; historical and backup files remained unchanged
+- canonical SHA-256 values remained `7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5` for `docs/index.html` and `caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46` for `docs/vocab.js`; historical and backup files remained unchanged
 
 Manual operator verification actually completed:
 

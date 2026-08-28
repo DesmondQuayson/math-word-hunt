@@ -30,7 +30,7 @@ try {
   if ($LASTEXITCODE -eq 0) { throw 'No staged Phase 10 candidate is available.' }
   $candidateTree = (git write-tree).Trim()
   if ($candidateTree -notmatch '^[a-f0-9]{40}$') { throw 'Candidate tree could not be frozen.' }
-  if ((Get-FileHash -Algorithm SHA256 -LiteralPath 'docs\index.html').Hash -ne '10D0E49CD5DECF316615A10F6BDE37DC89796B2D8817EB1CF5D9EE25D263747E' -or
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath 'docs\index.html').Hash -ne '7F00ED6789A2FAF23B90E96C3DFDEE0167ACED87BEB08DABF10B89C3E72C9FC5' -or
       (Get-FileHash -Algorithm SHA256 -LiteralPath 'docs\vocab.js').Hash -ne 'CAEB8FBB590FFFD8CBC169F88F174A38C26DE2D16A7E1B0C1CF5E83AC9F01C46') {
     throw 'Protected canonical hash mismatch.'
   }

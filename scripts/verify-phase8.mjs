@@ -16,5 +16,5 @@ const gates=[
 ];
 await cleanPlatformGeneratedNextState();
 for(const[command,args]of gates){const result=spawnSync(command,args,{stdio:"inherit",shell:process.platform==="win32"});if(result.status!==0)process.exit(result.status??1)}
-for(const[path,digest]of[["docs/index.html","10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"],["docs/vocab.js","caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46"]]){const actual=createHash("sha256").update(readFileSync(path)).digest("hex");if(actual!==digest)throw new Error(`${path} changed: ${actual}`)}
+for(const[path,digest]of[["docs/index.html","7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5"],["docs/vocab.js","caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46"]]){const actual=createHash("sha256").update(readFileSync(path)).digest("hex");if(actual!==digest)throw new Error(`${path} changed: ${actual}`)}
 console.log("Authoritative Phase 8 verification passed: all local unit, migration, RLS, admin, upload, publication, operations, accessibility, security, build, dependency, canonical, historical, and rollback contracts are green.");

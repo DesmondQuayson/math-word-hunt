@@ -2037,7 +2037,7 @@
         scheduleTone({frequency:660, start, duration:.09, peak:.18});
         scheduleTone({frequency:880, start:start + .09, duration:.09, peak:.18});
       }
-      if (AUDIO.soundMode === "full") speakText(nextPraise(), 220, 1800);
+      if (AUDIO.soundMode === "full") window.MathNexaVoice?.playPraise(nextPraise());
     }
 
     function playWrongTone() {
@@ -2062,7 +2062,7 @@
         });
       }
       if (AUDIO.soundMode === "full") {
-        speakText("Puzzle complete! Great teamwork!", 520, 2600);
+        window.MathNexaVoice?.playPraise("Puzzle complete! Great teamwork!");
       }
     }
 
@@ -2870,11 +2870,15 @@
       state.tapStart = null;
       clearPreview();
       renderWordBank();
-      if (state.mode === "bank" && entry) speakSelectedTerm(entry.display);
+      if (state.mode === "bank" && entry && AUDIO.soundMode === "full") {
+        duck(1600, .15, 100, 500);
+        window.MathNexaVoice?.playVocabularyTerm(entry.display);
+      }
       showToast("Target selected. Now find its highlighted word in the grid.", 1600);
     }
 
     function renderWordBank() {
+      window.MathNexaVoice?.preloadTerms(state.model.placeable.map((entry) => entry.display));
       const list = $("#wordList");
       list.innerHTML = "";
       list.classList.toggle("dense", state.model.placeable.length > 8);

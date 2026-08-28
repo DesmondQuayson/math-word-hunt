@@ -151,7 +151,7 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   const canonical = await page.request.get("/game/runtime/index.html");
   expect(canonical.status()).toBe(200);
   expect(createHash("sha256").update(await canonical.body()).digest("hex")).toBe(
-    "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e"
+    "7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5"
   );
 });
 

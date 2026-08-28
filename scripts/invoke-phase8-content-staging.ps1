@@ -31,7 +31,7 @@ try {
   if ($candidateTree -notmatch '^[a-f0-9]{40}$') { throw 'Candidate tree could not be frozen.' }
   $indexHash = (Get-FileHash -Algorithm SHA256 -LiteralPath 'docs\index.html').Hash
   $vocabHash = (Get-FileHash -Algorithm SHA256 -LiteralPath 'docs\vocab.js').Hash
-  if ($indexHash -ne '10D0E49CD5DECF316615A10F6BDE37DC89796B2D8817EB1CF5D9EE25D263747E' -or
+  if ($indexHash -ne '7F00ED6789A2FAF23B90E96C3DFDEE0167ACED87BEB08DABF10B89C3E72C9FC5' -or
       $vocabHash -ne 'CAEB8FBB590FFFD8CBC169F88F174A38C26DE2D16A7E1B0C1CF5E83AC9F01C46') {
     throw 'Protected canonical hash mismatch.'
   }

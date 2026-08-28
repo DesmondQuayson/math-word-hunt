@@ -1,309 +1,419 @@
 /*
- * MathNexa natural voice for Math Vocabulary Hunt (v2 — term-first sequencing).
+ * MathNexa natural voice engine v4 — direct API + Web Audio.
  *
- * The canonical game speaks through window.speechSynthesis. This adapter,
- * injected ahead of the game script by the runtime enhancement pipeline,
- * replaces that surface with a first-party prebuilt-audio engine
- * (Chirp 3: HD, en-US-Chirp3-HD-Aoede clips under /game-suite/voice/).
+ * The game now calls this engine EXPLICITLY at the real event sources
+ * (word-bank selection, correct-find praise, completion) via:
  *
- * The game itself never requests the vocabulary term on a grid find — it only
- * speaks praise (markFound → playCorrectAudio → praise), while writing the
- * found term into #findTerm in the same tick. So when a praise phrase
- * arrives, this engine reads #findTerm and plays the sequence
+ *   window.MathNexaVoice.playVocabularyTerm(display)
+ *   window.MathNexaVoice.playPraise(text)
+ *   window.MathNexaVoice.preloadTerms([displays])
  *
- *     [term clip] → short natural gap → [praise clip]
+ * Playback is Web Audio: one shared AudioContext, created/resumed
+ * SYNCHRONOUSLY inside real user gestures (capture-phase first interaction
+ * AND again inside every play call, which runs in the click stack), decoded
+ * clip buffers cached per phrase. Clips are first-party Chirp 3: HD Aoede
+ * MP3s under /game-suite/voice/ — browser speechSynthesis is never used.
  *
- * firing the game's utterance.onend only when the WHOLE sequence ends, so the
- * game's own music ducking stays lowered through term + praise and restores
- * once. Bank-mode term speech still plays directly; a praise following the
- * same term skips the duplicate pronunciation instead of canceling it.
+ * Honest states (set only when true):
+ *   data-voice-state: requested | started | ended | blocked | error
+ *   data-voice-source: prebuilt (only once playback genuinely started) | silent
+ *   data-last-spoken-term
+ * "started" is set strictly after the AudioContext is running and the
+ * buffer source has started. Diagnostics: window.__MATHNEXA_VOICE_DEBUG__
+ * always; visible panel with ?audioDebug=1. No credentials anywhere.
  *
- * Hard rules honored: one pronunciation per find (duplicate events dropped),
- * newest find wins (old sequence stops cleanly), clips never loop, a missing
- * clip stays SILENT with visible text — browser speech synthesis is never
- * invoked. Diagnostics: data-voice-source (prebuilt|silent),
- * data-voice-state (playing|idle), data-last-spoken-term.
- * No credentials, no third-party requests: same-origin audio only.
+ * A tiny speechSynthesis-compatible shim remains only as a safety net for
+ * any legacy call path; it routes praise/terms into this engine and never
+ * falls back to the robotic browser voice.
  */
 (function () {
   "use strict";
-  if (window.__mathnexaNaturalVoice) return;
-  window.__mathnexaNaturalVoice = true;
+  if (window.MathNexaVoice) return;
 
   var MANIFEST_URL = "/game-suite/voice/manifest.json";
-  // A short silent WAV: primes/unlocks the shared audio element inside the
-  // first real user gesture so later clip playback (which follows async
-  // manifest/sequence steps) is allowed by Safari/Chrome autoplay policy.
-  var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
-  var PRAISE = {
-    "Good job, Chief!": true,
-    "Nice find, Chief!": true,
-    "That's it, Chief!": true,
-    "Sharp eyes!": true,
-    "You got it!": true,
-    "Way to go, Chief!": true
+  var CLIP_BASE = "/game-suite/voice/";
+  var PRAISE_SET = {
+    "Good job, Chief!": 1, "Nice find, Chief!": 1, "That's it, Chief!": 1,
+    "Sharp eyes!": 1, "You got it!": 1, "Way to go, Chief!": 1,
+    "Puzzle complete! Great teamwork!": 1
   };
-  var SEQUENCE_GAP_MS = 160;
-  var DUPLICATE_WINDOW_MS = 600;
+  var DUPLICATE_MS = 300;
 
-  var manifestPromise = null;
-  var sequenceToken = 0;
-  var active = null; // { token, utterance, audio, texts }
-  var lastRequest = { text: "", at: 0 };
-  var spokenTermMemory = { term: "", at: 0 };
-
-  // ONE shared element for every clip: once it has played inside a user
-  // gesture, subsequent src-swapped playback stays allowed even when it
-  // starts from async continuations (manifest load, sequence gaps).
-  var sharedAudio = null;
-  var unlocked = false;
-  function ensureSharedAudio() {
-    if (!sharedAudio) {
-      sharedAudio = new Audio();
-      sharedAudio.preload = "auto";
-      sharedAudio.loop = false;
+  // ---------- diagnostics ----------
+  var debug = {
+    enabled: /[?&]audioDebug=1/.test(location.search),
+    events: [],
+    state: {
+      selectedTerm: null, handler: null, termId: null, audioUrl: null,
+      voice: "Chirp3-HD Aoede", audioContext: "none", unlock: "not-attempted",
+      playVocabularyTerm: "not-called", playback: "idle", voiceSource: null,
+      lastError: "none", playbackCount: 0
     }
-    return sharedAudio;
+  };
+  window.__MATHNEXA_VOICE_DEBUG__ = debug;
+  function log(event, detail) {
+    debug.events.push({ t: Date.now(), event: event, detail: detail == null ? null : String(detail).slice(0, 140) });
+    if (debug.events.length > 200) debug.events.shift();
+    renderPanel();
   }
-  function unlockPlayback() {
-    if (unlocked) return;
-    unlocked = true;
+  function setAttr(name, value) { try { document.documentElement.setAttribute(name, value); } catch (_) {} }
+  function setState(key, value) { debug.state[key] = value; renderPanel(); }
+  var panel = null;
+  function renderPanel() {
+    if (!debug.enabled) return;
     try {
-      var audio = ensureSharedAudio();
-      audio.muted = true;
-      audio.src = SILENT_WAV;
-      var played = audio.play();
-      var finish = function () { try { audio.pause(); } catch (_) {} audio.muted = false; };
-      if (played && typeof played.then === "function") played.then(finish).catch(function () { audio.muted = false; });
-      else finish();
+      if (!panel) {
+        if (!document.body) return;
+        panel = document.createElement("div");
+        panel.id = "mathnexa-audio-debug";
+        panel.setAttribute("style", "position:fixed;right:8px;bottom:8px;z-index:99999;max-width:300px;background:rgba(7,21,37,.94);color:#9fe8f2;font:11px/1.5 monospace;padding:8px 10px;border:1px solid #20cfe3;border-radius:8px;pointer-events:none;white-space:pre-wrap;");
+        document.body.appendChild(panel);
+      }
+      var s = debug.state;
+      panel.textContent =
+        "AUDIO DEBUG\n" +
+        "Selected term: " + (s.selectedTerm || "-") + "\n" +
+        "Selection handler: " + (s.handler || "-") + "\n" +
+        "Term ID: " + (s.termId || "-") + "\n" +
+        "Audio URL: " + (s.audioUrl || "-") + "\n" +
+        "Voice: " + s.voice + "\n" +
+        "AudioContext: " + s.audioContext + "\n" +
+        "Unlock: " + s.unlock + "\n" +
+        "playVocabularyTerm: " + s.playVocabularyTerm + "\n" +
+        "Playback: " + s.playback + "\n" +
+        "Voice source: " + (s.voiceSource || "-") + "\n" +
+        "Last error: " + s.lastError + "\n" +
+        "Playback count: " + s.playbackCount;
     } catch (_) {}
   }
-
-  function normalize(text) {
-    return String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+  if (debug.enabled) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderPanel);
+    else renderPanel();
   }
 
-  function setAttr(name, value) {
-    try { document.documentElement.setAttribute(name, value); } catch (_) {}
+  // ---------- audio context ----------
+  var context = null;
+  function ensureContext() {
+    if (!context) {
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) { setState("audioContext", "unsupported"); return null; }
+      try { context = new Ctor(); } catch (error) { setState("audioContext", "create-failed"); setState("lastError", String(error)); return null; }
+    }
+    return context;
+  }
+  function resumeContext(reason) {
+    var ctx = ensureContext();
+    if (!ctx) return null;
+    if (ctx.state !== "running") {
+      try {
+        var p = ctx.resume();
+        if (p && p.catch) p.catch(function (e) { setState("lastError", "resume: " + e); });
+      } catch (e) { setState("lastError", "resume: " + e); }
+    }
+    setState("audioContext", ctx.state);
+    log("audioContextResume", reason + " -> " + ctx.state);
+    return ctx;
+  }
+  // HTMLAudio fallback for environments without Web Audio (real desktop and
+  // mobile Safari both have it; this covers unusual embedders and the
+  // Windows WebKit test build). Playback stays first-party and CSP-legal
+  // (media-src 'self').
+  var fallbackEl = null;
+  function ensureFallbackEl() {
+    if (!fallbackEl) { fallbackEl = new Audio(); fallbackEl.preload = "auto"; fallbackEl.loop = false; }
+    return fallbackEl;
   }
 
+  function unlock() {
+    setState("unlock", "attempted");
+    log("audioUnlockAttempt");
+    var ctx = resumeContext("unlock");
+    if (!ctx) {
+      setState("unlock", "html-audio-fallback");
+      log("audioUnlockResult", "no WebAudio - HTMLAudio fallback armed");
+      ensureFallbackEl();
+      return;
+    }
+    // Play one silent sample synchronously in the gesture: definitive unlock.
+    try {
+      var buffer = ctx.createBuffer(1, 1, 22050);
+      var source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      setState("unlock", "success");
+      log("audioUnlockResult", "success state=" + ctx.state);
+    } catch (error) {
+      setState("unlock", "failed");
+      setState("lastError", String(error));
+      log("audioUnlockResult", "failed " + error);
+    }
+    setState("audioContext", ctx.state);
+  }
+  window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+  window.addEventListener("keydown", unlock, { once: true, capture: true });
+  window.addEventListener("touchend", unlock, { once: true, capture: true });
+
+  // ---------- manifest + clip buffers ----------
+  var manifestPromise = null;
   function loadManifest() {
     if (!manifestPromise) {
       manifestPromise = fetch(MANIFEST_URL, { credentials: "same-origin" })
-        .then(function (r) { if (!r.ok) throw new Error("manifest " + r.status); return r.json(); })
-        .catch(function () { return null; });
+        .then(function (r) {
+          log("manifestLookup", "HTTP " + r.status);
+          if (!r.ok) throw new Error("manifest " + r.status);
+          return r.json();
+        })
+        .catch(function (error) {
+          setState("lastError", "manifest: " + error);
+          manifestPromise = null; // allow retry on the next call
+          return null;
+        });
     }
     return manifestPromise;
   }
+  loadManifest();
 
-  function clipFor(manifest, phrase) {
-    return manifest && manifest.clips ? manifest.clips[phrase] || null : null;
+  var buffers = Object.create(null); // file -> Promise<AudioBuffer|null>
+  function bufferFor(file) {
+    if (!buffers[file]) {
+      buffers[file] = fetch(CLIP_BASE + file, { credentials: "same-origin" })
+        .then(function (r) {
+          log("clipFetch", file + " HTTP " + r.status);
+          if (!r.ok) throw new Error("clip " + r.status);
+          return r.arrayBuffer();
+        })
+        .then(function (bytes) {
+          var ctx = ensureContext();
+          if (!ctx) throw new Error("no-audio-context");
+          return new Promise(function (resolve, reject) {
+            ctx.decodeAudioData(bytes.slice(0), resolve, reject);
+          });
+        })
+        .then(function (buffer) { log("clipDecoded", file); return buffer; })
+        .catch(function (error) {
+          setState("lastError", "clip " + file + ": " + error);
+          delete buffers[file];
+          return null;
+        });
+    }
+    return buffers[file];
   }
 
-  function warmClip(file) {
-    // HTTP-cache warm only; playback always goes through the shared element.
-    try { fetch("/game-suite/voice/" + file, { credentials: "same-origin" }).catch(function () {}); } catch (_) {}
-  }
+  var normalize = function (text) { return String(text == null ? "" : text).replace(/\s+/g, " ").trim(); };
 
-  function settle(utterance, kind) {
-    try {
-      if (kind === "end" && utterance && typeof utterance.onend === "function") {
-        utterance.onend({ type: "end", utterance: utterance });
-      } else if (kind !== "end" && utterance && typeof utterance.onerror === "function") {
-        utterance.onerror({ type: "error", error: kind, utterance: utterance });
-      }
-    } catch (_) {}
-  }
+  // ---------- playback core ----------
+  var activeSource = null; // { source, kind, phrase, startedAt, onDone }
+  var queuedPraise = null;
+  var lastPlay = { phrase: "", at: 0 };
 
   function stopActive(reason) {
-    if (!active) return;
-    var stopped = active;
-    active = null;
-    try { stopped.audio && stopped.audio.pause(); } catch (_) {}
-    setAttr("data-voice-state", "idle");
-    settle(stopped.utterance, reason || "canceled");
+    if (!activeSource) return;
+    var stopped = activeSource;
+    activeSource = null;
+    try { stopped.source.onended = null; stopped.source.stop(); } catch (_) {}
+    log("playStopped", stopped.phrase + " (" + reason + ")");
   }
 
-  function playOne(file, token) {
-    return new Promise(function (resolve) {
-      if (token !== sequenceToken) return resolve("superseded");
-      var audio = ensureSharedAudio();
-      audio.muted = false;
-      audio.onended = function () { resolve("ended"); };
-      audio.onerror = function () { resolve("error"); };
-      audio.src = "/game-suite/voice/" + file;
-      if (active) active.audio = audio;
-      var played = audio.play();
-      if (played && typeof played.then === "function") {
-        played.then(function () {
-          if (token === sequenceToken) {
-            setAttr("data-voice-source", "prebuilt");
-            setAttr("data-voice-state", "playing");
-          }
-        }).catch(function () { resolve("blocked"); });
-      } else {
-        setAttr("data-voice-source", "prebuilt");
-        setAttr("data-voice-state", "playing");
-      }
-    });
-  }
-
-  function wait(ms, token) {
-    return new Promise(function (resolve) {
-      setTimeout(function () { resolve(token === sequenceToken ? "ok" : "superseded"); }, ms);
-    });
-  }
-
-  function currentFindTerm() {
-    try {
-      var node = document.getElementById("findTerm");
-      return node ? normalize(node.textContent) : "";
-    } catch (_) { return ""; }
-  }
-
-  function speak(utterance) {
-    var text = normalize(utterance && utterance.text);
+  function playPhrase(phrase, kind) {
+    phrase = normalize(phrase);
     var now = Date.now();
-    // Duplicate-event guard: identical request while the same content is in
-    // flight (double listeners, rerenders, pointer+key double events).
-    if (text && text === lastRequest.text && now - lastRequest.at < DUPLICATE_WINDOW_MS) {
-      settle(utterance, "end");
-      return;
+    if (phrase && phrase === lastPlay.phrase && now - lastPlay.at < DUPLICATE_MS) {
+      log("duplicateSuppressed", phrase);
+      return Promise.resolve("duplicate");
     }
-    lastRequest = { text: text, at: now };
-
-    var token = ++sequenceToken;
-    stopActive("interrupted");
-    if (!text) { settle(utterance, "end"); return; }
-
-    loadManifest().then(function (manifest) {
-      if (token !== sequenceToken) return;
-      var sequence = [];
-      var termSpokenHere = "";
-
-      if (PRAISE[text]) {
-        // Correct-find praise: the found term is in #findTerm (written by the
-        // game 220ms earlier). Speak it FIRST — once per find.
-        var term = currentFindTerm();
-        var termClip = term ? clipFor(manifest, term) : null;
-        var alreadySpoken = term && spokenTermMemory.term === term && now - spokenTermMemory.at < 8000;
-        if (termClip && !alreadySpoken) {
-          sequence.push(termClip);
-          termSpokenHere = term;
-        }
-        var praiseClip = clipFor(manifest, text);
-        if (praiseClip) sequence.push(praiseClip);
-      } else {
-        var directClip = clipFor(manifest, text);
-        if (directClip) {
-          sequence.push(directClip);
-          if (!PRAISE[text] && manifest && manifest.clips && manifest.clips[text] && text !== "Puzzle complete! Great teamwork!") {
-            // Bank-mode (or future) direct term speech.
-            termSpokenHere = text;
-          }
-        }
-      }
-
-      if (sequence.length === 0) {
+    lastPlay = { phrase: phrase, at: now };
+    setState("playback", "requested");
+    setAttr("data-voice-state", "requested");
+    log("playRequested", kind + ": " + phrase);
+    resumeContext("play:" + kind); // synchronous inside the user's click stack
+    return loadManifest().then(function (manifest) {
+      var file = manifest && manifest.clips ? manifest.clips[phrase] : null;
+      setState("audioUrl", file ? CLIP_BASE + file : null);
+      if (!file) {
+        setState("playback", "no-clip");
+        setAttr("data-voice-state", "error");
         setAttr("data-voice-source", "silent");
-        settle(utterance, "end");
-        return;
+        setState("voiceSource", "silent");
+        log("playError", "no clip for: " + phrase);
+        return "no-clip";
       }
-
-      if (termSpokenHere) {
-        spokenTermMemory = { term: termSpokenHere, at: now };
-        setAttr("data-last-spoken-term", termSpokenHere);
-      }
-
-      active = { token: token, utterance: utterance, audio: null, texts: sequence.slice() };
-
-      (async function run() {
-        for (var i = 0; i < sequence.length; i += 1) {
-          if (token !== sequenceToken) return;
-          if (i > 0) {
-            var gap = await wait(SEQUENCE_GAP_MS, token);
-            if (gap !== "ok") return;
-          }
-          var outcome = await playOne(sequence[i], token);
-          if (token !== sequenceToken) return;
-          if (outcome === "error" || outcome === "blocked") {
+      var ctxProbe = ensureContext();
+      if (!ctxProbe) {
+        // No Web Audio in this environment: shared HTMLAudio element path.
+        if (kind === "term") stopActive("new-term");
+        return new Promise(function (resolve) {
+          var el = ensureFallbackEl();
+          var entry = { source: { stop: function () { try { el.pause(); } catch (_) {} }, onended: null }, kind: kind, phrase: phrase, startedAt: Date.now() };
+          activeSource = entry;
+          el.onended = function () {
+            if (activeSource === entry) activeSource = null;
+            setState("playback", "ended");
+            setAttr("data-voice-state", "ended");
+            log("playEnded", phrase + " (html-audio)");
+            var next = queuedPraise; queuedPraise = null;
+            resolve("ended");
+            if (next) playPhrase(next, "praise");
+          };
+          el.onerror = function () {
+            if (activeSource === entry) activeSource = null;
+            setState("playback", "error");
+            setAttr("data-voice-state", "error");
             setAttr("data-voice-source", "silent");
-            break;
+            setState("voiceSource", "silent");
+            resolve("error");
+          };
+          el.src = CLIP_BASE + file;
+          var played = el.play();
+          var markStarted = function () {
+            setState("playback", "started");
+            setAttr("data-voice-state", "started");
+            setAttr("data-voice-source", "prebuilt");
+            setState("voiceSource", "prebuilt");
+            debug.state.playbackCount += 1;
+            renderPanel();
+            log("playStarted", phrase + " (html-audio)");
+          };
+          if (played && typeof played.then === "function") played.then(markStarted).catch(function (error) {
+            if (activeSource === entry) activeSource = null;
+            setState("playback", "blocked");
+            setAttr("data-voice-state", "blocked");
+            setState("lastError", String(error));
+            log("playRejected", error);
+            resolve("blocked");
+          });
+          else markStarted();
+        });
+      }
+      return bufferFor(file).then(function (buffer) {
+        var ctx = ensureContext();
+        if (!buffer || !ctx) {
+          setAttr("data-voice-state", "error");
+          setAttr("data-voice-source", "silent");
+          setState("voiceSource", "silent");
+          setState("playback", "error");
+          return "error";
+        }
+        if (ctx.state !== "running") {
+          setAttr("data-voice-state", "blocked");
+          setState("playback", "blocked (context " + ctx.state + ")");
+          log("playRejected", "context " + ctx.state);
+          return "blocked";
+        }
+        if (kind === "term") stopActive("new-term");
+        return new Promise(function (resolve) {
+          var source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.loop = false; // narration never loops
+          source.connect(ctx.destination);
+          var entry = { source: source, kind: kind, phrase: phrase, startedAt: Date.now() };
+          activeSource = entry;
+          source.onended = function () {
+            if (activeSource === entry) activeSource = null;
+            setState("playback", "ended");
+            setAttr("data-voice-state", "ended");
+            log("playEnded", phrase);
+            var next = queuedPraise;
+            queuedPraise = null;
+            resolve("ended");
+            if (next) playPhrase(next, "praise");
+          };
+          try {
+            source.start(0);
+            // Genuinely started: context running AND source started.
+            setState("playback", "started");
+            setAttr("data-voice-state", "started");
+            setAttr("data-voice-source", "prebuilt");
+            setState("voiceSource", "prebuilt");
+            debug.state.playbackCount += 1;
+            renderPanel();
+            log("playStarted", phrase);
+          } catch (error) {
+            activeSource = null;
+            setState("playback", "error");
+            setState("lastError", String(error));
+            setAttr("data-voice-state", "error");
+            log("playError", error);
+            resolve("error");
           }
-        }
-        if (token === sequenceToken && active && active.token === token) {
-          active = null;
-          setAttr("data-voice-state", "idle");
-          settle(utterance, "end");
-        }
-      })();
+        });
+      });
     });
   }
 
-  function FauxUtterance(text) {
-    this.text = String(text == null ? "" : text);
-    this.lang = "en-US";
-    this.voice = null;
-    this.volume = 1;
-    this.rate = 1;
-    this.pitch = 1;
-    this.onend = null;
-    this.onerror = null;
-    this.onstart = null;
-  }
-  FauxUtterance.prototype.addEventListener = function (name, handler) {
-    if (name === "end") this.onend = handler;
-    if (name === "error") this.onerror = handler;
-    if (name === "start") this.onstart = handler;
-  };
-  FauxUtterance.prototype.removeEventListener = function () {};
-
-  var engine = {
-    speak: speak,
-    cancel: function () {
-      sequenceToken += 1;
-      lastRequest = { text: "", at: 0 };
-      stopActive("canceled");
+  // ---------- public API ----------
+  var api = {
+    /** Speak the selected vocabulary term once. Called by the game's own
+     *  word-bank selection handler with the entry's display string. */
+    playVocabularyTerm: function (display) {
+      var term = normalize(display);
+      setState("selectedTerm", term);
+      setState("handler", "FIRED");
+      setState("termId", term);
+      setState("playVocabularyTerm", "called");
+      setAttr("data-last-spoken-term", term);
+      log("wordBankSelection", term);
+      return playPhrase(term, "term");
     },
-    pause: function () { if (active && active.audio) { try { active.audio.pause(); } catch (_) {} } },
-    resume: function () {
-      if (active && active.audio) {
-        var played = active.audio.play();
-        if (played && typeof played.catch === "function") played.catch(function () {});
+    /** One praise phrase after a genuine successful find; if a term clip is
+     *  still speaking, praise waits for it instead of cutting it off. */
+    playPraise: function (text) {
+      var phrase = normalize(text);
+      log("praiseRequested", phrase);
+      if (activeSource && activeSource.kind === "term") {
+        queuedPraise = phrase; // single-slot queue; newest praise wins
+        return Promise.resolve("queued");
       }
+      return playPhrase(phrase, "praise");
     },
-    getVoices: function () { return []; },
-    addEventListener: function () {},
-    removeEventListener: function () {},
-    onvoiceschanged: null
+    /** Warm the clips for the current puzzle's word bank. */
+    preloadTerms: function (displays) {
+      loadManifest().then(function (manifest) {
+        if (!manifest || !manifest.clips) return;
+        var hasWebAudio = Boolean(window.AudioContext || window.webkitAudioContext);
+        (displays || []).slice(0, 40).forEach(function (display) {
+          var file = manifest.clips[normalize(display)];
+          if (!file) return;
+          if (hasWebAudio) bufferFor(file);
+          else try { fetch(CLIP_BASE + file, { credentials: "same-origin" }).catch(function () {}); } catch (_) {}
+        });
+        log("preloadTerms", (displays || []).length + " terms");
+      });
+    },
+    cancel: function () {
+      queuedPraise = null;
+      stopActive("cancel");
+      setAttr("data-voice-state", "ended");
+      setState("playback", "idle");
+    },
+    unlock: unlock
   };
-  Object.defineProperty(engine, "speaking", { get: function () { return active !== null; } });
-  Object.defineProperty(engine, "pending", { get: function () { return false; } });
-  Object.defineProperty(engine, "paused", { get: function () { return active !== null && active.audio !== null && active.audio.paused; } });
+  window.MathNexaVoice = api;
 
-  try {
-    Object.defineProperty(window, "speechSynthesis", { value: engine, configurable: true });
-    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: FauxUtterance, configurable: true });
-  } catch (_) {
-    window.speechSynthesis = engine;
-    window.SpeechSynthesisUtterance = FauxUtterance;
-  }
-
-  window.addEventListener("pagehide", function () { engine.cancel(); });
+  window.addEventListener("pagehide", function () { api.cancel(); });
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") engine.pause();
-    else engine.resume();
+    if (document.visibilityState === "hidden") api.cancel(); // no replay on return
   });
 
-  // Manifest loads immediately (a fetch needs no gesture) so the first
-  // spoken selection has no async gap waiting on it.
-  loadManifest().then(function (manifest) {
-    if (manifest && manifest.preload) manifest.preload.forEach(warmClip);
-  });
-
-  // Unlock inside the FIRST real user gesture (capture phase, before game
-  // handlers) — the whole reason selection speech works on real Safari.
-  window.addEventListener("pointerdown", unlockPlayback, { once: true, capture: true });
-  window.addEventListener("keydown", unlockPlayback, { once: true, capture: true });
-  window.addEventListener("touchend", unlockPlayback, { once: true, capture: true });
+  // ---------- legacy speechSynthesis safety net (never robotic) ----------
+  function FauxUtterance(text) { this.text = String(text == null ? "" : text); this.onend = null; this.onerror = null; }
+  FauxUtterance.prototype.addEventListener = function (n, h) { if (n === "end") this.onend = h; if (n === "error") this.onerror = h; };
+  FauxUtterance.prototype.removeEventListener = function () {};
+  var shim = {
+    speak: function (utterance) {
+      var text = normalize(utterance && utterance.text);
+      var done = function () { try { utterance && utterance.onend && utterance.onend({ type: "end" }); } catch (_) {} };
+      if (!text) return done();
+      (PRAISE_SET[text] ? api.playPraise(text) : api.playVocabularyTerm(text)).then(done, done);
+    },
+    cancel: function () { api.cancel(); },
+    pause: function () {}, resume: function () {},
+    getVoices: function () { return []; },
+    addEventListener: function () {}, removeEventListener: function () {}, onvoiceschanged: null,
+    speaking: false, pending: false, paused: false
+  };
+  try {
+    Object.defineProperty(window, "speechSynthesis", { value: shim, configurable: true });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: FauxUtterance, configurable: true });
+  } catch (_) { window.speechSynthesis = shim; window.SpeechSynthesisUtterance = FauxUtterance; }
 })();

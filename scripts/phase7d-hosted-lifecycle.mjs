@@ -249,7 +249,7 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
     const canonical = await context.request.get(`${PHASE7D_STAGING_ORIGIN}/game/runtime/index.html`);
     assert(canonical.status() === 200, "entitled-canonical-runtime-denied");
     assert(createHash("sha256").update(await canonical.body()).digest("hex") ===
-      "10d0e49cd5decf316615a10f6bde37dc89796b2d8817eb1cf5d9ee25d263747e", "hosted-canonical-hash-mismatch");
+      "7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5", "hosted-canonical-hash-mismatch");
     evidence.trialEntitlement = true;
 
     await page.goto(`${PHASE7D_STAGING_ORIGIN}/subscription`);
