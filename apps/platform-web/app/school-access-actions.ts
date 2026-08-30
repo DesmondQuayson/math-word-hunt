@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  POST_AUTH_DESTINATION,
   confirmationRequiredHref,
   safeAccessIntentDestination
 } from "@/lib/auth/access-intent";
@@ -25,7 +26,7 @@ export async function authorizeSchoolAccessAction(
   _previous: AuthorizedCodeFormState,
   formData: FormData
 ): Promise<AuthorizedCodeFormState> {
-  const destination = safeAccessIntentDestination(String(formData.get("next") ?? ""), "/account");
+  const destination = safeAccessIntentDestination(String(formData.get("next") ?? ""), POST_AUTH_DESTINATION);
   const context = await resolveConsumerContext();
   if (context.status === "unconfirmed") redirect(confirmationRequiredHref(destination));
   if (context.status !== "anonymous" && context.status !== "unconfigured") redirect(destination);

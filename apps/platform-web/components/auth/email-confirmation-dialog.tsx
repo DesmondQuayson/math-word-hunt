@@ -8,6 +8,7 @@ import {
   checkEmailConfirmationAction,
   resendConfirmationAction
 } from "@/app/auth-actions";
+import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { initialEmailConfirmationState, type EmailConfirmationState } from "@/lib/auth/form-state";
 
 import { Button } from "../ui/button";
@@ -55,7 +56,7 @@ export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail:
 
   useEffect(() => {
     if (checkState.status !== "success" || !checkState.destination) return;
-    const timer = window.setTimeout(() => router.replace(checkState.destination ?? "/account"), 900);
+    const timer = window.setTimeout(() => router.replace(checkState.destination ?? POST_AUTH_DESTINATION), 900);
     return () => window.clearTimeout(timer);
   }, [checkState.destination, checkState.status, router]);
 

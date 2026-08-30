@@ -6,6 +6,7 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import type { Metadata } from "next";
 
@@ -18,7 +19,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const configured = isSupabaseConfigured();
   const consumerMode = isProductionPlatformMode();
   const nextDestination = consumerMode
-    ? safeInternalRedirect((await searchParams).next, "/account")
+    ? safeInternalRedirect((await searchParams).next, POST_AUTH_DESTINATION)
     : undefined;
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow={consumerMode ? "MathNexa account" : "Local teacher accounts"} title={consumerMode ? "Create your account" : "Create a teacher account"} description={consumerMode ? "Use your email address and a private password. Confirm your email before continuing to subscription setup." : "Use an educator email and a private password. This local validation does not create a production account."} />
@@ -26,6 +27,6 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
     <AuthEmailStatus label="Confirmation delivery" />
     {!configured ? <Notice label="Account service unavailable" tone="warning"><strong>Local accounts are not configured.</strong><p>Start the local Supabase stack and platform together before using this form.</p></Notice> : null}
     <SignUpForm configured={configured} consumerMode={consumerMode} nextDestination={nextDestination} />
-    {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? "/account"} compact /> : null}
+    {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? POST_AUTH_DESTINATION} compact /> : null}
   </Container>;
 }

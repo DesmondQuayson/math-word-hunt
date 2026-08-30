@@ -14,6 +14,14 @@ describe("authentication security boundaries", () => {
     expect(safeInternalRedirect("/map-prep")).toBe("/map-prep");
     expect(safeInternalRedirect("/homework")).toBe("/homework");
     expect(safeInternalRedirect("/quizzes")).toBe("/quizzes");
+    // Home became a valid post-authentication destination. It is an exact
+    // same-origin path in the server-owned allowlist, not a wildcard, so the
+    // near-misses below must still be refused.
+    expect(safeInternalRedirect("/")).toBe("/");
+    expect(safeInternalRedirect("/ ")).toBe("/teacher");
+    expect(safeInternalRedirect("https://mathnexa.com/")).toBe("/teacher");
+    expect(safeInternalRedirect("//mathnexa.com/")).toBe("/teacher");
+    expect(safeInternalRedirect("/?next=https://attacker.example")).toBe("/teacher");
     expect(safeInternalRedirect("//attacker.example")).toBe("/teacher");
     expect(safeInternalRedirect("https://attacker.example")).toBe("/teacher");
     expect(safeInternalRedirect("javascript:alert(1)")).toBe("/teacher");

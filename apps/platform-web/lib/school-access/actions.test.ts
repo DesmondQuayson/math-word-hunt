@@ -65,8 +65,18 @@ describe("authorized-code server action", () => {
   });
 
   it("blocks unsafe and external next destinations", async () => {
-    await expect(authorizeSchoolAccessAction(initialAuthorizedCodeFormState, form("AESM", "https://attacker.example")))
-      .rejects.toThrow("REDIRECT:/account");
+    // A destination the server does not own is refused and replaced by the
+    // post-authentication default (Home) — never followed.
+    for (const hostile of [
+      "https://attacker.example",
+      "//attacker.example/games",
+      "javascript:alert(1)",
+      "/games/../admin",
+      "%2Fgames"
+    ]) {
+      await expect(authorizeSchoolAccessAction(initialAuthorizedCodeFormState, form("AESM", hostile)))
+        .rejects.toThrow("REDIRECT:/");
+    }
   });
 
   it("fails closed when persistent rate limiting is unavailable or exhausted", async () => {

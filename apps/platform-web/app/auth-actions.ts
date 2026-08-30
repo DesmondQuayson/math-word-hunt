@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 import type { AuthFormState, EmailConfirmationState } from "@/lib/auth/form-state";
+import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
@@ -37,13 +38,13 @@ async function rememberConfirmationRequest(email: string, destination: string) {
   const cookieStore = await cookies();
   const options = confirmationCookieOptions();
   cookieStore.set(confirmationEmailCookie, email, options);
-  cookieStore.set(confirmationNextCookie, safeInternalRedirect(destination, "/account"), options);
+  cookieStore.set(confirmationNextCookie, safeInternalRedirect(destination, POST_AUTH_DESTINATION), options);
   cookieStore.delete(confirmationCooldownCookie);
 }
 
 async function confirmationDestination(): Promise<string> {
   const cookieStore = await cookies();
-  return safeInternalRedirect(cookieStore.get(confirmationNextCookie)?.value, "/account");
+  return safeInternalRedirect(cookieStore.get(confirmationNextCookie)?.value, POST_AUTH_DESTINATION);
 }
 
 function field(formData: FormData, name: string): string {
@@ -95,7 +96,7 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
   const destination = consumerMode
-    ? safeInternalRedirect(field(formData, "next"), "/account")
+    ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
     : "/teacher";
   const callback = `${getAppBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}`;
   const { error } = await supabase.auth.signUp({
@@ -213,7 +214,7 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { status: "error", message: "The email or password was not accepted." };
   const destination = consumerMode
-    ? safeInternalRedirect(field(formData, "next"), "/account")
+    ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
     : "/teacher";
   redirect(destination);
 }

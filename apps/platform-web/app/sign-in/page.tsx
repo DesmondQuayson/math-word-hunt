@@ -6,6 +6,7 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import type { Metadata } from "next";
 
@@ -18,7 +19,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const configured = isSupabaseConfigured();
   const consumerMode = isProductionPlatformMode();
-  const nextDestination = consumerMode ? safeInternalRedirect(params.next, "/account") : undefined;
+  const nextDestination = consumerMode ? safeInternalRedirect(params.next, POST_AUTH_DESTINATION) : undefined;
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow={consumerMode ? "MathNexa account" : "Local teacher accounts"} title="Sign in" description={consumerMode ? "Sign in to view your account and server-verified game-access status." : "Open locally saved classes and activity drafts. The current v7 game remains available without an account."} />
     {params.signedOut === "1" ? <Notice label="Signed out" tone="success" live><strong>You are signed out.</strong><p>{consumerMode ? "Account and game access are no longer available in this browser session." : "Protected teacher data is no longer available in this browser session."}</p></Notice> : null}
@@ -26,6 +27,6 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     <AuthEmailStatus label="Confirmation and recovery delivery" />
     {!configured ? <Notice label="Account service unavailable" tone="warning"><strong>Local accounts are not configured.</strong><p>Start the local Supabase stack and platform together before signing in.</p></Notice> : null}
     <SignInForm configured={configured} nextDestination={nextDestination} />
-    {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? "/account"} compact /> : null}
+    {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? POST_AUTH_DESTINATION} compact /> : null}
   </Container>;
 }
