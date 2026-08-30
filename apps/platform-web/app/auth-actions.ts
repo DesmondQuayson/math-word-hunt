@@ -10,6 +10,7 @@ import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { recordAggregateSignal } from "@/lib/operations/server";
+import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt } from "@/lib/auth/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const confirmationEmailCookie = "mathnexa-confirmation-email";
@@ -95,6 +96,11 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
+  // Caps automated account creation, which otherwise costs us a confirmation
+  // email on every request.
+  if (!await consumeConsumerAuthAttempt("sign-up", email)) {
+    return { status: "error", message: "Too many account attempts. Wait a few minutes and try again." };
+  }
   const destination = consumerMode
     ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
     : "/teacher";
@@ -211,8 +217,14 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
   }
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
+  // Throttled before the credential is checked, so a blocked caller learns
+  // nothing about whether the address exists or the password was close.
+  if (!await consumeConsumerAuthAttempt("sign-in", email)) {
+    return { status: "error", message: "Too many sign-in attempts. Wait a few minutes and try again." };
+  }
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { status: "error", message: "The email or password was not accepted." };
+  await clearConsumerAuthAttempts("sign-in", email);
   const destination = consumerMode
     ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
     : "/teacher";
@@ -225,6 +237,11 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   if (!validEmail(email)) return { status: "error", message: "Enter a valid email address.", fieldErrors: { email: "Enter a valid email address." } };
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
+  // A blocked caller still gets the same neutral response as everyone else, so
+  // the throttle cannot be used to probe which addresses have accounts.
+  if (!await consumeConsumerAuthAttempt("password-recovery", email)) {
+    return { status: "success", message: getAuthEmailExperience(process.env, isProductionPlatformMode() ? "consumer" : "teacher").recoveryResponse };
+  }
   const recovery = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppBaseUrl()}/auth/callback?next=/update-password`
   });

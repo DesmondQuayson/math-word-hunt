@@ -18,5 +18,5 @@ export async function GET(_request:Request,{params}:{params:Promise<{resourceId:
   }
   const signed=await client.storage.from(file.data.bucket_id).createSignedUrl(file.data.object_path,60);if(signed.error)return Response.json({error:"unavailable"},{status:503});
   const fetched=await fetch(signed.data.signedUrl,{cache:"no-store"});if(!fetched.ok||!fetched.body)return Response.json({error:"unavailable"},{status:503});
-  return new Response(fetched.body,{headers:{"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${file.data.normalized_filename}"`,"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Referrer-Policy":"no-referrer"}});
+  return new Response(fetched.body,{headers:{"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${file.data.normalized_filename.replace(/["\\\r\n]/g,"")}"`,"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; sandbox","Referrer-Policy":"no-referrer"}});
 }
