@@ -112,6 +112,24 @@
   height: 1.85rem;
 }
 
+/* The approved MathNexa mark is already a circular badge with its own ring, so
+   it drops the tile the older glyph sat on — keeping the yellow square and its
+   offset shadow would frame a circle inside a rectangle. Same 3rem footprint,
+   so the header height, the gap to the wordmark and the navigation all stay
+   exactly where they were. */
+.brand-mark-photo {
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+}
+
+.brand-mark-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
 .brand-name {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -123,6 +141,18 @@
 
 .brand-name strong {
   color: var(--color-brand-secondary);
+}
+
+/* Approved header lock-up: "Math" white, "Nexa" pink.
+   Scoped to the header on purpose — the footer's own turquoise "Nexa" is a
+   different surface and is not part of this change.
+   The artwork's pink is #f02870, which reaches only 3.61:1 against the header
+   navy. At 17px/800 this wordmark sits just under WCAG's large-text threshold,
+   so it needs 4.5:1 and that pink would fail the platform's AA target. The
+   established --color-accent-pink is the same brand pink a shade brighter and
+   clears it at 4.71:1. */
+.site-header .brand-name strong {
+  color: var(--color-accent-pink);
 }
 
 .nav-list,

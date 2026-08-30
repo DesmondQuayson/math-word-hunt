@@ -44,26 +44,43 @@ export async function SiteHeader() {
     <header className="site-header">
       <Container className="header-inner">
         <Link className="brand" href="/" aria-label={mathNexa ? "MathNexa home" : "Math Vocabulary Hunt home"}>
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" focusable="false">
-              <path
-                d="M6 8.5h20M6 16h20M6 23.5h20M8.5 6v20M16 6v20M23.5 6v20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                opacity=".34"
-              />
-              <path
-                d="M8.5 23.5 16 16l7.5-7.5"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="3"
-              />
-              <circle cx="23.5" cy="8.5" r="2.4" fill="currentColor" />
-            </svg>
-          </span>
+          {mathNexa ? (
+            // The approved MathNexa mark, generated from the same artwork as the
+            // app icons by scripts/generate-brand-mark.mjs. A static first-party
+            // PNG at 3x its 48 px display size, with intrinsic width and height
+            // so the header reserves the space before the image arrives and the
+            // navigation never shifts. Decorative on purpose: the link already
+            // carries the accessible name, so alt text here would make a screen
+            // reader announce the brand twice.
+            <span className="brand-mark brand-mark-photo" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a fixed
+                  48 px mark is already delivered at its final size (12 KB), so
+                  next/image would add a runtime optimisation round trip and buy
+                  nothing. Deliberately a plain first-party asset. */}
+              <img src="/brand/mathnexa-mark.png" alt="" width={144} height={144} decoding="async" />
+            </span>
+          ) : (
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32" focusable="false">
+                <path
+                  d="M6 8.5h20M6 16h20M6 23.5h20M8.5 6v20M16 6v20M23.5 6v20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity=".34"
+                />
+                <path
+                  d="M8.5 23.5 16 16l7.5-7.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="3"
+                />
+                <circle cx="23.5" cy="8.5" r="2.4" fill="currentColor" />
+              </svg>
+            </span>
+          )}
           <span className="brand-name">{mathNexa ? <>Math<strong>Nexa</strong></> : <>Math Vocabulary <strong>Hunt</strong></>}</span>
         </Link>
         <nav aria-label="Primary navigation">
