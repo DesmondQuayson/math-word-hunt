@@ -641,9 +641,26 @@ working because the two Stripe hosts are permitted form-action destinations.
 
 ### P0 — now
 1. Owner review and approval of this branch.
-2. Deploy to `mathnexa-platform-staging` only, with the staging gate left closed.
+2. **Deploy to `mathnexa-platform-staging`.** Not yet done — the deploy command
+   was blocked by this environment's permission policy and was deliberately not
+   worked around. The worktree is already linked to the staging project
+   (`prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`), so the deploy is a single command once
+   the owner permits it:
+
+   ```bash
+   npx vercel deploy --prod --yes
+   ```
+
+   Run from `C:/GitHub/mathnexa-security`. Despite the `--prod` flag this
+   targets the **staging** project's own alias, not
+   `mathnexa-platform-production`. Leave the staging gate closed.
 3. Confirm on staging that the CSP is clean in the browser console across Home,
-   Games, a hosted game, Account and Sign in.
+   Games, a hosted game, Account and Sign in — particularly the Supabase
+   `connect-src`, which local public-production mode cannot exercise because it
+   runs without Supabase credentials.
+4. If billing is live, confirm a real checkout and billing-portal round trip in
+   **Firefox** specifically, since it is the browser that enforces `form-action`
+   against redirect targets.
 
 ### P1 — next
 1. **Nonce-based CSP** (MN-08). Generate a per-request nonce in `proxy.ts`,
