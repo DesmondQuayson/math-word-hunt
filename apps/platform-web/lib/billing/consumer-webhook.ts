@@ -1,4 +1,5 @@
 import "server-only";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 
 import { createHash } from "node:crypto";
 
@@ -28,11 +29,16 @@ export async function processConsumerBillingWebhook(input: Readonly<{
   repository: SupabaseConsumerBillingRepository;
 }>): Promise<Result> {
   if (!input.config.webhookEnabled) return { status: 503, body: { received: false, state: "webhook-disabled" } };
-  if (!input.signature) return { status: 400, body: { received: false, state: "invalid-signature" } };
+  if (!input.signature) {
+    await recordSecurityEvent("WEBHOOK_SIGNATURE_INVALID", { reason: "absent" });
+    return { status: 400, body: { received: false, state: "invalid-signature" } };
+  }
   let event;
   try {
     event = input.provider.constructVerifiedEvent(input.payload, input.signature, input.config.webhookSecret);
   } catch {
+    // The payload and signature are never recorded, only the refusal.
+    await recordSecurityEvent("WEBHOOK_SIGNATURE_INVALID", { reason: "verification-failed" });
     return { status: 400, body: { received: false, state: "invalid-signature" } };
   }
   const expectedLivemode = input.config.stripeMode === "live";
@@ -58,6 +64,9 @@ export async function processConsumerBillingWebhook(input: Readonly<{
   }
   if (receipt.conflict) return { status: 409, body: { received: false, state: "manual-review" } };
   if (receipt.duplicate && ["processed", "ignored", "manual_review"].includes(receipt.state)) {
+    // Idempotency already refuses this; the event makes a replay attempt visible
+    // instead of it being silently absorbed.
+    await recordSecurityEvent("WEBHOOK_REPLAY_DETECTED", { state: receipt.state });
     return { status: 200, body: { received: true, state: receipt.state } };
   }
   try {

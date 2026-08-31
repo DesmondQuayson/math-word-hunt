@@ -12,6 +12,7 @@ import {
   STAGING_ACCESS_WEBHOOK_PATH,
   stagingAccessNotFoundResponse
 } from "@/lib/staging-access/server";
+import { emitSecurityEvent } from "@/lib/observability/security-events";
 import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -35,6 +36,10 @@ export async function proxy(request: NextRequest) {
       !isTicketedGameAssetPath(gatedPath) &&
       !isValidStagingAccessCookie(request.cookies.get(STAGING_ACCESS_COOKIE_NAME)?.value)
     ) {
+      // Makes probing of a locked staging environment visible. Emitted
+      // synchronously from the request headers rather than via the async
+      // `headers()` helper, which is not available in this proxy scope.
+      emitSecurityEvent("STAGING_ACCESS_DENIED", { hasCookie: request.cookies.has(STAGING_ACCESS_COOKIE_NAME) }, request.headers);
       return stagingAccessNotFoundResponse();
     }
   }
@@ -98,5 +103,21 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  // Exclusions are listed by PREFIX, never by file extension.
+  //
+  // The previous matcher ended with `.*\.(?:svg|png|jpg|jpeg|gif|webp)$`, which
+  // excluded any path merely *ending* in an image extension — not just real
+  // assets. `/sign-in.png` is not a file, so Next.js rendered its own 404
+  // document for it, and because the proxy never ran, the staging gate never
+  // saw the request. A locked staging environment therefore returned a fully
+  // rendered MathNexa page — title, brand markup, full navigation — with no
+  // `X-Robots-Tag`, to anyone who appended `.png` to a path. That defeated the
+  // concealment the gate exists to provide, and left it search-indexable.
+  //
+  // These prefixes cover every real static asset: the framework's own output,
+  // the three public asset directories, and the App Router root icons. Anything
+  // else now reaches the proxy, which is what makes the gate authoritative.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.png|icon1\\.png|apple-icon\\.png|brand/|game-suite/|internal-games/).*)"
+  ]
 };

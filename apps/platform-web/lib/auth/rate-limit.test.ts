@@ -113,12 +113,20 @@ describe("production runtime: limiter healthy", () => {
     expect(emitted).toHaveLength(0);
   });
 
-  it("throttles once the budget is spent", async () => {
+  it("throttles once the budget is spent, and says so without crying outage", async () => {
     configureEnvironment(PRODUCTION, true);
     serviceClient.current = healthyClient(false);
     await expect(consumeConsumerAuthAttempt("sign-in", "person@example.test")).resolves.toBe("throttled");
-    // A spent budget is not an outage and must not be reported as one.
-    expect(emitted).toHaveLength(0);
+
+    // Phase 2: hitting the budget is now reported, because a spike in these is
+    // the clearest early sign of a credential attack. It must NOT be reported as
+    // a limiter outage — those mean opposite things to whoever reads the log.
+    const codes = emitted.map((event) => (event as Record<string, unknown>).code);
+    expect(codes).toContain("auth-rate-limited");
+    expect(codes).not.toContain("rate-limiter-unavailable");
+    const throttle = emitted.find((e) => (e as Record<string, unknown>).code === "auth-rate-limited") as Record<string, unknown>;
+    expect(throttle.severity).toBe("warning");
+    expect(JSON.stringify(throttle)).not.toContain("person@example.test");
   });
 
   it("sends a budget the database function will accept", async () => {

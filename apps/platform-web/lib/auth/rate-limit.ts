@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 
 import { ConsoleMonitoringAdapter, emitOperationalEvent } from "@/lib/observability/server";
+import { recordSecurityEvent, type SecurityEventName } from "@/lib/observability/security-events";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 /**
@@ -46,6 +47,57 @@ const budgets: Readonly<Record<ConsumerAuthScope, Budget>> = Object.freeze({
   "sign-up": { maxAttempts: 10, windowSeconds: 900, blockSeconds: 900 },
   "password-recovery": { maxAttempts: 6, windowSeconds: 900, blockSeconds: 1800 }
 });
+
+/**
+ * The second limiter dimension: the account being aimed at.
+ *
+ * The Phase 1 budget keys on address + client IP + user agent, which stops one
+ * machine grinding away but does nothing about an attacker spreading attempts
+ * across many addresses and agents at a single known account. This closes that,
+ * by counting failures against the target account no matter where they arrive
+ * from.
+ *
+ * 20 attempts per hour is the tightest the deployed `consume_admin_auth_rate_limit`
+ * function permits (`p_max_attempts` is validated 1..20, `p_window_seconds`
+ * 30..3600), and it is also a sensible ceiling on its own terms: twenty failed
+ * password attempts against one account within an hour is already far outside
+ * normal use, while the cap turns unlimited distributed guessing into twenty
+ * guesses an hour.
+ *
+ * **The unavoidable trade, stated plainly.** Any per-account limiter hands an
+ * attacker who knows a victim's address a way to spend that budget deliberately
+ * and lock them out. Three things keep that proportionate here:
+ *
+ *   1. The block is 15 minutes, not permanent, and a successful sign-in clears
+ *      the counter immediately.
+ *   2. It applies to **sign-in only**. Password recovery deliberately keeps just
+ *      its request-level budget, so a locked-out user still has a working route
+ *      back into their account rather than being stuck behind the same wall.
+ *   3. The refusal is the same generic copy as any other failure, so the
+ *      limiter cannot be used to confirm that an account exists.
+ *
+ * The alternative — leaving distributed guessing uncapped — is worse for a paid
+ * product holding real accounts.
+ */
+const ACCOUNT_TARGET_BUDGET: Budget = Object.freeze({
+  maxAttempts: 20,
+  windowSeconds: 3600,
+  blockSeconds: 900
+});
+
+/**
+ * Keyed pseudonym for the targeted account.
+ *
+ * Deliberately excludes IP and user agent — that is the whole point of this
+ * dimension — and deliberately uses a different namespace prefix from the
+ * request-level subject, so the two budgets can never collide in the shared
+ * `admin_auth_rate_limits` table. The address is never stored, only its HMAC.
+ */
+export function accountTargetSubjectHash(secret: string, identifier: string): string {
+  return createHmac("sha256", secret)
+    .update(`consumer-account\nsign-in\n${compact(identifier, 254).toLowerCase()}`)
+    .digest("hex");
+}
 
 function compact(value: string | null | undefined, maximum: number): string {
   return (value ?? "").trim().slice(0, maximum);
@@ -102,24 +154,51 @@ export function resolveLimiterSecret(source: NodeJS.ProcessEnv = process.env): s
   return null;
 }
 
+/**
+ * The request-dimension subject.
+ *
+ * **The user agent is deliberately NOT part of this key.** Phase 1 included it,
+ * reasoning that it would help separate students sharing one school address.
+ * Review showed that to be self-defeating: the user agent is chosen by the
+ * caller, so an attacker changes one header and mints a brand-new budget, from
+ * a single address, without needing a proxy pool at all. It also let each forged
+ * agent create a fresh row in `admin_auth_rate_limits`, which has no TTL — so
+ * the bypass doubled as unbounded table growth.
+ *
+ * Dropping it costs nothing for the case it was meant to serve: students behind
+ * one school address sign in with *different addresses of their own*, and the
+ * address is already in this key, so their budgets stay separate regardless.
+ * A rate-limit key must be built from things the caller cannot freely choose.
+ */
 export function consumerAuthSubjectHash(
   secret: string,
   scope: ConsumerAuthScope,
   identifier: string,
-  ip: string,
-  userAgent: string
+  ip: string
 ): string {
   return createHmac("sha256", secret)
-    .update(`consumer-auth\n${scope}\n${compact(identifier, 254).toLowerCase()}\n${compact(ip, 128)}\n${compact(userAgent, 512)}`)
+    .update(`consumer-auth\n${scope}\n${compact(identifier, 254).toLowerCase()}\n${compact(ip, 128)}`)
     .digest("hex");
 }
 
 async function subject(secret: string, scope: ConsumerAuthScope, identifier: string): Promise<string> {
   const requestHeaders = await headers();
+  return consumerAuthSubjectHash(secret, scope, identifier, clientAddress(requestHeaders));
+}
+
+/**
+ * The caller's address as the platform reports it.
+ *
+ * `x-vercel-forwarded-for` is set by Vercel itself and cannot be spoofed by the
+ * client, so it is preferred. `x-forwarded-for` is only consulted as a fallback,
+ * and only its leftmost entry — a caller can prepend entries to that header, so
+ * treating any other position as the client would be trusting attacker input.
+ */
+function clientAddress(requestHeaders: Headers): string {
+  const platform = compact(requestHeaders.get("x-vercel-forwarded-for"), 128);
+  if (platform) return platform.split(",")[0]!.trim();
   const forwarded = compact(requestHeaders.get("x-forwarded-for"), 256).split(",")[0]?.trim() ?? "";
-  const ip = forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
-  const userAgent = compact(requestHeaders.get("user-agent"), 512) || "unavailable";
-  return consumerAuthSubjectHash(secret, scope, identifier, ip, userAgent);
+  return forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
 }
 
 /**
@@ -168,6 +247,23 @@ function reportLimiterUnavailable(scope: ConsumerAuthScope, reason: "unconfigure
 }
 
 /**
+ * Reports that a caller actually hit their budget.
+ *
+ * Phase 1 reported only the limiter being *unavailable*, so the case the limiter
+ * exists to catch — someone grinding against it — produced no signal at all. A
+ * spike in these is the clearest early indicator of a credential attack.
+ */
+const THROTTLE_EVENT: Readonly<Record<ConsumerAuthScope, SecurityEventName>> = {
+  "sign-in": "AUTH_RATE_LIMITED",
+  "sign-up": "AUTH_SIGNUP_RATE_LIMITED",
+  "password-recovery": "AUTH_RECOVERY_RATE_LIMITED"
+};
+
+async function reportThrottled(scope: ConsumerAuthScope, dimension: "request" | "account"): Promise<void> {
+  await recordSecurityEvent(THROTTLE_EVENT[scope], { scope, dimension });
+}
+
+/**
  * Consults the limiter for one attempt.
  *
  * Availability note, verified rather than assumed: in `production-platform`
@@ -205,12 +301,44 @@ export async function consumeConsumerAuthAttempt(
     if (productionPlatform) reportLimiterUnavailable(scope, "backend-error");
     return decideRateLimit({ productionPlatform, limiterConfigured: true, backendFailed: true, withinBudget: false });
   }
-  return decideRateLimit({
+
+  const requestVerdict = decideRateLimit({
     productionPlatform,
     limiterConfigured: true,
     backendFailed: false,
     withinBudget: result.data === true
   });
+  if (requestVerdict === "throttled") {
+    await reportThrottled(scope, "request");
+    return requestVerdict;
+  }
+  if (requestVerdict !== "allowed") return requestVerdict;
+
+  // Second dimension: the account being aimed at, regardless of where the
+  // attempts come from. See consumeAccountTargetAttempt for why this covers
+  // sign-in only.
+  if (scope !== "sign-in") return requestVerdict;
+
+  const accountResult = await client.rpc("consume_admin_auth_rate_limit", {
+    p_scope: "login",
+    p_subject_hash: accountTargetSubjectHash(secret, identifier),
+    p_max_attempts: ACCOUNT_TARGET_BUDGET.maxAttempts,
+    p_window_seconds: ACCOUNT_TARGET_BUDGET.windowSeconds,
+    p_block_seconds: ACCOUNT_TARGET_BUDGET.blockSeconds
+  });
+
+  if (accountResult.error) {
+    if (productionPlatform) reportLimiterUnavailable(scope, "backend-error");
+    return decideRateLimit({ productionPlatform, limiterConfigured: true, backendFailed: true, withinBudget: false });
+  }
+  const accountVerdict = decideRateLimit({
+    productionPlatform,
+    limiterConfigured: true,
+    backendFailed: false,
+    withinBudget: accountResult.data === true
+  });
+  if (accountVerdict === "throttled") await reportThrottled(scope, "account");
+  return accountVerdict;
 }
 
 /** Clears the counter after a genuine success so honest users never accumulate. */
@@ -225,4 +353,12 @@ export async function clearConsumerAuthAttempts(
     p_scope: "login",
     p_subject_hash: await subject(secret, scope, identifier)
   });
+  // Both dimensions must clear, or a user who signs in successfully would keep
+  // an account-target counter that eventually locks them out for no reason.
+  if (scope === "sign-in") {
+    await client.rpc("clear_admin_auth_rate_limit", {
+      p_scope: "login",
+      p_subject_hash: accountTargetSubjectHash(secret, identifier)
+    });
+  }
 }

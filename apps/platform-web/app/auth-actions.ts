@@ -11,6 +11,7 @@ import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { recordAggregateSignal } from "@/lib/operations/server";
 import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt } from "@/lib/auth/rate-limit";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const confirmationEmailCookie = "mathnexa-confirmation-email";
@@ -168,6 +169,20 @@ export async function resendConfirmationAction(
     };
   }
   const email = data.user?.email ?? cookieStore.get(confirmationEmailCookie)?.value;
+  if (email && validEmail(email)) {
+    // The 60-second cooldown above lives in a cookie, which the caller owns:
+    // deleting it resets the wait, so on its own it throttled nothing and this
+    // action would send an unbounded number of confirmation emails. The
+    // server-side budget is the actual control; the cookie stays because it
+    // gives an honest countdown to a legitimate user.
+    const limit = await consumeConsumerAuthAttempt("sign-up", email);
+    if (limit !== "allowed") {
+      return {
+        status: "error",
+        message: "Another confirmation email could not be sent yet. Wait a few minutes and try again."
+      };
+    }
+  }
   if (!email || !validEmail(email)) {
     return { status: "error", message: "Open your original confirmation email, or sign in to request another message." };
   }
@@ -240,7 +255,12 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
     return { status: "error", message: "Too many sign-in attempts. Wait a few minutes and try again." };
   }
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { status: "error", message: "The email or password was not accepted." };
+  if (error) {
+    // Detection only. The response is unchanged and still generic; a spike in
+    // these is what distinguishes an attack from ordinary forgetfulness.
+    await recordSecurityEvent("AUTH_LOGIN_FAILED", { scope: "sign-in" });
+    return { status: "error", message: "The email or password was not accepted." };
+  }
   await clearConsumerAuthAttempts("sign-in", email);
   const destination = consumerMode
     ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)

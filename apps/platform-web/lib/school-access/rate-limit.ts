@@ -5,26 +5,56 @@ import { headers } from "next/headers";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
-const maximumAttempts = 5;
+/**
+ * Budget for the authorized-code gate.
+ *
+ * This limiter is keyed on the network address, and a school puts a whole
+ * cohort behind one. The previous 5-attempts-then-block-for-30-minutes was
+ * therefore a classroom lockout waiting to happen: six mistyped codes during
+ * one lesson and the entire school lost access for half an hour.
+ *
+ * 20 is the most the deployed `consume_admin_auth_rate_limit` function allows,
+ * and the block is halved to 15 minutes. That is still overwhelming protection
+ * for what it guards — the shortest permitted code is four characters from a
+ * 36-symbol alphabet, so 20 attempts per 15 minutes leaves an exhaustive search
+ * on the order of millennia — while giving a class realistic room to fumble.
+ *
+ * A correct entry calls `clearSchoolAccessAttempts`, so only *consecutive
+ * failures* accumulate; students who type the code correctly never consume the
+ * budget for the ones behind them.
+ */
+const maximumAttempts = 20;
 const windowSeconds = 15 * 60;
-const blockSeconds = 30 * 60;
+const blockSeconds = 15 * 60;
 
 function compact(value: string | null, maximum: number): string {
   return (value ?? "").trim().slice(0, maximum);
 }
 
-export function schoolAccessRateLimitSubject(secret: string, ip: string, userAgent: string): string {
+/**
+ * Keyed pseudonym for the caller.
+ *
+ * The user agent is deliberately excluded. It is chosen by the caller, so
+ * including it let an attacker mint a fresh budget by changing one header — the
+ * same self-defeating pattern the consumer limiter had — while doing nothing to
+ * separate legitimate students, who share both the address and, often, the
+ * school-issued browser.
+ */
+export function schoolAccessRateLimitSubject(secret: string, ip: string): string {
   return createHmac("sha256", secret)
-    .update(`school-access\n${compact(ip, 128)}\n${compact(userAgent, 512)}`)
+    .update(`school-access\n${compact(ip, 128)}`)
     .digest("hex");
 }
 
 async function subject(secret: string): Promise<string> {
   const requestHeaders = await headers();
+  // Prefer the address the platform sets: a caller can prepend entries to
+  // x-forwarded-for, so only its leftmost value is ever considered, and only as
+  // a fallback.
+  const platform = compact(requestHeaders.get("x-vercel-forwarded-for"), 128);
   const forwarded = compact(requestHeaders.get("x-forwarded-for"), 256).split(",")[0]?.trim() ?? "";
-  const ip = forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
-  const userAgent = compact(requestHeaders.get("user-agent"), 512) || "unavailable";
-  return schoolAccessRateLimitSubject(secret, ip, userAgent);
+  const ip = platform.split(",")[0]?.trim() || forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
+  return schoolAccessRateLimitSubject(secret, ip);
 }
 
 export async function consumeSchoolAccessAttempt(secret: string): Promise<boolean> {

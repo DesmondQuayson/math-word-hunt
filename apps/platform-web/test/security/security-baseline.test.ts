@@ -353,15 +353,15 @@ describe("credential rate limiting", () => {
   it("separates each surface so one cannot exhaust another's budget", () => {
     const secret = "x".repeat(40);
     const hashes = new Set([
-      consumerAuthSubjectHash(secret, "sign-in", "a@example.com", "1.2.3.4", "ua"),
-      consumerAuthSubjectHash(secret, "sign-up", "a@example.com", "1.2.3.4", "ua"),
-      consumerAuthSubjectHash(secret, "password-recovery", "a@example.com", "1.2.3.4", "ua")
+      consumerAuthSubjectHash(secret, "sign-in", "a@example.com", "1.2.3.4"),
+      consumerAuthSubjectHash(secret, "sign-up", "a@example.com", "1.2.3.4"),
+      consumerAuthSubjectHash(secret, "password-recovery", "a@example.com", "1.2.3.4")
     ]);
     expect(hashes.size).toBe(3);
   });
 
   it("pseudonymizes the subject rather than storing the address", () => {
-    const hash = consumerAuthSubjectHash("x".repeat(40), "sign-in", "person@example.com", "1.2.3.4", "ua");
+    const hash = consumerAuthSubjectHash("x".repeat(40), "sign-in", "person@example.com", "1.2.3.4");
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
     expect(hash).not.toContain("person");
     expect(hash).not.toContain("1.2.3.4");
@@ -764,3 +764,138 @@ function readdirSyncSafe(directory: string) {
     return [];
   }
 }
+
+/* ------------------------------------------- phase 2: detection and abuse */
+
+describe("rate-limit keys are built from what the caller cannot choose", () => {
+  it("ignores the user agent entirely, so a header change mints no new budget", async () => {
+    const { consumerAuthSubjectHash } = await import("@/lib/auth/rate-limit");
+    const secret = "k".repeat(40);
+    // The function no longer accepts a user agent at all, so no caller-controlled
+    // header can change which bucket an attempt lands in.
+    expect(consumerAuthSubjectHash.length).toBe(4);
+    const base = consumerAuthSubjectHash(secret, "sign-in", "person@example.test", "203.0.113.10");
+    expect(consumerAuthSubjectHash(secret, "sign-in", "person@example.test", "203.0.113.10")).toBe(base);
+    // A different address still separates, which is what a school NAT needs.
+    expect(consumerAuthSubjectHash(secret, "sign-in", "person@example.test", "198.51.100.7")).not.toBe(base);
+    // A different account separates too, so classmates behind one address do not
+    // share a budget.
+    expect(consumerAuthSubjectHash(secret, "sign-in", "other@example.test", "203.0.113.10")).not.toBe(base);
+  });
+
+  it("counts the targeted account independently of where attempts come from", async () => {
+    const { accountTargetSubjectHash, consumerAuthSubjectHash } = await import("@/lib/auth/rate-limit");
+    const secret = "k".repeat(40);
+    const target = accountTargetSubjectHash(secret, "person@example.test");
+    expect(target).toMatch(/^[0-9a-f]{64}$/);
+    // Address-independent by construction: that is what defeats a proxy pool.
+    expect(accountTargetSubjectHash(secret, "PERSON@example.test")).toBe(target);
+    // Must never collide with a request-dimension bucket in the shared table.
+    expect(target).not.toBe(consumerAuthSubjectHash(secret, "sign-in", "person@example.test", "203.0.113.10"));
+    expect(target).not.toContain("person");
+  });
+
+  it("keeps the account budget inside the bounds the database function accepts", () => {
+    const source = read("apps/platform-web/lib/auth/rate-limit.ts");
+    const budget = /ACCOUNT_TARGET_BUDGET[\s\S]*?maxAttempts: (\d+),[\s\S]*?windowSeconds: (\d+),[\s\S]*?blockSeconds: (\d+)/.exec(source);
+    expect(budget, "ACCOUNT_TARGET_BUDGET must be present").not.toBeNull();
+    expect(Number(budget![1])).toBeGreaterThanOrEqual(1);
+    expect(Number(budget![1])).toBeLessThanOrEqual(20);
+    expect(Number(budget![2])).toBeGreaterThanOrEqual(30);
+    expect(Number(budget![2])).toBeLessThanOrEqual(3600);
+    expect(Number(budget![3])).toBeGreaterThanOrEqual(30);
+    expect(Number(budget![3])).toBeLessThanOrEqual(86400);
+  });
+
+  it("leaves password recovery as an escape hatch from an account block", () => {
+    // Any per-account limiter can be spent deliberately to lock a victim out.
+    // Recovery must therefore NOT be covered by it, or the victim has no way back.
+    const source = read("apps/platform-web/lib/auth/rate-limit.ts");
+    expect(source).toContain('if (scope !== "sign-in") return requestVerdict;');
+    expect(source).toContain("accountTargetSubjectHash");
+  });
+
+  it("prefers the address the platform sets over the one a caller can prepend", () => {
+    expect(read("apps/platform-web/lib/auth/rate-limit.ts")).toContain("x-vercel-forwarded-for");
+  });
+});
+
+describe("security event taxonomy", () => {
+  it("refuses to attach anything that could carry a credential", async () => {
+    const { emitSecurityEvent } = await import("@/lib/observability/security-events");
+    const captured: string[] = [];
+    const original = console.info;
+    console.info = (line: string) => { captured.push(String(line)); };
+    try {
+      emitSecurityEvent("AUTH_LOGIN_FAILED", {
+        password: "hunter2",
+        sessionToken: "tokenvalue",
+        emailAddress: "person@example.test",
+        accessCode: "AESM",
+        subjectHash: "deadbeef",
+        scope: "sign-in"
+      } as never, new Headers({ "x-vercel-id": "cle1-abcdef123456" }));
+    } finally {
+      console.info = original;
+    }
+    const serialized = captured.join(" ");
+    for (const forbidden of ["hunter2", "person@example.test", "AESM", "deadbeef", "tokenvalue"]) {
+      expect(serialized, `must not log ${forbidden}`).not.toContain(forbidden);
+    }
+    // The non-sensitive field survives, so the event is still useful.
+    expect(serialized).toContain("sign-in");
+    expect(serialized).toContain("auth-login-failed");
+  });
+
+  it("never records the raw user agent, only a coarse family", async () => {
+    const { classifyUserAgent } = await import("@/lib/observability/security-events");
+    expect(classifyUserAgent("curl/8.4.0")).toBe("scripted");
+    expect(classifyUserAgent("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36")).toBe("browser");
+    expect(classifyUserAgent("Googlebot/2.1")).toBe("bot");
+    expect(classifyUserAgent("")).toBe("absent");
+  });
+
+  it("derives a correlation id without inventing a new identifier", async () => {
+    const { correlationIdFrom } = await import("@/lib/observability/security-events");
+    expect(correlationIdFrom(new Headers({ "x-vercel-id": "cle1::iad1::abc-123" }))).toMatch(/^[a-zA-Z0-9_-]{8,80}$/);
+    // Falls back rather than emitting an event the SafeEvent contract rejects.
+    expect(correlationIdFrom(new Headers())).toMatch(/^[a-zA-Z0-9_-]{8,80}$/);
+  });
+
+  it("emits a signal at every surface an attacker touches", () => {
+    const wired: ReadonlyArray<readonly [string, string]> = [
+      ["apps/platform-web/app/auth-actions.ts", "AUTH_LOGIN_FAILED"],
+      ["apps/platform-web/app/school-access-actions.ts", "AUTHORIZED_CODE_FAILED"],
+      ["apps/platform-web/app/school-access-actions.ts", "AUTHORIZED_CODE_RATE_LIMITED"],
+      ["apps/platform-web/lib/auth/rate-limit.ts", "AUTH_RATE_LIMITED"],
+      ["apps/platform-web/lib/billing/consumer-webhook.ts", "WEBHOOK_SIGNATURE_INVALID"],
+      ["apps/platform-web/lib/billing/consumer-webhook.ts", "WEBHOOK_REPLAY_DETECTED"],
+      ["apps/platform-web/proxy.ts", "STAGING_ACCESS_DENIED"]
+    ];
+    for (const [file, event] of wired) {
+      expect(read(file), `${file} must report ${event}`).toContain(event);
+    }
+  });
+
+  it("does not route security events through the dependency they may be reporting on", () => {
+    // recordAggregateSignal writes via the service Supabase client, so it cannot
+    // report a failure of that client. Security events use the console adapter.
+    const source = read("apps/platform-web/lib/observability/security-events.ts");
+    expect(source).not.toMatch(/\brecordAggregateSignal\s*\(/);
+    expect(source).toContain("ConsoleMonitoringAdapter");
+  });
+});
+
+describe("staging gate cannot be stepped around by a path suffix", () => {
+  it("excludes static assets by prefix, never by file extension", () => {
+    const source = read("apps/platform-web/proxy.ts");
+    const matcher = /matcher: \[([\s\S]*?)\]/.exec(source)?.[1] ?? "";
+    expect(matcher.length).toBeGreaterThan(0);
+    // An extension-anchored exclusion let /sign-in.png render a full page while
+    // skipping the gate entirely.
+    expect(matcher).not.toContain("jpeg|gif|webp)$");
+    for (const prefix of ["_next/static", "_next/image", "brand/", "game-suite/"]) {
+      expect(matcher, `${prefix} must still be excluded`).toContain(prefix);
+    }
+  });
+});

@@ -8,6 +8,7 @@ import {
   safeAccessIntentDestination
 } from "@/lib/auth/access-intent";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 import {
   authorizedCodeMatches,
   getSchoolAccessConfiguration
@@ -34,9 +35,12 @@ export async function authorizeSchoolAccessAction(
   const configuration = getSchoolAccessConfiguration();
   if (!configuration) return { status: "error", message: "Authorized access is temporarily unavailable." };
   if (!await consumeSchoolAccessAttempt(configuration.sessionSecret)) {
+    await recordSecurityEvent("AUTHORIZED_CODE_RATE_LIMITED", {});
     return { status: "error", message: "Authorized access is temporarily unavailable. Try again later." };
   }
   if (!authorizedCodeMatches(formData.get("authorizedCode"), configuration)) {
+    // The submitted code is never recorded, only the fact of a refusal.
+    await recordSecurityEvent("AUTHORIZED_CODE_FAILED", {});
     return { status: "error", message: "Invalid authorized code." };
   }
   const session = await startSchoolAccessSession();
