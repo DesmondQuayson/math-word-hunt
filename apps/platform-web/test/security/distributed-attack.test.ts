@@ -131,9 +131,11 @@ describe("changing the user agent no longer buys a fresh budget", () => {
     for (let i = 0; i < 15; i += 1) {
       await attemptFrom("203.0.113.10", `ForgedAgent/${i}`, VICTIM);
     }
-    // One request-dimension row plus one account-dimension row. The old key
-    // would have produced fifteen request rows in a table that has no TTL.
-    expect(backend.size).toBe(2);
+    // Three rows, all bounded: the request dimension, the account dimension and
+    // the address-scoped spray observation. The old user-agent key would have
+    // produced fifteen request rows in a table that has no TTL — the count is
+    // the point, not the exact number.
+    expect(backend.size).toBe(3);
   });
 });
 
@@ -246,5 +248,26 @@ describe("the simulated backend enforces the real function's contract", () => {
       p_block_seconds: 900
     });
     expect(result.error).not.toBeNull();
+  });
+});
+
+describe("password spraying is observed but never enforced", () => {
+  it("lets a spray through while raising a signal", async () => {
+    // One guess against each of many accounts, from one address: the shape
+    // neither account-keyed dimension can see. Enforcing here would be the
+    // classroom lockout the product cannot afford, so the request proceeds.
+    const verdicts: string[] = [];
+    for (let i = 0; i < 30; i += 1) {
+      verdicts.push(await attemptFrom("203.0.113.200", "Mozilla/5.0", `target${i}@example.test`));
+    }
+    expect(verdicts.every((v) => v === "allowed"), "spraying must not be blocked").toBe(true);
+  });
+
+  it("does not spend the spray budget on a single legitimate account", async () => {
+    // A user failing repeatedly on their own account is caught by the account
+    // dimension, and must not additionally trip the address observation for
+    // everyone else behind that address.
+    for (let i = 0; i < 5; i += 1) await attemptFrom("203.0.113.201", "Mozilla/5.0", VICTIM);
+    await expect(attemptFrom("203.0.113.201", "Mozilla/5.0", "colleague@example.test")).resolves.toBe("allowed");
   });
 });

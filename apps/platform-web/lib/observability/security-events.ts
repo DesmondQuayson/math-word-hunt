@@ -29,6 +29,7 @@ export const SECURITY_EVENTS = {
   AUTH_RATE_LIMITED: { code: "auth-rate-limited", category: "authentication", severity: "warning" },
   AUTH_SIGNUP_RATE_LIMITED: { code: "auth-signup-rate-limited", category: "authentication", severity: "warning" },
   AUTH_RECOVERY_RATE_LIMITED: { code: "auth-recovery-rate-limited", category: "authentication", severity: "warning" },
+  AUTH_SPRAY_SUSPECTED: { code: "auth-spray-suspected", category: "authentication", severity: "warning" },
   AUTH_LIMITER_UNAVAILABLE: { code: "rate-limiter-unavailable", category: "authentication", severity: "critical" },
   AUTHORIZED_CODE_FAILED: { code: "authorized-code-failed", category: "authentication", severity: "info" },
   AUTHORIZED_CODE_RATE_LIMITED: { code: "authorized-code-rate-limited", category: "authentication", severity: "warning" },

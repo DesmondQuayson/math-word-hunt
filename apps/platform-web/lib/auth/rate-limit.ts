@@ -404,7 +404,59 @@ export async function consumeConsumerAuthAttempt(
     withinBudget: accountResult.data === true
   });
   if (accountVerdict === "throttled") await reportThrottled(scope, "account");
+  if (accountVerdict === "allowed") await observeSprayPressure(client, secret, productionPlatform);
   return accountVerdict;
+}
+
+/**
+ * Watches for password spraying, and deliberately does NOT block it.
+ *
+ * Both existing dimensions are keyed on the account, so the one shape neither
+ * catches is one guess against each of many accounts from a single address —
+ * classic spraying and credential stuffing. Counting failures per ADDRESS
+ * across all accounts is what sees it.
+ *
+ * It is detection only, on purpose. The database function caps a budget at 20
+ * per window, and a class of thirty students behind one school address can
+ * produce more than twenty mistyped passwords in a quarter of an hour without
+ * anything being wrong. Enforcing here would be exactly the classroom lockout
+ * the product cannot afford, so this raises a signal for a human and lets the
+ * request through. If the log shows real spraying, an edge rule keyed on the
+ * TLS fingerprint — which distinguishes clients behind one address, unlike the
+ * address itself — is the proportionate response, not a block here.
+ */
+const SPRAY_OBSERVATION: Budget = Object.freeze({
+  maxAttempts: 20,
+  windowSeconds: 900,
+  blockSeconds: 900
+});
+
+async function observeSprayPressure(
+  client: NonNullable<ReturnType<typeof createServiceSupabaseClient>>,
+  secret: string,
+  productionPlatform: boolean
+): Promise<void> {
+  if (!productionPlatform) return;
+  try {
+    const requestHeaders = await headers();
+    const address = clientAddress(requestHeaders);
+    if (address === "unavailable") return;
+    const subjectHash = createHmac("sha256", secret).update(`consumer-spray\n${address}`).digest("hex");
+    const result = await client.rpc("consume_admin_auth_rate_limit", {
+      p_scope: "login",
+      p_subject_hash: subjectHash,
+      p_max_attempts: SPRAY_OBSERVATION.maxAttempts,
+      p_window_seconds: SPRAY_OBSERVATION.windowSeconds,
+      p_block_seconds: SPRAY_OBSERVATION.blockSeconds
+    });
+    // `false` means this address has crossed the observation threshold. The
+    // request still proceeds; only the signal is raised.
+    if (!result.error && result.data === false) {
+      await recordSecurityEvent("AUTH_SPRAY_SUSPECTED", { enforced: false });
+    }
+  } catch {
+    // Observation must never affect the outcome of an authentication attempt.
+  }
 }
 
 /** Clears the counter after a genuine success so honest users never accumulate. */
