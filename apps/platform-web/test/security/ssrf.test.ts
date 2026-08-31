@@ -119,3 +119,70 @@ describe("the health check does not become a redirect follower", () => {
     }
   });
 });
+
+/**
+ * Spelling-independence.
+ *
+ * The first version of this classifier decided IPv6 by string prefix, and an
+ * adversarial pass found three ways that was wrong: `fe80::8.8.8.8` looked
+ * public because it ended in a public dotted quad, `2002:7f00::` was missed
+ * because the 6to4 pattern demanded two groups, and `0:0:0:0:0:0:0:1` was not
+ * the literal string "::1". One address has many spellings; its bytes have one.
+ */
+describe("IPv6 classification is spelling-independent", () => {
+  it("catches loopback and unspecified however they are written", () => {
+    for (const address of [
+      "::1", "0:0:0:0:0:0:0:1", "0000:0000:0000:0000:0000:0000:0000:0001",
+      "::", "0:0:0:0:0:0:0:0", "0000:0000:0000:0000:0000:0000:0000:0000"
+    ]) {
+      expect(isPublicInternetAddress(address), `${address} must be refused`).toBe(false);
+    }
+  });
+
+  it("does not let a public dotted tail launder a private IPv6 prefix", () => {
+    // fe80::8.8.8.8 is link-local. The embedded quad is irrelevant.
+    for (const address of ["fe80::8.8.8.8", "fc00::8.8.8.8", "ff02::8.8.8.8", "fd12:3456::1.1.1.1"]) {
+      expect(isPublicInternetAddress(address), `${address} must be refused`).toBe(false);
+    }
+  });
+
+  it("catches every 6to4 spelling of a private address", () => {
+    for (const address of ["2002:7f00:1::", "2002:7f00::", "2002:0a00:0001::", "2002:c0a8:0101::", "2002:a9fe:a9fe::"]) {
+      expect(isPublicInternetAddress(address), `${address} must be refused`).toBe(false);
+    }
+  });
+
+  it("catches NAT64 and mapped forms in hex as well as dotted notation", () => {
+    for (const address of [
+      "64:ff9b::7f00:1", "64:ff9b::127.0.0.1", "64:ff9b::a00:1",
+      "::ffff:7f00:1", "::ffff:127.0.0.1", "::ffff:a9fe:a9fe"
+    ]) {
+      expect(isPublicInternetAddress(address), `${address} must be refused`).toBe(false);
+    }
+  });
+
+  it("catches unique-local and link-local across the whole range, not just one prefix", () => {
+    for (const address of [
+      "fc00::1", "fcff::1", "fd00::1", "fdff:ffff::1",
+      "fe80::1", "fe90::1", "fea0::1", "feb0::1", "febf:ffff::1"
+    ]) {
+      expect(isPublicInternetAddress(address), `${address} must be refused`).toBe(false);
+    }
+  });
+
+  it("still allows genuinely public addresses in every spelling", () => {
+    for (const address of [
+      "2606:4700:4700::1111", "2001:4860:4860::8888",
+      "::ffff:8.8.8.8", "::ffff:808:808", "64:ff9b::8.8.8.8",
+      "2002:0808:0808::", "2400:cb00::1", "fec0::1"
+    ]) {
+      expect(isPublicInternetAddress(address), `${address} must be allowed`).toBe(true);
+    }
+  });
+
+  it("refuses anything it cannot parse rather than guessing", () => {
+    for (const value of ["fe80::1%eth0", ":::1", "1:2:3:4:5:6:7:8:9", "gggg::1", "::ffff:999.1.1.1"]) {
+      expect(isPublicInternetAddress(value), `${value} must be refused`).toBe(false);
+    }
+  });
+});
