@@ -166,7 +166,8 @@
     "billing:reconcile": "node scripts/billing-ops.mjs",
     "billing:replay": "node scripts/billing-ops.mjs",
     "test": "npm run test:content && npm run test:unit && npm run test:e2e && npm run test:e2e:platform",
-    "test:security:baseline": "npm run test --workspace @math-vocabulary-hunt/platform-web -- test/security"
+    "test:security:baseline": "npm run test --workspace @math-vocabulary-hunt/platform-web -- test/security",
+    "certify:staging": "node scripts/certify-staging-csp.mjs $npm_config_url chromium && node scripts/certify-staging-framing.mjs $npm_config_url && node scripts/certify-staging-form-action.mjs $npm_config_url"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
