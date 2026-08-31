@@ -15,6 +15,29 @@ import {
 import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
+  // The staging gate is evaluated FIRST, before any environment-mode branch.
+  //
+  // It used to live inside the `isProductionPlatformMode()` block below, which
+  // compares MVH_APP_ENVIRONMENT with strict equality. That made the gate
+  // unreachable whenever that variable carried transport whitespace — the exact
+  // defect class as MN-09, on a sibling variable, and it would have skipped the
+  // gate no matter how carefully the flag itself were parsed. Deciding here,
+  // from `stagingAccessRequirement()`'s normalized reading of BOTH variables,
+  // is what actually closes it.
+  //
+  // Ordering is safe: a deployment with no staging gate configured resolves to
+  // "not-required" and falls through to exactly the behaviour it had before.
+  if (isStagingAccessRequired()) {
+    const gatedPath = request.nextUrl.pathname;
+    if (
+      gatedPath !== STAGING_ACCESS_BOOTSTRAP_PATH &&
+      gatedPath !== STAGING_ACCESS_WEBHOOK_PATH &&
+      !isTicketedGameAssetPath(gatedPath) &&
+      !isValidStagingAccessCookie(request.cookies.get(STAGING_ACCESS_COOKIE_NAME)?.value)
+    ) {
+      return stagingAccessNotFoundResponse();
+    }
+  }
   if (isProductionPublicMode()) {
     const errors = getProductionPublicConfigurationErrors();
     if (errors.length > 0) {
@@ -40,11 +63,7 @@ export async function proxy(request: NextRequest) {
     const canonicalRedirect = getPlatformCanonicalRedirectUrl(request.url, request.headers.get("host"));
     if (canonicalRedirect) return NextResponse.redirect(canonicalRedirect, 308);
     const pathname = request.nextUrl.pathname;
-    if (isStagingAccessRequired() && pathname !== STAGING_ACCESS_BOOTSTRAP_PATH && pathname !== STAGING_ACCESS_WEBHOOK_PATH &&
-      !isTicketedGameAssetPath(pathname) &&
-      !isValidStagingAccessCookie(request.cookies.get(STAGING_ACCESS_COOKIE_NAME)?.value)) {
-      return stagingAccessNotFoundResponse();
-    }
+    // The staging gate already ran above, before this mode branch.
     const environment = getServerEnvironment();
     if (!environment || environment.identity !== "production-platform") {
       return new NextResponse("Production account configuration unavailable.", { status: 503, headers: { "Cache-Control": "no-store" } });

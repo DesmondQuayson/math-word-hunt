@@ -618,6 +618,47 @@ describe("staging gate fails closed", () => {
     const { STAGING_ACCESS_COOKIE_NAME } = await import("@/lib/staging-access/server");
     expect(STAGING_ACCESS_COOKIE_NAME.startsWith("__Host-")).toBe(true);
   });
+
+  it("cannot be disabled by transport whitespace (MN-09)", async () => {
+    const { stagingAccessRequirement } = await import("@/lib/staging-access/server");
+    // The exact value that opened staging during certification.
+    expect(stagingAccessRequirement({ ...enabled, MVH_STAGING_ACCESS_REQUIRED: "true\n" })).toBe("required");
+    for (const value of ["  true  ", "\ttrue\r\n", "TRUE", "True"]) {
+      expect(stagingAccessRequirement({ ...enabled, MVH_STAGING_ACCESS_REQUIRED: value })).toBe("required");
+    }
+    // Only an exact lowercase false opens it; a cased false is not an instruction.
+    expect(stagingAccessRequirement({ ...enabled, MVH_STAGING_ACCESS_REQUIRED: "false" })).toBe("not-required");
+    expect(stagingAccessRequirement({ ...enabled, MVH_STAGING_ACCESS_REQUIRED: "False" })).toBe("required");
+    // Malformed and blank values protect a deployment that carries a gate token.
+    for (const value of ["yes", "1", "tru", "trueXYZ", "", " "]) {
+      expect(stagingAccessRequirement({ ...enabled, MVH_STAGING_ACCESS_REQUIRED: value })).toBe("required");
+    }
+  });
+
+  it("is decided before any environment-mode branch, so a sibling variable cannot skip it", () => {
+    const source = read("apps/platform-web/proxy.ts");
+    // Anchor on the branch, not the import list at the top of the file.
+    const gate = source.indexOf("if (isStagingAccessRequired())");
+    const platformMode = source.indexOf("if (isProductionPlatformMode())");
+    const publicMode = source.indexOf("if (isProductionPublicMode())");
+    expect(gate, "the gate must be its own top-level branch").toBeGreaterThan(-1);
+    expect(platformMode).toBeGreaterThan(-1);
+    expect(publicMode).toBeGreaterThan(-1);
+    // Nesting the gate inside a strict MVH_APP_ENVIRONMENT compare is what made
+    // the normalized decision unreachable in the first place.
+    expect(gate, "the staging gate must be evaluated before the mode branches").toBeLessThan(platformMode);
+    expect(gate).toBeLessThan(publicMode);
+  });
+
+  it("never locks a deployment that carries no staging token", async () => {
+    const { stagingAccessRequirement } = await import("@/lib/staging-access/server");
+    // Production's shape. A typo here must not black out the paid product, and
+    // could not be recovered from, since no token means no way to mint a cookie.
+    for (const value of [undefined, "", "yes", "garbage", "False"]) {
+      expect(stagingAccessRequirement({ MVH_APP_ENVIRONMENT: "production-platform", MVH_STAGING_ACCESS_REQUIRED: value }))
+        .toBe("not-required");
+    }
+  });
 });
 
 /* ------------------------------------------------------------------ cookies */

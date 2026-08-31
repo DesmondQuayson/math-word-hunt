@@ -24,6 +24,51 @@ Resend provisioning uses one temporary Full-access key only long enough to valid
 
 The hosted runner provisions or reconciles resources idempotently, migrates Supabase from empty, runs remote database lint and pgTAP, configures email/password Auth with required confirmation, and deploys the exact clean and pushed feature-branch commit to the isolated project's Production target. It requires the exact isolated project ID, expected commit and branch metadata, Ready status, complete sensitive Production variables, and no custom domains.
 
+### Gate configuration contract
+
+`MVH_STAGING_ACCESS_REQUIRED` is interpreted once, server-side, by
+`stagingAccessRequirement()` in `apps/platform-web/lib/staging-access/server.ts`.
+Nothing else parses it. The value is trimmed before comparison, because a shell
+or CI pipeline can append a newline and an earlier strict `=== "true"` comparison
+let exactly that silently disable the gate (MN-09).
+
+| Configured value | Result |
+|---|---|
+| `true`, ` true `, `true\n`, `TRUE`, `True` | **protected** |
+| `false` (exact lowercase, whitespace ignored) | intentionally open |
+| `False`, `FALSE`, or any other casing of false | **protected** |
+| `yes`, `1`, `on`, `tru`, `trueXYZ`, any other value | **protected** |
+| blank or absent, on a deployment holding a staging token | **protected** |
+| blank or absent, on a deployment with no staging token | open |
+
+The casing rule is deliberately asymmetric: liberal about what counts as
+"protect", strict about what counts as "open". An operator writing `TRUE`
+plainly means to protect the site, while disabling protection must be
+unmistakable — PowerShell stringifies `$false` as `False`, and accepting that
+as an instruction to open would reproduce the original defect.
+
+Ambiguity is resolved by whether the deployment holds a well-formed
+`MVH_STAGING_ACCESS_TOKEN`, which is the only sound discriminator available:
+production and staging both run `MVH_APP_ENVIRONMENT=production-platform`. A
+deployment with no gate token is not a gated environment, and must never be
+locked by a malformed value — with no token the bootstrap endpoint could never
+mint an access cookie, so the lock would be unrecoverable.
+
+The gate is evaluated **before** any environment-mode branch in `proxy.ts`. It
+previously sat inside `isProductionPlatformMode()`, which compares
+`MVH_APP_ENVIRONMENT` strictly, so transport whitespace on *that* variable
+skipped the gate entirely regardless of how the flag was parsed.
+
+To change the flag safely, avoid shells that append a newline:
+
+```bash
+printf 'true' | npx vercel env add MVH_STAGING_ACCESS_REQUIRED production
+```
+
+Always confirm the live URL returns an empty-body 404 afterwards; the value
+alone is not proof, and a redeploy is required for an environment change to
+take effect.
+
 `MVH_STAGING_ACCESS_REQUIRED=true` activates a server-side gate. Anonymous application requests receive an empty genuine HTTP 404 with `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`. A single internal POST endpoint accepts the staging token only as an Authorization Bearer credential, compares it in constant time, and sets a signed `__Host-` cookie with Secure, HttpOnly, SameSite=Lax, and Path=/ attributes. Only the Stripe webhook path bypasses the staging cookie; Stripe signature verification remains mandatory. The lifecycle cannot begin until anonymous and authorized behavior pass against the automatic alias and public assets contain no staging token.
 
 The authorized browser context then verifies signup, confirmation, sign-in/out, recovery with old-password rejection, Setup Checkout, exactly one 86,400-second trial, USD 599 monthly billing, entitlement-protected canonical assets, Portal ownership, cancellation, renewal failure, one non-extending seven-day grace period, recovery, period-end expiry, webhook signature/replay/stale-event controls, prohibited-data absence, and cleanup-to-zero.

@@ -16,6 +16,11 @@ function setProductionPlatform(adminEnabled: string | undefined) {
   process.env.MVH_APP_ENVIRONMENT = "production-platform";
   process.env.MVH_ADMIN_ENABLED = adminEnabled;
   delete process.env.MVH_STAGING_ACCESS_REQUIRED;
+  // Clearing the flag alone no longer describes an ungated deployment: an
+  // absent flag on a token-bearing deployment now fails closed by design, so
+  // the token has to go too or these admin assertions would be measuring the
+  // staging gate instead of the admin gate.
+  delete process.env.MVH_STAGING_ACCESS_TOKEN;
 }
 
 afterEach(() => {
