@@ -7,12 +7,18 @@ export const STAGING_ACCESS_COOKIE_NAME = "__Host-mvh-staging-access";
 export const STAGING_ACCESS_WEBHOOK_PATH = "/api/billing/webhook";
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-const UUID_PATH = "[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+// Hex is spelled explicitly rather than relying on a case-insensitive flag: a
+// UUID may legitimately arrive in either case, but the literal path segments
+// must not. This pattern is an EXEMPTION from the staging gate, and it used to
+// carry the "i" flag, which made `/GAMES/<id>/RUNTIME/assets/...` exempt too.
+// Next.js route matching is case-sensitive, so those variants skipped the gate
+// without matching the route they were exempted for. An exemption has to be
+// exactly as narrow as the thing it exempts.
+const UUID_PATH = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 const TICKET_PATH = "[A-Za-z0-9_-]{80,650}\\.[A-Za-z0-9_-]{43}";
 const GAME_ASSET_PATH = "[A-Za-z0-9][A-Za-z0-9._/-]{0,511}";
 const TICKETED_GAME_ASSET_PATH = new RegExp(
-  `^/(?:admin/games/${UUID_PATH}/preview|games/${UUID_PATH}/runtime)/assets/${TICKET_PATH}/${GAME_ASSET_PATH}$`,
-  "i"
+  `^/(?:admin/games/${UUID_PATH}/preview|games/${UUID_PATH}/runtime)/assets/${TICKET_PATH}/${GAME_ASSET_PATH}$`
 );
 const COOKIE_VERSION = "v1";
 const COOKIE_PAYLOAD = "mathnexa-phase7d-staging-access-v1";

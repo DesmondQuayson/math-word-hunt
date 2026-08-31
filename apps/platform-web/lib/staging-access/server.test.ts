@@ -4,6 +4,7 @@ import {
   createStagingAccessCookieValue,
   getStagingAccessToken,
   isStagingAccessRequired,
+  isTicketedGameAssetPath,
   isValidStagingAccessCookie,
   isValidStagingBearerAuthorization,
   stagingAccessNotFoundResponse,
@@ -230,5 +231,42 @@ describe("staging gate cannot black out an ungated deployment", () => {
         `${JSON.stringify(value)} must protect a gated deployment`
       ).toBe("required");
     }
+  });
+});
+
+describe("the staging gate exemption is exactly as narrow as the route it exempts", () => {
+  const uuid = "11111111-1111-4111-8111-111111111111";
+  const ticket = `${"A".repeat(80)}.${"B".repeat(43)}`;
+
+  it("exempts the genuine ticketed asset paths", () => {
+    expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/${ticket}/index.html`)).toBe(true);
+    expect(isTicketedGameAssetPath(`/admin/games/${uuid}/preview/assets/${ticket}/index.html`)).toBe(true);
+    // A UUID may legitimately arrive upper-cased.
+    expect(isTicketedGameAssetPath(`/games/${uuid.toUpperCase()}/runtime/assets/${ticket}/index.html`)).toBe(true);
+  });
+
+  it("does not exempt case variants of the literal segments", () => {
+    // Next.js route matching is case-sensitive, so these never reach the route
+    // they were exempted for — they used to skip the gate for nothing.
+    for (const pathname of [
+      `/GAMES/${uuid}/runtime/assets/${ticket}/index.html`,
+      `/Games/${uuid}/runtime/assets/${ticket}/index.html`,
+      `/games/${uuid}/RUNTIME/assets/${ticket}/index.html`,
+      `/games/${uuid}/runtime/ASSETS/${ticket}/index.html`,
+      `/ADMIN/games/${uuid}/preview/assets/${ticket}/index.html`,
+      `/admin/games/${uuid}/PREVIEW/assets/${ticket}/index.html`
+    ]) {
+      expect(isTicketedGameAssetPath(pathname), `${pathname.slice(0, 34)} must not be exempt`).toBe(false);
+    }
+  });
+
+  it("still refuses traversal and doubled slashes inside an otherwise valid path", () => {
+    expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/${ticket}/../../../.env`)).toBe(false);
+    expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/${ticket}//index.html`)).toBe(false);
+  });
+
+  it("refuses a malformed ticket shape", () => {
+    expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/short.${"B".repeat(43)}/x.js`)).toBe(false);
+    expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/${"A".repeat(80)}/x.js`)).toBe(false);
   });
 });
