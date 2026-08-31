@@ -158,16 +158,67 @@ Three properties matter and are each tested:
   oracle.
 - Subjects are stored as a keyed SHA-256 hash, never as an address or IP.
 
-**Availability policy — an explicit, non-obvious decision.** An *unconfigured*
-limiter allows; a *configured* limiter that errors or is exhausted denies. The
-first draft of this fix failed closed in both cases, and the existing
-`confirmation-actions` test caught it immediately: a single missing environment
-variable would have silently locked every paying customer out of the product.
-That is a worse outcome than the window it closes, and "unconfigured" is a
-deployment state rather than an attack signal. `limiterConfigured()` is exported
-so a deployment check can assert production is never left in that state. This is
-the one place in this phase where availability was deliberately weighted above
-strictness, and it is called out here for the owner to overrule if they disagree.
+**Availability policy — revised in the P0 pass, and this is the important part.**
+
+The first shipped version of this fix allowed the attempt whenever the limiter
+was *unconfigured*, on the reasoning that a missing environment variable should
+not lock customers out. The owner rejected that trade, correctly: it meant
+production authentication could silently become unlimited through
+misconfiguration alone, which is exactly the failure an attacker would want and
+nobody would notice. The posture is now:
+
+| Runtime | Limiter state | Result |
+|---|---|---|
+| `production-platform` | unconfigured | **deny** — generic temporary-unavailable |
+| `production-platform` | backend call failed | **deny** — generic temporary-unavailable |
+| `production-platform` | healthy | enforce the budget |
+| any other runtime | unconfigured or failing | allow (development fallback) |
+| any other runtime | healthy | enforce the budget |
+
+The whole rule lives in `decideRateLimit()`, a pure function, so it can be
+proved by enumeration rather than argued about.
+
+**Why failing closed is safe here — verified, not assumed.** The obvious
+objection is that this trades a security hole for an outage risk. It does not,
+and the reason is structural: `createServiceSupabaseClient()` and
+`createServerSupabaseClient()` have the *same* preconditions. Both require
+`hasProductionIdentityConfiguration()`, which itself requires `SUPABASE_URL` and
+`SUPABASE_SECRET_KEY`. So any production state in which the limiter is
+unconfigured is already a state in which the auth client is `null` and sign-in
+returns unavailable regardless. Denying here removes a silent fail-open without
+removing a path that would otherwise have worked.
+
+That guarantee is load-bearing, so it is pinned by a test: an environment
+holding a `SUPABASE_SECRET_KEY` of exactly the 20-character minimum
+`hasProductionIdentityConfiguration()` accepts must also yield a limiter secret.
+**The 20-character floor in `resolveLimiterSecret()` must therefore never be
+raised** — requiring more than production identity requires would manufacture
+the very configuration that locks customers out.
+
+**Determining production.** From `MVH_APP_ENVIRONMENT`, a server-only variable.
+The browser-visible `NEXT_PUBLIC_MVH_APP_ENVIRONMENT` twin is deliberately not
+consulted, so no caller can talk a deployment out of rate limiting; a test
+asserts the module contains no `NEXT_PUBLIC_` comparison and that the public
+twin cannot flip the decision either way. A *dropped* variable cannot quietly
+downgrade production into the development branch either, because `proxy.ts`
+already 503s the entire site when the production registry fails to validate.
+
+**Response on denial.** One shared `temporarilyUnavailable` message, used by all
+three surfaces so none can drift: *"Authentication is temporarily unavailable.
+Try again in a few minutes."* It names no backend, function, table or
+configuration variable, and it is byte-identical for every address. A test
+asserts the copy matches none of `supabase|rpc|rate.?limit|postgres|database|
+consume_|service|token|secret|env|MVH_|SUPABASE_`, and that exactly three call
+sites use it.
+
+**Observability.** A limiter outage emits a `SafeEvent` —
+`authentication` / `rate-limiter-unavailable` / severity `critical` — through
+the structured console adapter. Deliberately *not* through
+`recordAggregateSignal`, because that helper writes via the service Supabase
+client, the very dependency missing in the case being reported. `createSafeEvent`
+refuses any detail key matching password/token/secret/authorization/cookie/email,
+and `emitOperationalEvent` de-duplicates within 5 seconds so an outage under load
+reports steadily instead of flooding. No external monitoring was added.
 
 Keying material resolves `MVH_AUTH_RATE_LIMIT_SECRET` → `MVH_ADMIN_CSRF_SECRET`
 → `SUPABASE_SECRET_KEY`. The last is the important one: the admin CSRF secret
@@ -175,12 +226,23 @@ only exists when the admin console is enabled, so keying solely on it would have
 left the limiter unavailable on any deployment running without admin. **No new
 environment variable is required for this fix to be active in production.**
 
-**Tests.** Six cases — all three surfaces throttled, throttle-before-verify
-ordering, per-surface subject separation, subject pseudonymisation, the neutral
-recovery response, secret resolution independent of the admin console, and a
-check that every budget sits inside the bounds the database function accepts (it
-raises outside `1..20` attempts and `30..3600` seconds, which under the deny rule
-would have taken sign-in down).
+**Backend dependency confirmed deployed.** `consume_admin_auth_rate_limit` is
+not speculative infrastructure: the authorized-code gate calls it on every
+attempt, and `/access` serves that form on live production today. Were the
+function absent, authorized-code access would already be permanently broken.
+
+**Tests.** 24 in total across the two files. Eleven contract tests including an
+exhaustive sweep over all eight input combinations proving no combination lets
+production fail open, plus thirteen runtime tests driving the real
+`consumeConsumerAuthAttempt` against a mocked service client for each of the
+four required scenarios. The runtime tests also assert the RPC arguments stay
+inside the bounds the database function accepts (it raises outside `1..20`
+attempts and `30..3600` seconds, which under the deny rule would take sign-in
+down) and that the raw address never reaches the database.
+
+**Confirmed the tests have teeth.** Mutating `decideRateLimit` back to the old
+fail-open behaviour makes six of them fail. A future change that reintroduces
+this hole cannot land quietly.
 
 **Residual risk.** The limiter is per address + IP + user-agent. A distributed
 attacker with many source addresses still gets more attempts than a single one.
@@ -637,30 +699,150 @@ working because the two Stripe hosts are permitted form-action destinations.
 
 ---
 
+## Staging certification
+
+Deployed to `mathnexa-platform-staging`
+(`prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`, owner BrightPath EdTech, confirmed through
+the Vercel API rather than the local link file before deploying).
+Deployment `dpl_AUB14LCFM24qyGerG3H3ZLsq9fxN` at
+`https://mathnexa-platform-staging.vercel.app`. Production was not touched.
+
+### Headers, as actually served
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://<project>.supabase.co wss://<project>.supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()
+Cross-Origin-Opener-Policy: same-origin
+X-Permitted-Cross-Domain-Policies: none
+```
+
+`X-Powered-By` is **absent**. The `connect-src` Supabase origin resolved
+correctly at build time, which is the one directive local testing could not
+exercise because the credential-free local mode runs without Supabase.
+
+### Browser CSP
+
+**Chromium — 0 violations** across `/`, `/sign-in`, `/sign-up`, `/games`,
+`/game-access`, `/account`, `/pricing`, `/subscription`, each in a fresh
+context. Every route kept its header, favicon link, applied CSS and 20 hydrating
+scripts. No redirect loops. The only failed requests were `_rsc=` router
+prefetch cancellations, which are normal Next.js behaviour.
+
+### Framing
+
+| Case | Result |
+|---|---|
+| Cross-origin page framing `/sign-in` | **Blocked** — frame resolved to `chrome-error://chromewebdata/`, with the engine logging `Framing … violates … "frame-ancestors 'self'"` |
+| Same-origin sandboxed iframe (the game runtime pattern) | **Allowed** — loads, no `frame-ancestors` violation |
+| Anonymous `GET /game/runtime/index.html` | **401** — entitlement still enforced |
+
+Both halves matter: blocking cross-origin is the clickjacking control, and
+permitting same-origin is what keeps hosted games working.
+
+### form-action
+
+| Destination | Expected | Actual |
+|---|---|---|
+| `https://checkout.stripe.com/...` | allowed | allowed |
+| `https://billing.stripe.com/...` | allowed | allowed |
+| same origin | allowed | allowed |
+| `https://exfiltration.example/collect` | blocked | blocked |
+| `https://checkout.stripe.com.evil.example/c` | blocked | blocked |
+
+The lookalike case matters: it proves the directive matches the host exactly
+rather than by prefix, so a domain merely *starting* with our allowed host is
+still refused. Both Stripe destinations were intercepted and answered locally —
+CSP is enforced in the renderer before the network layer, so the directive was
+genuinely exercised without any request leaving the machine. No charge, no live
+key, no account.
+
+### Rate limiting
+
+| Property | Result |
+|---|---|
+| Configured budget | 20 attempts / 900 s window / 900 s block (sign-in) |
+| Subject basis | `HMAC(scope + address + client IP + user agent)`, stored only as a 64-hex digest |
+| Attempts 1–20 | generic *"The email or password was not accepted."* |
+| Attempt 21 | **throttled** — *"Too many sign-in attempts…"* |
+| Enumeration | **none** — a single identical message across three different addresses, including one that plausibly has an account |
+
+Probed with one synthetic `@certification.invalid` address and an invalid
+password, stopping one attempt past the threshold. No account created, no mail
+sent (a failed sign-in sends nothing).
+
+Sign-up and password recovery are covered by the deterministic runtime tests
+rather than by live probing, deliberately: exercising them against the real
+route would generate confirmation and recovery mail for no security benefit.
+
+### Security and product regression on staging
+
+Privileged routes anonymous: `/admin` 404, `/teacher` 404,
+`/games/crosscalc/v2/preview` 404, staging bootstrap 404,
+`/game/runtime/index.html` 401, resource download 401. Hostile `next=` values
+(`//evil.com`, `https://evil.com`, `javascript:`, `%2F%2Fevil.com`) all refused.
+
+Product: `/games`, `/map-prep`, `/homework`, `/quizzes` and `/account` each
+redirect anonymous visitors to the correct `/access?next=<destination>`;
+`/`, `/sign-in`, `/sign-up`, `/access`, `/help`, `/accessibility` all 200.
+Favicon, `icon.png` and `apple-icon.png` all serve. The brand mark hashes to
+`b8cafb97…6ac4ba9`, byte-identical to the approved asset. Header renders with
+the bunny mark and pink "Nexa" at desktop, and the navigation reflows correctly
+at 375 px with no console errors.
+
+### Coverage this pass could not reach
+
+Stated plainly rather than papered over:
+
+- **WebKit and Firefox could not be run.** Both Playwright builds are present or
+  installable but fail to launch on this Windows host — WebKit exits with
+  `0xC0000135` (missing DLL) and Firefox reports "Host system is missing
+  dependencies". Cross-engine CSP verification is therefore **Chromium only**.
+  This matters most for Firefox, which is the engine whose `form-action`
+  enforcement across redirects motivated the Stripe allowance in the first
+  place; the directive is proven correct in Chromium, but the Firefox-specific
+  behaviour remains unverified by execution.
+- **A real Stripe test-mode round trip: NOT TESTABLE.** Stripe configuration
+  exists on staging, but `/pricing` and `/subscription` are sign-in gated and no
+  authorized staging test account was available. Creating one was out of scope.
+  The closest deterministic evidence — that the CSP permits exactly the two
+  Stripe hosts and blocks everything else — is above.
+- **A live `Content-Disposition` download** needs an entitled session. The fix is
+  proven by unit test against the exact sanitisation expression the route
+  applies, over quotes, CR/LF, header-injection payloads and path separators;
+  every result stays a single syntactically valid attachment header with exactly
+  two delimiting quotes.
+
+---
+
 ## Prioritised roadmap
 
-### P0 — now
-1. Owner review and approval of this branch.
-2. **Deploy to `mathnexa-platform-staging`.** Not yet done — the deploy command
-   was blocked by this environment's permission policy and was deliberately not
-   worked around. The worktree is already linked to the staging project
-   (`prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`), so the deploy is a single command once
-   the owner permits it:
+### P0 — done in the finalization pass
 
-   ```bash
-   npx vercel deploy --prod --yes
-   ```
+1. Rate-limiter fail-open closed (see MN-02 above).
+2. **Deployed to `mathnexa-platform-staging`** —
+   project `prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`, verified through the Vercel API
+   before the command ran, not from the local link file. Deployment
+   `dpl_AUB14LCFM24qyGerG3H3ZLsq9fxN`.
+3. **Certified in a real browser** with the four `scripts/certify-staging-*.mjs`
+   harnesses. All routes clean, framing correct in both directions, form-action
+   correct in all five cases, and the sign-in throttle engaging at exactly the
+   configured attempt.
+4. **Staging gate temporarily opened for owner testing** —
+   `MVH_STAGING_ACCESS_REQUIRED` only. `MVH_STAGING_ACCESS_TOKEN` was never read,
+   printed or altered (still 29 days old in the Vercel env listing).
 
-   Run from `C:/GitHub/mathnexa-security`. Despite the `--prod` flag this
-   targets the **staging** project's own alias, not
-   `mathnexa-platform-production`. Leave the staging gate closed.
-3. Confirm on staging that the CSP is clean in the browser console across Home,
-   Games, a hosted game, Account and Sign in — particularly the Supabase
-   `connect-src`, which local public-production mode cannot exercise because it
-   runs without Supabase credentials.
-4. If billing is live, confirm a real checkout and billing-portal round trip in
-   **Firefox** specifically, since it is the browser that enforces `form-action`
-   against redirect targets.
+### P0 — remaining for the owner
+
+1. Owner review of this branch on staging.
+2. **Re-close the staging gate** once review is finished: set
+   `MVH_STAGING_ACCESS_REQUIRED` back to `true` on the staging project and
+   redeploy, since the env change alone only takes effect on a new build.
+3. Two checks this environment could not run — see "Coverage this pass could not
+   reach" below.
 
 ### P1 — next
 1. **Nonce-based CSP** (MN-08). Generate a per-request nonce in `proxy.ts`,
