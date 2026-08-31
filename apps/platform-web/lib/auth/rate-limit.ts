@@ -150,14 +150,72 @@ export function rateLimitingRequired(source: NodeJS.ProcessEnv = process.env): b
  * customer out. `MVH_AUTH_RATE_LIMIT_SECRET` is the place to put a longer,
  * purpose-built secret.
  */
+/** Where the limiter's keying material came from, for configuration reporting. */
+export type LimiterSecretSource = "dedicated" | "admin-csrf" | "supabase-service" | "none";
+
+const LIMITER_SECRET_SOURCES = [
+  { name: "dedicated" as const, variable: "MVH_AUTH_RATE_LIMIT_SECRET" as const },
+  { name: "admin-csrf" as const, variable: "MVH_ADMIN_CSRF_SECRET" as const },
+  { name: "supabase-service" as const, variable: "SUPABASE_SECRET_KEY" as const }
+];
+
+/**
+ * Minimum accepted length.
+ *
+ * Pinned to 20 because that is exactly what `hasProductionIdentityConfiguration()`
+ * requires of `SUPABASE_SECRET_KEY`, which is the last fallback below. Requiring
+ * MORE here than production identity requires would create a deployment where
+ * authentication is live but the limiter refuses to resolve — and under the
+ * fail-closed rule that locks every customer out. Do not raise it.
+ */
+const MINIMUM_SECRET_LENGTH = 20;
+const MAXIMUM_SECRET_LENGTH = 512;
+
+/**
+ * Reports which source supplied the keying material, without revealing it.
+ *
+ * Exists so a readiness check or an operator can confirm the migration to a
+ * dedicated secret actually took effect, rather than inferring it. Returns a
+ * label only — never the value, and never its length.
+ */
+export function limiterSecretSource(source: NodeJS.ProcessEnv = process.env): LimiterSecretSource {
+  for (const candidate of LIMITER_SECRET_SOURCES) {
+    if (isUsableSecret(source[candidate.variable])) return candidate.name;
+  }
+  return "none";
+}
+
+function isUsableSecret(value: string | undefined): boolean {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length >= MINIMUM_SECRET_LENGTH && trimmed.length <= MAXIMUM_SECRET_LENGTH;
+}
+
+/**
+ * Resolves the HMAC keying material for the limiter subjects.
+ *
+ * The preference order is a deliberate migration path, not an accident:
+ *
+ *   1. `MVH_AUTH_RATE_LIMIT_SECRET` — the dedicated secret. Preferred, so that
+ *      setting it in an environment is all that is needed to migrate; no code
+ *      change and no coordinated deploy.
+ *   2. `MVH_ADMIN_CSRF_SECRET` — the legacy source, retained for compatibility
+ *      with the currently deployed production configuration. Couples two
+ *      security domains, which is why it is being migrated away from.
+ *   3. `SUPABASE_SECRET_KEY` — the floor. Present exactly when the service
+ *      client this limiter already depends on is present, so the limiter can
+ *      never be unavailable on a deployment where the rest of the stack works.
+ *
+ * Rotating between sources resets existing counters, because the subject hashes
+ * change. That is harmless: it grants at most one fresh budget at the moment of
+ * the switch, and no counter is authoritative for anything but throttling.
+ *
+ * Values are trimmed before use, for the reason MN-09 exists: transport
+ * whitespace must never silently change a security decision.
+ */
 export function resolveLimiterSecret(source: NodeJS.ProcessEnv = process.env): string | null {
-  for (const candidate of [
-    source.MVH_AUTH_RATE_LIMIT_SECRET,
-    source.MVH_ADMIN_CSRF_SECRET,
-    source.SUPABASE_SECRET_KEY
-  ]) {
-    const value = candidate?.trim() ?? "";
-    if (value.length >= 20 && value.length <= 512) return value;
+  for (const candidate of LIMITER_SECRET_SOURCES) {
+    const value = source[candidate.variable]?.trim() ?? "";
+    if (isUsableSecret(value)) return value;
   }
   return null;
 }

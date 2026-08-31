@@ -36,7 +36,14 @@ export const SECURITY_EVENTS = {
   ADMIN_AUTH_FAILED: { code: "admin-auth-failed", category: "authorization", severity: "warning" },
   WEBHOOK_SIGNATURE_INVALID: { code: "webhook-signature-invalid", category: "billing", severity: "warning" },
   WEBHOOK_REPLAY_DETECTED: { code: "webhook-replay-detected", category: "billing", severity: "warning" },
-  STAGING_ACCESS_DENIED: { code: "staging-access-denied", category: "environment", severity: "info" }
+  STAGING_ACCESS_DENIED: { code: "staging-access-denied", category: "environment", severity: "info" },
+  STAGING_CONFIGURATION_INVALID: { code: "staging-configuration-invalid", category: "environment", severity: "critical" },
+  // A password change is not ordinary successful traffic: it is the single
+  // event that converts a borrowed session into a permanent takeover, so it is
+  // worth seeing even when it succeeds.
+  AUTH_PASSWORD_CHANGED: { code: "auth-password-changed", category: "authentication", severity: "warning" },
+  SECURITY_CONFIG_ERROR: { code: "security-config-error", category: "environment", severity: "critical" },
+  SECURITY_DEPENDENCY_UNAVAILABLE: { code: "security-dependency-unavailable", category: "health", severity: "critical" }
 } as const;
 
 export type SecurityEventName = keyof typeof SECURITY_EVENTS;

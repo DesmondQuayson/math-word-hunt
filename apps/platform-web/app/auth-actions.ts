@@ -304,6 +304,27 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
   if (!data.user) return { status: "error", message: "The recovery session is missing or expired. Request a new recovery message." };
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { status: "error", message: "The password could not be updated. Request a new recovery message." };
+
+  // Containment. This action accepts any authenticated session, not only one
+  // that came from a recovery link, and it does not ask for the current
+  // password — so whoever holds a session can set a new one. Revoking every
+  // OTHER session means a stolen or borrowed session can no longer be turned
+  // into a permanent takeover that locks the real owner out: the moment a
+  // password changes, every other device is signed out.
+  //
+  // This is deliberately the containment half. Requiring re-authentication for a
+  // non-recovery change is the complete fix and is recorded as OWNER-GATED in
+  // the security debt register, because it alters the password-recovery journey
+  // and cannot be verified end to end without a live Supabase session.
+  //
+  // Best-effort: a failure here must not strand a user whose password already
+  // changed successfully.
+  try {
+    await supabase.auth.signOut({ scope: "others" });
+  } catch {
+    // Session revocation is not the thing the user asked for; do not fail on it.
+  }
+  await recordSecurityEvent("AUTH_PASSWORD_CHANGED", { otherSessionsRevoked: true });
   redirect("/account?password=updated");
 }
 

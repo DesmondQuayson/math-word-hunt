@@ -81,9 +81,16 @@ export function createAdminRateSubjectHash(
 }
 
 export function getAdminClientContext(headers: Headers): AdminClientContext {
+  // `x-vercel-forwarded-for` is set by the platform and cannot be forged by the
+  // caller; `x-forwarded-for` can be prepended to, so its leftmost entry is
+  // attacker-controlled. This address keys the admin login and MFA rate limits
+  // (createAdminRateSubjectHash), so trusting the spoofable header first let an
+  // attacker mint a fresh admin-login budget per request. The consumer limiters
+  // were corrected in Phase 2; this brings the admin surface in line.
+  const platform = headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ?? "";
   const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
   const realIp = headers.get("x-real-ip")?.trim() ?? "";
-  const candidate = isIP(forwarded) ? forwarded : isIP(realIp) ? realIp : null;
+  const candidate = isIP(platform) ? platform : isIP(forwarded) ? forwarded : isIP(realIp) ? realIp : null;
   const userAgent = headers.get("user-agent")?.trim();
   return Object.freeze({ ip: candidate, userAgent: userAgent ? userAgent.slice(0, 512) : null });
 }
