@@ -972,9 +972,12 @@ to production and no tag has been created.**
 
 ### Final application source
 
-**`18653ee`** — the last commit that touches runtime application code, and also
-the branch tip. There are no trailing documentation-only commits after it, so
-the commit to promote and the final application source are the same object.
+**`18653ee`** — the last commit that touches runtime application code.
+
+The branch tip is `92c9ca9`, which adds only this document. Verified
+mechanically: the diff of `apps/` and `packages/`, excluding tests and type
+declarations, between `18653ee` and the tip is **empty**. Promote the tip — it is
+application-identical to `18653ee` and carries the finished report.
 
 The complete runtime change from the frozen parent `201e7d4` is eight files:
 
