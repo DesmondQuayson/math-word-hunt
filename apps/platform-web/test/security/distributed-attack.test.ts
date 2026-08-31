@@ -271,3 +271,23 @@ describe("password spraying is observed but never enforced", () => {
     await expect(attemptFrom("203.0.113.201", "Mozilla/5.0", "colleague@example.test")).resolves.toBe("allowed");
   });
 });
+
+describe("a blocked user cannot deadlock themselves by retrying", () => {
+  it("does not extend its own block when the victim keeps polling", async () => {
+    // A real person whose account has been blocked will retry, possibly a lot.
+    // If each retry pushed the release further out, the product would punish
+    // exactly the user it is meant to protect. The deployed function returns
+    // early while blocked — before incrementing — so polling is free.
+    for (let i = 0; i < 25; i += 1) await attemptFrom(`198.51.100.${i}`, "Agent", VICTIM);
+    await expect(attemptFrom("203.0.113.60", "Mozilla/5.0", VICTIM)).resolves.toBe("throttled");
+
+    // The victim retries repeatedly during the block.
+    for (let i = 0; i < 10; i += 1) {
+      await expect(attemptFrom("203.0.113.60", "Mozilla/5.0", VICTIM)).resolves.toBe("throttled");
+    }
+
+    // The block still releases on its original schedule.
+    backend.advanceSeconds(16 * 60);
+    await expect(attemptFrom("203.0.113.60", "Mozilla/5.0", VICTIM)).resolves.toBe("allowed");
+  });
+});
