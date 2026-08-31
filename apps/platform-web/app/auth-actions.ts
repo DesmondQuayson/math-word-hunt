@@ -65,6 +65,19 @@ const unavailable: AuthFormState = {
   message: "Local teacher accounts are not configured. Start the local Supabase stack and use the local platform command."
 };
 
+/**
+ * Shown when the rate limiter could not be consulted and production therefore
+ * refused the attempt rather than proceeding unthrottled.
+ *
+ * The wording is deliberately incurious: it names no backend, no function, no
+ * configuration variable, and it is byte-identical no matter which address was
+ * submitted or whether an account exists for it.
+ */
+const temporarilyUnavailable: AuthFormState = {
+  status: "error",
+  message: "Authentication is temporarily unavailable. Try again in a few minutes."
+};
+
 const prohibitedConsumerFields = [
   "displayName", "schoolLabel", "organization", "role", "grade", "class",
   "roster", "student", "assignment", "progress"
@@ -98,7 +111,9 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   if (!supabase) return unavailable;
   // Caps automated account creation, which otherwise costs us a confirmation
   // email on every request.
-  if (!await consumeConsumerAuthAttempt("sign-up", email)) {
+  const limit = await consumeConsumerAuthAttempt("sign-up", email);
+  if (limit === "unavailable") return temporarilyUnavailable;
+  if (limit === "throttled") {
     return { status: "error", message: "Too many account attempts. Wait a few minutes and try again." };
   }
   const destination = consumerMode
@@ -217,9 +232,11 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
   }
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
-  // Throttled before the credential is checked, so a blocked caller learns
+  // Consulted before the credential is checked, so a refused caller learns
   // nothing about whether the address exists or the password was close.
-  if (!await consumeConsumerAuthAttempt("sign-in", email)) {
+  const limit = await consumeConsumerAuthAttempt("sign-in", email);
+  if (limit === "unavailable") return temporarilyUnavailable;
+  if (limit === "throttled") {
     return { status: "error", message: "Too many sign-in attempts. Wait a few minutes and try again." };
   }
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -237,9 +254,13 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   if (!validEmail(email)) return { status: "error", message: "Enter a valid email address.", fieldErrors: { email: "Enter a valid email address." } };
   const supabase = await createServerSupabaseClient();
   if (!supabase) return unavailable;
-  // A blocked caller still gets the same neutral response as everyone else, so
-  // the throttle cannot be used to probe which addresses have accounts.
-  if (!await consumeConsumerAuthAttempt("password-recovery", email)) {
+  const limit = await consumeConsumerAuthAttempt("password-recovery", email);
+  // Refusing outright would tell an attacker their probe was measured, so a
+  // throttled recovery returns the same neutral copy an accepted one does.
+  // The unavailable case is a different thing — no mail is being sent, and the
+  // message is identical for every address, so it reveals nothing either.
+  if (limit === "unavailable") return temporarilyUnavailable;
+  if (limit === "throttled") {
     return { status: "success", message: getAuthEmailExperience(process.env, isProductionPlatformMode() ? "consumer" : "teacher").recoveryResponse };
   }
   const recovery = await supabase.auth.resetPasswordForEmail(email, {

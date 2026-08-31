@@ -17,7 +17,13 @@ import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { authorizedCodeMatches, getSchoolAccessConfiguration, normalizeAuthorizedCode } from "@/lib/school-access/config";
 import { verifySchoolAccessToken, createSchoolAccessToken } from "@/lib/school-access/session";
 import { decideAdminAccess } from "@/lib/admin/security";
-import { consumerAuthSubjectHash, resolveLimiterSecret } from "@/lib/auth/rate-limit";
+import {
+  consumerAuthSubjectHash,
+  decideRateLimit,
+  rateLimitingRequired,
+  resolveLimiterSecret
+} from "@/lib/auth/rate-limit";
+import { hasProductionIdentityConfiguration } from "@/lib/environment/production-platform";
 
 const repositoryRoot = resolve(__dirname, "../../../..");
 const appRoot = resolve(__dirname, "../..");
@@ -373,10 +379,9 @@ describe("credential rate limiting", () => {
   });
 
   it("denies once the budget is spent rather than passing the attempt through", () => {
-    // The consume path returns the RPC verdict verbatim, so a spent budget or a
-    // failed call both deny. Asserted on the source because the RPC is remote.
-    const source = read("apps/platform-web/lib/auth/rate-limit.ts");
-    expect(source).toContain("return !result.error && result.data === true;");
+    expect(decideRateLimit({
+      productionPlatform: true, limiterConfigured: true, backendFailed: false, withinBudget: false
+    })).toBe("throttled");
   });
 
   it("keeps every budget within the bounds the database function accepts", async () => {
@@ -403,6 +408,141 @@ describe("credential rate limiting", () => {
     const throttled = /consumeConsumerAuthAttempt\("password-recovery"[^}]*\}/.exec(source)?.[0] ?? "";
     expect(throttled).toContain("recoveryResponse");
     expect(throttled).toContain('status: "success"');
+  });
+});
+
+/* ------------------------------------- production rate-limiter availability */
+
+describe("production rate-limiter contract", () => {
+  const production = { productionPlatform: true } as const;
+  const development = { productionPlatform: false } as const;
+
+  it("PRODUCTION: limiter missing -> authentication denied, never allowed", () => {
+    expect(decideRateLimit({
+      ...production, limiterConfigured: false, backendFailed: false, withinBudget: false
+    })).toBe("unavailable");
+    // The dangerous regression is specifically "allowed". Assert it directly.
+    expect(decideRateLimit({
+      ...production, limiterConfigured: false, backendFailed: false, withinBudget: true
+    })).not.toBe("allowed");
+  });
+
+  it("PRODUCTION: limiter configured but backend fails -> authentication denied", () => {
+    expect(decideRateLimit({
+      ...production, limiterConfigured: true, backendFailed: true, withinBudget: false
+    })).toBe("unavailable");
+    expect(decideRateLimit({
+      ...production, limiterConfigured: true, backendFailed: true, withinBudget: true
+    })).not.toBe("allowed");
+  });
+
+  it("PRODUCTION: limiter healthy -> proceeds according to the budget", () => {
+    expect(decideRateLimit({
+      ...production, limiterConfigured: true, backendFailed: false, withinBudget: true
+    })).toBe("allowed");
+    expect(decideRateLimit({
+      ...production, limiterConfigured: true, backendFailed: false, withinBudget: false
+    })).toBe("throttled");
+  });
+
+  it("DEVELOPMENT: missing limiter infrastructure follows the approved fallback", () => {
+    expect(decideRateLimit({
+      ...development, limiterConfigured: false, backendFailed: false, withinBudget: false
+    })).toBe("allowed");
+    expect(decideRateLimit({
+      ...development, limiterConfigured: true, backendFailed: true, withinBudget: false
+    })).toBe("allowed");
+    // A healthy limiter is still enforced outside production.
+    expect(decideRateLimit({
+      ...development, limiterConfigured: true, backendFailed: false, withinBudget: false
+    })).toBe("throttled");
+  });
+
+  it("there is no input combination where production silently fails open", () => {
+    for (const limiterConfigured of [true, false]) {
+      for (const backendFailed of [true, false]) {
+        for (const withinBudget of [true, false]) {
+          const verdict = decideRateLimit({ productionPlatform: true, limiterConfigured, backendFailed, withinBudget });
+          if (!limiterConfigured || backendFailed) {
+            expect(verdict, `configured=${limiterConfigured} failed=${backendFailed}`).toBe("unavailable");
+          }
+        }
+      }
+    }
+  });
+
+  it("decides production from trusted server configuration, never a browser value", () => {
+    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "production-platform" } as NodeJS.ProcessEnv)).toBe(true);
+    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "local" } as NodeJS.ProcessEnv)).toBe(false);
+    expect(rateLimitingRequired({} as NodeJS.ProcessEnv)).toBe(false);
+    // The browser-visible twin must not be able to turn the requirement on or off.
+    expect(rateLimitingRequired({
+      NEXT_PUBLIC_MVH_APP_ENVIRONMENT: "production-platform"
+    } as NodeJS.ProcessEnv)).toBe(false);
+    expect(rateLimitingRequired({
+      MVH_APP_ENVIRONMENT: "production-platform",
+      NEXT_PUBLIC_MVH_APP_ENVIRONMENT: "local"
+    } as NodeJS.ProcessEnv)).toBe(true);
+    expect(read("apps/platform-web/lib/auth/rate-limit.ts")).not.toMatch(
+      /source\.NEXT_PUBLIC_[A-Z_]*\s*===/
+    );
+  });
+
+  it("never demands more configuration than production identity already requires", () => {
+    // This is the availability guarantee behind failing closed. Any environment
+    // good enough to run production authentication must also yield a limiter
+    // secret, or fail-closed would lock every customer out of a working system.
+    const productionEnv = {
+      NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+      SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "p".repeat(24),
+      // Exactly the 20-character floor hasProductionIdentityConfiguration accepts.
+      SUPABASE_SECRET_KEY: "s".repeat(20),
+      MVH_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst",
+      MVH_PRODUCTION_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst"
+    } as NodeJS.ProcessEnv;
+    expect(hasProductionIdentityConfiguration(productionEnv)).toBe(true);
+    expect(resolveLimiterSecret(productionEnv)).not.toBeNull();
+  });
+
+  it("reports a privacy-safe event when the limiter is unavailable", () => {
+    const source = read("apps/platform-web/lib/auth/rate-limit.ts");
+    expect(source).toContain("rate-limiter-unavailable");
+    expect(source).toContain('category: "authentication"');
+    // It must not route through the helper that needs the very client that is
+    // missing in the case being reported. Match a call, not the mention of it
+    // in the comment that explains this constraint.
+    expect(source).not.toMatch(/\brecordAggregateSignal\s*\(/);
+    expect(source).not.toMatch(/import[^;]*recordAggregateSignal/);
+    // Only non-sensitive fields may be attached.
+    const detail = /detail: \{([^}]*)\}/.exec(source)?.[1] ?? "";
+    expect(detail).not.toMatch(/password|token|secret|cookie|authorization|email|identifier|subject|hash/i);
+  });
+
+  it("keeps the unavailable response generic and free of internals", () => {
+    const source = read("apps/platform-web/app/auth-actions.ts");
+    const message = /const temporarilyUnavailable[^;]*?message: "([^"]+)"/s.exec(source)?.[1] ?? "";
+    expect(message.length).toBeGreaterThan(0);
+    expect(message).not.toMatch(
+      /supabase|rpc|rate.?limit|postgres|database|consume_|service|token|secret|env|MVH_|SUPABASE_/i
+    );
+    // Every surface must use that one shared message, so none of them can drift
+    // into revealing something the others do not.
+    expect((source.match(/return temporarilyUnavailable;/g) ?? []).length).toBe(3);
+  });
+
+  it("does not distinguish whether the account exists when denying", () => {
+    const source = read("apps/platform-web/app/auth-actions.ts");
+    // The unavailable branch is taken before any credential or account lookup,
+    // so its response cannot depend on the submitted address.
+    for (const call of ["sign-in", "sign-up", "password-recovery"]) {
+      const index = source.indexOf(`consumeConsumerAuthAttempt("${call}"`);
+      expect(index, `${call} must consult the limiter`).toBeGreaterThan(-1);
+    }
+    expect(source.indexOf('consumeConsumerAuthAttempt("sign-in"'))
+      .toBeLessThan(source.indexOf("signInWithPassword"));
+    expect(source.indexOf('consumeConsumerAuthAttempt("password-recovery"'))
+      .toBeLessThan(source.indexOf("resetPasswordForEmail"));
   });
 });
 
@@ -526,6 +666,36 @@ describe("injection surface", () => {
     walk(resolve(appRoot, "components"));
     walk(resolve(appRoot, "lib"));
     expect(offenders).toEqual([]);
+  });
+
+  it("produces a syntactically safe Content-Disposition for hostile filenames", () => {
+    // The exact expression the download routes apply, exercised against the
+    // characters that would otherwise escape the quoted filename parameter or
+    // append an attacker-chosen header.
+    const sanitize = (name: string) => name.replace(/["\\\r\n]/g, "");
+    const hostile = [
+      'invoice".pdf',
+      'a"; filename="evil.exe',
+      "report\r\nX-Injected: yes",
+      "report\r\n\r\n<script>alert(1)</script>",
+      'x"\r\nSet-Cookie: session=stolen',
+      "back\\slash.pdf",
+      "../../etc/passwd",
+      "..\\..\\windows\\system32",
+      'quote"and\\backslash\r\n.pdf'
+    ];
+    for (const name of hostile) {
+      const header = `attachment; filename="${sanitize(name)}"`;
+      // No CR/LF, so no additional header can be introduced.
+      expect(header, `must not allow header injection via ${JSON.stringify(name)}`).not.toMatch(/[\r\n]/);
+      // Exactly the two delimiting quotes survive, so the parameter cannot be closed early.
+      expect((header.match(/"/g) ?? []).length, `unbalanced quotes for ${JSON.stringify(name)}`).toBe(2);
+      expect(header).not.toContain("\\");
+      // The header still parses as a single attachment disposition.
+      expect(header).toMatch(/^attachment; filename="[^"\r\n\\]*"$/);
+    }
+    // A benign filename is preserved rather than mangled.
+    expect(sanitize("Grade 7 Unit 3 Answer Key.pdf")).toBe("Grade 7 Unit 3 Answer Key.pdf");
   });
 
   it("sanitizes every filename interpolated into a Content-Disposition header", () => {
