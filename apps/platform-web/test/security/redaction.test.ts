@@ -70,6 +70,49 @@ describe("no security event can carry a credential", () => {
     expect(output()).toContain("auth-login-failed");
   });
 
+  it("drops a credential hidden under an innocent field name", async () => {
+    // The key-name filter assumes the caller names things honestly. This is the
+    // case it cannot see: a credential passed as `reason` or `note`. Mutation
+    // testing found that removing the value-shape filter changed nothing
+    // observable, because every earlier case used a key the NAME filter already
+    // caught — so the value filter was effectively untested.
+    const { emitSecurityEvent } = await import("@/lib/observability/security-events");
+    emitSecurityEvent("AUTH_LOGIN_FAILED", {
+      reason: FAKE_SECRETS.stripeSecret,
+      note: FAKE_SECRETS.supabaseSecret,
+      detail: FAKE_SECRETS.privateKey,
+      context: FAKE_SECRETS.webhookSecret,
+      message: FAKE_SECRETS.authorizationHeader,
+      scope: "sign-in"
+    } as never, new Headers({ "x-vercel-id": "cle1-innocent-key-test" }));
+
+    for (const value of [
+      FAKE_SECRETS.stripeSecret,
+      FAKE_SECRETS.supabaseSecret,
+      FAKE_SECRETS.privateKey,
+      FAKE_SECRETS.webhookSecret,
+      FAKE_SECRETS.authorizationHeader
+    ]) {
+      expect(output(), `leaked ${value.slice(0, 14)}… under an innocent key`).not.toContain(value);
+    }
+    // The genuinely harmless field is still there, so this is redaction rather
+    // than the event being dropped wholesale.
+    expect(output()).toContain("sign-in");
+  });
+
+  it("keeps ordinary diagnostic text that merely looks technical", async () => {
+    // The value filter must be narrow: it exists to catch unmistakably
+    // credential-shaped values, not to mangle useful diagnostics.
+    const { emitSecurityEvent } = await import("@/lib/observability/security-events");
+    emitSecurityEvent("AUTH_LOGIN_FAILED", {
+      reason: "supabase returned an error while verifying the credential",
+      note: "retry after the window rolls",
+      scope: "sign-in"
+    } as never, new Headers());
+    expect(output()).toContain("supabase returned an error");
+    expect(output()).toContain("retry after the window rolls");
+  });
+
   it("keeps the fields that make an event useful", async () => {
     const { emitSecurityEvent } = await import("@/lib/observability/security-events");
     emitSecurityEvent("AUTH_RATE_LIMITED", { scope: "sign-in", dimension: "account" }, new Headers({
