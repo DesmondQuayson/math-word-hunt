@@ -57,31 +57,39 @@ const budgets: Readonly<Record<ConsumerAuthScope, Budget>> = Object.freeze({
  * by counting failures against the target account no matter where they arrive
  * from.
  *
- * 20 attempts per hour is the tightest the deployed `consume_admin_auth_rate_limit`
- * function permits (`p_max_attempts` is validated 1..20, `p_window_seconds`
- * 30..3600), and it is also a sensible ceiling on its own terms: twenty failed
- * password attempts against one account within an hour is already far outside
- * normal use, while the cap turns unlimited distributed guessing into twenty
- * guesses an hour.
+ * **The window and the block are deliberately equal, and that is the important
+ * part.** The deployed function only resets a counter when the window has
+ * rolled: an expired block that lands inside a still-open window whose attempts
+ * already exceed the maximum re-blocks immediately, and sets
+ * `blocked_until = now + block` again. So a window LONGER than the block does
+ * not give a 15-minute lockout — it gives an indefinite one, because every
+ * further attempt pushes the release further out. An attacker who knows a
+ * victim's address could hold them out permanently for the cost of one request
+ * every quarter of an hour.
  *
- * **The unavoidable trade, stated plainly.** Any per-account limiter hands an
- * attacker who knows a victim's address a way to spend that budget deliberately
- * and lock them out. Three things keep that proportionate here:
+ * Making the two equal means an expired block always coincides with a rolled
+ * window, so the counter genuinely resets and the victim gets back in. Holding
+ * someone out then costs a sustained 20 attempts every 15 minutes rather than
+ * one, and each cycle still opens.
  *
- *   1. The block is 15 minutes, not permanent, and a successful sign-in clears
- *      the counter immediately.
- *   2. It applies to **sign-in only**. Password recovery deliberately keeps just
+ * The price is that the cap is 80 guesses an hour rather than 20. Against
+ * *unlimited* distributed guessing that is still an enormous reduction, and it
+ * is the right trade for a paid product: a locked-out customer is a real harm,
+ * and an indefinite lockout an attacker controls is worse than a slightly looser
+ * ceiling. (This was found by the simulation in
+ * test/security/distributed-attack.test.ts, not by reasoning about it.)
+ *
+ * Two further things keep the trade proportionate:
+ *
+ *   1. It applies to **sign-in only**. Password recovery deliberately keeps just
  *      its request-level budget, so a locked-out user still has a working route
  *      back into their account rather than being stuck behind the same wall.
- *   3. The refusal is the same generic copy as any other failure, so the
- *      limiter cannot be used to confirm that an account exists.
- *
- * The alternative — leaving distributed guessing uncapped — is worse for a paid
- * product holding real accounts.
+ *   2. The refusal is the same generic copy as any other failure, so the limiter
+ *      cannot be used to confirm that an account exists.
  */
 const ACCOUNT_TARGET_BUDGET: Budget = Object.freeze({
   maxAttempts: 20,
-  windowSeconds: 3600,
+  windowSeconds: 900,
   blockSeconds: 900
 });
 

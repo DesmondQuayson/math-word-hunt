@@ -66,7 +66,34 @@ const FORBIDDEN_DETAIL_KEY = new RegExp(
     // The authorized school code, in the spellings a caller might reach for.
     // Deliberately not a bare /code/ — that would also reject useful,
     // non-sensitive fields such as statusCode or errorCode.
-    "access.?code", "school.?code", "^code$"
+    "access.?code", "school.?code", "^code$",
+    // Key material under any of its usual names.
+    "private", "signing", "\\bpem\\b", "certificate", "passphrase", "salt"
+  ].join("|"),
+  "i"
+);
+
+/**
+ * Value-shape redaction, applied on top of the key-name filter.
+ *
+ * Filtering by key name alone assumes the caller names things honestly. It
+ * caught `password` but not `privateKey`, and it would never catch a credential
+ * passed as `note` or `reason`. Matching the VALUE closes that: a PEM block, a
+ * provider-prefixed key or a long high-entropy blob is dropped regardless of
+ * what the field is called.
+ *
+ * Kept narrow on purpose. The point is to catch things that are unmistakably
+ * credential-shaped, not to mangle ordinary diagnostic text.
+ */
+const CREDENTIAL_SHAPED_VALUE = new RegExp(
+  [
+    "-----BEGIN[\\s\\S]*?KEY",           // PEM block
+    "\\b(?:sk|pk|rk)_(?:live|test)_\\w{8,}", // Stripe
+    "\\bwhsec_\\w{8,}",                   // Stripe webhook
+    "\\bsb_secret_\\w{8,}",               // Supabase
+    "\\bsbp_[a-f0-9]{20,}",               // Supabase personal
+    "\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}", // JWT
+    "\\bBearer\\s+[A-Za-z0-9._~+/-]{16,}" // Authorization value
   ].join("|"),
   "i"
 );
@@ -124,6 +151,7 @@ function sanitizeDetail(detail: SecurityEventDetail): SecurityEventDetail {
   const safe: Record<string, string | number | boolean | null> = {};
   for (const [key, value] of Object.entries(detail)) {
     if (FORBIDDEN_DETAIL_KEY.test(key)) continue;
+    if (typeof value === "string" && CREDENTIAL_SHAPED_VALUE.test(value)) continue;
     // Bound strings so an attacker-controlled field cannot bloat the log, and
     // strip CR/LF so it cannot forge a second log line.
     safe[key] = typeof value === "string" ? value.replace(/[\r\n]/g, " ").slice(0, 120) : value;
