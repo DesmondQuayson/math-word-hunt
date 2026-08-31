@@ -173,34 +173,47 @@ function sanitizeDetail(detail: SecurityEventDetail): SecurityEventDetail {
  */
 export async function recordSecurityEvent(
   name: SecurityEventName,
-  detail: SecurityEventDetail = {}
+  detail: SecurityEventDetail = {},
+  correlationOverride?: string
 ): Promise<void> {
   try {
     const requestHeaders = await headers();
-    emitSecurityEvent(name, detail, requestHeaders);
+    emitSecurityEvent(name, detail, requestHeaders, correlationOverride);
   } catch {
     // No request scope (or headers unavailable). Emit without client context
     // rather than losing the event entirely.
     try {
-      emitSecurityEvent(name, detail, new Headers());
+      emitSecurityEvent(name, detail, new Headers(), correlationOverride);
     } catch {
       // Detection is best-effort by design.
     }
   }
 }
 
-/** Synchronous form, for callers that already hold the request headers. */
+/**
+ * Synchronous form, for callers that already hold the request headers.
+ *
+ * `correlationOverride` exists for the small number of events that describe a
+ * *condition* rather than a request. `emitOperationalEvent` de-duplicates on
+ * `category:code:correlationId` within 5 seconds, and the default correlation id
+ * is per-request — so for a per-request event the dedup correctly never fires,
+ * but for a sustained condition it would emit once per request and bury every
+ * other signal in the same stream. Passing a stable string there lets the dedup
+ * do its job. Use it only where one line per five seconds genuinely describes
+ * the situation better than one line per request.
+ */
 export function emitSecurityEvent(
   name: SecurityEventName,
   detail: SecurityEventDetail,
-  requestHeaders: Headers
+  requestHeaders: Headers,
+  correlationOverride?: string
 ): boolean {
   const descriptor = SECURITY_EVENTS[name];
   return emitOperationalEvent(new ConsoleMonitoringAdapter(), {
     category: descriptor.category,
     severity: descriptor.severity,
     code: descriptor.code,
-    correlationId: correlationIdFrom(requestHeaders),
+    correlationId: correlationOverride ?? correlationIdFrom(requestHeaders),
     detail: {
       ...sanitizeDetail(detail),
       ...coarseClientContext(requestHeaders),

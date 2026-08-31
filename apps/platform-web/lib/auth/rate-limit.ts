@@ -404,7 +404,6 @@ export async function consumeConsumerAuthAttempt(
     withinBudget: accountResult.data === true
   });
   if (accountVerdict === "throttled") await reportThrottled(scope, "account");
-  if (accountVerdict === "allowed") await observeSprayPressure(client, secret, productionPlatform);
   return accountVerdict;
 }
 
@@ -413,17 +412,27 @@ export async function consumeConsumerAuthAttempt(
  *
  * Both existing dimensions are keyed on the account, so the one shape neither
  * catches is one guess against each of many accounts from a single address —
- * classic spraying and credential stuffing. Counting failures per ADDRESS
+ * classic spraying and credential stuffing. Counting FAILED sign-ins per address
  * across all accounts is what sees it.
  *
- * It is detection only, on purpose. The database function caps a budget at 20
- * per window, and a class of thirty students behind one school address can
- * produce more than twenty mistyped passwords in a quarter of an hour without
- * anything being wrong. Enforcing here would be exactly the classroom lockout
- * the product cannot afford, so this raises a signal for a human and lets the
- * request through. If the log shows real spraying, an edge rule keyed on the
- * TLS fingerprint — which distinguishes clients behind one address, unlike the
- * address itself — is the proportionate response, not a block here.
+ * **It must be called only after a credential has actually been rejected.** The
+ * first version of this ran inside `consumeConsumerAuthAttempt`, which executes
+ * *before* the password is checked, so it counted every attempt including every
+ * success. Adversarial review reproduced the consequence: thirty students
+ * signing in perfectly normally from one school address produced ten
+ * `AUTH_SPRAY_SUSPECTED` events, and two hundred produced a hundred and seventy.
+ * The signal was guaranteed to saturate on an ordinary school morning and bury
+ * the genuine `AUTH_LOGIN_FAILED` and `AUTH_RATE_LIMITED` lines in the same
+ * stream. Detection that always fires is not detection.
+ *
+ * It stays observation-only on purpose. The database function caps a budget at
+ * 20 per window, and a class behind one school address can produce more than
+ * twenty *mistyped* passwords in a quarter of an hour with nothing wrong.
+ * Enforcing here would be exactly the classroom lockout the product cannot
+ * afford, so this raises a signal for a human and lets the request through. If
+ * the log shows real spraying, an edge rule keyed on the TLS fingerprint — which
+ * distinguishes clients behind one address, unlike the address itself — is the
+ * proportionate response, not a block here.
  */
 const SPRAY_OBSERVATION: Budget = Object.freeze({
   maxAttempts: 20,
@@ -431,12 +440,21 @@ const SPRAY_OBSERVATION: Budget = Object.freeze({
   blockSeconds: 900
 });
 
-async function observeSprayPressure(
-  client: NonNullable<ReturnType<typeof createServiceSupabaseClient>>,
-  secret: string,
-  productionPlatform: boolean
-): Promise<void> {
+/**
+ * A fixed correlation id, so `emitOperationalEvent`'s 5-second de-duplication
+ * applies. This event describes a sustained condition at one address, not a
+ * single request; once the threshold is crossed the database function keeps
+ * returning `false` for the rest of the window, so a per-request id would emit
+ * one line for every subsequent sign-in.
+ */
+const SPRAY_CORRELATION = "spray-observation";
+
+export async function observeFailedSignIn(): Promise<void> {
+  const productionPlatform = rateLimitingRequired();
   if (!productionPlatform) return;
+  const secret = resolveLimiterSecret();
+  const client = secret ? createServiceSupabaseClient() : null;
+  if (!secret || !client) return;
   try {
     const requestHeaders = await headers();
     const address = clientAddress(requestHeaders);
@@ -452,7 +470,7 @@ async function observeSprayPressure(
     // `false` means this address has crossed the observation threshold. The
     // request still proceeds; only the signal is raised.
     if (!result.error && result.data === false) {
-      await recordSecurityEvent("AUTH_SPRAY_SUSPECTED", { enforced: false });
+      await recordSecurityEvent("AUTH_SPRAY_SUSPECTED", { enforced: false }, SPRAY_CORRELATION);
     }
   } catch {
     // Observation must never affect the outcome of an authentication attempt.

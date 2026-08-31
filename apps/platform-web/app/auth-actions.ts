@@ -10,7 +10,7 @@ import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { recordAggregateSignal } from "@/lib/operations/server";
-import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt } from "@/lib/auth/rate-limit";
+import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt, observeFailedSignIn } from "@/lib/auth/rate-limit";
 import { recordSecurityEvent } from "@/lib/observability/security-events";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -259,6 +259,10 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
     // Detection only. The response is unchanged and still generic; a spike in
     // these is what distinguishes an attack from ordinary forgetfulness.
     await recordSecurityEvent("AUTH_LOGIN_FAILED", { scope: "sign-in" });
+    // Spray pressure counts REJECTED credentials, and so must be observed here
+    // rather than in the limiter, which runs before the password is checked. A
+    // classroom signing in successfully must contribute nothing to it.
+    await observeFailedSignIn();
     return { status: "error", message: "The email or password was not accepted." };
   }
   await clearConsumerAuthAttempts("sign-in", email);

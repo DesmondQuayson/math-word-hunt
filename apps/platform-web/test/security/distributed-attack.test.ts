@@ -19,12 +19,30 @@ vi.mock("@/lib/supabase/service", () => ({
   createServiceSupabaseClient: () => serviceClient.current
 }));
 vi.mock("next/headers", () => ({ headers: async () => requestHeaders.current }));
+/**
+ * Events are CAPTURED, not discarded.
+ *
+ * The first version of this file stubbed the emitter to `() => true`, which made
+ * emitted events invisible to every assertion here. That is how a detection
+ * signal that fired on every ordinary classroom sign-in passed the suite:
+ * nothing was counting. The volume of a signal is part of its contract.
+ */
+const emitted = vi.hoisted(() => ({ current: [] as Array<Record<string, unknown>> }));
+
 vi.mock("@/lib/observability/server", () => ({
-  ConsoleMonitoringAdapter: class { emit() { /* silent in simulation */ } },
-  emitOperationalEvent: () => true
+  ConsoleMonitoringAdapter: class { emit() { /* transport is not under test */ } },
+  emitOperationalEvent: (_adapter: unknown, event: Record<string, unknown>) => {
+    emitted.current.push(event);
+    return true;
+  }
 }));
 
-const { consumeConsumerAuthAttempt, clearConsumerAuthAttempts } = await import("@/lib/auth/rate-limit");
+const { consumeConsumerAuthAttempt, clearConsumerAuthAttempts, observeFailedSignIn } =
+  await import("@/lib/auth/rate-limit");
+
+function sprayEvents(): Array<Record<string, unknown>> {
+  return emitted.current.filter((event) => event.code === "auth-spray-suspected");
+}
 
 /**
  * Faithful in-memory stand-in for the deployed Postgres function, including its
@@ -87,6 +105,7 @@ beforeEach(() => {
   delete process.env.MVH_AUTH_RATE_LIMIT_SECRET;
   delete process.env.MVH_ADMIN_CSRF_SECRET;
   backend = createRateLimitBackend();
+  emitted.current = [];
   serviceClient.current = backend;
   requestHeaders.current = new Headers();
 });
@@ -131,11 +150,12 @@ describe("changing the user agent no longer buys a fresh budget", () => {
     for (let i = 0; i < 15; i += 1) {
       await attemptFrom("203.0.113.10", `ForgedAgent/${i}`, VICTIM);
     }
-    // Three rows, all bounded: the request dimension, the account dimension and
-    // the address-scoped spray observation. The old user-agent key would have
-    // produced fifteen request rows in a table that has no TTL — the count is
-    // the point, not the exact number.
-    expect(backend.size).toBe(3);
+    // Two rows, both bounded: the request dimension and the account dimension.
+    // The address-scoped spray observation is deliberately NOT among them —
+    // it only counts rejected credentials, so it is not touched by the limiter
+    // path at all. The old user-agent key would have produced fifteen request
+    // rows in a table that has no TTL; the count is the point, not the number.
+    expect(backend.size).toBe(2);
   });
 });
 
@@ -252,15 +272,60 @@ describe("the simulated backend enforces the real function's contract", () => {
 });
 
 describe("password spraying is observed but never enforced", () => {
-  it("lets a spray through while raising a signal", async () => {
-    // One guess against each of many accounts, from one address: the shape
-    // neither account-keyed dimension can see. Enforcing here would be the
-    // classroom lockout the product cannot afford, so the request proceeds.
-    const verdicts: string[] = [];
-    for (let i = 0; i < 30; i += 1) {
-      verdicts.push(await attemptFrom("203.0.113.200", "Mozilla/5.0", `target${i}@example.test`));
+  /** One rejected credential from `address`, as the sign-in action reports it. */
+  async function failedSignInFrom(address: string, account: string): Promise<void> {
+    requestHeaders.current = new Headers({
+      "x-vercel-forwarded-for": address,
+      "x-vercel-id": `req-${Math.random().toString(36).slice(2, 12)}`
+    });
+    await consumeConsumerAuthAttempt("sign-in", account);
+    await observeFailedSignIn();
+  }
+
+  /** One successful sign-in: the limiter is consulted, the credential is accepted. */
+  async function successfulSignInFrom(address: string, account: string): Promise<string> {
+    requestHeaders.current = new Headers({
+      "x-vercel-forwarded-for": address,
+      "x-vercel-id": `req-${Math.random().toString(36).slice(2, 12)}`
+    });
+    const verdict = await consumeConsumerAuthAttempt("sign-in", account);
+    if (verdict === "allowed") await clearConsumerAuthAttempts("sign-in", account);
+    return verdict;
+  }
+
+  it("stays completely silent through an ordinary school morning", async () => {
+    // THE regression this test exists for. Spray observation used to run inside
+    // the limiter, which executes BEFORE the password is checked, so every
+    // SUCCESSFUL sign-in counted. Thirty students behind one school address
+    // produced ten spray events and two hundred produced a hundred and seventy —
+    // a signal guaranteed to saturate on a normal day and bury the real ones.
+    for (let i = 0; i < 200; i += 1) {
+      await expect(successfulSignInFrom("198.51.100.10", `student${i}@school.test`)).resolves.toBe("allowed");
     }
-    expect(verdicts.every((v) => v === "allowed"), "spraying must not be blocked").toBe(true);
+    expect(sprayEvents(), "a legitimate classroom must raise no spray signal").toHaveLength(0);
+  });
+
+  it("still sees a real spray, and lets it through", async () => {
+    // One REJECTED guess against each of many accounts, from one address: the
+    // shape neither account-keyed dimension can see. Enforcing here would be the
+    // classroom lockout the product cannot afford, so the request proceeds.
+    for (let i = 0; i < 30; i += 1) {
+      await failedSignInFrom("203.0.113.200", `target${i}@example.test`);
+      expect(
+        await successfulSignInFrom("203.0.113.200", `target${i}@example.test`),
+        "spraying must never be blocked"
+      ).toBe("allowed");
+    }
+    expect(sprayEvents().length, "a real spray must raise a signal").toBeGreaterThan(0);
+  });
+
+  it("raises the signal at a readable rate rather than once per request", async () => {
+    // Once the threshold is crossed the database function keeps returning false
+    // for the rest of the window. A per-request correlation id would emit one
+    // line for every subsequent attempt; a stable one lets the 5-second
+    // de-duplication collapse a sustained condition into a readable trickle.
+    for (let i = 0; i < 60; i += 1) await failedSignInFrom("203.0.113.202", `victim${i}@example.test`);
+    expect(sprayEvents().every((event) => event.correlationId === "spray-observation")).toBe(true);
   });
 
   it("does not spend the spray budget on a single legitimate account", async () => {
