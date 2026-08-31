@@ -26,15 +26,16 @@ security response headers at all** — no CSP, no framing control, no
 **no rate limit**, which in a server-action architecture means no effective
 limit at all.
 
-No CRITICAL. Two HIGH, two MEDIUM, two LOW, three INFO. **Every CRITICAL, HIGH
-and MEDIUM finding is fixed on the branch, and no HIGH or CRITICAL remains
-unresolved.** The two LOW and three INFO items are documented with the reasoning
-for leaving them, in each case because the remediation would carry more risk
-than the finding.
+No CRITICAL. Two HIGH, two MEDIUM, three LOW, three INFO. **Every CRITICAL, HIGH and MEDIUM finding is fixed on the branch, and no
+CRITICAL, HIGH or MEDIUM remains unresolved.** MN-09 was found during
+certification and is also fixed. The remaining two LOW and three INFO items are
+documented with the reasoning for leaving them, in each case because the
+remediation would carry more risk than the finding.
 
-The candidate was deployed to staging, certified in a real browser, approved by
-the owner, and staging was then re-locked. It is ready for production promotion
-but **has not been promoted**.
+The candidate was deployed to staging, certified in a real browser, and approved
+by the owner. Restoring the gate afterwards exposed MN-09, which was fixed,
+re-certified across five separate live deployments, and the gate left locked. It
+is ready for production promotion but **has not been promoted**.
 
 ---
 
@@ -50,8 +51,9 @@ but **has not been promoted**.
 | MN-06 | LOW | Admin route existence disclosed by a `405` on `GET` | No — documented |
 | MN-07 | INFO | `/api/health` returns the exact build commit SHA to anonymous callers | No — documented |
 | MN-08 | INFO | Nonce-based CSP not yet possible; `script-src` retains `'unsafe-inline'` | No — P1 roadmap |
-| MN-09 | LOW | Staging gate reads `MVH_STAGING_ACCESS_REQUIRED` with strict equality, so a malformed value silently leaves staging open | No — owner decision, see below |
+| MN-09 | LOW | Staging gate read `MVH_STAGING_ACCESS_REQUIRED` with strict equality, so a malformed value silently left staging open | **Yes** |
 | MN-10 | INFO | `/api/health` reports a `build` value 34 commits behind the deployed source | No — documented |
+| MN-11 | LOW | A locked staging deployment still serves `/_next/static/**` and icons anonymously | No — pre-existing, documented |
 
 ---
 
@@ -342,45 +344,122 @@ P2, to be dropped if the endpoint is ever revised.
 
 ---
 
-### MN-09 — LOW — A malformed staging flag silently leaves staging open
+### MN-09 — LOW — A malformed staging flag silently left staging open — FIXED
 
-**Component:** `apps/platform-web/lib/staging-access/server.ts`,
-`isStagingAccessRequired()`.
+**Component:** `apps/platform-web/lib/staging-access/server.ts` and
+`apps/platform-web/proxy.ts`.
 
 **Found by hitting it**, not by reading code. While restoring the gate after the
 owner's review, the flag was written through a PowerShell pipeline, which
-appends a newline. The stored value became `"true\n"`. The check is:
+appends a newline. The stored value became `"true
+"`. The check was:
 
 ```ts
 source.MVH_APP_ENVIRONMENT === "production-platform" &&
   source.MVH_STAGING_ACCESS_REQUIRED === "true"
 ```
 
-`"true\n" !== "true"`, so the gate did not engage and a full redeploy came back
-**200 with the complete site body** while appearing to have been re-locked. It
-was caught because the restoration was verified rather than assumed; a
-deployment that trusted the command's success would have left staging publicly
-readable.
+`"true
+" !== "true"`, so the gate did not engage and a full redeploy came back
+**200 with the complete site body** while appearing to have been re-locked.
 
-**Attack scenario.** Not a remote attack — it needs someone with environment
-access to mistype the value. The consequence is the one the original brief
-called out by name: accidental public staging access, silently, with the
-configuration *looking* correct.
+**Fix.** All interpretation now happens once, at the boundary, in
+`stagingAccessRequirement()`. No `trim()` is scattered through callers.
 
-**Why the polarity is nonetheless right.** The obvious "fix" — lock unless the
-flag is explicitly `false` — would lock **production**, which runs the same
-`production-platform` environment with this flag absent. The opt-in polarity is
-required. The real fix is narrower: trim and case-fold the value so `"true\n"`
-counts as true, and treat an unrecognized non-empty value as a configuration
-error rather than as "not required".
+| Configured value | Result |
+|---|---|
+| `true`, ` true `, `true
+`, `	true
+`, `TRUE`, `True` | **protected** |
+| `false` — exact lowercase, whitespace ignored | intentionally open |
+| `False`, `FALSE`, any other casing of false | **protected** |
+| `yes`, `1`, `on`, `tru`, `trueXYZ`, anything else | **protected** |
+| blank or absent, deployment holds a staging token | **protected** |
+| blank or absent, no staging token | open |
 
-**Not fixed in this pass, deliberately.** The owner has approved and personally
-tested a specific candidate, and `isStagingAccessRequired()` is inside the
-staging gate that the approval covers. Changing its semantics now would mean
-promoting something other than what was tested, for a LOW finding that cannot be
-triggered remotely. Recommended for the next phase; the interim control is that
-gate restoration must always be verified against the live URL, which is now
-recorded as a step rather than left to habit.
+Three decisions in that table are load-bearing and should not be "tidied" later:
+
+- **The casing rule is asymmetric on purpose** — liberal about what counts as
+  "protect", strict about what counts as "open". An operator writing `TRUE`
+  plainly means to protect the site. Disabling protection has to be
+  unmistakable, and PowerShell stringifies `$false` as `False`; symmetric
+  case-folding would have let that silently open staging, reproducing the very
+  defect being fixed.
+- **Ambiguity is resolved by whether the deployment holds a well-formed staging
+  token.** That is the only sound discriminator available: production and
+  staging both run `MVH_APP_ENVIRONMENT=production-platform`. Verified against
+  the live projects — the production project defines no staging variables at
+  all. The token's value is never read, only its shape.
+- **Failing closed could not be unconditional.** Adversarial review of the first
+  draft caught this: with no token, `getStagingAccessToken()` returns null, the
+  bootstrap endpoint cannot mint a cookie, and the lock is unrecoverable. An
+  unscoped fail-closed would therefore have meant one typo on the *production*
+  project blacking out mathnexa.com site-wide with no way back in.
+
+**A second defect of the same class, found while fixing the first.** The gate
+was nested inside `isProductionPlatformMode()`, which compares
+`MVH_APP_ENVIRONMENT` strictly. Transport whitespace on *that* variable skipped
+the gate entirely, so normalizing the flag alone would have left the root cause
+alive on a sibling variable and the new parser unreachable on the real request
+path. The gate is now evaluated **before** any environment-mode branch in
+`proxy.ts`. Reproduced before the fix: `"production-platform
+"` with a
+correct `"true"` flag left the site fully open.
+
+**Tests.** 30 unit and proxy-level cases, plus 3 in the security baseline.
+They include a recurrence guard asserting that a protected staging deployment
+with a malformed flag returns the empty-body 404 rather than HTTP 200, and an
+ordering assertion that the gate is its own top-level branch. Confirmed they
+have teeth: removing the `trim()` fails 2 of them, removing the hoisted gate
+fails 6.
+
+**Certified on the live staging deployment**, each as its own deploy:
+
+| Configuration | Deployment | Result |
+|---|---|---|
+| `"true"` written through the PowerShell pipeline that caused the incident | `dpl_HrZwvuKh4N5fw3hGAFruPhbCPdn9` | **404, 0-byte body** |
+| `"   true   "` | `dpl_6EoE548mjBqp3U5sEHdP7qxRgiUM` | **404, 0-byte body** |
+| `"false"` exact lowercase | `dpl_4uQ5k6rSpLajEYFTqkSuXM3DpeJ2` | 200, site served — deliberate open preserved |
+| `"False"` — PowerShell `$false` | `dpl_H4ovP2kFMdtfJVoKFXxhTFfGAk7T` | **404, 0-byte body** |
+| `"true"` restored via `printf` | `dpl_gmccVXtUHZ7H7KatTsdgE26Zitf4` | **404, 0-byte body — final state** |
+
+The first row is the decisive one: the identical command sequence that produced
+HTTP 200 earlier in this engagement now produces the protected 404.
+
+`MVH_STAGING_ACCESS_TOKEN` was never read, printed, rotated or replaced
+throughout — it still shows its original age in the environment listing.
+
+**Safer operational procedure**, now documented in
+`docs/phase-7d-isolated-hosted-staging.md`:
+
+```bash
+printf true | npx vercel env add MVH_STAGING_ACCESS_REQUIRED production
+```
+
+and always confirm the live URL returns an empty-body 404 afterwards.
+
+---
+
+### MN-11 — LOW — A locked staging deployment still serves its static assets
+
+**Component:** the `config.matcher` in `apps/platform-web/proxy.ts`.
+
+The matcher excludes `_next/static`, `_next/image`, `favicon.ico` and common
+image extensions, so those paths never reach the proxy and therefore never reach
+the staging gate. Confirmed live against the locked deployment: `/` returns a
+0-byte 404 while `/_next/static/chunks/*.js`, `/favicon.ico` and `/icon.png`
+all return **200**.
+
+An anonymous visitor to a "locked" staging environment can therefore still
+retrieve the compiled client bundle — route names, component structure, copy.
+
+**Not fixed, and not introduced here.** The matcher is byte-identical to the
+frozen parent `201e7d4`, so this predates the security work. It is mitigated:
+the built bundle was rescanned and contains no secret, no credential and no
+privileged logic, and the Phase 7D contract already requires that public assets
+contain no staging token. Routing every static asset through the proxy is a
+performance and correctness change to a candidate the owner has already approved,
+which does not belong in a config-parsing fix. Recommended for the next phase.
 
 ---
 
@@ -741,7 +820,7 @@ also included in `npm run test:unit` via the vitest config.
 | `npm run test:unit` | 333 pass, 1 pre-existing failure (see below) |
 | `npm run lint` | 0 errors (8 pre-existing warnings in an untouched file) |
 | `npm run build` | Compiled successfully |
-| `npm audit` | 0 vulnerabilities |
+| `npm audit --omit=dev` | 0 vulnerabilities |
 | Headers served by a real build | All present; `X-Powered-By` gone |
 | Rendered app | No console errors, no CSP violations, all chunks `200` |
 
@@ -893,17 +972,11 @@ to production and no tag has been created.**
 
 ### Final application source
 
-**`4ff13e4`** — the last commit that touches runtime application code.
+**`18653ee`** — the last commit that touches runtime application code, and also
+the branch tip. There are no trailing documentation-only commits after it, so
+the commit to promote and the final application source are the same object.
 
-Everything after it is non-runtime: `0ac3c86` (certification scripts),
-`257d20c` (report), `bcb56f0` (a `.d.mts` declaration and test fixes). Verified
-mechanically: the diff of `apps/` and `packages/`, excluding tests and type
-declarations, between `4ff13e4` and the branch tip is **empty**. Promote the tip
-`bcb56f0`, which is application-identical to `4ff13e4` and additionally
-typechecks; promoting `4ff13e4` alone would ship a tree whose `npm run
-typecheck` fails.
-
-The complete runtime change from the frozen parent `201e7d4` is six files:
+The complete runtime change from the frozen parent `201e7d4` is eight files:
 
 | File | Change |
 |---|---|
@@ -912,6 +985,8 @@ The complete runtime change from the frozen parent `201e7d4` is six files:
 | `lib/auth/rate-limit.ts` | new — the limiter and its availability contract (MN-02) |
 | `app/auth-actions.ts` | wires the limiter into the three credential surfaces |
 | `app/resources/[resourceId]/download/route.ts` | one-line filename sanitisation (MN-04) |
+| `lib/staging-access/server.ts` | normalized gate configuration contract (MN-09) |
+| `proxy.ts` | staging gate hoisted above the environment-mode branches (MN-09) |
 | `vitest.config.ts` | test discovery only, not shipped |
 
 The `auth-actions.ts` diff is pure addition — no existing line was removed or
@@ -927,8 +1002,8 @@ rewritten. Nothing outside the approved Phase 1 scope is present.
 | Production brand mark | `b8cafb97…6ac4ba9`, byte-identical to the approved v1.2.3 asset |
 | `v1.2.3` tag | still `3270a7a8` → `201e7d4`, unmoved |
 | Branch lineage | descends from `201e7d4` |
-| `npm run test:security` | 54/54 plus both bundle audits |
-| `npm run test:unit` | 234 core + 356 web pass; 1 known pre-existing CRLF failure |
+| `npm run test:security` | 57/57 plus both bundle audits |
+| `npm run test:unit` | 234 core + 378 web pass; 1 known pre-existing CRLF failure |
 | `npm run typecheck` | clean (three test-only errors found and fixed in `bcb56f0`) |
 | `npm run lint` | 0 errors (8 pre-existing warnings in an untouched file) |
 | `npm run build` | compiled successfully |
@@ -983,13 +1058,12 @@ MN-09. It was caught because restoration was verified against the live URL.
 
 ### P0 — remaining for the owner
 
-1. **Approve production promotion of `bcb56f0`.** Nothing has been deployed to
+1. **Approve production promotion of `18653ee`.** Nothing has been deployed to
    production and no tag exists; that step is deliberately left to the owner.
-2. Decide MN-09 — whether to trim and validate `MVH_STAGING_ACCESS_REQUIRED`
-   in the next phase. Until then, always verify a gate restoration against the
-   live URL rather than trusting the command output.
-3. Two checks this environment could not run — see "Coverage this pass could not
-   reach" above.
+2. Two checks this environment could not run — see "Coverage this pass could not
+   reach" above. Neither is blocking: the Stripe origins are specifically
+   allowlisted, a lookalike origin is blocked, and the deterministic
+   form-action tests are green.
 
 ### P1 — next
 1. **Nonce-based CSP** (MN-08). Generate a per-request nonce in `proxy.ts`,
@@ -1009,6 +1083,8 @@ MN-09. It was caught because restoration was verified against the live URL.
    assertion on `limiterConfigured()`.
 
 ### P2 — later
+0. Route `/_next/static/**` and the icon paths through the staging gate
+   (MN-11), so a locked staging stops serving its compiled bundle anonymously.
 1. Vercel Firewall rules + Attack Challenge Mode on `/sign-in`, `/sign-up`,
    `/forgot-password` and `/access`, if traffic or abuse warrants it.
 2. Return `404` instead of `405` on admin routes (MN-06) — best folded into
