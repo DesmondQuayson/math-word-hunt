@@ -368,14 +368,14 @@ describe("credential rate limiting", () => {
   });
 
   it("resolves keying material without depending on the admin console being enabled", () => {
-    expect(resolveLimiterSecret({ SUPABASE_SECRET_KEY: "s".repeat(40) } as NodeJS.ProcessEnv)).toBe("s".repeat(40));
-    expect(resolveLimiterSecret({} as NodeJS.ProcessEnv)).toBeNull();
-    expect(resolveLimiterSecret({ SUPABASE_SECRET_KEY: "short" } as NodeJS.ProcessEnv)).toBeNull();
+    expect(resolveLimiterSecret({ SUPABASE_SECRET_KEY: "s".repeat(40) } as unknown as NodeJS.ProcessEnv)).toBe("s".repeat(40));
+    expect(resolveLimiterSecret({} as unknown as NodeJS.ProcessEnv)).toBeNull();
+    expect(resolveLimiterSecret({ SUPABASE_SECRET_KEY: "short" } as unknown as NodeJS.ProcessEnv)).toBeNull();
     // A dedicated secret must win over the borrowed fallbacks.
     expect(resolveLimiterSecret({
       MVH_AUTH_RATE_LIMIT_SECRET: "d".repeat(40),
       SUPABASE_SECRET_KEY: "s".repeat(40)
-    } as NodeJS.ProcessEnv)).toBe("d".repeat(40));
+    } as unknown as NodeJS.ProcessEnv)).toBe("d".repeat(40));
   });
 
   it("denies once the budget is spent rather than passing the attempt through", () => {
@@ -472,17 +472,17 @@ describe("production rate-limiter contract", () => {
   });
 
   it("decides production from trusted server configuration, never a browser value", () => {
-    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "production-platform" } as NodeJS.ProcessEnv)).toBe(true);
-    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "local" } as NodeJS.ProcessEnv)).toBe(false);
-    expect(rateLimitingRequired({} as NodeJS.ProcessEnv)).toBe(false);
+    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "production-platform" } as unknown as NodeJS.ProcessEnv)).toBe(true);
+    expect(rateLimitingRequired({ MVH_APP_ENVIRONMENT: "local" } as unknown as NodeJS.ProcessEnv)).toBe(false);
+    expect(rateLimitingRequired({} as unknown as NodeJS.ProcessEnv)).toBe(false);
     // The browser-visible twin must not be able to turn the requirement on or off.
     expect(rateLimitingRequired({
       NEXT_PUBLIC_MVH_APP_ENVIRONMENT: "production-platform"
-    } as NodeJS.ProcessEnv)).toBe(false);
+    } as unknown as NodeJS.ProcessEnv)).toBe(false);
     expect(rateLimitingRequired({
       MVH_APP_ENVIRONMENT: "production-platform",
       NEXT_PUBLIC_MVH_APP_ENVIRONMENT: "local"
-    } as NodeJS.ProcessEnv)).toBe(true);
+    } as unknown as NodeJS.ProcessEnv)).toBe(true);
     expect(read("apps/platform-web/lib/auth/rate-limit.ts")).not.toMatch(
       /source\.NEXT_PUBLIC_[A-Z_]*\s*===/
     );
@@ -500,7 +500,7 @@ describe("production rate-limiter contract", () => {
       SUPABASE_SECRET_KEY: "s".repeat(20),
       MVH_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst",
       MVH_PRODUCTION_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst"
-    } as NodeJS.ProcessEnv;
+    } as unknown as NodeJS.ProcessEnv;
     expect(hasProductionIdentityConfiguration(productionEnv)).toBe(true);
     expect(resolveLimiterSecret(productionEnv)).not.toBeNull();
   });
@@ -521,7 +521,9 @@ describe("production rate-limiter contract", () => {
 
   it("keeps the unavailable response generic and free of internals", () => {
     const source = read("apps/platform-web/app/auth-actions.ts");
-    const message = /const temporarilyUnavailable[^;]*?message: "([^"]+)"/s.exec(source)?.[1] ?? "";
+    // [\s\S] rather than the `s` flag: this project targets ES2017, where the
+    // dotAll flag is not available.
+    const message = /const temporarilyUnavailable[\s\S]*?message: "([^"]+)"/.exec(source)?.[1] ?? "";
     expect(message.length).toBeGreaterThan(0);
     expect(message).not.toMatch(
       /supabase|rpc|rate.?limit|postgres|database|consume_|service|token|secret|env|MVH_|SUPABASE_/i
