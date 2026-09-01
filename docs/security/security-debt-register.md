@@ -28,6 +28,9 @@ worth the remediation risk), **DEFERRED** (worth doing, scheduled),
 | ON-04 | MED | Account lockout was indefinite, not temporary | Overnight |
 | ON-05 | LOW | Staging gate exemption matched case variants | Overnight |
 | ON-06 | MED | Event redaction filtered by key name only | Overnight |
+| ON-07 | MED | Spray observation counted every attempt, so it fired on ordinary classroom sign-ins | Overnight |
+| ON-08 | MED | Limiter secret had an upper length bound, breaking the fail-closed invariant | Overnight |
+| ON-09 | MED | Password change made an unbounded revocation call and logged a revocation that may not have happened | Overnight |
 
 ---
 
