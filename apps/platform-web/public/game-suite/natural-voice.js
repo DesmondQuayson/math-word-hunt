@@ -92,6 +92,18 @@
   }
 
   // ---------- audio context ----------
+  /*
+   * VOICE CHANNEL - pronunciation runs at unity and nothing may attenuate it.
+   *
+   * Every clip is routed through this engine's OWN gain node, pinned to 1.0,
+   * inside this engine's OWN AudioContext. It is never connected to the
+   * background-music channel (a separate HTMLAudioElement owned by
+   * math-vocabulary-music.js), so lowering the music cannot lower a spoken
+   * term, and the music button cannot silence one. Unity means unity: the
+   * clips are already normalised, so gain is never pushed above 1.0.
+   */
+  var VOICE_CHANNEL_LEVEL = 1;
+  var voiceGain = null;
   var context = null;
   function ensureContext() {
     if (!context) {
@@ -101,6 +113,25 @@
     }
     return context;
   }
+  function ensureVoiceGain(ctx) {
+    if (!ctx) return null;
+    if (!voiceGain || voiceGain.context !== ctx) {
+      try {
+        voiceGain = ctx.createGain();
+        voiceGain.gain.value = VOICE_CHANNEL_LEVEL;
+        voiceGain.connect(ctx.destination);
+      } catch (error) {
+        voiceGain = null;
+        setState("lastError", "voiceGain: " + error);
+      }
+    }
+    return voiceGain;
+  }
+
+  function voiceDestination(ctx) {
+    return ensureVoiceGain(ctx) || ctx.destination;
+  }
+
   function resumeContext(reason) {
     var ctx = ensureContext();
     if (!ctx) return null;
@@ -121,6 +152,7 @@
   var fallbackEl = null;
   function ensureFallbackEl() {
     if (!fallbackEl) { fallbackEl = new Audio(); fallbackEl.preload = "auto"; fallbackEl.loop = false; }
+    fallbackEl.volume = VOICE_CHANNEL_LEVEL;
     return fallbackEl;
   }
 
@@ -305,7 +337,7 @@
           var source = ctx.createBufferSource();
           source.buffer = buffer;
           source.loop = false; // narration never loops
-          source.connect(ctx.destination);
+          source.connect(voiceDestination(ctx));
           var entry = { source: source, kind: kind, phrase: phrase, startedAt: Date.now() };
           activeSource = entry;
           source.onended = function () {
@@ -379,6 +411,16 @@
         });
         log("preloadTerms", (displays || []).length + " terms");
       });
+    },
+    /** Report the voice channel's real level so the 100% contract is testable
+     *  and any accidental routing through the music channel is visible. */
+    audioLevels: function () {
+      return {
+        voiceChannelLevel: VOICE_CHANNEL_LEVEL,
+        voiceGainValue: voiceGain ? voiceGain.gain.value : null,
+        fallbackVolume: fallbackEl ? fallbackEl.volume : null,
+        sharesMusicChannel: false
+      };
     },
     cancel: function () {
       queuedPraise = null;
