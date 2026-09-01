@@ -5,6 +5,7 @@ import {
   createAdminCsrfToken,
   createAdminRateSubjectHash,
   decideAdminAccess,
+  getAdminClientContext,
   hashAdminSessionToken,
   isSameOriginAdminRequest,
   verifyAdminCsrfToken
@@ -143,5 +144,52 @@ describe("Phase 8A admin security primitives", () => {
 
   it("authorizes only the complete server-verified contract", () => {
     expect(decision()).toMatchObject({ state: "authorized", admin, session });
+  });
+});
+
+/**
+ * The admin rate-limit identity (ON-02).
+ *
+ * `getAdminClientContext` supplies the address that keys the admin login and MFA
+ * budgets. It used to prefer `x-forwarded-for`, which a caller can prepend to, so
+ * an attacker minted a fresh admin-login budget per request simply by varying one
+ * header. A mutation check found the fix had no regression test — swapping the
+ * preference back failed nothing — so this pins it.
+ */
+describe("admin rate-limit identity cannot be chosen by the caller", () => {
+  it("prefers the platform address over a spoofed forwarded header", () => {
+    const context = getAdminClientContext(new Headers({
+      "x-vercel-forwarded-for": "203.0.113.10",
+      "x-forwarded-for": "198.51.100.99",
+      "x-real-ip": "192.0.2.55"
+    }));
+    expect(context.ip, "the platform header must win").toBe("203.0.113.10");
+  });
+
+  it("does not change identity when only the spoofable header changes", () => {
+    const platform = "203.0.113.10";
+    const identities = new Set(
+      ["1.1.1.1", "2.2.2.2", "3.3.3.3"].map((forged) =>
+        getAdminClientContext(new Headers({
+          "x-vercel-forwarded-for": platform,
+          "x-forwarded-for": forged
+        })).ip
+      )
+    );
+    expect(identities.size, "forging x-forwarded-for must not mint new budgets").toBe(1);
+    expect([...identities][0]).toBe(platform);
+  });
+
+  it("falls back only to values that actually parse as an address", () => {
+    // A caller-supplied string must never become a bucket key of its own.
+    expect(getAdminClientContext(new Headers({ "x-forwarded-for": "not-an-address" })).ip).toBeNull();
+    expect(getAdminClientContext(new Headers()).ip).toBeNull();
+    // With no platform header, the leftmost forwarded entry is used if it is an IP.
+    expect(getAdminClientContext(new Headers({ "x-forwarded-for": "198.51.100.7, 10.0.0.1" })).ip).toBe("198.51.100.7");
+  });
+
+  it("never records the raw user agent beyond a bounded length", () => {
+    const context = getAdminClientContext(new Headers({ "user-agent": "A".repeat(2000) }));
+    expect((context.userAgent ?? "").length).toBeLessThanOrEqual(512);
   });
 });

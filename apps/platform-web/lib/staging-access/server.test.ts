@@ -270,3 +270,48 @@ describe("the staging gate exemption is exactly as narrow as the route it exempt
     expect(isTicketedGameAssetPath(`/games/${uuid}/runtime/assets/${"A".repeat(80)}/x.js`)).toBe(false);
   });
 });
+
+/**
+ * Normalization pinned INDEPENDENTLY of the token fallback.
+ *
+ * A mutation check found that removing `.trim()` from the flag parser failed no
+ * test. The reason is benign — on a token-bearing deployment the ambiguous-value
+ * fallback also returns "required", so it masks the missing trim — but it meant
+ * the normalization that MN-09 exists for was only pinned indirectly, through a
+ * different control. If that fallback is ever changed, the trim would silently
+ * stop being covered.
+ *
+ * These cases remove the token, so nothing but the normalization can produce the
+ * right answer.
+ */
+describe("flag normalization stands on its own, without the token fallback", () => {
+  const ungated = (required: string) => ({
+    MVH_APP_ENVIRONMENT: "production-platform",
+    MVH_STAGING_ACCESS_REQUIRED: required
+    // deliberately NO MVH_STAGING_ACCESS_TOKEN
+  });
+
+  it("still protects for every whitespace spelling of true", () => {
+    for (const value of ["true\n", " true ", "\ttrue\r\n", "true\r", "\n\ntrue\n\n"]) {
+      expect(
+        stagingAccessRequirement(ungated(value)),
+        `${JSON.stringify(value)} must protect with no token present`
+      ).toBe("required");
+    }
+  });
+
+  it("still protects for every casing of true", () => {
+    for (const value of ["TRUE", "True", " TRUE\n"]) {
+      expect(stagingAccessRequirement(ungated(value)), `${value} must protect`).toBe("required");
+    }
+  });
+
+  it("still opens only for an exact lowercase false", () => {
+    for (const value of ["false", " false ", "false\n"]) {
+      expect(stagingAccessRequirement(ungated(value)), `${JSON.stringify(value)} must open`).toBe("not-required");
+    }
+    // A cased false is ambiguous, and with no token ambiguity stays open — but it
+    // must not be reached through the `false` branch.
+    expect(stagingAccessRequirement(ungated("False"))).toBe("not-required");
+  });
+});
