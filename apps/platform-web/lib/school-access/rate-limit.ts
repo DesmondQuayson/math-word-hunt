@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 import { headers } from "next/headers";
 
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
@@ -64,7 +65,11 @@ async function subject(secret: string): Promise<string> {
   // a fallback.
   const platform = compact(requestHeaders.get("x-vercel-forwarded-for"), 128);
   const forwarded = compact(requestHeaders.get("x-forwarded-for"), 256).split(",")[0]?.trim() ?? "";
-  const ip = platform.split(",")[0]?.trim() || forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
+  const realIp = compact(requestHeaders.get("x-real-ip"), 128);
+  // Every candidate must parse as an IP; otherwise any string a caller supplies
+  // becomes a bucket key of its own and varying it mints unlimited budgets.
+  const first = platform.split(",")[0]?.trim() ?? "";
+  const ip = isIP(first) ? first : isIP(forwarded) ? forwarded : isIP(realIp) ? realIp : "unavailable";
   return schoolAccessRateLimitSubject(secret, ip);
 }
 

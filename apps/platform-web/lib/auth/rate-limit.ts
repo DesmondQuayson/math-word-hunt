@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 import { headers } from "next/headers";
 
 import { ConsoleMonitoringAdapter, emitOperationalEvent } from "@/lib/observability/server";
@@ -273,10 +274,15 @@ async function subject(secret: string, scope: ConsumerAuthScope, identifier: str
  * treating any other position as the client would be trusting attacker input.
  */
 function clientAddress(requestHeaders: Headers): string {
-  const platform = compact(requestHeaders.get("x-vercel-forwarded-for"), 128);
-  if (platform) return platform.split(",")[0]!.trim();
+  // Each candidate must actually parse as an IP address. Without that check any
+  // string a caller puts in `x-forwarded-for` became a bucket key of its own, so
+  // varying it minted unlimited budgets — the same defect the user agent had,
+  // one header along. The admin limiter already validated this way; this brings
+  // the consumer surface in line.
+  const platform = compact(requestHeaders.get("x-vercel-forwarded-for"), 128).split(",")[0]?.trim() ?? "";
   const forwarded = compact(requestHeaders.get("x-forwarded-for"), 256).split(",")[0]?.trim() ?? "";
-  return forwarded || compact(requestHeaders.get("x-real-ip"), 128) || "unavailable";
+  const realIp = compact(requestHeaders.get("x-real-ip"), 128);
+  return isIP(platform) ? platform : isIP(forwarded) ? forwarded : isIP(realIp) ? realIp : "unavailable";
 }
 
 /**
@@ -338,7 +344,18 @@ const THROTTLE_EVENT: Readonly<Record<ConsumerAuthScope, SecurityEventName>> = {
 };
 
 async function reportThrottled(scope: ConsumerAuthScope, dimension: "request" | "account"): Promise<void> {
-  await recordSecurityEvent(THROTTLE_EVENT[scope], { scope, dimension });
+  // A stable correlation, for the same reason spray observation uses one. Being
+  // throttled is a sustained CONDITION, not a discrete incident: once a subject
+  // is over budget every further request returns "throttled" for the rest of the
+  // window, so a per-request id would emit one line per request for as long as
+  // an attacker cares to keep sending them. Collapsing them loses nothing — the
+  // detail deliberately carries no subject, so the individual lines are
+  // indistinguishable anyway.
+  //
+  // Discrete incidents keep their per-request id: one rejected credential, one
+  // invalid webhook signature and one password change are each worth counting
+  // individually, and that is where the volume IS the signal.
+  await recordSecurityEvent(THROTTLE_EVENT[scope], { scope, dimension }, `throttled-${scope}-${dimension}`);
 }
 
 /**

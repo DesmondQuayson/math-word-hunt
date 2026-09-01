@@ -39,7 +39,15 @@ export async function proxy(request: NextRequest) {
       // Makes probing of a locked staging environment visible. Emitted
       // synchronously from the request headers rather than via the async
       // `headers()` helper, which is not available in this proxy scope.
-      emitSecurityEvent("STAGING_ACCESS_DENIED", { hasCookie: request.cookies.has(STAGING_ACCESS_COOKIE_NAME) }, request.headers);
+      // Stable correlation: a scan against a locked staging environment is one
+      // sustained condition, not one incident per request. A per-request id
+      // would let any anonymous caller drive log volume simply by retrying.
+      emitSecurityEvent(
+        "STAGING_ACCESS_DENIED",
+        { hasCookie: request.cookies.has(STAGING_ACCESS_COOKIE_NAME) },
+        request.headers,
+        "staging-access-denied"
+      );
       return stagingAccessNotFoundResponse();
     }
   }

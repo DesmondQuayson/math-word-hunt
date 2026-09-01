@@ -316,6 +316,20 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { status: "error", message: "The password could not be updated. Request a new recovery message." };
 
+  // Release the account-target block, if one is in force.
+  //
+  // The account dimension deliberately covers sign-in only, so that a victim
+  // whose budget an attacker has deliberately spent still has recovery as a way
+  // back in. Review found that claim was only half true: recovery itself was
+  // never blocked, but completing it left the block standing, so the user got a
+  // new password and still could not sign in with it. The escape hatch opened
+  // onto the same wall.
+  //
+  // Clearing it here is safe. Reaching this line means holding a live session
+  // for the account and having just set its password; an attacker who could do
+  // that already controls the account and has no use for a rate limit.
+  if (data.user.email) await clearConsumerAuthAttempts("sign-in", data.user.email);
+
   // Containment. This action accepts any authenticated session, not only one
   // that came from a recovery link, and it does not ask for the current
   // password — so whoever holds a session can set a new one. Revoking every
