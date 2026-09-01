@@ -9,6 +9,7 @@ import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { withTimeout } from "@/lib/async/with-timeout";
 import { recordAggregateSignal } from "@/lib/operations/server";
 import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt, observeFailedSignIn } from "@/lib/auth/rate-limit";
 import { recordSecurityEvent } from "@/lib/observability/security-events";
@@ -19,6 +20,12 @@ const confirmationNextCookie = "mathnexa-confirmation-next";
 const confirmationCooldownCookie = "mathnexa-confirmation-resend-after";
 const confirmationCookieLifetimeSeconds = 20 * 60;
 const resendCooldownSeconds = 60;
+/**
+ * Ceiling on the other-session revocation that follows a password change.
+ * Generous enough that a healthy provider always finishes, short enough that an
+ * unhealthy one cannot hold a password change open.
+ */
+const REVOCATION_TIMEOUT_MS = 3000;
 
 function confirmationCookieOptions(maxAge = confirmationCookieLifetimeSeconds) {
   return {
@@ -321,14 +328,26 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
   // the security debt register, because it alters the password-recovery journey
   // and cannot be verified end to end without a live Supabase session.
   //
-  // Best-effort: a failure here must not strand a user whose password already
-  // changed successfully.
+  // Best-effort AND bounded: a failure here must not strand a user whose
+  // password already changed successfully, and neither must a slow provider.
+  // Without the timeout this is an unbounded network call sitting on the
+  // critical path of a password change — the one journey a user is least able
+  // to abandon halfway.
+  let otherSessionsRevoked = false;
   try {
-    await supabase.auth.signOut({ scope: "others" });
+    otherSessionsRevoked = await withTimeout(
+      supabase.auth.signOut({ scope: "others" }).then((result) => !result.error),
+      REVOCATION_TIMEOUT_MS,
+      false
+    );
   } catch {
     // Session revocation is not the thing the user asked for; do not fail on it.
   }
-  await recordSecurityEvent("AUTH_PASSWORD_CHANGED", { otherSessionsRevoked: true });
+  // Report what actually happened. Claiming `true` unconditionally — as this
+  // did — puts a false statement in a security log, and an incident responder
+  // reading "other sessions were revoked" would draw exactly the wrong
+  // conclusion about whether a stolen session is still live.
+  await recordSecurityEvent("AUTH_PASSWORD_CHANGED", { otherSessionsRevoked });
   redirect("/account?password=updated");
 }
 

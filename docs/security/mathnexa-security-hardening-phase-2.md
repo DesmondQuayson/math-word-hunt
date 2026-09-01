@@ -111,11 +111,22 @@ half an hour of access.
 **Fix.** Widened to 20 attempts (the maximum the database function accepts) with the block
 halved to 15 minutes, and the user agent removed from the key per PH2-01.
 
-**Why this is still strong.** The shortest permitted code is four characters from a
-36-symbol alphabet — roughly 1.7 million combinations. At 20 attempts per 15 minutes an
-exhaustive search runs into millennia. And because a correct entry calls
-`clearSchoolAccessAttempts`, only *consecutive failures* accumulate: students who type the
-code correctly never spend the budget for the ones behind them.
+**Why this is still strong — with the arithmetic corrected.** An earlier draft of this
+section said an exhaustive search would take "millennia". That was wrong by three orders of
+magnitude and adversarial review caught it. The real figures: the shortest permitted code is
+`[A-Z0-9][A-Z0-9_-]{3}`, so 36 × 38³ = **1,975,392** possibilities. At 20 attempts per 15
+minutes — 80 an hour — exhaustion takes about **2.8 years**, and an even chance about 1.4.
+The previous 5-per-15-minutes budget bought 11.3 years, so this loosening is a real
+reduction, not a free one.
+
+It remains the right trade. Years is still far beyond any realistic attacker against a code
+that is rotated between cohorts, each additional character multiplies it by 38, and the cost
+it buys back is not hypothetical: the old budget locked an entire school out of a lesson
+after six mistyped codes. Because a correct entry calls `clearSchoolAccessAttempts`, only
+*consecutive failures* accumulate, so students who type the code correctly never spend the
+budget for the ones behind them.
+
+**This figure must be restated if the four-character floor is ever lowered.**
 
 ---
 

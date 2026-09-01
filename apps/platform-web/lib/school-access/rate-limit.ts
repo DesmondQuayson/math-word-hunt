@@ -17,7 +17,18 @@ import { createServiceSupabaseClient } from "@/lib/supabase/service";
  * and the block is halved to 15 minutes. That is still overwhelming protection
  * for what it guards — the shortest permitted code is four characters from a
  * 36-symbol alphabet, so 20 attempts per 15 minutes leaves an exhaustive search
- * on the order of millennia — while giving a class realistic room to fumble.
+ * on the order of years, not hours — while giving a class realistic room to
+ * fumble.
+ *
+ * The arithmetic, since an earlier version of this comment claimed "millennia"
+ * and was wrong by three orders of magnitude: the shortest permitted code is
+ * `[A-Z0-9][A-Z0-9_-]{3}`, so 36 x 38^3 = 1,975,392 possibilities. At 20 per 15
+ * minutes that is 80 an hour, or about 2.8 years to exhaust and 1.4 to reach an
+ * even chance. The previous 5-per-15-minutes budget bought 11.3 years. Both are
+ * far beyond any realistic attacker's patience against a code that is rotated
+ * between cohorts, and codes longer than the four-character floor multiply it by
+ * 38 per character — but the honest figure is years, and it is worth restating
+ * if the floor is ever lowered.
  *
  * A correct entry calls `clearSchoolAccessAttempts`, so only *consecutive
  * failures* accumulate; students who type the code correctly never consume the

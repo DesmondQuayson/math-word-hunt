@@ -78,8 +78,40 @@ describe("limiter secret validation", () => {
     expect(resolveLimiterSecret(productionish)).toBe(twenty);
   });
 
-  it("rejects an absurdly long value rather than hashing it", () => {
-    expect(resolveLimiterSecret(environment({ MVH_AUTH_RATE_LIMIT_SECRET: "x".repeat(513) }))).toBeNull();
+  it("imposes no upper bound, because a ceiling would break the fail-closed invariant", () => {
+    // This test previously asserted the opposite — that a value over 512
+    // characters was rejected. That pinned a real defect: HMAC accepts a key of
+    // any length, `hasProductionIdentityConfiguration()` imposes no maximum on
+    // SUPABASE_SECRET_KEY, and the value comes from server configuration rather
+    // than from a request. So a long key would satisfy production identity while
+    // the limiter refused to resolve it, and under the fail-closed rule that
+    // locks every customer out of a working system.
+    for (const length of [513, 1024, 4096]) {
+      expect(
+        resolveLimiterSecret(environment({ MVH_AUTH_RATE_LIMIT_SECRET: "x".repeat(length) })),
+        `a ${length}-character secret must still resolve`
+      ).toBe("x".repeat(length));
+    }
+  });
+
+  it("resolves for every environment production identity accepts, at any length", () => {
+    // The invariant, stated directly: identity config and the limiter must never
+    // disagree about whether a deployment is usable.
+    for (const length of [20, 40, 128, 600]) {
+      const key = "s".repeat(length);
+      const productionish = environment({
+        NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+        SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "p".repeat(24),
+        SUPABASE_SECRET_KEY: key,
+        MVH_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst",
+        MVH_PRODUCTION_SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst"
+      });
+      delete productionish.MVH_AUTH_RATE_LIMIT_SECRET;
+      delete productionish.MVH_ADMIN_CSRF_SECRET;
+      expect(hasProductionIdentityConfiguration(productionish)).toBe(true);
+      expect(resolveLimiterSecret(productionish), `${length}-character key must resolve`).toBe(key);
+    }
   });
 
   it("trims transport whitespace instead of being defeated by it", () => {

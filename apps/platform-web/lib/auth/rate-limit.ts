@@ -169,7 +169,19 @@ const LIMITER_SECRET_SOURCES = [
  * fail-closed rule that locks every customer out. Do not raise it.
  */
 const MINIMUM_SECRET_LENGTH = 20;
-const MAXIMUM_SECRET_LENGTH = 512;
+
+/**
+ * There is deliberately NO upper bound.
+ *
+ * A ceiling here breaks the very invariant stated above.
+ * `hasProductionIdentityConfiguration()` accepts a `SUPABASE_SECRET_KEY` of any
+ * length at or above 20, so a longer key would satisfy production identity —
+ * authentication live, service client working — while the limiter refused to
+ * resolve it, and under the fail-closed rule that locks every customer out.
+ * HMAC accepts a key of any length, and this value comes from server
+ * configuration rather than from a request, so there is nothing an upper bound
+ * would protect against.
+ */
 
 /**
  * Reports which source supplied the keying material, without revealing it.
@@ -187,7 +199,7 @@ export function limiterSecretSource(source: NodeJS.ProcessEnv = process.env): Li
 
 function isUsableSecret(value: string | undefined): boolean {
   const trimmed = value?.trim() ?? "";
-  return trimmed.length >= MINIMUM_SECRET_LENGTH && trimmed.length <= MAXIMUM_SECRET_LENGTH;
+  return trimmed.length >= MINIMUM_SECRET_LENGTH;
 }
 
 /**
