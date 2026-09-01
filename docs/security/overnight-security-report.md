@@ -169,20 +169,54 @@ fails on Windows from CRLF normalisation at checkout. Present identically on the
 
 ---
 
+## Verification pass — completed after the interruption
+
+The six interrupted verification tracks are now closed, and the full disposition of all 45
+findings is in `docs/security/interrupted-review-recovery.md`. Nothing is left as
+"agent died".
+
+Four more confirmed defects were found and fixed in that pass:
+
+| ID | Sev | Finding |
+|---|---|---|
+| ON-10 | MED | Recovery did not clear the account-target block, so the documented escape hatch opened onto the same wall |
+| ON-11 | MED | Consumer and school limiters accepted any string as the client address, so varying a header minted unlimited buckets and rows |
+| ON-12 | LOW | Throttle and staging-denial events used per-request correlation ids, so de-duplication never applied |
+| ON-13 | LOW | Credential-shape redaction had no standing test coverage |
+
+Two claims were **refuted with reproduction**: the account limiter is not bypassable via
+GoTrue, because no Supabase credential is shipped to the browser at all; and the
+credential-shape filter does work — an earlier reproduction had been mangled by shell
+quoting into testing a pattern that is not the one that ships.
+
+**Mutation checks exposed two coverage holes that mattered more than any single finding.**
+The security gate ran only the dedicated `test/security` directory, so removing the staging
+flag's trim — the MN-09 fix — failed nothing; and the admin rate-limit identity fix had no
+regression test at all. Both are closed, and the gate now covers 245 tests rather than 142.
+
+Mutation results this pass:
+
+| Control mutated | Tests failed |
+|---|---|
+| Staging gate trim removed | 1 |
+| SSRF private-address check removed | 2 |
+| Admin identity preference swapped to the spoofable header | 2 |
+| Account dimension skipped | 4 |
+| Limiter production fail-open | 3 |
+| Value-shape redaction disabled | 10 |
+| Spray moved back to the allowed path | 2 |
+
 ## Honest limits of this session
 
-- **Six verification agents were killed by a session limit mid-review.** Their findings are
-  therefore *unverified*, not refuted. I checked the highest-signal ones myself — the secret
-  ceiling, the password-change log, the "millennia" figure — and all three were real, which
-  suggests the unchecked remainder deserves attention rather than dismissal. They are listed
-  in the debt register as unverified.
 - **PH2-07 remains the largest open gap.** Security events are written but nothing reads
   them: no log drain, no query, no alert. That needs owner credentials.
 - **WebKit and Firefox still cannot run locally** (missing host dependencies), so
   cross-engine CSP verification remains Chromium-only and the Firefox Stripe `form-action`
   round trip is still `NOT TESTED`.
-- **No staging deployment tonight.** The gate stayed locked, as instructed, so anything
-  needing a live environment was done against local deterministic tests instead.
+- **No staging deployment.** The gate stayed locked throughout, so anything needing a live
+  environment was done against local deterministic tests instead.
+- **`admin_auth_rate_limits` still has no TTL** (PH2-08). Two amplification paths into it
+  were closed this pass, but the scheduled purge is Phase 3 work.
 
 ---
 
