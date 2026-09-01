@@ -631,13 +631,42 @@ describe("math vocabulary hunt audio channel sources", () => {
     const volumeWrites = MUSIC_SOURCE.match(/audio\.volume\s*=\s*[^;]+/g) ?? [];
     expect(volumeWrites.every((write) => /=\s*(volume|currentLevel\(\))$/.test(write.trim())), volumeWrites.join(" | ")).toBe(true);
     // Ducking is driven by the voice lifecycle, never by a hold timer.
-    expect(MUSIC_SOURCE).toContain("onSpeechActivity");
     expect(MUSIC_SOURCE).not.toMatch(/setTimeout|targetPercent|holdDurationMs|duckTimer/);
     // The voice gain is assigned exactly once, from the unity constant, so it
     // can never be attenuated to the music level or boosted past unity.
     expect(VOICE_SOURCE.match(/voiceGain\.gain\.value\s*=\s*[^;]+/g)).toEqual([
       "voiceGain.gain.value = VOICE_CHANNEL_LEVEL"
     ]);
+  });
+
+  it("wires speech activity so a stale sibling file cannot silence ducking", () => {
+    // These two files ship under unhashed names and are revalidated separately,
+    // so a browser can hold one fresh and one stale. The shipped build did
+    // exactly one `MathNexaVoice?.onSpeechActivity?.(...)` call at load: against
+    // an engine without that method the optional chaining no-opped, ducking was
+    // lost for the whole session, and nothing was logged. Never again.
+    // Checked against code only: the comments deliberately quote the old
+    // pattern to explain why it was removed.
+    const musicCode = MUSIC_SOURCE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(
+      musicCode,
+      "the music module must not depend on a one-shot optional-chained subscription"
+    ).not.toMatch(/onSpeechActivity\s*\?\.\s*\(/);
+
+    // The voice engine broadcasts, so no registration handshake is required.
+    expect(VOICE_SOURCE).toContain('var ACTIVITY_EVENT = "mathnexa:voice-activity";');
+    expect(VOICE_SOURCE).toMatch(/dispatchEvent\(\s*new CustomEvent\(ACTIVITY_EVENT/);
+
+    // The music module listens for that broadcast...
+    expect(MUSIC_SOURCE).toMatch(/addEventListener\(\s*"mathnexa:voice-activity"/);
+    // ...and also observes the attribute EVERY build of the engine writes, so
+    // ducking still works across a version mismatch between the two files.
+    expect(MUSIC_SOURCE).toMatch(/attributeFilter:\s*\[\s*"data-voice-state"\s*\]/);
+    expect(MUSIC_SOURCE).toMatch(/data-voice-state"\s*\)\s*===\s*"started"/);
+
+    // One authority: `ducked` is only ever assigned from the resolved state.
+    const duckedWrites = MUSIC_SOURCE.match(/\bducked\s*=\s*[^;]+/g) ?? [];
+    expect(duckedWrites, duckedWrites.join(" | ")).toEqual(["ducked = false", "ducked = speaking"]);
   });
 
   it("leaves the other games' audio untouched by this contract", () => {

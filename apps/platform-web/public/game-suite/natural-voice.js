@@ -255,6 +255,23 @@
   var speechActive = false;
   var speechListeners = [];
 
+  /*
+   * The activity signal is BROADCAST as a window event, not only handed to
+   * callbacks registered against this object.
+   *
+   * A direct `MathNexaVoice.onSpeechActivity(fn)` subscription is a one-shot
+   * coupling: whoever registers must run after this file, must find the method
+   * present, and gets no error if it is missing. A single stale copy of this
+   * file in a browser cache is enough to make that registration evaporate --
+   * pronunciation keeps working, the music silently never ducks again, and
+   * nothing is logged. That is a real failure that shipped.
+   *
+   * An event has none of those properties: a listener can be added before or
+   * after this module loads, survives the namespace being replaced, and works
+   * across mismatched builds of the two files.
+   */
+  var ACTIVITY_EVENT = "mathnexa:voice-activity";
+
   function syncSpeech() {
     var active = Boolean(activeSource) || Boolean(queuedPraise);
     if (active === speechActive) return;
@@ -262,6 +279,11 @@
     log("speechActivity", active ? "speaking" : "idle");
     for (var index = 0; index < speechListeners.length; index += 1) {
       try { speechListeners[index](active); } catch (error) { setState("lastError", "speechListener: " + error); }
+    }
+    try {
+      window.dispatchEvent(new CustomEvent(ACTIVITY_EVENT, { detail: { active: active } }));
+    } catch (error) {
+      setState("lastError", "activityEvent: " + error);
     }
   }
 

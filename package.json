@@ -151,6 +151,7 @@
     "capture:game-suite:thumbnails": "node scripts/capture-authentic-game-thumbnails.mjs",
     "test:e2e:game-suite": "node scripts/run-game-suite-e2e.mjs",
     "test:e2e:mvh-audio": "node scripts/run-mvh-audio-e2e.mjs",
+    "test:e2e:mvh-real-runtime": "node scripts/run-mvh-real-runtime-e2e.mjs",
     "review:game-suite": "node scripts/run-game-suite-review.mjs",
     "game-suite:verify": "node scripts/verify-game-suite-polish.mjs",
     "phase10:hosted": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-phase10-hosted-staging.ps1",

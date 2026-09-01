@@ -22,7 +22,7 @@
    * percentage of each other, so the duck cannot compound.
    *
    * The duck is driven by the voice engine's playback lifecycle
-   * (MathNexaVoice.onSpeechActivity), NOT by a hold duration. That matters:
+   * (see SPEECH STATE below), NOT by a hold duration. That matters:
    * the old timer-per-call version raced with itself when a learner replaced
    * one word with another, and a lost race left the music stranded quiet.
    * Lifecycle-driven means restore is automatic on a normal end, an
@@ -149,8 +149,34 @@
     audio.volume = currentLevel();
   }
 
-  function setSpeechDuck(speaking) {
-    ducked = Boolean(speaking);
+  /*
+   * SPEECH STATE — one authority, several ways to be woken.
+   *
+   * voiceIsSpeaking() is the single source of truth for `ducked`. The signals
+   * below only ask it to re-read; none of them carries the answer, so they
+   * cannot disagree with each other.
+   *
+   * The previous build subscribed once, at load, with
+   * `window.MathNexaVoice?.onSpeechActivity?.(...)`. Optional chaining made
+   * that silent: against a voice engine without the method -- a stale cached
+   * copy of the sibling file, either file being unhashed -- the subscription
+   * evaporated with no error, pronunciation carried on, and the music never
+   * ducked again. Reading the state instead of receiving it removes that whole
+   * class of failure, and the DOM fallback keeps ducking working even against
+   * an older voice engine, which only publishes data-voice-state.
+   */
+  function voiceIsSpeaking() {
+    const voice = window.MathNexaVoice;
+    if (voice && typeof voice.isSpeaking === "function") {
+      try { return Boolean(voice.isSpeaking()); } catch { /* fall through to the DOM state */ }
+    }
+    return document.documentElement.getAttribute("data-voice-state") === "started";
+  }
+
+  function refreshSpeechDuck() {
+    const speaking = voiceIsSpeaking();
+    if (speaking === ducked) return;
+    ducked = speaking;
     applyMusicLevel();
   }
 
@@ -174,9 +200,25 @@
   window.stopMusic = pauseMusic;
   window.duck = applyMusicLevel;
 
-  // The voice engine loads in <head>, ahead of this module, so the
-  // subscription is in place before the first word can be selected.
-  const unsubscribeSpeech = window.MathNexaVoice?.onSpeechActivity?.(setSpeechDuck);
+  /*
+   * Two wake-ups, both event-driven, neither dependent on load order:
+   *
+   *  - the voice engine's broadcast, which needs no registration handshake and
+   *    works whichever of the two files loads first;
+   *  - the data-voice-state attribute it writes on <html>, which every build of
+   *    the engine sets, so ducking survives a version mismatch between these
+   *    two unhashed files.
+   *
+   * No timers and no polling: the observer fires only when the attribute
+   * actually changes.
+   */
+  window.addEventListener("mathnexa:voice-activity", refreshSpeechDuck);
+  const voiceStateObserver = new MutationObserver(refreshSpeechDuck);
+  voiceStateObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-voice-state"]
+  });
+  refreshSpeechDuck();
 
   const savedMode = readSavedMode();
   const musicButton = document.querySelector("#musicButton");
@@ -192,7 +234,8 @@
   window.addEventListener("pagehide", () => {
     disposed = true;
     gridObserver.disconnect();
-    if (typeof unsubscribeSpeech === "function") unsubscribeSpeech();
+    voiceStateObserver.disconnect();
+    window.removeEventListener("mathnexa:voice-activity", refreshSpeechDuck);
     pauseMusic();
     audio.removeAttribute("src");
     audio.load();
