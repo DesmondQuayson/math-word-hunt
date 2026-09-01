@@ -5,24 +5,36 @@
   const STORAGE_KEY = "mathnexa:math-vocabulary-hunt:music:1";
 
   /*
-   * MUSIC CHANNEL — the single authoritative background-music level.
+   * MUSIC CHANNEL — one audible level, and only one.
    *
-   * The game's music button chooses a MODE; the LEVEL lives here and is never
-   * multiplied by a second level, so the looping track cannot silently land on
-   * a halved value (0.5 x 0.5 = 0.25). "low" is the normal background level the
-   * game starts in and is the owner-specified 50%.
+   * Math Vocabulary Hunt background music plays at 0.50 whenever it is audible.
+   * This is a single scalar rather than a per-mode table so a second audible
+   * tier cannot exist: there is no value here to raise to 0.75 or 1.00, and
+   * nothing multiplies it, so the track can never land on a compounded 0.25.
    *
    * Vocabulary pronunciation is a SEPARATE channel owned by natural-voice.js
    * (its own AudioContext, unity gain). It never passes through this element,
-   * so nothing here can make a spoken term quieter. The only interaction is
-   * ducking, which lowers THIS element while a term is spoken.
+   * so nothing here can make a spoken term quieter.
+   *
+   * There is NO speech ducking. The contrast a learner hears is the mix itself
+   * — music 0.50 against voice 1.00 — not a background that drops out while a
+   * word is spoken. The music level is identical before, during and after
+   * pronunciation.
+   *
+   * The canonical game's music button is still a three-state cycle
+   * (Low / Medium / Off) because docs/index.html is a protected artifact: about
+   * twenty verify-phase gates assert it is byte-unchanged and its sha256 is
+   * pinned in 42 files. Both audible states therefore resolve to 0.50 here.
+   * FOLLOW-UP: simplify that control to Music On / Music Off in the canonical
+   * game, which needs its own owner-approved canonical-hash change.
    */
-  const MUSIC_CHANNEL_LEVELS = Object.freeze({ low: .5, medium: .75, off: 0 });
+  const MUSIC_CHANNEL_LEVEL = .5;
+  const SILENT_MUSIC_MODE = "off";
+  const AUDIBLE_MUSIC_MODES = Object.freeze(["low", "medium"]);
   const DEFAULT_MUSIC_MODE = "low";
 
   const audio = new Audio(TRACK_URL);
   let disposed = false;
-  let duckTimer = 0;
   let lastError = null;
 
   function normalizeGridRows() {
@@ -77,19 +89,18 @@
 
   function currentMode() {
     const mode = gameAudioState()?.musicMode;
-    return Object.prototype.hasOwnProperty.call(MUSIC_CHANNEL_LEVELS, mode) ? mode : DEFAULT_MUSIC_MODE;
+    return mode === SILENT_MUSIC_MODE || AUDIBLE_MUSIC_MODES.includes(mode) ? mode : DEFAULT_MUSIC_MODE;
   }
 
   function currentLevel() {
     // The sound button's "Muted" position is the game's explicit whole-game
     // mute and silences music with everything else. The music button is not:
-    // it only ever moves this channel.
+    // it only ever moves this channel, and only between silent and 0.50.
     if (gameAudioState()?.soundMode === "muted") return 0;
-    return MUSIC_CHANNEL_LEVELS[currentMode()];
+    return currentMode() === SILENT_MUSIC_MODE ? 0 : MUSIC_CHANNEL_LEVEL;
   }
 
   function pauseMusic() {
-    window.clearTimeout(duckTimer);
     audio.pause();
   }
 
@@ -109,16 +120,23 @@
     }
   }
 
-  // Speech ducking, unchanged in behaviour: it lowers the MUSIC element for the
-  // length of a spoken term and restores it to the authoritative level. The
-  // voice channel is untouched — a duck never attenuates pronunciation.
-  function duckMusic(holdDurationMs = 300, targetPercent = .3) {
+  /*
+   * Math Vocabulary Hunt does not duck.
+   *
+   * The canonical game calls duck() from selectTerm, the correct/wrong/bonus
+   * tones and the completion fanfare. Those calls resolve here because this
+   * module owns the global, so overriding it with a hold is what keeps the
+   * background steady: the level a learner hears is 0.50 before, during and
+   * after a spoken term. The owner's contrast is the 50/100 mix itself, not a
+   * background that drops away while a word plays.
+   *
+   * This deliberately shadows the canonical game's own duck(), which ramped the
+   * retired internal synth gain. That gain has no inputs once this module takes
+   * over startMusic, so nothing is lost.
+   */
+  function holdMusicLevel() {
     if (audio.paused) return;
-    window.clearTimeout(duckTimer);
-    audio.volume = Math.max(0, currentLevel() * Math.min(1, Math.max(0, targetPercent)));
-    duckTimer = window.setTimeout(() => {
-      if (!audio.paused) audio.volume = currentLevel();
-    }, Math.max(0, holdDurationMs));
+    audio.volume = currentLevel();
   }
 
   function readSavedMode() {
@@ -139,7 +157,7 @@
 
   window.startMusic = startMusic;
   window.stopMusic = pauseMusic;
-  window.duck = duckMusic;
+  window.duck = holdMusicLevel;
 
   const savedMode = readSavedMode();
   const musicButton = document.querySelector("#musicButton");
@@ -179,7 +197,8 @@
 
   window.__MATHNEXA_GAME_MUSIC__ = Object.freeze({
     source: TRACK_URL,
-    channelLevels: MUSIC_CHANNEL_LEVELS,
+    channelLevel: MUSIC_CHANNEL_LEVEL,
+    ducks: false,
     level: currentLevel,
     start: startMusic,
     stop: pauseMusic,
@@ -189,7 +208,8 @@
       error: lastError,
       volume: audio.volume,
       level: currentLevel(),
-      mode: currentMode()
+      mode: currentMode(),
+      ducks: false
     })
   });
 })();

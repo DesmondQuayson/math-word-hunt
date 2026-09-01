@@ -351,17 +351,44 @@ describe("math vocabulary hunt audio channels", () => {
     expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
   });
 
-  it("ducks only the music channel while a term is spoken", async () => {
+  it("never ducks: music holds 0.50 before, during and after a spoken term", async () => {
     const runtime = loadAudioRuntime();
     await runtime.firstGesture();
-    await runtime.playTerm("Perimeter");
+    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
+
+    // The canonical game calls duck() from selectTerm and from every tone. The
+    // module owns that global, so those calls must leave the level alone.
+    const { duck } = window as unknown as { duck(hold?: number, target?: number): void };
+    void runtime.playTerm("Perimeter");
+    duck(1600, 0.15);
+    expect(runtime.musicElement.volume, "music must not dip while a term speaks").toBe(MUSIC_LEVEL);
     await flush();
-    (window as unknown as { duck(hold: number, target: number): void }).duck(10, 0.15);
-    expect(runtime.musicElement.volume).toBeCloseTo(MUSIC_LEVEL * 0.15, 10);
+    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
     expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+
+    // Any duck argument at all, at any time, is a hold.
+    duck(10, 0.15);
+    duck(1200);
+    duck();
     await new Promise((done) => setTimeout(done, 40));
     expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
     expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+  });
+
+  it("has no audible music state above 0.50", async () => {
+    const runtime = loadAudioRuntime();
+    await runtime.firstGesture();
+    const observed: number[] = [];
+    // Walk the canonical game's whole music cycle: low -> medium -> off -> low.
+    for (let step = 0; step < 4; step += 1) {
+      observed.push(runtime.musicSnapshot().level);
+      if (!runtime.musicElement.paused) observed.push(runtime.musicElement.volume);
+      await runtime.clickMusicButton();
+    }
+    expect(Math.max(...observed), `levels seen across the cycle: ${observed.join(", ")}`).toBe(MUSIC_LEVEL);
+    expect(observed).not.toContain(0.75);
+    expect(observed).not.toContain(1);
+    expect(observed).not.toContain(0.25);
   });
 
   it("turns music off without silencing pronunciation, and restores 50 percent on the way back", async () => {
@@ -369,9 +396,11 @@ describe("math vocabulary hunt audio channels", () => {
     await runtime.firstGesture();
     expect(runtime.musicElement.paused).toBe(false);
 
-    await runtime.clickMusicButton(); // low -> medium
+    await runtime.clickMusicButton(); // low -> medium: still audible, still 0.50
     expect(runtime.gameAudio.musicMode).toBe("medium");
     expect(runtime.musicElement.paused).toBe(false);
+    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
+    expect(runtime.musicSnapshot().level).toBe(MUSIC_LEVEL);
 
     await runtime.clickMusicButton(); // medium -> off
     expect(runtime.gameAudio.musicMode).toBe("off");
@@ -474,11 +503,17 @@ describe("math vocabulary hunt audio channels", () => {
 });
 
 describe("math vocabulary hunt audio channel sources", () => {
-  it("declares one authoritative music level and one unity voice level", () => {
-    expect(MUSIC_SOURCE).toContain("const MUSIC_CHANNEL_LEVELS = Object.freeze({ low: .5, medium: .75, off: 0 });");
+  it("declares one audible music level and one unity voice level", () => {
+    expect(MUSIC_SOURCE).toContain("const MUSIC_CHANNEL_LEVEL = .5;");
     expect(VOICE_SOURCE).toContain("var VOICE_CHANNEL_LEVEL = 1;");
+    // A single scalar, not a per-mode table: there is no second tier to raise.
+    expect(MUSIC_SOURCE).not.toMatch(/MUSIC_CHANNEL_LEVELS/);
     // The music level must not be derived by scaling another level.
     expect(MUSIC_SOURCE).not.toMatch(/effectiveMusicLevel/);
+    // No ducking anywhere: the element volume is only ever set from currentLevel().
+    const volumeWrites = MUSIC_SOURCE.match(/audio\.volume\s*=\s*[^;]+/g) ?? [];
+    expect(volumeWrites.every((write) => /=\s*(volume|currentLevel\(\))$/.test(write.trim())), volumeWrites.join(" | ")).toBe(true);
+    expect(MUSIC_SOURCE).not.toMatch(/targetPercent|duckTimer|duckMusic/);
     // The voice gain is assigned exactly once, from the unity constant, so it
     // can never be attenuated to the music level or boosted past unity.
     expect(VOICE_SOURCE.match(/voiceGain\.gain\.value\s*=\s*[^;]+/g)).toEqual([

@@ -19,6 +19,7 @@ interface MusicSnapshot {
   volume: number;
   level: number;
   mode: string;
+  ducks: boolean;
 }
 
 interface VoiceLevels {
@@ -101,10 +102,20 @@ test.describe("math vocabulary hunt audio balance", () => {
     expect(levels.voiceGainValue ?? levels.fallbackVolume).toBe(VOICE_LEVEL);
     expect(levels.voiceGainValue ?? levels.fallbackVolume).not.toBe(MUSIC_LEVEL);
 
-    // The music channel is ducked while the term speaks, then returns to the
-    // authoritative level. The voice channel is never touched by the duck.
-    expect((await musicSnapshot(page)).level).toBe(MUSIC_LEVEL);
-    await expect.poll(async () => (await musicSnapshot(page)).volume, { timeout: 20_000 }).toBe(MUSIC_LEVEL);
+    // No ducking. Sampled across 2.5s -- comfortably longer than the 1600ms
+    // window selectTerm used to duck for -- every sample must be exactly 0.50.
+    // Engine-independent: it never waits for the clip to reach "ended", which
+    // headless WebKit cannot always report.
+    expect((await musicSnapshot(page)).ducks).toBe(false);
+    const samples: number[] = [];
+    for (let sample = 0; sample < 10; sample += 1) {
+      const snapshot = await musicSnapshot(page);
+      samples.push(snapshot.volume, snapshot.level);
+      await page.waitForTimeout(250);
+    }
+    expect(new Set(samples), `music levels sampled through the spoken term: ${samples.join(", ")}`).toEqual(
+      new Set([MUSIC_LEVEL])
+    );
     expect((await voiceLevels(page)).voiceGainValue ?? (await voiceLevels(page)).fallbackVolume).toBe(VOICE_LEVEL);
 
     expect(await page.evaluate(() => (window as unknown as { __CSP__?: string[] }).__CSP__ ?? [])).toEqual([]);
@@ -114,10 +125,12 @@ test.describe("math vocabulary hunt audio balance", () => {
     await openGame(page);
     expect((await musicSnapshot(page)).volume).toBe(MUSIC_LEVEL);
 
-    // low -> medium
+    // low -> medium: the canonical control still has three states, but both
+    // audible ones resolve to the single 0.50 level.
     await page.locator("#musicButton").click();
     expect((await musicSnapshot(page)).mode).toBe("medium");
     expect((await musicSnapshot(page)).paused).toBe(false);
+    await expect.poll(async () => (await musicSnapshot(page)).volume, { timeout: 10_000 }).toBe(MUSIC_LEVEL);
 
     // medium -> off
     await page.locator("#musicButton").click();
