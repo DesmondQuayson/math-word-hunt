@@ -22,6 +22,7 @@ const MUSIC_SOURCE = readFileSync(join(GAME_SUITE, "math-vocabulary-music.js"), 
 const VOICE_SOURCE = readFileSync(join(GAME_SUITE, "natural-voice.js"), "utf8");
 
 const MUSIC_LEVEL = 0.5;
+const DUCKED_LEVEL = 0.15;
 const VOICE_LEVEL = 1;
 const MUSIC_MODES = ["low", "medium", "off"] as const;
 
@@ -52,6 +53,8 @@ interface FakeAudioElement {
   volume: number;
   paused: boolean;
   loop: boolean;
+  /** Every value written to volume, in order, so level transitions are provable. */
+  volumeHistory: number[];
 }
 
 interface VoiceLevels {
@@ -68,6 +71,9 @@ interface MusicSnapshot {
   volume: number;
   level: number;
   mode: MusicMode;
+  ducked: boolean;
+  baseLevel: number;
+  duckedLevel: number;
 }
 
 interface Runtime {
@@ -77,6 +83,10 @@ interface Runtime {
   gainNodes: FakeGainNode[];
   /** Only the sources carrying a decoded clip — never the silent unlock probe. */
   clipSources(): FakeBufferSourceNode[];
+  /** Hold clips open so the ducked level can be inspected mid-speech. */
+  holdClipsOpen(): void;
+  /** End every clip still playing, as a real one finishing would. */
+  endLiveClips(): Promise<void>;
   destination: unknown;
   musicSnapshot(): MusicSnapshot;
   voiceLevels(): VoiceLevels;
@@ -142,16 +152,27 @@ function loadAudioRuntime(options: { savedMusicMode?: string; webAudio?: boolean
     gameAudio.musicMode = MUSIC_MODES[(MUSIC_MODES.indexOf(gameAudio.musicMode) + 1) % MUSIC_MODES.length];
   });
 
+  // Clips normally finish on their own. Duck tests turn this off so a term can
+  // be held "speaking" while the music level is inspected.
+  let autoEndClips = true;
   const audioElements: FakeAudioElement[] = [];
   class FakeAudio implements FakeAudioElement {
     src = "";
-    volume = 1;
     paused = true;
     loop = false;
     playsInline = false;
     preload = "";
     onended: (() => void) | null = null;
     onerror: (() => void) | null = null;
+    volumeHistory: number[] = [];
+    #volume = 1;
+    get volume() {
+      return this.#volume;
+    }
+    set volume(next: number) {
+      this.#volume = next;
+      this.volumeHistory.push(next);
+    }
     constructor(src?: string) {
       if (src) this.src = src;
       audioElements.push(this);
@@ -159,7 +180,7 @@ function loadAudioRuntime(options: { savedMusicMode?: string; webAudio?: boolean
     play() {
       this.paused = false;
       // A one-shot clip reaches its end; the looping music track never does.
-      if (!this.loop) setTimeout(() => this.onended?.(), 0);
+      if (!this.loop && autoEndClips) setTimeout(() => this.onended?.(), 0);
       return Promise.resolve();
     }
     pause() {
@@ -207,7 +228,7 @@ function loadAudioRuntime(options: { savedMusicMode?: string; webAudio?: boolean
         start() {
           node.started = true;
           // Real clips finish and fire onended; the engine resolves on that.
-          setTimeout(() => node.onended?.(), 0);
+          if (autoEndClips) setTimeout(() => node.onended?.(), 0);
         },
         stop() {
           node.stopped = true;
@@ -268,6 +289,19 @@ function loadAudioRuntime(options: { savedMusicMode?: string; webAudio?: boolean
     audioElements,
     gainNodes,
     clipSources: () => bufferSources.filter((node) => (node.buffer as { kind?: string } | null)?.kind === "clip"),
+    holdClipsOpen: () => {
+      autoEndClips = false;
+    },
+    endLiveClips: async () => {
+      autoEndClips = true;
+      for (const node of bufferSources) {
+        if (node.started && !node.stopped && node.onended) node.onended();
+      }
+      for (const element of audioElements) {
+        if (!element.loop && !element.paused) (element as unknown as { onended?: () => void }).onended?.();
+      }
+      await flush();
+    },
     destination,
     musicSnapshot: () => music.snapshot(),
     voiceLevels: () => voice.audioLevels(),
@@ -351,28 +385,108 @@ describe("math vocabulary hunt audio channels", () => {
     expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
   });
 
-  it("never ducks: music holds 0.50 before, during and after a spoken term", async () => {
+  it("ducks to 0.15 while a term speaks and restores to 0.50 when it finishes", async () => {
     const runtime = loadAudioRuntime();
     await runtime.firstGesture();
-    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
 
-    // The canonical game calls duck() from selectTerm and from every tone. The
-    // module owns that global, so those calls must leave the level alone.
-    const { duck } = window as unknown as { duck(hold?: number, target?: number): void };
+    // A. idle
+    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
+    expect(runtime.musicSnapshot().ducked).toBe(false);
+
+    // B. pronunciation begins
+    runtime.holdClipsOpen();
     void runtime.playTerm("Perimeter");
-    duck(1600, 0.15);
-    expect(runtime.musicElement.volume, "music must not dip while a term speaks").toBe(MUSIC_LEVEL);
     await flush();
-    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
-    expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+    expect(runtime.musicElement.volume, "music must duck while a term speaks").toBe(DUCKED_LEVEL);
+    expect(runtime.musicSnapshot().ducked).toBe(true);
+    expect(runtime.voiceLevels().voiceGainValue, "the voice is never ducked").toBe(VOICE_LEVEL);
 
-    // Any duck argument at all, at any time, is a hold.
-    duck(10, 0.15);
-    duck(1200);
+    // C. pronunciation continues — including through the game's own duck()
+    // calls, which must reassert rather than start a rival timer.
+    const { duck } = window as unknown as { duck(hold?: number, target?: number): void };
+    duck(1600, 0.15);
     duck();
     await new Promise((done) => setTimeout(done, 40));
-    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
+    expect(runtime.musicElement.volume).toBe(DUCKED_LEVEL);
     expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+
+    // D. pronunciation ends
+    await runtime.endLiveClips();
+    expect(runtime.musicElement.volume, "music must restore when the term finishes").toBe(MUSIC_LEVEL);
+    expect(runtime.musicSnapshot().ducked).toBe(false);
+    expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+  });
+
+  it("restores the music when speech is cancelled rather than finishing", async () => {
+    const runtime = loadAudioRuntime();
+    await runtime.firstGesture();
+    runtime.holdClipsOpen();
+    void runtime.playTerm("Perimeter");
+    await flush();
+    expect(runtime.musicElement.volume).toBe(DUCKED_LEVEL);
+
+    (window as unknown as { MathNexaVoice: { cancel(): void } }).MathNexaVoice.cancel();
+    await flush();
+    expect(runtime.musicElement.volume, "a cancelled term must not strand the music quiet").toBe(MUSIC_LEVEL);
+    expect(runtime.musicSnapshot().ducked).toBe(false);
+  });
+
+  it("stays ducked across a rapid word replacement and restores exactly once", async () => {
+    const runtime = loadAudioRuntime();
+    await runtime.firstGesture();
+    runtime.holdClipsOpen();
+
+    void runtime.playTerm("Perimeter");
+    await flush();
+    expect(runtime.musicElement.volume).toBe(DUCKED_LEVEL);
+
+    const duringReplacement = runtime.musicElement.volumeHistory.length;
+    void runtime.playTerm("Area");
+    await flush();
+    void runtime.playTerm("Volume");
+    await flush();
+
+    // The music must never bounce back to the base level between two words.
+    const replacementWrites = runtime.musicElement.volumeHistory.slice(duringReplacement);
+    expect(replacementWrites, `levels written during replacement: ${replacementWrites.join(", ")}`).not.toContain(
+      MUSIC_LEVEL
+    );
+    expect(runtime.musicElement.volume).toBe(DUCKED_LEVEL);
+    expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+
+    // And exactly one restore when the last word finally finishes.
+    const beforeRestore = runtime.musicElement.volumeHistory.length;
+    await runtime.endLiveClips();
+    const restores = runtime.musicElement.volumeHistory.slice(beforeRestore).filter((level) => level === MUSIC_LEVEL);
+    expect(restores, "the music must restore exactly once").toHaveLength(1);
+    expect(runtime.musicElement.volume).toBe(MUSIC_LEVEL);
+  });
+
+  it("keeps music silent through a whole spoken term when the learner turned it off", async () => {
+    const runtime = loadAudioRuntime();
+    await runtime.firstGesture();
+    await runtime.clickMusicButton(); // low -> medium
+    await runtime.clickMusicButton(); // medium -> off
+    expect(runtime.musicElement.paused).toBe(true);
+    expect(runtime.musicSnapshot().level).toBe(0);
+
+    runtime.holdClipsOpen();
+    const beforeSpeech = runtime.musicElement.volumeHistory.length;
+    void runtime.playTerm("Area");
+    await flush();
+    // E. music stays off, voice is unaffected.
+    expect(runtime.musicElement.paused, "speech must never restart music the learner turned off").toBe(true);
+    expect(runtime.musicSnapshot().level).toBe(0);
+    expect(runtime.voiceLevels().voiceGainValue).toBe(VOICE_LEVEL);
+
+    // F. still off after the term ends.
+    await runtime.endLiveClips();
+    expect(runtime.musicElement.paused).toBe(true);
+    expect(runtime.musicSnapshot().level).toBe(0);
+    expect(
+      runtime.musicElement.volumeHistory.slice(beforeSpeech),
+      "no level may be written to a track the learner switched off"
+    ).toEqual([]);
   });
 
   it("has no audible music state above 0.50", async () => {
@@ -505,15 +619,20 @@ describe("math vocabulary hunt audio channels", () => {
 describe("math vocabulary hunt audio channel sources", () => {
   it("declares one audible music level and one unity voice level", () => {
     expect(MUSIC_SOURCE).toContain("const MUSIC_CHANNEL_LEVEL = .5;");
+    expect(MUSIC_SOURCE).toContain("const DUCKED_MUSIC_LEVEL = .15;");
     expect(VOICE_SOURCE).toContain("var VOICE_CHANNEL_LEVEL = 1;");
-    // A single scalar, not a per-mode table: there is no second tier to raise.
+    // Single scalars, not a per-mode table: there is no second audible tier.
     expect(MUSIC_SOURCE).not.toMatch(/MUSIC_CHANNEL_LEVELS/);
-    // The music level must not be derived by scaling another level.
+    // Neither level may be derived by scaling the other, or by scaling the
+    // game's internal synth gain.
     expect(MUSIC_SOURCE).not.toMatch(/effectiveMusicLevel/);
-    // No ducking anywhere: the element volume is only ever set from currentLevel().
+    expect(MUSIC_SOURCE).not.toMatch(/MUSIC_CHANNEL_LEVEL\s*\*|DUCKED_MUSIC_LEVEL\s*\*/);
+    // The element volume is only ever set from currentLevel().
     const volumeWrites = MUSIC_SOURCE.match(/audio\.volume\s*=\s*[^;]+/g) ?? [];
     expect(volumeWrites.every((write) => /=\s*(volume|currentLevel\(\))$/.test(write.trim())), volumeWrites.join(" | ")).toBe(true);
-    expect(MUSIC_SOURCE).not.toMatch(/targetPercent|duckTimer|duckMusic/);
+    // Ducking is driven by the voice lifecycle, never by a hold timer.
+    expect(MUSIC_SOURCE).toContain("onSpeechActivity");
+    expect(MUSIC_SOURCE).not.toMatch(/setTimeout|targetPercent|holdDurationMs|duckTimer/);
     // The voice gain is assigned exactly once, from the unity constant, so it
     // can never be attenuated to the music level or boosted past unity.
     expect(VOICE_SOURCE.match(/voiceGain\.gain\.value\s*=\s*[^;]+/g)).toEqual([

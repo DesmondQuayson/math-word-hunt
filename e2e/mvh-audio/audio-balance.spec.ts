@@ -10,6 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const MUSIC_LEVEL = 0.5;
+const DUCKED_LEVEL = 0.15;
 const VOICE_LEVEL = 1;
 
 interface MusicSnapshot {
@@ -19,7 +20,10 @@ interface MusicSnapshot {
   volume: number;
   level: number;
   mode: string;
+  ducked: boolean;
   ducks: boolean;
+  baseLevel: number;
+  duckedLevel: number;
 }
 
 interface VoiceLevels {
@@ -102,20 +106,25 @@ test.describe("math vocabulary hunt audio balance", () => {
     expect(levels.voiceGainValue ?? levels.fallbackVolume).toBe(VOICE_LEVEL);
     expect(levels.voiceGainValue ?? levels.fallbackVolume).not.toBe(MUSIC_LEVEL);
 
-    // No ducking. Sampled across 2.5s -- comfortably longer than the 1600ms
-    // window selectTerm used to duck for -- every sample must be exactly 0.50.
-    // Engine-independent: it never waits for the clip to reach "ended", which
+    // Ducking, driven by the voice lifecycle. Sampled every 250ms for 5s: the
+    // music must only ever sit at 0.15 (while the term speaks) or 0.50 (once it
+    // has finished), it must reach both, and it must end at 0.50 -- never
+    // stranded quiet. Engine-independent: no wait on a "ended" state that
     // headless WebKit cannot always report.
-    expect((await musicSnapshot(page)).ducks).toBe(false);
+    const contract = await musicSnapshot(page);
+    expect(contract.ducks).toBe(true);
+    expect(contract.baseLevel).toBe(MUSIC_LEVEL);
+    expect(contract.duckedLevel).toBe(DUCKED_LEVEL);
+
     const samples: number[] = [];
-    for (let sample = 0; sample < 10; sample += 1) {
-      const snapshot = await musicSnapshot(page);
-      samples.push(snapshot.volume, snapshot.level);
+    for (let sample = 0; sample < 20; sample += 1) {
+      samples.push((await musicSnapshot(page)).volume);
       await page.waitForTimeout(250);
     }
-    expect(new Set(samples), `music levels sampled through the spoken term: ${samples.join(", ")}`).toEqual(
-      new Set([MUSIC_LEVEL])
-    );
+    const label = `music levels sampled through the spoken term: ${samples.join(", ")}`;
+    expect([...new Set(samples)].sort(), label).toEqual([DUCKED_LEVEL, MUSIC_LEVEL]);
+    expect(samples.at(-1), `music must restore, not stay ducked. ${label}`).toBe(MUSIC_LEVEL);
+    expect((await musicSnapshot(page)).ducked).toBe(false);
     expect((await voiceLevels(page)).voiceGainValue ?? (await voiceLevels(page)).fallbackVolume).toBe(VOICE_LEVEL);
 
     expect(await page.evaluate(() => (window as unknown as { __CSP__?: string[] }).__CSP__ ?? [])).toEqual([]);
@@ -166,13 +175,21 @@ test.describe("math vocabulary hunt audio balance", () => {
 
     const levels = await voiceLevels(page);
     expect(levels.voiceGainValue ?? levels.fallbackVolume).toBe(VOICE_LEVEL);
-    expect((await musicSnapshot(page)).level).toBe(MUSIC_LEVEL);
+    // Rapid replacement leaves the music either ducked or restored -- never at
+    // some third level -- and it must always land back on the base level rather
+    // than staying quiet after the last word.
+    const afterReplacement = await musicSnapshot(page);
+    expect([DUCKED_LEVEL, MUSIC_LEVEL], `level after replacement: ${afterReplacement.level}`).toContain(
+      afterReplacement.level
+    );
     await expect.poll(async () => (await musicSnapshot(page)).volume, { timeout: 20_000 }).toBe(MUSIC_LEVEL);
+    expect((await musicSnapshot(page)).ducked).toBe(false);
 
-    // Repeated selection of the same word keeps working at the same level.
+    // Repeated selection of the same word keeps working, and still restores.
     await cards.first().click();
     await expect.poll(() => voiceState(page), { timeout: 20_000 }).not.toBe("requested");
     expect((await voiceLevels(page)).voiceGainValue ?? (await voiceLevels(page)).fallbackVolume).toBe(VOICE_LEVEL);
+    await expect.poll(async () => (await musicSnapshot(page)).volume, { timeout: 20_000 }).toBe(MUSIC_LEVEL);
     expect((await musicSnapshot(page)).error).toBeNull();
   });
 

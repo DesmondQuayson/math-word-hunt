@@ -14,12 +14,19 @@
    *
    * Vocabulary pronunciation is a SEPARATE channel owned by natural-voice.js
    * (its own AudioContext, unity gain). It never passes through this element,
-   * so nothing here can make a spoken term quieter.
+   * so nothing here can make a spoken term quieter — ducking moves THIS
+   * element only, and the voice stays at 1.00 throughout.
    *
-   * There is NO speech ducking. The contrast a learner hears is the mix itself
-   * — music 0.50 against voice 1.00 — not a background that drops out while a
-   * word is spoken. The music level is identical before, during and after
-   * pronunciation.
+   * Speech ducking: while a term is spoken the background drops to 0.15 and
+   * returns to 0.50 when the voice finishes. Both are absolute levels, never a
+   * percentage of each other, so the duck cannot compound.
+   *
+   * The duck is driven by the voice engine's playback lifecycle
+   * (MathNexaVoice.onSpeechActivity), NOT by a hold duration. That matters:
+   * the old timer-per-call version raced with itself when a learner replaced
+   * one word with another, and a lost race left the music stranded quiet.
+   * Lifecycle-driven means restore is automatic on a normal end, an
+   * interruption, a replacement, an error and a cancel alike.
    *
    * The canonical game's music button is still a three-state cycle
    * (Low / Medium / Off) because docs/index.html is a protected artifact: about
@@ -29,12 +36,14 @@
    * game, which needs its own owner-approved canonical-hash change.
    */
   const MUSIC_CHANNEL_LEVEL = .5;
+  const DUCKED_MUSIC_LEVEL = .15;
   const SILENT_MUSIC_MODE = "off";
   const AUDIBLE_MUSIC_MODES = Object.freeze(["low", "medium"]);
   const DEFAULT_MUSIC_MODE = "low";
 
   const audio = new Audio(TRACK_URL);
   let disposed = false;
+  let ducked = false;
   let lastError = null;
 
   function normalizeGridRows() {
@@ -96,8 +105,11 @@
     // The sound button's "Muted" position is the game's explicit whole-game
     // mute and silences music with everything else. The music button is not:
     // it only ever moves this channel, and only between silent and 0.50.
+    // Silence wins over ducking: music the learner switched off stays off,
+    // and speech never nudges it back up.
     if (gameAudioState()?.soundMode === "muted") return 0;
-    return currentMode() === SILENT_MUSIC_MODE ? 0 : MUSIC_CHANNEL_LEVEL;
+    if (currentMode() === SILENT_MUSIC_MODE) return 0;
+    return ducked ? DUCKED_MUSIC_LEVEL : MUSIC_CHANNEL_LEVEL;
   }
 
   function pauseMusic() {
@@ -121,22 +133,25 @@
   }
 
   /*
-   * Math Vocabulary Hunt does not duck.
+   * The one place this element's volume is written after playback starts.
    *
-   * The canonical game calls duck() from selectTerm, the correct/wrong/bonus
-   * tones and the completion fanfare. Those calls resolve here because this
-   * module owns the global, so overriding it with a hold is what keeps the
-   * background steady: the level a learner hears is 0.50 before, during and
-   * after a spoken term. The owner's contrast is the 50/100 mix itself, not a
-   * background that drops away while a word plays.
+   * Never calls play(): music the learner switched off must stay off, so a
+   * duck or a restore can only move a track that is already running.
    *
-   * This deliberately shadows the canonical game's own duck(), which ramped the
-   * retired internal synth gain. That gain has no inputs once this module takes
-   * over startMusic, so nothing is lost.
+   * This also shadows the canonical game's own duck(), which took a hold
+   * duration and ramped the retired internal synth gain. The game still calls
+   * duck() from selectTerm and from its tone helpers; routing those calls here
+   * makes them reassert the correct current level instead of starting a rival
+   * timer, which keeps this module the single duck authority.
    */
-  function holdMusicLevel() {
+  function applyMusicLevel() {
     if (audio.paused) return;
     audio.volume = currentLevel();
+  }
+
+  function setSpeechDuck(speaking) {
+    ducked = Boolean(speaking);
+    applyMusicLevel();
   }
 
   function readSavedMode() {
@@ -157,7 +172,11 @@
 
   window.startMusic = startMusic;
   window.stopMusic = pauseMusic;
-  window.duck = holdMusicLevel;
+  window.duck = applyMusicLevel;
+
+  // The voice engine loads in <head>, ahead of this module, so the
+  // subscription is in place before the first word can be selected.
+  const unsubscribeSpeech = window.MathNexaVoice?.onSpeechActivity?.(setSpeechDuck);
 
   const savedMode = readSavedMode();
   const musicButton = document.querySelector("#musicButton");
@@ -173,6 +192,7 @@
   window.addEventListener("pagehide", () => {
     disposed = true;
     gridObserver.disconnect();
+    if (typeof unsubscribeSpeech === "function") unsubscribeSpeech();
     pauseMusic();
     audio.removeAttribute("src");
     audio.load();
@@ -198,7 +218,8 @@
   window.__MATHNEXA_GAME_MUSIC__ = Object.freeze({
     source: TRACK_URL,
     channelLevel: MUSIC_CHANNEL_LEVEL,
-    ducks: false,
+    duckedLevel: DUCKED_MUSIC_LEVEL,
+    ducks: true,
     level: currentLevel,
     start: startMusic,
     stop: pauseMusic,
@@ -209,7 +230,10 @@
       volume: audio.volume,
       level: currentLevel(),
       mode: currentMode(),
-      ducks: false
+      ducks: true,
+      ducked,
+      baseLevel: MUSIC_CHANNEL_LEVEL,
+      duckedLevel: DUCKED_MUSIC_LEVEL
     })
   });
 })();

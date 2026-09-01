@@ -239,6 +239,32 @@
   var queuedPraise = null;
   var lastPlay = { phrase: "", at: 0 };
 
+  /*
+   * SPEECH ACTIVITY — the signal the music channel ducks against.
+   *
+   * Derived from live state (is a clip playing, or is praise queued behind one)
+   * rather than from paired start/stop events, so no listener can be left
+   * believing speech is still running. syncSpeech() is deliberately NOT called
+   * inside stopActive(): replacing a term stops the old source and starts the
+   * new one in the same synchronous block, so the listener never sees the gap
+   * and the music cannot bounce back to its base level between two words.
+   *
+   * Praise queued behind a term counts as still speaking, so the music does not
+   * restore in the pause between "Decimal" and "Nice find, Chief!".
+   */
+  var speechActive = false;
+  var speechListeners = [];
+
+  function syncSpeech() {
+    var active = Boolean(activeSource) || Boolean(queuedPraise);
+    if (active === speechActive) return;
+    speechActive = active;
+    log("speechActivity", active ? "speaking" : "idle");
+    for (var index = 0; index < speechListeners.length; index += 1) {
+      try { speechListeners[index](active); } catch (error) { setState("lastError", "speechListener: " + error); }
+    }
+  }
+
   function stopActive(reason) {
     if (!activeSource) return;
     var stopped = activeSource;
@@ -252,6 +278,7 @@
     var now = Date.now();
     if (phrase && phrase === lastPlay.phrase && now - lastPlay.at < DUPLICATE_MS) {
       log("duplicateSuppressed", phrase);
+      syncSpeech();
       return Promise.resolve("duplicate");
     }
     lastPlay = { phrase: phrase, at: now };
@@ -268,6 +295,7 @@
         setAttr("data-voice-source", "silent");
         setState("voiceSource", "silent");
         log("playError", "no clip for: " + phrase);
+        syncSpeech();
         return "no-clip";
       }
       var ctxProbe = ensureContext();
@@ -283,6 +311,7 @@
             setState("playback", "ended");
             setAttr("data-voice-state", "ended");
             log("playEnded", phrase + " (html-audio)");
+            syncSpeech();
             var next = queuedPraise; queuedPraise = null;
             resolve("ended");
             if (next) playPhrase(next, "praise");
@@ -293,6 +322,7 @@
             setAttr("data-voice-state", "error");
             setAttr("data-voice-source", "silent");
             setState("voiceSource", "silent");
+            syncSpeech();
             resolve("error");
           };
           el.src = CLIP_BASE + file;
@@ -305,6 +335,7 @@
             debug.state.playbackCount += 1;
             renderPanel();
             log("playStarted", phrase + " (html-audio)");
+            syncSpeech();
           };
           if (played && typeof played.then === "function") played.then(markStarted).catch(function (error) {
             if (activeSource === entry) activeSource = null;
@@ -312,6 +343,7 @@
             setAttr("data-voice-state", "blocked");
             setState("lastError", String(error));
             log("playRejected", error);
+            syncSpeech();
             resolve("blocked");
           });
           else markStarted();
@@ -324,12 +356,14 @@
           setAttr("data-voice-source", "silent");
           setState("voiceSource", "silent");
           setState("playback", "error");
+          syncSpeech();
           return "error";
         }
         if (ctx.state !== "running") {
           setAttr("data-voice-state", "blocked");
           setState("playback", "blocked (context " + ctx.state + ")");
           log("playRejected", "context " + ctx.state);
+          syncSpeech();
           return "blocked";
         }
         if (kind === "term") stopActive("new-term");
@@ -345,6 +379,9 @@
             setState("playback", "ended");
             setAttr("data-voice-state", "ended");
             log("playEnded", phrase);
+            // Reported while queuedPraise is still set, so a queued praise
+            // phrase keeps the music ducked across the gap.
+            syncSpeech();
             var next = queuedPraise;
             queuedPraise = null;
             resolve("ended");
@@ -360,12 +397,14 @@
             debug.state.playbackCount += 1;
             renderPanel();
             log("playStarted", phrase);
+            syncSpeech();
           } catch (error) {
             activeSource = null;
             setState("playback", "error");
             setState("lastError", String(error));
             setAttr("data-voice-state", "error");
             log("playError", error);
+            syncSpeech();
             resolve("error");
           }
         });
@@ -412,6 +451,21 @@
         log("preloadTerms", (displays || []).length + " terms");
       });
     },
+    /** Subscribe to speech activity so the music channel can duck while a term
+     *  is spoken and restore when it finishes. Fires immediately with the
+     *  current state and returns an unsubscribe function. The listener is the
+     *  ONLY duck authority: it is driven by playback lifecycle, never a timer,
+     *  so music cannot be stranded at the ducked level. */
+    onSpeechActivity: function (listener) {
+      if (typeof listener !== "function") return function () {};
+      speechListeners.push(listener);
+      try { listener(speechActive); } catch (error) { setState("lastError", "speechListener: " + error); }
+      return function () {
+        var at = speechListeners.indexOf(listener);
+        if (at >= 0) speechListeners.splice(at, 1);
+      };
+    },
+    isSpeaking: function () { return speechActive; },
     /** Report the voice channel's real level so the 100% contract is testable
      *  and any accidental routing through the music channel is visible. */
     audioLevels: function () {
@@ -427,6 +481,7 @@
       stopActive("cancel");
       setAttr("data-voice-state", "ended");
       setState("playback", "idle");
+      syncSpeech();
     },
     unlock: unlock
   };
