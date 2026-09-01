@@ -31,6 +31,10 @@ worth the remediation risk), **DEFERRED** (worth doing, scheduled),
 | ON-07 | MED | Spray observation counted every attempt, so it fired on ordinary classroom sign-ins | Overnight |
 | ON-08 | MED | Limiter secret had an upper length bound, breaking the fail-closed invariant | Overnight |
 | ON-09 | MED | Password change made an unbounded revocation call and logged a revocation that may not have happened | Overnight |
+| ON-10 | MED | Recovery did not clear the account-target block, so the documented escape hatch was false | Verification |
+| ON-11 | MED | Consumer and school limiters accepted any string as the client address | Verification |
+| ON-12 | LOW | Throttle and staging-denial events defeated de-duplication | Verification |
+| ON-13 | LOW | Credential-shape redaction had no standing test coverage | Verification |
 
 ---
 
