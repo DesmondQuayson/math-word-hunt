@@ -19,6 +19,16 @@ const CREDIT = `<details class="mathnexa-music-credit" data-mathnexa-game-suite=
 // robotic browser voice. The music half defers itself to DOMContentLoaded,
 // the moment its old end-of-body tag used to run.
 const AUDIO_RUNTIME = `<script src="/game-suite/${MVH_AUDIO_RUNTIME_FILE}" data-mathnexa-game-suite="audio-runtime"></script>`;
+// A revived game document must not keep playing. The browser's back/forward
+// cache resurrects a top-level page FROM MEMORY -- no request, no-store
+// notwithstanding (Safari especially) -- so a learner swiping back into the
+// game gets the generation that document was born with, with its audio modules
+// already torn down by their own pagehide cleanup. One reload on a persisted
+// pageshow turns any revival into a normal fetch of the current document and
+// therefore the current content-hashed runtime. A fresh load fires
+// pageshow with persisted=false, so this can never loop.
+const FRESHNESS =
+  '<script data-mathnexa-game-suite="freshness">window.addEventListener("pageshow",function(event){if(event.persisted)location.reload();});</script>';
 // Math Vocabulary Hunt was the only game with no way back to MathNexa — a
 // navigational dead end reached from the homepage's most prominent link. The
 // injected link matches the other games' Back to Games affordance.
@@ -31,7 +41,7 @@ export function enhanceCanonicalGameHtml(source: Buffer): Buffer {
   }
   return Buffer.from(
     html
-      .replace("</head>", `  ${STYLESHEET}\n  ${AUDIO_RUNTIME}\n</head>`)
+      .replace("</head>", `  ${STYLESHEET}\n  ${FRESHNESS}\n  ${AUDIO_RUNTIME}\n</head>`)
       .replace(/<body([^>]*)>/, (match) => `${match}\n  ${BACK_LINK}`)
       .replace("</body>", `  ${CREDIT}\n</body>`),
     "utf8"

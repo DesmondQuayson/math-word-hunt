@@ -28,6 +28,17 @@ describe("canonical game runtime enhancements", () => {
     // The runtime must sit in <head>, ahead of the inline game script.
     expect(enhanced.indexOf(MVH_AUDIO_RUNTIME_FILE)).toBeLessThan(enhanced.indexOf("</head>"));
 
+    // A back/forward-cache revival resurrects an old document FROM MEMORY with
+    // its audio already torn down by pagehide cleanup — the document must
+    // reload itself into the current generation instead of resuming stale.
+    expect(enhanced.match(/data-mathnexa-game-suite="freshness"/g)).toHaveLength(1);
+    const freshness = enhanced.match(/<script data-mathnexa-game-suite="freshness">([^<]*)<\/script>/)?.[1] ?? "";
+    expect(freshness).toContain('addEventListener("pageshow"');
+    expect(freshness, "reload must be gated on a persisted (bfcache) restore, never a plain load").toContain(
+      "if(event.persisted)location.reload()"
+    );
+    expect(enhanced.indexOf('data-mathnexa-game-suite="freshness"')).toBeLessThan(enhanced.indexOf("</head>"));
+
     // Attribution and chrome are unchanged.
     expect(enhanced.match(/data-mathnexa-game-suite="credit"/g)).toHaveLength(1);
     expect(enhanced).toContain("Cosmic Candy Catchers");

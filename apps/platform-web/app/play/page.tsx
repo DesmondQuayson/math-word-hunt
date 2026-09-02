@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { getLegacyGameDestination } from "@/lib/legacy-game";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { gameLaunchHref } from "@/lib/game-access/runtime-generation";
 import { requireProductAccess } from "@/lib/access/server";
 import { redirect } from "next/navigation";
 
@@ -12,7 +13,11 @@ export const metadata = { title: "Play" };
 
 async function ConsumerPlayPage() {
   await requireProductAccess("/games");
-  return redirect("/game/runtime/index.html");
+  // The launch URL carries the deployment's own generation, so a history
+  // entry, cache key or intermediary anchored to an OLDER launch can never
+  // stand in for the current game document. The runtime route ignores the
+  // query entirely — it is identity, not authority, and carries no secret.
+  return redirect(gameLaunchHref());
 }
 
 function LegacyPlayPage() {
