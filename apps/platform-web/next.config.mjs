@@ -19,7 +19,18 @@ const nextConfig = {
     return [
       { source: "/:path*", headers: buildSecurityHeaders() },
       { source: "/admin", headers: concealmentHeaders },
-      { source: "/admin/:path*", headers: concealmentHeaders }
+      { source: "/admin/:path*", headers: concealmentHeaders },
+      {
+        // The Math Vocabulary Hunt audio runtime is content-addressed: its URL
+        // changes whenever its content changes, so any cached copy of a given
+        // URL is correct forever. Immutable caching is therefore safe AND is
+        // part of the fix: aggressive intermediaries (school proxies) may pin
+        // an old runtime for as long as they like, because a new build always
+        // references a new URL. The enhanced game document itself stays
+        // no-store, so it always names the current runtime.
+        source: "/game-suite/:runtime(mvh-audio-runtime\\.[0-9a-f]{12}\\.js)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]
+      }
     ];
   },
   transpilePackages: ["@math-vocabulary-hunt/platform-core"],

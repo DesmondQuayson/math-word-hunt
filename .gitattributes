@@ -1,3 +1,6 @@
 apps/platform-web/public/internal-games/**/*.css text eol=lf
 apps/platform-web/public/internal-games/**/*.js text eol=lf
 apps/platform-web/features/games/crosscalc-v2/core/*.ts text eol=lf
+apps/platform-web/public/game-suite/mvh-audio-runtime.*.js text eol=lf
+apps/platform-web/lib/game-access/mvh-audio-runtime-manifest.mjs text eol=lf
+apps/platform-web/lib/game-access/mvh-audio-runtime-manifest.d.mts text eol=lf

@@ -3,23 +3,36 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { enhanceCanonicalGameHtml } from "./canonical-runtime-enhancements";
+import { MVH_AUDIO_RUNTIME_FILE } from "./mvh-audio-runtime-manifest.mjs";
 
 describe("canonical game runtime enhancements", () => {
-  it("adds one same-origin music adapter and accessible credit without changing the source file", async () => {
+  it("injects exactly one version-atomic audio runtime and never the legacy standalone pair", async () => {
     const sourcePath = resolve(process.cwd(), "..", "..", "docs", "index.html");
     const before = await readFile(sourcePath);
     const enhanced = enhanceCanonicalGameHtml(before).toString("utf8");
     const after = await readFile(sourcePath);
     expect(after.equals(before)).toBe(true);
-    expect(enhanced.match(/data-mathnexa-game-suite="music"/g)).toHaveLength(1);
+
+    // ONE audio authority, content-addressed, taken from the generated manifest.
+    expect(enhanced.match(/data-mathnexa-game-suite="audio-runtime"/g)).toHaveLength(1);
+    expect(enhanced).toContain(`src="/game-suite/${MVH_AUDIO_RUNTIME_FILE}"`);
+    expect(MVH_AUDIO_RUNTIME_FILE).toMatch(/^mvh-audio-runtime\.[0-9a-f]{12}\.js$/);
+
+    // The independent unhashed generations caused the production version-skew
+    // failure. They must never come back as active scripts in the real game.
+    expect(enhanced).not.toMatch(/<script[^>]*natural-voice\.js/);
+    expect(enhanced).not.toMatch(/<script[^>]*math-vocabulary-music\.js/);
+    expect(enhanced).not.toMatch(/data-mathnexa-game-suite="voice"/);
+    expect(enhanced).not.toMatch(/data-mathnexa-game-suite="music"/);
+
+    // The runtime must sit in <head>, ahead of the inline game script.
+    expect(enhanced.indexOf(MVH_AUDIO_RUNTIME_FILE)).toBeLessThan(enhanced.indexOf("</head>"));
+
+    // Attribution and chrome are unchanged.
     expect(enhanced.match(/data-mathnexa-game-suite="credit"/g)).toHaveLength(1);
-    expect(enhanced.match(/data-mathnexa-game-suite="voice"/g)).toHaveLength(1);
-    expect(enhanced).toContain('src="/game-suite/math-vocabulary-music.js"');
-    expect(enhanced).toContain('src="/game-suite/natural-voice.js"');
-    // The voice adapter must sit in <head>, ahead of the inline game script.
-    expect(enhanced.indexOf("natural-voice.js")).toBeLessThan(enhanced.indexOf("</head>"));
     expect(enhanced).toContain("Cosmic Candy Catchers");
     expect(enhanced).toContain("CC BY 3.0");
+    expect(enhanced.match(/data-mathnexa-game-suite="back"/g)).toHaveLength(1);
   });
 
   it("fails closed instead of applying the adapter twice", () => {
