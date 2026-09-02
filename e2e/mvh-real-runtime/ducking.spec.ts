@@ -171,12 +171,26 @@ test.describe("math vocabulary hunt real-runtime ducking", () => {
     await openGame(page);
     const cards = page.locator(".word-card");
     expect(await cards.count()).toBeGreaterThan(2);
-    await clearWrites(page);
 
     await speakWord(page, 0);
-    await cards.nth(1).click();
-    await page.waitForTimeout(120);
-    await cards.nth(2).click();
+
+    // The measured window opens at the replacement burst: if the first word's
+    // short clip happens to finish before the burst lands, its restore is a
+    // legitimate end-of-speech, not a bounce, and must not pollute the window.
+    await clearWrites(page);
+
+    // The three replacements land in ONE JavaScript task, exactly like a
+    // learner hammering the word bank faster than clips can finish. Paced
+    // remote clicks are no good here: on a slow engine a ~1s clip can END
+    // between two round-trips, and a restore in that genuine idle gap is the
+    // CONTRACT, not a bounce. Same-task replacement removes the gap, so from
+    // here until the final clip's "ended" any base-level write is a real bug.
+    await page.evaluate(() => {
+      const wordCards = document.querySelectorAll<HTMLButtonElement>(".word-card");
+      wordCards[1].click();
+      wordCards[2].click();
+      wordCards[0].click();
+    });
     await expect.poll(() => voiceState(page), { timeout: 25_000 }).toBe("started");
 
     const timelineWhileSpeaking = (await writes(page)).filter((w) => w.src.includes("cosmic-candy-catchers"));
@@ -235,11 +249,41 @@ test.describe("math vocabulary hunt real-runtime ducking", () => {
     await page.locator("#musicButton").click();
     await expect.poll(async () => (await liveMusic(page)).paused, { timeout: 15_000 }).toBe(true);
 
-    await speakWord(page);
-    // Off -> low while the word is still speaking.
-    await page.locator("#musicButton").click();
-    await expect.poll(async () => (await liveMusic(page)).paused, { timeout: 15_000 }).toBe(false);
-    expect((await liveMusic(page)).volume, "music rejoined at full level during speech").toBe(DUCKED);
+    // On a slow engine the ~1s clip can finish before a remote button click
+    // lands, and rejoining at BASE after speech has genuinely ended is the
+    // contract, not a defect. So the click and the readings happen in ONE
+    // in-page task — no round-trip gap — and the scenario retries on the next
+    // word until the speaking case is actually observed (anti-vacuity: it must
+    // be observed, or the test fails).
+    let observedSpeakingRejoin = false;
+    for (let attempt = 0; attempt < 3 && !observedSpeakingRejoin; attempt += 1) {
+      await speakWord(page, attempt);
+      const snapshot = await page.evaluate(() => {
+        // Off -> low while (hopefully still) speaking: click and read in the
+        // same task, so the answer cannot rot between round-trips.
+        (document.querySelector("#musicButton") as HTMLButtonElement).click();
+        const speakingAtClick = Boolean(
+          (window as unknown as { MathNexaVoice: { isSpeaking(): boolean } }).MathNexaVoice.isSpeaking()
+        );
+        const element = (window as unknown as { __EL__: HTMLAudioElement[] }).__EL__.find((candidate) =>
+          (candidate.currentSrc || candidate.src || "").includes("cosmic-candy-catchers")
+        )!;
+        return { speakingAtClick, volume: element.volume };
+      });
+      if (snapshot.speakingAtClick) {
+        observedSpeakingRejoin = true;
+        expect(snapshot.volume, "music rejoined at full level during speech").toBe(DUCKED);
+      } else {
+        // Speech had already finished: rejoining at base is correct. Reset to
+        // OFF and try again with the next word.
+        expect(snapshot.volume).toBe(BASE);
+        await page.locator("#musicButton").click();
+        await page.locator("#musicButton").click();
+        await expect.poll(async () => (await liveMusic(page)).paused, { timeout: 15_000 }).toBe(true);
+        await expect.poll(() => voiceState(page), { timeout: 30_000 }).toBe("ended");
+      }
+    }
+    expect(observedSpeakingRejoin, "never caught the music button mid-speech in three attempts").toBe(true);
 
     await expect.poll(() => voiceState(page), { timeout: 30_000 }).toBe("ended");
     await expect.poll(async () => (await liveMusic(page)).volume, { timeout: 15_000 }).toBe(BASE);
