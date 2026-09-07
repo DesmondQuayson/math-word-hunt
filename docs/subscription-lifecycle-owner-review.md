@@ -187,16 +187,42 @@ disabled · H duplicate event re-processed · I self-heal removed · J second re
 expired · K cancel_at_period_end immediate in the gate · L stale live period described as
 Ended · M webhook host redirect exemption removed. Results in `test-results/mutations-*.json`.
 
-## Gates
+## Gates (commit `1e707ee`, 2026-09-07)
 
-See the totals in the handoff message and the release notes commit.
+| Gate | Result |
+| --- | --- |
+| platform-core unit | 35 files, 245 passed |
+| platform-web unit | 76 files: 547 passed, 1 skipped, 1 failed (`canonical-assets` sha256 — the documented Windows CRLF checkout artifact, untouched by this branch, green in CI) |
+| pgTAP (local Supabase, all migrations from empty) | 34 files, 752 assertions, all successful (98 new in `33_subscription_lifecycle_reconciliation`) |
+| Playwright phase 7C lifecycle (fixture provider, real sign-in / Checkout / launch) | 11 passed (6 new renewal-lifecycle, 5 repaired existing) |
+| security suite (`test:security`) | 22 files, 278 tests + bundle audit + Number Cross audit, green |
+| typecheck | clean (both workspaces) |
+| lint | 0 errors, 8 pre-existing warnings (`natural-voice.js` `catch (_)`) |
+| build | `Compiled successfully` |
+| `npm audit --omit=dev` | 0 vulnerabilities (after fflate 0.8.3) |
+| mutations | 13/13 caught (A–M above) |
 
 ## Staging
 
-Migration must reach the staging database before the app: the vault's Supabase access
-token is expired (401), so `scripts/invoke-subscription-lifecycle-staging.ps1 -Stage all
--Alias` needs a refreshed vault. The candidate build was deployed as a Vercel preview on
-`mathnexa-platform-staging` for route certification only; see the handoff for the URL.
+- Project: `mathnexa-platform-staging` (`prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`, team `bright-path-ed-tech`).
+- Deployment: **preview** `dpl_8GxnMWQbiFL2hMo5HxfDVCW4PUg3` from commit `1e707ee` —
+  `https://mathnexa-platform-staging-6662og3oe-bright-path-ed-tech.vercel.app` (behind Vercel
+  SSO; the owner opens it signed in to Vercel). The staging **alias** was deliberately not
+  moved and the production project was not touched.
+- Route certification through the protection bypass (2026-09-07 17:21 UTC): `/api/health` 200
+  (`production-platform`, build `89daec9b…`); unsigned `POST /api/billing/webhook` → 400
+  `invalid-signature`; `GET /api/internal/billing/reconcile` → 503 `scheduler-secret-missing`
+  (fails closed, `no-store`); `POST /api/internal/billing/fixture` → 404; `/account` signed out →
+  307 with `private, no-cache, no-store, max-age=0, must-revalidate`. Without the bypass every
+  route answers 302 to Vercel SSO.
+- **Blocked: the staging database migration.** The pipeline (`scripts/invoke-subscription-lifecycle-staging.ps1
+  -Stage all -Alias`) needs the vault's Supabase access token and the Stripe sandbox key; both are
+  expired (`401` / `api_key_expired`, vault dated 2026-08-02). Until the owner refreshes the vault
+  (`scripts/update-phase7d-vault.ps1`) and runs that pipeline, the lifecycle behaviour on the
+  hosted staging stack cannot be exercised end to end; the deterministic local certification above
+  is the evidence for it. Do not point the staging alias at this build before the migration lands:
+  the synchronizer RPC would be missing and every webhook would 503 (retryable).
+- Stripe mode on staging remains TEST (`STRIPE_MODE=test` in the project configuration).
 
 ## Production
 
