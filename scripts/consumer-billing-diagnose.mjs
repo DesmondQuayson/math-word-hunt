@@ -22,7 +22,8 @@ const hours = Number(args.get("--hours") ?? "168");
 if (environment !== "test" && environment !== "live") throw new Error("--environment must be test or live");
 
 const key = process.env.STRIPE_SECRET_KEY?.trim() ?? "";
-if (!key.startsWith(`sk_${environment}_`)) throw new Error(`STRIPE_SECRET_KEY must be sk_${environment}_ for --environment=${environment}`);
+// A restricted read-only key (rk_) is preferred for live diagnosis; a secret key is accepted for test mode.
+if (!key.startsWith(`sk_${environment}_`) && !key.startsWith(`rk_${environment}_`)) throw new Error(`STRIPE_SECRET_KEY must be sk_${environment}_ or rk_${environment}_ for --environment=${environment}`);
 const dbUrl = process.env.SUPABASE_URL?.trim() ?? "";
 const dbKey = process.env.SUPABASE_SECRET_KEY?.trim() ?? "";
 if (!dbUrl || !dbKey) throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY are required");

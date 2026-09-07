@@ -264,3 +264,24 @@ unchanged. Live customer rows unchanged. ShowMe / MAP Prep unchanged.
   at the provider and expects the honest "Subscription ended".
 - `fflate` 0.8.2 → 0.8.3 (moderate advisory GHSA-px8p-9vwx-vf98, present on `main` too): the
   `npm audit --omit=dev` gate is clean again.
+
+## Phase 2: staging activation and live diagnosis (2026-09-07, credential gate)
+
+Automation stopped at the human authentication gate. The vault's Supabase management token,
+staging service key, and Stripe sandbox key are expired (HTTP 401 on read-only probes), and the
+legacy production Supabase ref no longer resolves. Vercel CLI auth, the automation bypass, the
+staging gate token, and a read-only call with the live Stripe key all PASS. Nothing was deployed,
+migrated, or written anywhere in this phase. The owner-run refresh and the one-command staging
+pipeline are documented in `docs/subscription-lifecycle-staging-runbook.md`.
+
+| Capability | Result |
+| --- | --- |
+| `VERCEL_AUTH` (CLI whoami) | PASS |
+| `VERCEL_PROTECTION_BYPASS` | PASS (HTTP 200) |
+| `STAGING_GATE_BOOTSTRAP_TOKEN` | PASS (HTTP 204) |
+| `SUPABASE_STAGING_AUTH` (management token) | FAIL (HTTP 401, expired) |
+| `SUPABASE_STAGING_AUTH` (service key) | FAIL (HTTP 401, rotated) |
+| `STRIPE_TEST_MODE_AUTH` | FAIL (HTTP 401, `api_key_expired`) |
+| `STRIPE_LIVE_READONLY_AUTH` | PASS (read-only balance call with the full live key; a restricted `rk_live` key is requested) |
+| `SUPABASE_PRODUCTION_AUTH` | FAIL (legacy ref `ioodoktlxvvmghyvevgn` does not resolve; current ref required) |
+| `STAGING_LIVE_CHARGES_POSSIBLE` | NO by construction: `consumer-config.ts` refuses live mode unless `MVH_APPLICATION_ORIGIN` is `https://mathnexa.com`, and the launcher refuses non-`sk_test_` keys |
