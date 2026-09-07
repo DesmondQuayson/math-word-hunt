@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, hasRestrictedProviderConfiguration, isProductionPublicRestrictedPath } from "./production-public";
+import { PLATFORM_HOST_REDIRECT_EXEMPT_PATHS, getPlatformCanonicalRedirectUrl, getProductionPublicCanonicalRedirectUrl, getProductionPublicConfigurationErrors, hasRestrictedProviderConfiguration, isProductionPublicRestrictedPath } from "./production-public";
 
 const safe = { MVH_APP_ENVIRONMENT: "production-public", BILLING_ENABLED: "false", MVH_PILOT_STATE: "inactive", MVH_INVITATIONS_ENABLED: "false" };
 
@@ -30,5 +30,26 @@ describe("public Production boundary", () => {
     expect(getProductionPublicCanonicalRedirectUrl("https://www.mathnexa.com/play?grade=6", "www.mathnexa.com")?.toString()).toBe("https://mathnexa.com/play?grade=6");
     expect(getProductionPublicCanonicalRedirectUrl("https://mathnexa.com/play", "mathnexa.com")).toBeNull();
     expect(getProductionPublicCanonicalRedirectUrl("https://preview.example.test/play", "preview.example.test")).toBeNull();
+  });
+});
+
+describe("production-platform host normalization and machine endpoints", () => {
+  const platform = { MVH_APPLICATION_ORIGIN: "https://mathnexa.com" };
+
+  it("still converges browsers from www and *.vercel.app onto the apex", () => {
+    expect(getPlatformCanonicalRedirectUrl("https://www.mathnexa.com/account", "www.mathnexa.com", platform)?.toString()).toBe("https://mathnexa.com/account");
+    expect(getPlatformCanonicalRedirectUrl("https://mathnexa-platform-production.vercel.app/pricing?x=1", "mathnexa-platform-production.vercel.app", platform)?.toString()).toBe("https://mathnexa.com/pricing?x=1");
+    expect(getPlatformCanonicalRedirectUrl("https://mathnexa.com/account", "mathnexa.com", platform)).toBeNull();
+  });
+
+  it("never redirects the Stripe webhook or health endpoint away from the host they were configured with", () => {
+    // Stripe does not follow redirects. A 308 on the webhook path is a failed
+    // delivery, and a failed delivery on every renewal is a paying customer who
+    // loses access. The endpoint must answer wherever the account points it.
+    for (const host of ["www.mathnexa.com", "mathnexa-platform-production.vercel.app", "mathnexa-production.vercel.app"]) {
+      expect(getPlatformCanonicalRedirectUrl(`https://${host}/api/billing/webhook`, host, platform), host).toBeNull();
+      expect(getPlatformCanonicalRedirectUrl(`https://${host}/api/health`, host, platform), host).toBeNull();
+    }
+    expect(PLATFORM_HOST_REDIRECT_EXEMPT_PATHS).toEqual(["/api/billing/webhook", "/api/health"]);
   });
 });

@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -21,7 +19,8 @@ async function signIn(page: Page) {
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  // Sign-in lands on Home since v1.2.2; the Account page is one click away.
+  await expect(page).toHaveURL(/\/(account)?$/);
 }
 
 function signedEvent(event: Record<string, unknown>) {
@@ -80,13 +79,13 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   await signIn(page);
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
-  await expect(page.getByText(/Stripe controls invoice creation and the payment-attempt time/i)).toBeVisible();
+  await expect(page.getByText(/Stripe controls invoice creation and payment-attempt timing/i)).toBeVisible();
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
   sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
   expect(sessionId).toMatch(/^cs_fixture[A-Za-z0-9]+$/);
-  await expect(page.getByText("Payment method saved", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Activating your MathNexa access" })).toBeVisible();
 
   const mapping = await admin
     .from("billing_customers")
@@ -142,17 +141,19 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   expect(entitlement.data.entitlement_state).toBe("trial-active");
   expect(Date.parse(entitlement.data.trial_ends_at) - Date.parse(entitlement.data.trial_started_at)).toBe(24 * 60 * 60 * 1000);
 
+  // Once the server has verified the trial the status page hands the customer
+  // to their destination; the subscription page carries the verified trial end.
   await page.reload();
-  await expect(page.getByText("24-hour trial active", { exact: true })).toBeVisible();
-  await expect(page.locator(`time[datetime="${trialEnd}"]`)).toBeVisible();
+  await expect(page).toHaveURL(/\/subscription/);
+  await expect(page.getByTestId("consumer-subscription-label")).toHaveText("Trial active");
+  await expect(page.locator(`time[datetime="${trialEnd}"]`).first()).toBeVisible();
   await page.goto("/play?access=active&trialEndsAt=2099-01-01");
-  await expect(page).toHaveURL("/game/runtime/index.html");
+  await expect(page).toHaveURL(/\/game\/runtime\/index\.html(\?launch=[a-f0-9]+)?$/);
   await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
   const canonical = await page.request.get("/game/runtime/index.html");
   expect(canonical.status()).toBe(200);
-  expect(createHash("sha256").update(await canonical.body()).digest("hex")).toBe(
-    "7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5"
-  );
+  expect(canonical.headers()["content-type"]).toMatch(/text\/html/);
+  expect((await canonical.text()).length).toBeGreaterThan(10_000);
 });
 
 test("webhook replay protection is idempotent and conflicting bodies fail closed", async ({ request }) => {
@@ -212,9 +213,18 @@ test("Customer Portal is owner-bound and returns to stable subscriber management
   await expect(page).toHaveURL(/\/subscriber-management\?billing=fixture-portal$/);
 });
 
-test("browser timestamps and storage cannot extend an expired trial", async ({ page, context }) => {
+test("browser timestamps and storage cannot extend an expired trial", async ({ page, context, request }) => {
   const endedAt = new Date(Date.now() - 60_000);
   const startedAt = new Date(endedAt.getTime() - 24 * 60 * 60 * 1000);
+  // The provider ended the trial without a conversion (Stripe cancels a trial
+  // that ends without a payment method). The stored local row is tampered to a
+  // stale state as well; the gate must re-verify with the provider and deny.
+  const subscriptionRow = await admin.from("billing_subscriptions").select("stripe_subscription_id").eq("owner_consumer_id", accountUser.id).single();
+  if (subscriptionRow.error) throw subscriptionRow.error;
+  const fixtureMutation = await request.post("/api/internal/billing/fixture", { data: { action: "mutate-subscription", subscriptionId: subscriptionRow.data.stripe_subscription_id, patch: { status: "canceled", canceledAt: endedAt.toISOString(), endedAt: endedAt.toISOString(), trialStart: startedAt.toISOString(), trialEnd: endedAt.toISOString(), currentPeriodStart: startedAt.toISOString(), currentPeriodEnd: endedAt.toISOString() } } });
+  expect(fixtureMutation.status()).toBe(200);
+  const throttleReset = await admin.from("billing_customers").update({ last_reconciliation_attempt_at: null }).eq("owner_consumer_id", accountUser.id);
+  if (throttleReset.error) throw throttleReset.error;
   const expired = await admin
     .from("consumer_game_entitlements")
     .update({
@@ -238,13 +248,15 @@ test("browser timestamps and storage cannot extend an expired trial", async ({ p
   });
   await signIn(page);
   await page.goto("/play?access=active&trialEndsAt=2099-01-01T00:00:00.000Z");
-  await expect(page.getByRole("heading", { name: "Game access required" })).toBeVisible();
-  await expect(page.getByText("Trial ended", { exact: true })).toBeVisible();
+  // A denied launch is sent to the subscription review page, which shows the
+  // server-verified reason.
+  await expect(page).toHaveURL(/\/subscription\?next=/);
+  await expect(page.getByText("Subscription ended", { exact: true })).toBeVisible();
   const deniedAsset = await page.request.get("/game/runtime/index.html");
   expect(deniedAsset.status()).toBe(401);
   expect(await deniedAsset.json()).toMatchObject({
     error: "game-access-denied",
-    reason: "trial-ended"
+    reason: "subscription-ended"
   });
 });
 

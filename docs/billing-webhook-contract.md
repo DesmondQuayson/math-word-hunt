@@ -22,3 +22,13 @@ Logs contain correlation, type, mode, safe failure class, and hashed/truncated r
 | `invoice.payment_failed` | Trigger refresh/payment-issue state; projection controls denial. |
 
 Never grant from redirect, session creation, unverified body, or client ID. Unknown plan/owner/mode, contradictory objects, and duplicate current subscriptions deny and require review.
+
+## Renewal reliability addendum (2026-09)
+
+The canonical lifecycle contract now lives in `subscription-lifecycle.md`. Changes to this contract:
+
+- `invoice.payment_succeeded` is accepted as an alias of `invoice.paid`; both trigger the same renewal refresh.
+- An event rendered with an API version other than the pinned SDK version is processed and reported as `webhook-api-version-drift`. It is no longer a 400: every authoritative object is re-fetched with the pinned SDK version, and the hard rejection converted a dashboard setting into a permanent, silent renewal-sync outage.
+- Every event re-fetches all of the customer's subscriptions and writes them through `synchronize_consumer_billing_subscription`, historical ones first, so a missed final event on an old subscription cannot block the live one.
+- `/api/billing/webhook` and `/api/health` are exempt from the canonical-host 308 redirect. Stripe does not follow redirects.
+- Failures emit structured, PII-free events (`webhook-processing-failed`, `webhook-manual-review`) with event type, redacted object suffix, failure class, and retryability.

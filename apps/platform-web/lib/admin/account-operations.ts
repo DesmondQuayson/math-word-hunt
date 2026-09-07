@@ -2,15 +2,24 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
+import { isTerminalConsumerSubscriptionStatus, selectAuthoritativeConsumerSubscription } from "@math-vocabulary-hunt/platform-core";
+
 import { createConsumerBillingProvider } from "@/lib/billing/consumer-provider-factory";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
+import { reconcileConsumerBilling, type ReconciliationOutcome } from "@/lib/billing/consumer-reconciliation";
 import { createConsumerBillingRepository, createConsumerPortal } from "@/lib/billing/consumer-service";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 type Row = Record<string, unknown>;
+/** Redacted billing diagnostic for one account: no customer id, invoice, or card data. */
+export type AdminBillingDiagnostic = Readonly<{
+  status: string; periodEnd: string | null; cancelAtPeriodEnd: boolean;
+  lastSynchronizedAt: string | null; source: string | null; mismatch: string | null;
+}>;
 export type AdminAccountView = Readonly<{
   id: string; email: string; status: string; confirmed: boolean; createdAt: string;
   lastAuthenticatedAt: string | null; trial: string; subscription: string; entitlement: string;
+  billing: AdminBillingDiagnostic | null;
   consentVersions: string; deletion: string; complimentaryExpiresAt: string | null;
   notes: readonly Readonly<{ id: string; note: string; createdAt: string }>[];
   refunds: readonly Readonly<{ id: string; status: string; requestedAt: string }>[];
@@ -22,6 +31,26 @@ export type AdminAccountsSnapshot = Readonly<{
 
 const str = (value: unknown): string => typeof value === "string" ? value : "";
 const nullable = (value: unknown): string | null => typeof value === "string" && value ? value : null;
+const future = (value: string | null, nowMs: number) => value !== null && Date.parse(value) > nowMs;
+
+/**
+ * Where the provider projection and the derived entitlement disagree. Each
+ * message is actionable and points at Sync with Stripe; none carries data.
+ */
+function detectBillingMismatch(subscription: Row | null, entitlement: Row | undefined, nowMs: number): string | null {
+  if (!subscription) return null;
+  const status = str(subscription.subscription_status);
+  const live = !isTerminalConsumerSubscriptionStatus(status);
+  const state = str(entitlement?.entitlement_state);
+  const grantedByClock =
+    ((state === "subscription-active" || state === "subscription-canceled-through-period-end") && future(nullable(entitlement?.current_period_ends_at), nowMs)) ||
+    (state === "subscription-grace-period" && future(nullable(entitlement?.grace_ends_at), nowMs)) ||
+    (state === "trial-active" && future(nullable(entitlement?.trial_ends_at), nowMs));
+  if (status === "active" && !future(nullable(subscription.current_period_end), nowMs)) return "active at provider, local period already passed: renewal not synchronized";
+  if ((status === "active" || status === "trialing") && !grantedByClock) return "live at provider, local access denied";
+  if (!live && grantedByClock) return "ended at provider, local access still granted";
+  return null;
+}
 
 export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
   const client = createServiceSupabaseClient();
@@ -31,7 +60,7 @@ export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
     client.from("admin_users").select("user_id").is("revoked_at", null),
     client.from("consumer_accounts").select("user_id,account_status,email_confirmed_at,trial_redeemed_at,deletion_requested_at,created_at"),
     client.from("consumer_game_entitlements").select("user_id,entitlement_state,trial_ends_at,current_period_ends_at,grace_ends_at"),
-    client.from("billing_subscriptions").select("owner_consumer_id,subscription_status,current_period_end,cancel_at_period_end,updated_at").not("owner_consumer_id", "is", null).order("updated_at", { ascending: false }),
+    client.from("billing_subscriptions").select("owner_consumer_id,stripe_subscription_id,subscription_status,current_period_end,cancel_at_period_end,trial_end,ended_at,last_synchronized_at,last_synchronization_source,updated_at").not("owner_consumer_id", "is", null).order("updated_at", { ascending: false }),
     client.from("consumer_commercial_acceptances").select("owner_user_id,terms_version,privacy_version,cancellation_policy_version,refund_policy_version,accepted_at").order("accepted_at", { ascending: false }),
     client.from("consumer_account_deletion_requests").select("owner_user_id,request_status,requested_at").order("requested_at", { ascending: false }),
     client.from("admin_user_support_notes").select("id,target_user_id,note,created_at").order("created_at", { ascending: false }).limit(500),
@@ -44,10 +73,17 @@ export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
   const authById = new Map(users.data.users.map((user: User) => [user.id, user]));
   const protectedAdminIds = new Set((adminIdentities.data ?? []).map((row) => row.user_id));
   const accountRows = (accounts.data ?? []) as Row[];
+  const nowMs = Date.now();
   const mapped = accountRows.map((account): AdminAccountView | null => {
     const id = str(account.user_id); const user = authById.get(id); if (!user || protectedAdminIds.has(id)) return null;
     const entitlement = ((entitlements.data ?? []) as Row[]).find((row) => row.user_id === id);
-    const subscription = ((subscriptions.data ?? []) as Row[]).find((row) => row.owner_consumer_id === id);
+    const subscriptionRows = ((subscriptions.data ?? []) as Row[]).filter((row) => row.owner_consumer_id === id);
+    const authoritative = selectAuthoritativeConsumerSubscription(subscriptionRows.map((row) => ({
+      status: str(row.subscription_status),
+      currentPeriodEnd: nullable(row.current_period_end), cancelAtPeriodEnd: row.cancel_at_period_end === true,
+      trialEnd: nullable(row.trial_end), updatedAt: nullable(row.updated_at), endedAt: nullable(row.ended_at), row
+    })));
+    const subscription = authoritative?.row ?? null;
     const acceptance = ((acceptances.data ?? []) as Row[]).find((row) => row.owner_user_id === id);
     const deletion = ((deletions.data ?? []) as Row[]).find((row) => row.owner_user_id === id);
     const comp = ((complimentary.data ?? []) as Row[]).find((row) => row.owner_user_id === id);
@@ -62,6 +98,11 @@ export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
       trial: account.trial_redeemed_at ? (str(entitlement?.entitlement_state).startsWith("trial-") ? str(entitlement?.entitlement_state) : "redeemed") : "not redeemed",
       subscription: subscription ? `${str(subscription.subscription_status)}${subscription.cancel_at_period_end ? " · cancels at period end" : ""}` : "none",
       entitlement: compExpiry ? "complimentary" : str(entitlement?.entitlement_state) || "no-entitlement",
+      billing: subscription ? {
+        status: str(subscription.subscription_status), periodEnd: nullable(subscription.current_period_end),
+        cancelAtPeriodEnd: subscription.cancel_at_period_end === true, lastSynchronizedAt: nullable(subscription.last_synchronized_at),
+        source: nullable(subscription.last_synchronization_source), mismatch: detectBillingMismatch(subscription, entitlement, nowMs)
+      } : null,
       consentVersions, deletion: deletion ? `${str(deletion.request_status)} · ${str(deletion.requested_at)}` : "none",
       complimentaryExpiresAt: compExpiry,
       notes: ((notes.data ?? []) as Row[]).filter((row) => row.target_user_id === id).map((row) => ({ id: str(row.id), note: str(row.note), createdAt: str(row.created_at) })),
@@ -70,6 +111,21 @@ export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
     });
   }).filter((account): account is AdminAccountView => account !== null);
   return { state: "ready", accounts: mapped, truncated: users.data.total > users.data.users.length };
+}
+
+/**
+ * Owner-only "Sync with Stripe": re-reads the target account's subscriptions
+ * from the provider and re-applies the canonical projection. Read-only at the
+ * provider.
+ */
+export async function syncConsumerBillingForTarget(targetUserId: string): Promise<ReconciliationOutcome> {
+  const config = tryGetConsumerBillingConfiguration();
+  const repository = config ? createConsumerBillingRepository(config) : null;
+  if (!config || !repository) throw new Error("billing-sync-unavailable");
+  return reconcileConsumerBilling({
+    ownerUserId: targetUserId, config, provider: createConsumerBillingProvider(config), repository,
+    source: "admin", force: true, correlationId: `admin-sync-${targetUserId.slice(0, 8)}`
+  });
 }
 
 export async function createAdminPortalForTarget(targetUserId: string) {

@@ -52,6 +52,7 @@ export type GameAccessDecision = Readonly<{
     | "subscription-ended"
     | "account-suspended"
     | "account-deletion-pending"
+    | "subscription-verification-unavailable"
     | "malformed-entitlement";
   nextAction: GameAccessNextAction;
   accessEndsAt: string | null;
@@ -181,6 +182,23 @@ export function decideGameAccess(input: DecisionInput): GameAccessDecision {
     return decision(true, evidence.state, "canceled-access-active", "launch-game", evidence.periodEndsAt);
   }
   return decision(false, evidence.state, "subscription-ended", "manage-subscription");
+}
+
+/**
+ * The stored evidence said the paid period (or grace, or trial) has passed, the
+ * server tried to confirm that against the billing provider, and the provider
+ * could not be reached. Access stays denied (no indefinite grant on an expired
+ * local boundary), but the customer is told the truth: the subscription could
+ * not be verified right now, NOT that it ended.
+ */
+export function markVerificationUnavailable(decision: GameAccessDecision): GameAccessDecision {
+  return Object.freeze({
+    ...decision,
+    allowed: false,
+    reason: "subscription-verification-unavailable",
+    nextAction: "manage-subscription",
+    accessEndsAt: null
+  });
 }
 
 export function isTrialEligible(trialRedeemedAt: unknown): boolean {

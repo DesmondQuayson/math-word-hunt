@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { selectAuthoritativeConsumerSubscription } from "@math-vocabulary-hunt/platform-core";
+
 import type { ConsumerBillingEvent, ConsumerBillingSubscription } from "./consumer-models";
 import { COMMERCIAL_POLICY, type CommercialConsentDecision } from "@/lib/commercial/policy";
 
@@ -20,17 +22,83 @@ export type ConsumerCommercialAcceptance = Readonly<{
   environment: StripeEnvironment;
 }>;
 
+/**
+ * The locally synchronized view of one Stripe subscription. `status` is the
+ * provider status as last synchronized; `lastSynchronizedAt` says how fresh
+ * that snapshot is and `lastSynchronizationSource` which path wrote it.
+ */
 export type ConsumerSubscriptionProjection = Readonly<{
   id: string;
   stripeSubscriptionId: string;
   status: string;
+  currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  canceledAt: string | null;
+  endedAt: string | null;
   trialEnd: string | null;
   firstPaidAt: string | null;
+  lastPaidAt: string | null;
   lastPaymentFailedAt: string | null;
   renewalGraceEndsAt: string | null;
+  latestInvoiceId: string | null;
+  lastSynchronizedAt: string | null;
+  lastSynchronizationSource: string | null;
+  latestAuthoritativeEventCreatedAt: string | null;
+  updatedAt: string | null;
 }>;
+
+export type SubscriptionSynchronizationSource = "webhook" | "reconciliation" | "admin";
+
+export type SubscriptionSynchronizationInput = Readonly<{
+  source: SubscriptionSynchronizationSource;
+  eventRecordId: string | null;
+  eventType: string | null;
+  observedAt: string;
+  ownerUserId: string;
+  customerId: string;
+  subscription: ConsumerBillingSubscription;
+  latestInvoicePaidAt: string | null;
+  graceDays: number;
+  emergencyDefaultDeny: boolean;
+}>;
+
+export type ReconciliationSweepCandidate = Readonly<{
+  ownerUserId: string;
+  stripeSubscriptionId: string;
+  status: string;
+  currentPeriodEnd: string | null;
+  lastSynchronizedAt: string | null;
+}>;
+
+const SUBSCRIPTION_COLUMNS = "id, stripe_subscription_id, subscription_status, current_period_start, current_period_end, cancel_at_period_end, canceled_at, ended_at, trial_end, first_paid_at, last_paid_at, last_payment_failed_at, renewal_grace_ends_at, latest_invoice_id, last_synchronized_at, last_synchronization_source, latest_authoritative_event_created_at, updated_at";
+
+type SubscriptionRow = Record<string, unknown>;
+
+const text = (value: unknown): string | null => typeof value === "string" && value.length > 0 ? value : null;
+
+function projection(row: SubscriptionRow): ConsumerSubscriptionProjection {
+  return {
+    id: String(row.id),
+    stripeSubscriptionId: String(row.stripe_subscription_id),
+    status: String(row.subscription_status),
+    currentPeriodStart: text(row.current_period_start),
+    currentPeriodEnd: text(row.current_period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end === true,
+    canceledAt: text(row.canceled_at),
+    endedAt: text(row.ended_at),
+    trialEnd: text(row.trial_end),
+    firstPaidAt: text(row.first_paid_at),
+    lastPaidAt: text(row.last_paid_at),
+    lastPaymentFailedAt: text(row.last_payment_failed_at),
+    renewalGraceEndsAt: text(row.renewal_grace_ends_at),
+    latestInvoiceId: text(row.latest_invoice_id),
+    lastSynchronizedAt: text(row.last_synchronized_at),
+    lastSynchronizationSource: text(row.last_synchronization_source),
+    latestAuthoritativeEventCreatedAt: text(row.latest_authoritative_event_created_at),
+    updatedAt: text(row.updated_at)
+  };
+}
 
 export class SupabaseConsumerBillingRepository {
   constructor(
@@ -103,48 +171,84 @@ export class SupabaseConsumerBillingRepository {
     } : null;
   }
 
+  /** Every synchronized subscription row of the account, any status. */
+  async getSubscriptions(ownerUserId: string): Promise<readonly ConsumerSubscriptionProjection[]> {
+    const { data, error } = await this.client
+      .from("billing_subscriptions")
+      .select(SUBSCRIPTION_COLUMNS)
+      .eq("owner_consumer_id", ownerUserId)
+      .eq("stripe_environment", this.environment);
+    if (error) throw new Error("Consumer billing database unavailable");
+    return ((data ?? []) as SubscriptionRow[]).map(projection);
+  }
+
   async getCurrentSubscriptions(ownerUserId: string): Promise<readonly ConsumerSubscriptionProjection[]> {
     const { data, error } = await this.client
       .from("billing_subscriptions")
-      .select("id, stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, first_paid_at, last_payment_failed_at, renewal_grace_ends_at")
+      .select(SUBSCRIPTION_COLUMNS)
       .eq("owner_consumer_id", ownerUserId)
       .eq("stripe_environment", this.environment)
       .not("subscription_status", "in", "(canceled,incomplete_expired)");
     if (error) throw new Error("Consumer billing database unavailable");
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      stripeSubscriptionId: row.stripe_subscription_id,
-      status: row.subscription_status,
-      currentPeriodEnd: row.current_period_end,
-      cancelAtPeriodEnd: row.cancel_at_period_end,
-      trialEnd: row.trial_end,
-      firstPaidAt: row.first_paid_at,
-      lastPaymentFailedAt: row.last_payment_failed_at,
-      renewalGraceEndsAt: row.renewal_grace_ends_at
+    return ((data ?? []) as SubscriptionRow[]).map(projection);
+  }
+
+  /**
+   * The subscription row that speaks for the account: a live subscription over
+   * any historical one, then the furthest-reaching period. Never "the most
+   * recently updated row" — a late event on an old canceled subscription must
+   * not become what the Account page describes.
+   */
+  async getAuthoritativeSubscription(ownerUserId: string): Promise<ConsumerSubscriptionProjection | null> {
+    return selectAuthoritativeConsumerSubscription(await this.getSubscriptions(ownerUserId));
+  }
+
+  /** @deprecated Kept for existing callers; delegates to the authoritative selection. */
+  async getLatestSubscription(ownerUserId: string): Promise<ConsumerSubscriptionProjection | null> {
+    return this.getAuthoritativeSubscription(ownerUserId);
+  }
+
+  /**
+   * Subscriptions whose local record is due for an authoritative re-check:
+   * live rows whose recorded period boundary is about to pass or has passed,
+   * and live rows that have not been synchronized recently. Bounded.
+   */
+  async listSubscriptionsDueForReconciliation(input: Readonly<{
+    periodEndBefore: string;
+    synchronizedBefore: string;
+    limit: number;
+  }>): Promise<readonly ReconciliationSweepCandidate[]> {
+    const { data, error } = await this.client
+      .from("billing_subscriptions")
+      .select("owner_consumer_id, stripe_subscription_id, subscription_status, current_period_end, last_synchronized_at")
+      .eq("stripe_environment", this.environment)
+      .not("owner_consumer_id", "is", null)
+      .not("subscription_status", "in", "(canceled,incomplete_expired)")
+      .or(`current_period_end.lt.${input.periodEndBefore},last_synchronized_at.is.null,last_synchronized_at.lt.${input.synchronizedBefore}`)
+      .order("current_period_end", { ascending: true, nullsFirst: true })
+      .limit(Math.max(1, Math.min(input.limit, 200)));
+    if (error) throw new Error("Consumer billing database unavailable");
+    return ((data ?? []) as SubscriptionRow[]).map((row) => ({
+      ownerUserId: String(row.owner_consumer_id),
+      stripeSubscriptionId: String(row.stripe_subscription_id),
+      status: String(row.subscription_status),
+      currentPeriodEnd: text(row.current_period_end),
+      lastSynchronizedAt: text(row.last_synchronized_at)
     }));
   }
 
-  async getLatestSubscription(ownerUserId: string): Promise<ConsumerSubscriptionProjection | null> {
-    const { data, error } = await this.client
-      .from("billing_subscriptions")
-      .select("id, stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, first_paid_at, last_payment_failed_at, renewal_grace_ends_at")
-      .eq("owner_consumer_id", ownerUserId)
-      .eq("stripe_environment", this.environment)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw new Error("Consumer billing database unavailable");
-    return data ? {
-      id: data.id,
-      stripeSubscriptionId: data.stripe_subscription_id,
-      status: data.subscription_status,
-      currentPeriodEnd: data.current_period_end,
-      cancelAtPeriodEnd: data.cancel_at_period_end,
-      trialEnd: data.trial_end,
-      firstPaidAt: data.first_paid_at,
-      lastPaymentFailedAt: data.last_payment_failed_at,
-      renewalGraceEndsAt: data.renewal_grace_ends_at
-    } : null;
+  /**
+   * Wins the right to contact the provider for this customer now, or returns
+   * false when another request did so within the minimum interval.
+   */
+  async claimReconciliationAttempt(ownerUserId: string, minimumIntervalSeconds: number): Promise<boolean> {
+    const { data, error } = await this.client.rpc("mark_consumer_billing_reconciliation_attempt", {
+      p_owner_user_id: ownerUserId,
+      p_stripe_environment: this.environment,
+      p_minimum_interval_seconds: minimumIntervalSeconds
+    });
+    if (error) throw new Error("Consumer billing reconciliation claim unavailable");
+    return data === true;
   }
 
   async claimTrial(ownerUserId: string, checkoutHash: string, redeemedAt: string): Promise<string> {
@@ -270,36 +374,39 @@ export class SupabaseConsumerBillingRepository {
     if (error) throw new Error("Consumer billing receipt completion unavailable");
   }
 
-  async applyProjection(input: Readonly<{
-    eventRecordId: string;
-    eventType: string;
-    eventCreatedAt: string;
-    ownerUserId: string;
-    customerId: string;
-    subscription: ConsumerBillingSubscription;
-    graceDays: number;
-    emergencyDefaultDeny: boolean;
-  }>): Promise<string> {
-    const { data, error } = await this.client.rpc("apply_consumer_billing_projection", {
+  /**
+   * The one write path for subscription state. Both webhook processing and
+   * reconciliation call this; the database function owns the projection rules,
+   * stale-snapshot rejection, and the current-subscription precedence.
+   */
+  async synchronizeSubscription(input: SubscriptionSynchronizationInput): Promise<string> {
+    const { subscription } = input;
+    if (subscription.status === null) throw new Error("Consumer billing synchronization refused an unknown status");
+    const bothPeriodBounds = subscription.currentPeriodStart !== null && subscription.currentPeriodEnd !== null;
+    const { data, error } = await this.client.rpc("synchronize_consumer_billing_subscription", {
+      p_source: input.source,
       p_event_record_id: input.eventRecordId,
       p_event_type: input.eventType,
       p_owner_user_id: input.ownerUserId,
       p_stripe_environment: this.environment,
       p_stripe_customer_id: input.customerId,
-      p_stripe_subscription_id: input.subscription.id,
-      p_stripe_price_id: input.subscription.price?.id ?? "",
-      p_subscription_status: input.subscription.status ?? "canceled",
-      p_current_period_start: input.subscription.currentPeriodStart,
-      p_current_period_end: input.subscription.currentPeriodEnd,
-      p_cancel_at_period_end: input.subscription.cancelAtPeriodEnd,
-      p_canceled_at: input.subscription.canceledAt,
-      p_trial_start: input.subscription.trialStart,
-      p_trial_end: input.subscription.trialEnd,
-      p_event_created_at: input.eventCreatedAt,
+      p_stripe_subscription_id: subscription.id,
+      p_stripe_price_id: subscription.price?.id ?? "",
+      p_subscription_status: subscription.status,
+      p_current_period_start: bothPeriodBounds ? subscription.currentPeriodStart : null,
+      p_current_period_end: bothPeriodBounds ? subscription.currentPeriodEnd : null,
+      p_cancel_at_period_end: subscription.cancelAtPeriodEnd,
+      p_canceled_at: subscription.canceledAt,
+      p_ended_at: subscription.endedAt,
+      p_trial_start: subscription.trialStart,
+      p_trial_end: subscription.trialEnd,
+      p_latest_invoice_id: subscription.latestInvoiceId,
+      p_latest_invoice_paid_at: input.latestInvoicePaidAt,
+      p_observed_at: input.observedAt,
       p_grace_days: input.graceDays,
       p_emergency_default_deny: input.emergencyDefaultDeny
     });
-    if (error) throw new Error("Consumer billing projection unavailable");
+    if (error) throw new Error("Consumer billing synchronization unavailable");
     return String(data);
   }
 

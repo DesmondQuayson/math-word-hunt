@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { decideGameAccess, isTrialEligible, parseGameEntitlementEvidence } from "./entitlement";
+import { decideGameAccess, isTrialEligible, markVerificationUnavailable, parseGameEntitlementEvidence } from "./entitlement";
 
 const now = new Date("2026-08-01T12:00:00.000Z");
 const redeemed = "2026-08-01T00:00:00.000Z";
@@ -80,5 +80,31 @@ describe("general-public game entitlement", () => {
     expect(isTrialEligible(null)).toBe(true);
     expect(isTrialEligible(undefined)).toBe(false);
     expect(isTrialEligible(redeemed)).toBe(false);
+  });
+});
+
+describe("paid-period boundaries and honest verification copy", () => {
+  const periodEndsAt = "2026-10-01T00:00:00.000Z";
+  const active = { state: "subscription-active", periodEndsAt };
+  const decide = (at: string) => decideGameAccess({ authenticated: true, accountStatus: "active", emailConfirmed: true, evidence: active, serverNow: new Date(at) });
+
+  it("allows one second before the period end, denies exactly at it and one second after (exclusive boundary, server time only)", () => {
+    expect(decide("2026-09-30T23:59:59.000Z")).toMatchObject({ allowed: true, accessEndsAt: periodEndsAt });
+    expect(decide("2026-10-01T00:00:00.000Z")).toMatchObject({ allowed: false, state: "subscription-expired", reason: "subscription-ended" });
+    expect(decide("2026-10-01T00:00:01.000Z")).toMatchObject({ allowed: false, reason: "subscription-ended" });
+  });
+
+  it("does not shift the boundary across time zones or day rollovers", () => {
+    // 19:00 Central on Sep 30 is 00:00 UTC on Oct 1: still the same instant.
+    expect(decide("2026-09-30T19:00:00.000-05:00")).toMatchObject({ allowed: false });
+    expect(decide("2026-09-30T18:59:59.000-05:00")).toMatchObject({ allowed: true });
+  });
+
+  it("marks a denial as verification-unavailable without granting access", () => {
+    const denied = decide("2026-10-02T00:00:00.000Z");
+    const marked = markVerificationUnavailable(denied);
+    expect(marked).toMatchObject({ allowed: false, reason: "subscription-verification-unavailable", nextAction: "manage-subscription", accessEndsAt: null });
+    expect(marked.state).toBe(denied.state);
+    expect(Object.isFrozen(marked)).toBe(true);
   });
 });

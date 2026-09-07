@@ -9,6 +9,7 @@ import type { ConsumerBillingConfiguration } from "./consumer-config";
 import {
   MATHNEXA_MONTHLY_AMOUNT,
   type ConsumerBillingCustomer,
+  type ConsumerBillingInvoice,
   type ConsumerBillingSubscription,
   type ConsumerSetupSession
 } from "./consumer-models";
@@ -19,14 +20,46 @@ type State = {
   customers: Map<string, ConsumerBillingCustomer>;
   sessions: Map<string, ConsumerSetupSession>;
   subscriptions: Map<string, ConsumerBillingSubscription>;
+  invoices: Map<string, ConsumerBillingInvoice>;
 };
 const globals = globalThis as typeof globalThis & { __mathnexaConsumerBillingFixture?: State };
 const state = globals.__mathnexaConsumerBillingFixture ??= {
   customers: new Map(),
   sessions: new Map(),
-  subscriptions: new Map()
+  subscriptions: new Map(),
+  invoices: new Map()
 };
+if (!state.invoices) state.invoices = new Map();
 const suffix = (value: string) => createHash("sha256").update(value).digest("hex").slice(0, 18);
+
+/**
+ * Deterministic lifecycle control for the local rehearsal only. The fixture
+ * provider stands in for Stripe, so renewals, failures and cancellations have
+ * to be simulated by mutating its in-memory state. These helpers are reachable
+ * solely through the fixture-gated internal route; the Stripe provider has no
+ * equivalent and the configuration parser only admits the fixture provider on
+ * a loopback rehearsal in test mode.
+ */
+export function readFixtureSubscription(subscriptionId: string): ConsumerBillingSubscription | null {
+  return state.subscriptions.get(subscriptionId) ?? null;
+}
+
+export function mutateFixtureSubscription(
+  subscriptionId: string,
+  patch: Partial<ConsumerBillingSubscription>
+): ConsumerBillingSubscription | null {
+  const current = state.subscriptions.get(subscriptionId);
+  if (!current) return null;
+  const next: ConsumerBillingSubscription = Object.freeze({ ...current, ...patch, id: current.id, customerId: current.customerId });
+  state.subscriptions.set(subscriptionId, next);
+  return next;
+}
+
+export function recordFixtureInvoice(invoice: ConsumerBillingInvoice): ConsumerBillingInvoice {
+  const frozen = Object.freeze({ ...invoice });
+  state.invoices.set(invoice.id, frozen);
+  return frozen;
+}
 
 export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
   private readonly verifier: ConsumerStripeBillingProvider;
@@ -115,8 +148,10 @@ export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
       currentPeriodEnd: periodEnd,
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      endedAt: null,
       trialStart: trialEnd ? now.toISOString() : null,
       trialEnd,
+      latestInvoiceId: null,
       ownerUserId: input.userId
     };
     state.subscriptions.set(id, subscription);
@@ -134,13 +169,18 @@ export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
   }
 
   async retrieveInvoice(reference: string) {
+    const recorded = state.invoices.get(reference);
+    if (recorded) return recorded;
     const subscription = [...state.subscriptions.values()][0] ?? null;
     return {
       id: reference,
       customerId: subscription?.customerId ?? null,
       subscriptionId: subscription?.id ?? null,
       livemode: false,
-      paid: reference.includes("paid")
+      paid: reference.includes("paid"),
+      status: reference.includes("paid") ? "paid" : "open",
+      paidAt: null,
+      amountPaidMinorUnits: reference.includes("paid") ? MATHNEXA_MONTHLY_AMOUNT : 0
     };
   }
 

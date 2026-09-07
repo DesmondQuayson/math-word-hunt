@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { parseAdminAccountAction } from "@math-vocabulary-hunt/platform-core";
 
-import { createAdminPortalForTarget } from "@/lib/admin/account-operations";
+import { createAdminPortalForTarget, syncConsumerBillingForTarget } from "@/lib/admin/account-operations";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
@@ -21,6 +21,7 @@ function errorCode(value: unknown) {
   if (message.includes("reauthentication")) return "reauth-required";
   if (message.includes("eligible")) return "not-eligible";
   if (message.includes("portal")) return "portal-unavailable";
+  if (message.includes("billing-sync")) return "billing-sync-unavailable";
   return "operation-failed";
 }
 
@@ -89,6 +90,15 @@ export async function POST(request: Request) {
       const portal = await createAdminPortalForTarget(input.targetUserId);
       await finish("succeeded", null);
       return NextResponse.redirect(portal.url, 303);
+    } else if (input.operation === "sync-billing") {
+      const synced = await syncConsumerBillingForTarget(input.targetUserId);
+      if (synced.outcome === "unavailable") throw new Error("billing-sync-unavailable");
+      if (synced.outcome === "manual-review") {
+        await finish("manual_review", "billing-sync-review");
+        return back(request, "sync-billing-review-required");
+      }
+      await finish("succeeded", null);
+      return back(request, synced.changed ? "sync-billing-repaired" : "sync-billing-succeeded");
     }
     const completed = await finish("succeeded", null); if (completed.error) throw completed.error;
     return back(request, `${input.operation}-succeeded`);

@@ -150,6 +150,7 @@ test.skipIf(!enabled)("completes the remaining real Stripe Sandbox renewal lifec
     webhookSecret,
     productId,
     priceId,
+    acceptedPriceIds: [priceId],
     portalConfigurationId: portalId,
     applicationBaseUrl: "http://127.0.0.1:3000",
     subscriberManagementBaseUrl: "http://127.0.0.1:3000",

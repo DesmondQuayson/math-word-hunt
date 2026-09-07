@@ -1,7 +1,8 @@
 export const ADMIN_ACCOUNT_OPERATIONS = [
   "resend-confirmation", "revoke-sessions", "suspend", "restore",
   "open-portal", "cancel-at-period-end", "submit-refund-review", "deny-refund-review",
-  "grant-complimentary", "remove-complimentary", "emergency-revoke"
+  "grant-complimentary", "remove-complimentary", "emergency-revoke",
+  "sync-billing"
 ] as const;
 
 export type AdminAccountOperation = (typeof ADMIN_ACCOUNT_OPERATIONS)[number];

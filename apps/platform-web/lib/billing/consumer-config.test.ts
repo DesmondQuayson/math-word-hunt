@@ -112,3 +112,23 @@ describe("MathNexa Stripe Sandbox configuration", () => {
     }
   });
 });
+
+describe("legacy price support", () => {
+  it("accepts the current price alone by default", () => {
+    expect(parseConsumerBillingConfiguration(valid).acceptedPriceIds).toEqual(["price_mathnexa123"]);
+  });
+
+  it("keeps existing subscribers on retired prices entitled without a new Checkout", () => {
+    const config = parseConsumerBillingConfiguration({
+      ...valid,
+      STRIPE_LEGACY_PRICE_IDS_MATHNEXA_MONTHLY: " price_legacy456 , price_legacy789,price_mathnexa123 "
+    });
+    expect(config.priceId).toBe("price_mathnexa123");
+    expect(config.acceptedPriceIds).toEqual(["price_mathnexa123", "price_legacy456", "price_legacy789"]);
+  });
+
+  it("rejects a malformed legacy price id instead of silently ignoring it", () => {
+    expect(() => parseConsumerBillingConfiguration({ ...valid, STRIPE_LEGACY_PRICE_IDS_MATHNEXA_MONTHLY: "sub_notaprice" }))
+      .toThrowError(/legacy-price-id-format/);
+  });
+});

@@ -37,6 +37,11 @@ export type ConsumerSetupSession = Readonly<{
   paymentMethodId: string | null;
 }>;
 
+/**
+ * The authoritative snapshot of a Stripe subscription as the synchronizer
+ * consumes it. `status` is null when Stripe reports a status this build does
+ * not know; such a snapshot is never projected, only reviewed.
+ */
 export type ConsumerBillingSubscription = Readonly<{
   id: string;
   customerId: string;
@@ -48,16 +53,22 @@ export type ConsumerBillingSubscription = Readonly<{
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   canceledAt: string | null;
+  endedAt: string | null;
   trialStart: string | null;
   trialEnd: string | null;
+  latestInvoiceId: string | null;
   ownerUserId: string | null;
 }>;
+
 export type ConsumerBillingInvoice = Readonly<{
   id: string;
   customerId: string | null;
   subscriptionId: string | null;
   livemode: boolean;
   paid: boolean;
+  status: string | null;
+  paidAt: string | null;
+  amountPaidMinorUnits: number | null;
 }>;
 
 export type ConsumerPortalConfiguration = Readonly<{

@@ -17,6 +17,17 @@ const RESTRICTED_PROVIDER_VARIABLES = [
   "VERCEL_AUTOMATION_BYPASS_SECRET"
 ] as const;
 
+/**
+ * Machine endpoints that must answer at whatever host they were configured
+ * with. Stripe does not follow redirects: a 308 from a `*.vercel.app` or `www`
+ * webhook URL is a failed delivery, and a failed delivery on every renewal is
+ * a customer who paid and lost access. Browsers still converge on the apex.
+ */
+export const PLATFORM_HOST_REDIRECT_EXEMPT_PATHS = [
+  "/api/billing/webhook",
+  "/api/health"
+] as const;
+
 export const PRODUCTION_PUBLIC_RESTRICTED_PREFIXES = [
   "/account",
   "/api",
@@ -73,6 +84,7 @@ export function getPlatformCanonicalRedirectUrl(
   if (!host || host === PRODUCTION_PUBLIC_CANONICAL_HOST) return null;
   if (host !== PRODUCTION_PUBLIC_WWW_HOST && !host.endsWith(".vercel.app")) return null;
   const destination = new URL(requestUrl);
+  if ((PLATFORM_HOST_REDIRECT_EXEMPT_PATHS as readonly string[]).includes(destination.pathname)) return null;
   destination.protocol = "https:";
   destination.hostname = PRODUCTION_PUBLIC_CANONICAL_HOST;
   destination.port = "";

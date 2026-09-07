@@ -10,6 +10,7 @@ import { openBillingPortalAction } from "@/app/billing-actions";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { CommercialConsentForm } from "@/components/consumer/commercial-consent-form";
+import { ConsumerSubscriptionSummary } from "@/components/consumer/subscription-summary";
 import { SubscriptionTermsList } from "@/components/consumer/subscription-terms";
 import { Card } from "@/components/ui/card";
 import { accessIntentHref, confirmationRequiredHref, safeAccessIntentDestination } from "@/lib/auth/access-intent";
@@ -35,7 +36,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
   const config = tryGetConsumerBillingConfiguration();
   const repository = view.context.userId && config ? createConsumerBillingRepository(config) : null;
   const subscription = repository && view.context.userId
-    ? await repository.getLatestSubscription(view.context.userId).catch(() => null)
+    ? await repository.getAuthoritativeSubscription(view.context.userId).catch(() => null)
     : null;
   return <Container className="page-stack" width="compact">
     <PageHeader eyebrow="Subscription" title="$5.99 USD monthly MathNexa access" description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />
@@ -51,12 +52,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       <SubscriptionTermsList />
       <CommercialConsentForm returnDestination={destination} enabled={config?.checkoutEnabled === true} />
     </Card> : null}
-    {subscription ? <dl className="definition-grid" data-testid="consumer-subscription-summary">
-      <div><dt>Status</dt><dd>{subscription.status.replaceAll("_", " ")}</dd></div>
-      <div><dt>Trial expiration</dt><dd>{subscription.trialEnd ? <time dateTime={subscription.trialEnd}>{new Date(subscription.trialEnd).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time> : "Not applicable"}</dd></div>
-      <div><dt>Current period end</dt><dd>{subscription.currentPeriodEnd ? <time dateTime={subscription.currentPeriodEnd}>{new Date(subscription.currentPeriodEnd).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time> : "Unavailable"}</dd></div>
-      <div><dt>Cancellation</dt><dd>{subscription.cancelAtPeriodEnd ? "Scheduled at period end" : "Not scheduled"}</dd></div>
-    </dl> : null}
+    {subscription ? <ConsumerSubscriptionSummary subscription={subscription} /> : null}
     <div className="button-row">
       {view.decision.allowed && destination !== "/subscription" ? <LinkButton href={destination}>Continue to your selected resource</LinkButton> : null}
       {subscription && config?.portalEnabled ? <form action={openBillingPortalAction}><button className="button button-primary" type="submit">Manage or cancel in Stripe</button></form> : null}

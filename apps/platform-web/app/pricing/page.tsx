@@ -14,6 +14,7 @@ import { tryGetBillingConfiguration } from "@/lib/billing/config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
+import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { getGameAccessView } from "@/lib/game-access/server";
 import { redirect } from "next/navigation";
 import { accessIntentHref, confirmationRequiredHref } from "@/lib/auth/access-intent";
@@ -40,9 +41,21 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
   if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
   if (context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref("/subscription"));
   const config = tryGetConsumerBillingConfiguration();
+  // A customer whose subscription is live at the provider but locally denied
+  // (stale period, verification pending, payment attention) must never be shown
+  // a fresh Checkout: that is how double billing happens. They are sent to
+  // Manage subscription instead; Checkout is offered only when no live
+  // subscription exists.
+  const repository = config && context.userId && access.decision.nextAction === "manage-subscription"
+    ? createConsumerBillingRepository(config)
+    : null;
+  const liveSubscription = repository && context.userId
+    ? await repository.getCurrentSubscriptions(context.userId).then((rows: readonly unknown[]) => rows.length > 0).catch(() => true)
+    : false;
   const canCheckout = context.status === "active" && !access.decision.allowed &&
-    (access.decision.nextAction === "start-checkout" || access.decision.nextAction === "manage-subscription") &&
+    (access.decision.nextAction === "start-checkout" || (access.decision.nextAction === "manage-subscription" && !liveSubscription)) &&
     config?.checkoutEnabled === true;
+  const manageSubscription = context.status === "active" && !access.decision.allowed && liveSubscription;
   return <Container width="compact" className="page-stack">
     <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly game subscription. No annual plan and no permanent free gameplay tier." />
     {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
@@ -56,7 +69,9 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
         ? <CommercialConsentForm />
         : access.decision.allowed
           ? <LinkButton href="/play">Continue playing</LinkButton>
-          : <LinkButton href="/subscription">Review subscription status</LinkButton>}
+          : manageSubscription
+            ? <LinkButton href="/subscription">Manage subscription</LinkButton>
+            : <LinkButton href="/subscription">Review subscription status</LinkButton>}
     </Card>
     {!config ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active yet.</strong><p>The server does not have a complete approved billing configuration. No key or browser value can activate billing.</p></Notice> : null}
     <Notice label="Refund policy" tone="information"><strong>Authenticated review only.</strong><p>First-charge refund requests submitted within seven days receive manual review. MathNexa issues no automatic refunds. <a href="/refunds">Read the policy</a>.</p></Notice>

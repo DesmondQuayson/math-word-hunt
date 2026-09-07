@@ -180,6 +180,7 @@ describe("consumer Setup Checkout and subscription activation", () => {
       currentPeriodEnd: trialEnd,
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      endedAt: null,
       trialStart: createdAt,
       trialEnd,
       ownerUserId: USER_ID
@@ -226,8 +227,10 @@ describe("consumer Setup Checkout and subscription activation", () => {
       currentPeriodEnd: "2026-08-31T16:05:06.000Z",
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      endedAt: null,
       trialStart: null,
       trialEnd: null,
+      latestInvoiceId: null,
       ownerUserId: USER_ID
     };
     (deps.provider.createSubscription as ReturnType<typeof vi.fn>).mockResolvedValue(active);

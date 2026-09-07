@@ -16,6 +16,7 @@ const copy: Record<GameAccessDecision["reason"], { title: string; message: strin
   "subscription-ended": { title: "Subscription ended", message: "Game access is unavailable because the verified subscription period ended.", tone: "warning" },
   "account-suspended": { title: "Account suspended", message: "Game and subscription actions are unavailable. Contact support.", tone: "warning" },
   "account-deletion-pending": { title: "Deletion pending", message: "Game and subscription actions are unavailable while deletion is reviewed.", tone: "warning" },
+  "subscription-verification-unavailable": { title: "We couldn’t verify your subscription right now", message: "The stored access window has passed and Stripe could not be reached to confirm the latest renewal. Nothing about your subscription has changed. Please try again in a moment; if this continues, contact support.", tone: "warning" },
   "malformed-entitlement": { title: "Access could not be verified", message: "Unknown or incomplete server data denies access. Contact support.", tone: "warning" }
 };
 

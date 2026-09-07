@@ -39,6 +39,8 @@ Receipts record only the event ID, allowlisted type, object reference, API versi
 
 ## Entitlement policy
 
+> Superseded where different by `subscription-lifecycle.md` (2026-09): `unpaid`, `incomplete` and `paused` are locked but recoverable and described as "Payment requires attention", never "Ended"; a live subscription with a passed local boundary is verified against Stripe before any denial is shown; unknown Stripe statuses are refused for review rather than coerced.
+
 | Verified condition | Server-owned access result |
 | --- | --- |
 | Exact active 24-hour trial | Allowed until the exact trial end |

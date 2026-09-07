@@ -15,6 +15,12 @@ export type ConsumerBillingConfiguration = Readonly<{
   webhookSecret: string;
   productId: string;
   priceId: string;
+  /**
+   * Prices that still identify a valid MathNexa monthly subscription. The first
+   * entry is the price new Checkouts use; the rest are legacy prices whose
+   * existing subscribers stay entitled without subscribing again.
+   */
+  acceptedPriceIds: readonly string[];
   portalConfigurationId: string;
   applicationBaseUrl: string;
   subscriberManagementBaseUrl: string;
@@ -60,6 +66,13 @@ function integer(source: Source, name: string, minimum: number, maximum: number)
 function providerId(value: string, prefix: "prod" | "price" | "bpc", code: string): string {
   if (!new RegExp(`^${prefix}_[A-Za-z0-9]{6,}$`).test(value)) throw new ConsumerBillingConfigurationError(code);
   return value;
+}
+
+function legacyPriceIds(source: Source): readonly string[] {
+  const raw = source.STRIPE_LEGACY_PRICE_IDS_MATHNEXA_MONTHLY?.trim() ?? "";
+  if (!raw) return [];
+  return raw.split(",").map((value) => value.trim()).filter(Boolean)
+    .map((value) => providerId(value, "price", "legacy-price-id-format"));
 }
 
 function baseUrl(value: string, localRehearsal: boolean): string {
@@ -136,6 +149,7 @@ export function parseConsumerBillingConfiguration(source: Source): ConsumerBilli
     throw new ConsumerBillingConfigurationError("test-mode-live-activation-conflict");
   }
 
+  const priceId = providerId(required(source, "STRIPE_PRICE_MATHNEXA_MONTHLY"), "price", "price-id-format");
   return Object.freeze({
     enabled: true,
     provider,
@@ -146,7 +160,8 @@ export function parseConsumerBillingConfiguration(source: Source): ConsumerBilli
     secretKey,
     webhookSecret,
     productId: providerId(required(source, "STRIPE_PRODUCT_MATHNEXA"), "prod", "product-id-format"),
-    priceId: providerId(required(source, "STRIPE_PRICE_MATHNEXA_MONTHLY"), "price", "price-id-format"),
+    priceId,
+    acceptedPriceIds: Object.freeze([priceId, ...legacyPriceIds(source).filter((value) => value !== priceId)]),
     portalConfigurationId: providerId(required(source, "STRIPE_PORTAL_CONFIGURATION_ID"), "bpc", "portal-id-format"),
     applicationBaseUrl,
     subscriberManagementBaseUrl,

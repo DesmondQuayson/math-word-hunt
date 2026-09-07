@@ -3,21 +3,33 @@ import { recordSecurityEvent } from "@/lib/observability/security-events";
 
 import { createHash } from "node:crypto";
 
+import { isTerminalConsumerSubscriptionStatus } from "@math-vocabulary-hunt/platform-core";
+
 import type { ConsumerBillingConfiguration } from "./consumer-config";
+import { emitBillingLifecycleEvent, redactProviderReference } from "./consumer-observability";
 import type { ConsumerBillingProvider } from "./consumer-provider";
 import type { SupabaseConsumerBillingRepository } from "./consumer-repository";
 import { activateConsumerSetupCheckout } from "./consumer-service";
+import { synchronizeCustomerSubscriptions, validateAuthoritativeSubscription } from "./consumer-synchronizer";
 import { safeBillingLog } from "./security";
 
+/**
+ * Events this endpoint acts on. Everything else is acknowledged and ignored.
+ * `invoice.payment_succeeded` is the older name of `invoice.paid`; endpoints
+ * configured with either (or both) converge on the same renewal handling.
+ */
 const EVENTS = new Set([
   "checkout.session.completed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
   "invoice.paid",
+  "invoice.payment_succeeded",
   "invoice.payment_failed",
   "customer.deleted"
 ]);
+
+const INVOICE_PAID_EVENTS = new Set(["invoice.paid", "invoice.payment_succeeded"]);
 
 type Result = Readonly<{ status: number; body: { received: boolean; state: string } }>;
 
@@ -50,7 +62,16 @@ export async function processConsumerBillingWebhook(input: Readonly<{
   }
   if (!EVENTS.has(event.type)) return { status: 200, body: { received: true, state: "ignored" } };
   if (event.apiVersion !== input.config.apiVersion) {
-    return { status: 400, body: { received: false, state: "api-version-mismatch" } };
+    // Formerly a hard 400, which turned an endpoint pinned to another API
+    // version into a permanent, silent renewal-sync outage. Nothing below reads
+    // version-sensitive payload fields — every authoritative object is
+    // re-fetched with the SDK's pinned version — so the drift is reported and
+    // processing continues.
+    emitBillingLifecycleEvent("WEBHOOK_API_VERSION_DRIFT", {
+      eventType: event.type,
+      receivedVersion: event.apiVersion,
+      expectedVersion: input.config.apiVersion
+    }, event.id);
   }
 
   let receipt;
@@ -77,10 +98,22 @@ export async function processConsumerBillingWebhook(input: Readonly<{
     return { status: 503, body: { received: false, state: "database-unavailable" } };
   }
 
+  const review = async (failureClass: string): Promise<Result> => {
+    await input.repository.finishEvent(receipt.id, "manual_review", failureClass);
+    emitBillingLifecycleEvent("WEBHOOK_MANUAL_REVIEW", {
+      eventType: event.type,
+      objectSuffix: redactProviderReference(event.objectId),
+      failureClass,
+      retryable: false
+    }, event.id);
+    return { status: 200, body: { received: true, state: "manual-review" } };
+  };
+
   try {
     let customerId = event.customerId;
     let subscriptionId = event.subscriptionId;
     let session = null;
+    let invoice = null;
     if (event.type === "checkout.session.completed" && event.objectId) {
       session = await input.provider.retrieveSetupCheckout(event.objectId);
       customerId = session.customerId;
@@ -93,14 +126,12 @@ export async function processConsumerBillingWebhook(input: Readonly<{
       });
       subscriptionId = activated.id;
     }
-    if ((event.type === "invoice.paid" || event.type === "invoice.payment_failed") &&
-      event.objectId) {
-      const invoice = await input.provider.retrieveInvoice(event.objectId);
+    if ((INVOICE_PAID_EVENTS.has(event.type) || event.type === "invoice.payment_failed") && event.objectId) {
+      invoice = await input.provider.retrieveInvoice(event.objectId);
       if (invoice.livemode !== expectedLivemode ||
-        (event.type === "invoice.paid" && !invoice.paid) ||
+        (INVOICE_PAID_EVENTS.has(event.type) && !invoice.paid) ||
         (event.type === "invoice.payment_failed" && invoice.paid)) {
-        await input.repository.finishEvent(receipt.id, "manual_review", "invoice_state_conflict");
-        return { status: 200, body: { received: true, state: "manual-review" } };
+        return review("invoice_state_conflict");
       }
       customerId = invoice.customerId;
       subscriptionId = invoice.subscriptionId;
@@ -108,10 +139,7 @@ export async function processConsumerBillingWebhook(input: Readonly<{
     if (event.type === "customer.deleted") {
       if (!event.objectId) throw new Error("missing-customer");
       const mapping = await input.repository.getMappingByCustomer(event.objectId);
-      if (!mapping) {
-        await input.repository.finishEvent(receipt.id, "manual_review", "invalid_owner");
-        return { status: 200, body: { received: true, state: "manual-review" } };
-      }
+      if (!mapping) return review("invalid_owner");
       const state = await input.repository.revokeCustomer(
         receipt.id,
         mapping.ownerUserId,
@@ -119,58 +147,54 @@ export async function processConsumerBillingWebhook(input: Readonly<{
       );
       return { status: 200, body: { received: true, state } };
     }
-    if (!customerId || !subscriptionId) {
-      await input.repository.finishEvent(receipt.id, "manual_review", "unsupported_payload");
-      return { status: 200, body: { received: true, state: "manual-review" } };
-    }
+    if (!customerId || !subscriptionId) return review("unsupported_payload");
     const mapping = await input.repository.getMappingByCustomer(customerId);
     if (!mapping || (event.ownerUserId && event.ownerUserId !== mapping.ownerUserId) ||
       (session?.ownerUserId && session.ownerUserId !== mapping.ownerUserId)) {
-      await input.repository.finishEvent(receipt.id, "manual_review", "ownership_conflict");
-      return { status: 200, body: { received: true, state: "manual-review" } };
+      return review("ownership_conflict");
     }
     const [customer, subscription, subscriptions] = await Promise.all([
       input.provider.retrieveCustomer(customerId),
       input.provider.retrieveSubscription(subscriptionId),
       input.provider.listCustomerSubscriptions(customerId)
     ]);
-    if (customer.deleted || customer.livemode !== expectedLivemode || customer.ownerUserId !== mapping.ownerUserId ||
-      subscription.ownerUserId !== mapping.ownerUserId ||
-      subscription.customerId !== customerId ||
-      subscription.livemode !== expectedLivemode ||
-      subscription.price?.livemode !== expectedLivemode ||
-      subscription.quantity !== 1 ||
-      !subscription.price ||
-      subscription.price.id !== input.config.priceId ||
-      subscription.price.productId !== input.config.productId ||
-      subscription.price.currency !== "usd" ||
-      subscription.price.amountMinorUnits !== 599 ||
-      subscription.price.interval !== "month" ||
-      subscription.price.intervalCount !== 1 ||
-      subscription.price.usageType !== "licensed") {
-      await input.repository.finishEvent(receipt.id, "manual_review", "projection_conflict");
-      return { status: 200, body: { received: true, state: "manual-review" } };
+    const failure = validateAuthoritativeSubscription({
+      subscription, customer, ownerUserId: mapping.ownerUserId, customerId, config: input.config
+    });
+    if (failure) {
+      if (failure === "unknown_subscription_status") {
+        emitBillingLifecycleEvent("SUBSCRIPTION_STATUS_UNKNOWN", {
+          eventType: event.type, subscriptionSuffix: redactProviderReference(subscription.id), source: "webhook"
+        }, event.id);
+      }
+      return review(failure);
     }
-    const current = subscriptions.filter((candidate) =>
-      candidate.status !== "canceled" && candidate.status !== "incomplete_expired"
-    );
-    if (current.length > 1 || (current.length === 1 && current[0]?.id !== subscription.id)) {
-      await input.repository.finishEvent(receipt.id, "manual_review", "duplicate_subscription");
-      return { status: 200, body: { received: true, state: "manual-review" } };
-    }
-    const state = await input.repository.applyProjection({
-      eventRecordId: receipt.id,
-      eventType: event.type,
-      eventCreatedAt: event.createdAt,
+    const live = subscriptions.filter((candidate) => !isTerminalConsumerSubscriptionStatus(candidate.status));
+    if (live.length > 1) return review("duplicate_subscription");
+
+    const canonicalType = INVOICE_PAID_EVENTS.has(event.type) ? "invoice.paid" : event.type;
+    const result = await synchronizeCustomerSubscriptions({
+      source: "webhook",
       ownerUserId: mapping.ownerUserId,
       customerId,
-      subscription,
-      graceDays: input.config.renewalGraceDays,
-      emergencyDefaultDeny: input.config.emergencyDefaultDeny
+      customer,
+      subscriptions,
+      primary: { subscription, eventRecordId: receipt.id, eventType: canonicalType, observedAt: event.createdAt },
+      latestInvoice: invoice,
+      config: input.config,
+      repository: input.repository,
+      correlationId: event.id
     });
-    safeBillingLog("consumer-webhook-processed", { state, eventAllowed: true });
-    return { status: 200, body: { received: true, state } };
+    if (result.state === null) return review(result.skipped[subscription.id] ?? "projection_conflict");
+    safeBillingLog("consumer-webhook-processed", { state: result.state, eventAllowed: true });
+    return { status: 200, body: { received: true, state: result.state } };
   } catch {
+    emitBillingLifecycleEvent("WEBHOOK_PROCESSING_FAILED", {
+      eventType: event.type,
+      objectSuffix: redactProviderReference(event.objectId),
+      failureClass: "provider_unavailable",
+      retryable: true
+    }, event.id);
     try {
       await input.repository.finishEvent(receipt.id, "retryable_failure", "provider_unavailable");
     } catch {

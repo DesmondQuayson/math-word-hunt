@@ -236,3 +236,31 @@ describe("Stripe Sandbox consumer provider", () => {
     expect(() => provider.constructVerifiedEvent("{}", "signature", "secret")).toThrow(expect.objectContaining({ category: "invalid-resource" }));
   });
 });
+
+describe("webhook signature verification", () => {
+  const payload = JSON.stringify({
+    id: "evt_test_signature",
+    object: "event",
+    api_version: "2026-07-29.dahlia",
+    created: 1_780_000_000,
+    livemode: false,
+    type: "invoice.paid",
+    data: { object: { id: "in_test_123456", object: "invoice", customer: "cus_test_123456", parent: { subscription_details: { subscription: "sub_test_123456" } } } }
+  });
+  const secret = "whsec_unit_test_secret_value_1234567890";
+
+  it("accepts only a payload signed with the endpoint secret and never an unsigned or re-signed body", async () => {
+    const { default: Stripe } = await import("stripe");
+    const stripe = new Stripe("sk_test_unit_placeholder_key_000", { apiVersion: "2026-07-29.dahlia" });
+    const provider = new ConsumerStripeBillingProvider(stripe);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const valid = Stripe.webhooks.generateTestHeaderString({ payload, secret, timestamp });
+    expect(provider.constructVerifiedEvent(payload, valid, secret)).toMatchObject({
+      id: "evt_test_signature", type: "invoice.paid", objectId: "in_test_123456", customerId: "cus_test_123456", livemode: false
+    });
+    const forged = Stripe.webhooks.generateTestHeaderString({ payload, secret: "whsec_another_secret_value_0987654321", timestamp });
+    expect(() => provider.constructVerifiedEvent(payload, forged, secret)).toThrow();
+    expect(() => provider.constructVerifiedEvent(payload, "t=1,v1=deadbeef", secret)).toThrow();
+    expect(() => provider.constructVerifiedEvent(`${payload} `, valid, secret)).toThrow();
+  });
+});

@@ -42,6 +42,16 @@ export { BILLING_PLAN_KEYS, isBillingPlanKey, parseBillingPlanKey, type BillingP
 export { BILLING_CATALOG, defineBillingCatalog, type BillingInterval, type BillingPlanDefinition, type BillingPricingStatus } from "./billing/catalog";
 export { BILLING_SUBSCRIPTION_STATUSES, deriveBillingEntitlement, normalizeBillingSubscriptionStatus, type BillingEntitlementDecision, type BillingEntitlementInput, type BillingSubscriptionStatus } from "./billing/subscription-state";
 export { BILLING_UI_COPY, BILLING_UI_STATES, type BillingUiCopy, type BillingUiState } from "./billing/ui-state";
+export {
+  CONSUMER_SUBSCRIPTION_TERMINAL_STATUSES,
+  classifyConsumerSubscriptionStatus,
+  describeConsumerSubscription,
+  isTerminalConsumerSubscriptionStatus,
+  selectAuthoritativeConsumerSubscription,
+  type ConsumerSubscriptionCategory,
+  type ConsumerSubscriptionPresentation,
+  type ConsumerSubscriptionSnapshot
+} from "./billing/consumer-lifecycle";
 export { CAPABILITY_KEYS, isCapabilityKey, parseCapabilityKey, type CapabilityKey } from "./capabilities/keys";
 export {
   CAPABILITIES_BY_KEY,
@@ -78,6 +88,7 @@ export {
   GAME_ENTITLEMENT_STATES,
   decideGameAccess,
   isTrialEligible,
+  markVerificationUnavailable,
   parseGameEntitlementEvidence,
   type ConsumerAccountStatus,
   type GameAccessDecision,

@@ -42,3 +42,22 @@ Dry run retrieves and validates the Stripe test event. Apply mode re-signs the r
 
 Billing records are retained during suspension/deletion and incidents. Permanent deletion and legal retention durations still require owner/legal approval. Static v7 does not depend on these operations.
 
+
+## Consumer subscription drift audit and reconciliation
+
+Webhook-only projections drift when an event is lost, rejected, delayed, or delivered to a redirecting host. Three read paths repair drift through the one canonical synchronizer (see `subscription-lifecycle.md`):
+
+- **On access.** A denial caused only by a passed local boundary triggers a bounded, throttled Stripe re-check before the customer sees anything.
+- **Owner admin.** Each consumer account shows paid-through, last Stripe sync, and a billing consistency check; **Sync with Stripe** is an audited, idempotent, CSRF-protected operation.
+- **Scheduled sweep.** `GET /api/internal/billing/reconcile` with the scheduler's `CRON_SECRET` bearer token (fails closed without it). Aggregates only.
+
+Command-line audit (dry run by default, redacted output, no writes):
+
+```powershell
+npm run billing:consumer:reconcile
+npm run billing:consumer:reconcile -- --owner=<internal-consumer-uuid>
+npm run billing:consumer:reconcile -- --apply
+npm run billing:consumer:reconcile -- --environment=live --apply --owner-approved
+```
+
+Requires process-only `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `STRIPE_SECRET_KEY` (`sk_test_` unless `--environment=live`), `STRIPE_PRODUCT_MATHNEXA`, `STRIPE_PRICE_MATHNEXA_MONTHLY`, optional `STRIPE_LEGACY_PRICE_IDS_MATHNEXA_MONTHLY`. The report classifies every subscriber as MATCHED, MISMATCHED (self-repairable), AMBIGUOUS (two live subscriptions, unknown status, foreign price or owner), or REQUIRES HUMAN REVIEW (provider read failed). Live apply is an owner decision recorded outside this tool.

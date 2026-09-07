@@ -210,12 +210,16 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         requireStandardPayments(authoritative);
       }
       const parent = record(record(invoice.parent).subscription_details);
+      const transitions = record(raw.status_transitions);
       return {
         id: invoice.id,
         customerId: id(invoice.customer),
         subscriptionId: id(raw.subscription) ?? id(parent.subscription),
         livemode: invoice.livemode,
-        paid: authoritativeInvoicePaid(invoice)
+        paid: authoritativeInvoicePaid(invoice),
+        status: typeof invoice.status === "string" ? invoice.status : null,
+        paidAt: iso(transitions.paid_at),
+        amountPaidMinorUnits: typeof raw.amount_paid === "number" ? raw.amount_paid : null
       };
     } catch (error) {
       providerFailure(error, "not-found");
@@ -319,8 +323,10 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
       currentPeriodEnd: iso(raw.current_period_end ?? record(item).current_period_end),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       canceledAt: iso(subscription.canceled_at),
+      endedAt: iso(subscription.ended_at),
       trialStart: iso(subscription.trial_start),
       trialEnd: iso(subscription.trial_end),
+      latestInvoiceId: id(subscription.latest_invoice),
       ownerUserId: subscription.metadata.mathnexa_account_id ?? null
     };
   }
