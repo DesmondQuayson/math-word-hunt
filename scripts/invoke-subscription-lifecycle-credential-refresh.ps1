@@ -362,7 +362,16 @@ function Invoke-CredentialRefresh {
         if ($status -eq 0) { return 'host does not resolve' }
         return $true
       }
-      if ($productionRef) { $updates['SUPABASE_PRODUCTION_PROJECT_REF'] = $productionRef }
+      if ($productionRef) {
+      # Store the canonical lowercase ref: PowerShell -match is case-insensitive,
+      # so a hand-typed mixed-case ref passes the format check, and while DNS
+      # tolerates it the pooler username postgres.<ref> does not.
+      $normalized = (Open-SecureValue $productionRef).ToLowerInvariant()
+      $productionRef.Dispose()
+      $productionRef = ConvertTo-SecureString $normalized -AsPlainText -Force
+      $normalized = $null
+      $updates['SUPABASE_PRODUCTION_PROJECT_REF'] = $productionRef
+    }
 
       $productionSecret = Read-OptionalSecret -Prompt 'Production Supabase secret key (read-only use; sb_secret_... or legacy service_role JWT)' -FormatCheck { param($v) Test-StagingSecretKeyFormat $v } -CapabilityCheck {
         param($v)

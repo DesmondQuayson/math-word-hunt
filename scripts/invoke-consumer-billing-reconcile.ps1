@@ -31,6 +31,8 @@ try {
     $env:STRIPE_SECRET_KEY = $values['STRIPE_LIVE_READONLY_KEY']
     $ref = if ($ProductionProjectRef) { $ProductionProjectRef } elseif ($values.ContainsKey('SUPABASE_PRODUCTION_PROJECT_REF')) { $values['SUPABASE_PRODUCTION_PROJECT_REF'] } else { $null }
     if (-not $ref -or $ref -notmatch '^[a-z]{20}$' -or $ref -eq 'gcmuhzxkwvfireyrearl') { throw 'Production Supabase project ref is unknown or is the staging ref.' }
+    # Canonical form: Supabase refs are lowercase and PowerShell -match is case-insensitive.
+    $ref = $ref.ToLowerInvariant()
     $env:SUPABASE_URL = "https://$ref.supabase.co"
     $env:SUPABASE_SECRET_KEY = $values['SUPABASE_PRODUCTION_SECRET_KEY']
   } else {

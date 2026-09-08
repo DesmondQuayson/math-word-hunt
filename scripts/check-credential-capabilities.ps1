@@ -92,7 +92,7 @@ try {
     } else {
       'STRIPE_LIVE_READONLY_AUTH = FAIL (no live key in vault)'
     }
-    $productionRef = if ($values.ContainsKey('SUPABASE_PRODUCTION_PROJECT_REF')) { $values['SUPABASE_PRODUCTION_PROJECT_REF'] } else { $null }
+    $productionRef = if ($values.ContainsKey('SUPABASE_PRODUCTION_PROJECT_REF')) { $values['SUPABASE_PRODUCTION_PROJECT_REF'].ToLowerInvariant() } else { $null }
     if ($productionRef -and $productionRef -match '^[a-z]{20}$' -and $productionRef -ne $stagingRef) {
       'SUPABASE_PRODUCTION_PROJECT_REF = present'
       $productionSecret = $values['SUPABASE_PRODUCTION_SECRET_KEY']

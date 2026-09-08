@@ -36,6 +36,8 @@ try {
     }
     $ref = if ($ProductionProjectRef) { $ProductionProjectRef } elseif ($values.ContainsKey('SUPABASE_PRODUCTION_PROJECT_REF')) { $values['SUPABASE_PRODUCTION_PROJECT_REF'] } else { $null }
     if (-not $ref -or $ref -notmatch '^[a-z]{20}$') { throw 'Production Supabase project ref is unknown. Pass -ProductionProjectRef or store SUPABASE_PRODUCTION_PROJECT_REF via the refresh prompt.' }
+    # Canonical form: Supabase refs are lowercase and PowerShell -match is case-insensitive.
+    $ref = $ref.ToLowerInvariant()
     $env:SUPABASE_URL = "https://$ref.supabase.co"
     $env:SUPABASE_SECRET_KEY = $values['SUPABASE_PRODUCTION_SECRET_KEY']
   } else {
