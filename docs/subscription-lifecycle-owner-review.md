@@ -308,3 +308,26 @@ Harness realism notes: the API-created trial mirrors the Checkout activation's t
 claim instant); the staging Vercel project's Stripe TEST keys must be refreshed (`-Stage staging-env`) after a sandbox key
 rotation; the locked gate hides every route but the webhook without its cookie, so the scheduler cannot reach the
 reconcile route on the locked alias (production has no gate).
+
+## Production read-only diagnosis (2026-09-08, restricted live key, no writes)
+
+| Evidence | Value |
+| --- | --- |
+| Live webhook endpoint | `…waa9FJ`, enabled, host `mathnexa-platform-production.vercel.app/api/billing/webhook`, API `2026-07-29.dahlia` (= pinned SDK), 7/7 events |
+| Live probe of that URL (unsigned POST) | HTTP 308 → `https://mathnexa.com/api/billing/webhook`; `www.` host also 308; apex answers 400 `invalid-signature` (handler alive) |
+| Stripe events, last 45 days | 16; the two renewal events of 2026-09-06 (`customer.subscription.updated` 22:18:34Z, `invoice.paid` 23:18:52Z) still carry `pending_webhooks=1` (never acknowledged) |
+| Owner subscription (`…BhAsSa`, owner `04f1391b…`) | created 2026-08-05, trial to 2026-08-06, cycle invoices paid $5.99 on 2026-08-06 and 2026-09-06, Stripe `active` through 2026-10-06T22:17:50Z, no cancel |
+| Local projection | `active`, period end 2026-09-06T22:17:50Z, last authoritative event 2026-08-06; entitlement `subscription-active` ends 2026-09-06 → denied since then ("Subscription ended") |
+| Local receipts | 7, all 2026-08-05/06 (processed/ignored); nothing received for the 2026-09-06 renewal |
+| Drift audit (live, dry run) | TOTAL 1, MATCHED 0, MISMATCHED 1, SELF-REPAIRABLE 1, AMBIGUOUS 0, HUMAN REVIEW 0; schema predates migration `20260907130000`, apply unavailable |
+
+**Proven root cause: B → A.** The renewal events were sent to a host that answers 308 (Stripe does not follow
+redirects), so payment 2 never reached the webhook-only projection, which then expired on the previous period end.
+C (API-version rejection) did not occur: the endpoint pins the SDK version and no production receipt was ever
+rejected; the renewal events never arrived at all. Payment 1 (2026-08-06) was processed because the `vercel.app`
+host still served the webhook before the canonical-host redirect shipped on 2026-08-26.
+
+**Repair preview (no write):** synchronize `…BhAsSa` from Stripe → local `active`, period end 2026-10-06T22:17:50Z,
+latest invoice paid 2026-09-06; entitlement `subscription-active` through 2026-10-06 → access YES. No charge, no refund,
+no new checkout. Requires the production migration and deployment first (the synchronizer RPC does not exist in
+production yet); on the deployed fix the customer's first page view self-heals the row even without the CLI.
