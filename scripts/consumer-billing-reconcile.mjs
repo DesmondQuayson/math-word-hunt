@@ -31,7 +31,9 @@ if (environment !== "test" && environment !== "live") throw new Error("--environ
 if (environment === "live" && apply && !args.has("--owner-approved")) throw new Error("Applying to live requires --owner-approved after an explicit owner decision");
 
 const key = process.env.STRIPE_SECRET_KEY?.trim() ?? "";
-if (!key.startsWith(`sk_${environment}_`)) throw new Error(`STRIPE_SECRET_KEY must be an sk_${environment}_ key for --environment=${environment}`);
+// Stripe is only ever READ here (subscriptions, invoices), so a restricted read-only key (rk_) is
+// accepted and preferred for live; every write goes to our own database through the canonical synchronizer.
+if (!key.startsWith(`sk_${environment}_`) && !key.startsWith(`rk_${environment}_`)) throw new Error(`STRIPE_SECRET_KEY must be an sk_${environment}_ or rk_${environment}_ key for --environment=${environment}`);
 const dbUrl = process.env.SUPABASE_URL?.trim() ?? "";
 const dbKey = process.env.SUPABASE_SECRET_KEY?.trim() ?? "";
 if (!dbUrl || !dbKey) throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY are required");
@@ -78,14 +80,24 @@ async function main() {
 
   const report = { checked: 0, matched: 0, mismatched: 0, selfRepairable: 0, ambiguous: 0, humanReview: 0, applied: 0, applyFailed: 0 };
   const lines = [];
+  // Schema probe: production may not carry migration 20260907130000 yet. The
+  // comparison only needs the base columns, so the audit still runs READ-ONLY on
+  // the older schema and reports it; applying requires the synchronizer RPC that
+  // the migration adds, so --apply is refused there.
+  const schemaProbe = await db.from("billing_subscriptions").select("last_synchronized_at").limit(1);
+  const preMigration = Boolean(schemaProbe.error);
+  if (preMigration && apply) throw new Error("This database predates migration 20260907130000 (no synchronizer); apply is refused until the migration is deployed");
+  const localColumns = preMigration
+    ? "stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end"
+    : "stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, last_synchronized_at";
 
   for (const customer of customers.data) {
     report.checked += 1;
     const owner = customer.owner_consumer_id;
     const local = await db.from("billing_subscriptions")
-      .select("stripe_subscription_id, subscription_status, current_period_end, cancel_at_period_end, trial_end, last_synchronized_at")
+      .select(localColumns)
       .eq("owner_consumer_id", owner).eq("stripe_environment", environment);
-    if (local.error) throw new Error("Unable to read billing subscriptions");
+    if (local.error) throw new Error(`Unable to read billing subscriptions: ${local.error.message}`);
     const entitlement = await db.from("consumer_game_entitlements").select("entitlement_state, current_period_ends_at, grace_ends_at, trial_ends_at").eq("user_id", owner).maybeSingle();
     if (entitlement.error) throw new Error("Unable to read entitlements");
 
@@ -160,7 +172,7 @@ async function main() {
     }
   }
 
-  console.log(`Consumer subscription drift audit (${environment}, ${apply ? "APPLY" : "DRY RUN"})`);
+  console.log(`Consumer subscription drift audit (${environment}, ${apply ? "APPLY" : "DRY RUN"}${preMigration ? ", schema predates migration 20260907130000: read-only comparison, apply unavailable" : ""})`);
   for (const line of lines) console.log(`  ${line}`);
   console.log("");
   console.log(`TOTAL SUBSCRIBERS CHECKED  ${report.checked}`);
