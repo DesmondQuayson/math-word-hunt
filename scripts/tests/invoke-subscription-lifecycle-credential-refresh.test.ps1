@@ -3,7 +3,8 @@
 # Uses FAKE values only. Read-Host, Invoke-RestMethod and Invoke-WebRequest are
 # shadowed by mocks defined below, so no provider is contacted, and the vault
 # under test is a temporary file: the real vault in %USERPROFILE% is never read
-# or written. Run with:
+# or written. Mocks record request shape (method, URL, header NAMES, User-Agent)
+# and never store header values. Run with:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\tests\invoke-subscription-lifecycle-credential-refresh.test.ps1
 $ErrorActionPreference = 'Stop'
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'invoke-subscription-lifecycle-credential-refresh.ps1'
@@ -12,7 +13,8 @@ $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'invoke-subscription-
 $script:PromptQueue = New-Object 'System.Collections.Generic.Queue[string]'
 $script:PromptLog = @()
 $script:RestCalls = @()
-$script:WebCalls = @()
+$script:WebRequests = @()
+$script:AcceptedSupabaseKeys = @()
 $script:Failures = 0
 $script:Passes = 0
 
@@ -24,7 +26,7 @@ function Read-Host {
   return (ConvertTo-SecureString $value -AsPlainText -Force)
 }
 function Invoke-RestMethod {
-  param($Uri, $Headers, $Method, $TimeoutSec)
+  param($Uri, $Headers, $Method, $TimeoutSec, $UserAgent)
   $script:RestCalls += [string]$Uri
   if ($Uri -like 'https://api.supabase.com/v1/projects*') {
     return @([pscustomobject]@{ ref = 'gcmuhzxkwvfireyrearl'; name = 'mathnexa-platform-staging' }, [pscustomobject]@{ ref = 'zzzzzzzzzzzzzzzzzzzz'; name = 'other' })
@@ -33,8 +35,23 @@ function Invoke-RestMethod {
   throw "unexpected REST call $Uri"
 }
 function Invoke-WebRequest {
-  param($Uri, $Headers, $Method, [switch]$UseBasicParsing, $TimeoutSec)
-  $script:WebCalls += "$Method $Uri"
+  # Simulates the Supabase gateway and Stripe. Supabase: 200 only when the
+  # apikey header carries an accepted fake key; otherwise a PowerShell 5.1-style
+  # WebException for HTTP 401. Stripe and other hosts: 200.
+  param($Uri, $Headers, $Method, [switch]$UseBasicParsing, $TimeoutSec, $UserAgent)
+  $headerNames = @()
+  if ($Headers) { $headerNames = @($Headers.Keys | Sort-Object) }
+  $apikey = if ($Headers -and $Headers.ContainsKey('apikey')) { [string]$Headers['apikey'] } else { $null }
+  $bearer = if ($Headers -and $Headers.ContainsKey('Authorization')) { [string]$Headers['Authorization'] } else { $null }
+  $script:WebRequests += [pscustomobject]@{
+    Method = [string]$Method; Uri = [string]$Uri; Host = ([Uri]$Uri).Host; HeaderNames = $headerNames; UserAgent = [string]$UserAgent
+    ApiKeyAccepted = ($null -ne $apikey -and $script:AcceptedSupabaseKeys -contains $apikey)
+    BearerMatchesApiKey = ($null -ne $bearer -and $null -ne $apikey -and $bearer -eq "Bearer $apikey")
+  }
+  if ($Uri -like '*.supabase.co/*') {
+    if ($null -ne $apikey -and $script:AcceptedSupabaseKeys -contains $apikey) { return [pscustomobject]@{ StatusCode = 200 } }
+    throw (New-Object System.Net.WebException 'The remote server returned an error: (401) Unauthorized.')
+  }
   return [pscustomobject]@{ StatusCode = 200 }
 }
 # Always pass precomputed strings: inside an array literal the comma binds
@@ -46,15 +63,25 @@ function Assert {
   if ($Condition) { $script:Passes += 1; Write-Host "PASS  $Name" } else { $script:Failures += 1; Write-Host "FAIL  $Name" }
 }
 function Plain { param([Security.SecureString]$Secure) return (Open-SecureValue $Secure) }
+function Base64Url { param([string]$Text) return [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Text)).TrimEnd('=').Replace('+', '-').Replace('/', '_') }
+function FakeJwt { param([string]$Role) return ((Base64Url '{"alg":"HS256","typ":"JWT"}') + '.' + (Base64Url ('{"iss":"supabase","ref":"gcmuhzxkwvfireyrearl","role":"' + $Role + '","iat":1,"exp":2}')) + '.' + (Base64Url 'fake-signature-not-verified')) }
+function LastSupabaseRequest { return @($script:WebRequests | Where-Object { $_.Host -like '*.supabase.co' })[-1] }
 
 $fakeToken = 'sbp_' + ('A' * 40)
 $fakeStagingSecret = 'sb_secret_' + ('B' * 30)
+$fakeStagingPublishable = 'sb_publishable_' + ('P' * 30)
+$fakeLegacyServiceRole = FakeJwt 'service_role'
+$fakeLegacyAnon = FakeJwt 'anon'
+$fakeInvalidSecret = 'sb_secret_' + ('Z' * 30)
 $fakeStripeTest = 'sk_test_' + ('C' * 24)
 $fakeLiveReadOnly = 'rk_live_' + ('D' * 24)
 $fakeProductionRef = 'abcdefghijklmnopqrst'
 $fakeProductionSecret = 'sb_secret_' + ('E' * 30)
 $fakeExisting = 'existing-fake-value-' + ('F' * 20)
 $fakeRejectedToken = 'sbp_' + ('X' * 40)
+$allFakeSecrets = @($fakeToken, $fakeStagingSecret, $fakeStagingPublishable, $fakeLegacyServiceRole, $fakeLegacyAnon, $fakeInvalidSecret, $fakeStripeTest, $fakeLiveReadOnly, $fakeProductionSecret, $fakeExisting, $fakeRejectedToken)
+$script:AcceptedSupabaseKeys = @($fakeStagingSecret, $fakeStagingPublishable, $fakeLegacyServiceRole, $fakeProductionSecret)
+$stagingHost = 'gcmuhzxkwvfireyrearl.supabase.co'
 
 # --- 1. Regression: a capability check that returns $true must yield a SecureString (the original cast bug).
 Queue @($fakeToken)
@@ -89,7 +116,67 @@ $result = Read-OptionalSecret -Prompt 'skip' -FormatCheck { param($v) $true } -C
 Assert ($null -eq $result) 'empty entry returns $null (keep current value)'
 Assert-QueueDrained 'skip test'
 
-# --- 5. End-to-end against a temporary vault (staging prompts only).
+# --- A. Modern sb_secret key succeeds: apikey header only, backend User-Agent, GET on the staging probe.
+$script:WebRequests = @()
+$outcome = Test-StagingSecretKeyCapability $fakeStagingSecret
+Assert ($outcome -eq $true) 'A: modern sb_secret key is accepted'
+$request = LastSupabaseRequest
+Assert ($request.Method -eq 'GET') 'A: capability probe is a GET (minimal read, not HEAD)'
+Assert ($request.Uri -eq "https://$stagingHost/rest/v1/consumer_accounts?select=user_id&limit=1") "A: probe URL is the staging PostgREST read: $($request.Uri)"
+Assert (($request.HeaderNames -join ',') -eq 'apikey') "A: sb_secret travels in the apikey header only (headers: $($request.HeaderNames -join ','))"
+Assert (-not $request.BearerMatchesApiKey) 'A: sb_secret is never sent as Authorization: Bearer'
+Assert ($request.UserAgent -eq $script:BackendUserAgent -and $request.UserAgent -notlike 'Mozilla*') "A: backend User-Agent sent, not a browser one: $($request.UserAgent)"
+Assert ((Get-SupabaseKeyKind $fakeStagingSecret) -eq 'secret') 'A: key kind detected as modern secret without JWT decoding'
+
+# --- B. Legacy service_role JWT succeeds with apikey + Bearer; anon JWT is rejected with a role message.
+$script:WebRequests = @()
+$outcome = Test-StagingSecretKeyCapability $fakeLegacyServiceRole
+Assert ($outcome -eq $true) 'B: legacy service_role JWT is accepted'
+$request = LastSupabaseRequest
+Assert ($request.HeaderNames.Count -eq 2 -and ($request.HeaderNames -contains 'apikey') -and ($request.HeaderNames -contains 'Authorization') -and $request.BearerMatchesApiKey) "B: legacy JWT travels as apikey + Authorization: Bearer <jwt> (headers: $($request.HeaderNames -join ','))"
+Assert ($request.UserAgent -eq $script:BackendUserAgent) 'B: legacy path also uses the backend User-Agent'
+$requestsBefore = $script:WebRequests.Count
+$outcome = Test-StagingSecretKeyCapability $fakeLegacyAnon
+Assert ($outcome -like "*role is 'anon'*") "B: anon JWT rejected locally with a role message: $outcome"
+Assert ($script:WebRequests.Count -eq $requestsBefore) 'B: anon JWT rejection makes no network request'
+Assert ((Test-StagingSecretKeyFormat $fakeStagingPublishable) -eq $false) 'B: publishable key fails the secret-key format check'
+
+# --- C. Invalid key gives a controlled 401 message without the key.
+$outcome = Test-StagingSecretKeyCapability $fakeInvalidSecret
+Assert ($outcome -like 'PostgREST read returned 401 from staging project gcmuhzxkwvfireyrearl (secret key, apikey header only, backend User-Agent)*') "C: invalid key yields the controlled 401 message: $outcome"
+Assert (-not ([string]$outcome).Contains($fakeInvalidSecret)) 'C: 401 message does not contain the key'
+Assert ((Get-HttpFailureStatus ([System.Management.Automation.ErrorRecord]::new((New-Object System.Net.WebException 'The remote server returned an error: (401) Unauthorized.'), 'x', 'InvalidOperation', $null))) -eq 401) 'C: PowerShell 5.1 WebException message maps to status 401'
+
+# --- D. Staging validation always targets the staging ref.
+$script:WebRequests = @()
+Test-StagingSecretKeyCapability $fakeStagingSecret | Out-Null
+Test-StagingSecretKeyCapability $fakeLegacyServiceRole | Out-Null
+Test-StagingPublishableKeyCapability $fakeStagingPublishable | Out-Null
+Test-StagingSecretKeyCapability $fakeInvalidSecret | Out-Null
+$hosts = @($script:WebRequests | ForEach-Object { $_.Host } | Sort-Object -Unique)
+Assert ($hosts.Count -eq 1 -and $hosts[0] -eq $stagingHost) "D: every staging validation request targets $stagingHost (seen: $($hosts -join ','))"
+Assert (@($script:WebRequests | Where-Object { $_.Uri -notlike "https://$stagingHost/rest/v1/*" -and $_.Uri -ne "https://$stagingHost/auth/v1/settings" }).Count -eq 0) 'D: every staging validation URL is a staging PostgREST or Auth-settings read'
+$publishableProbe = @($script:WebRequests | Where-Object { $_.Uri -eq "https://$stagingHost/auth/v1/settings" })
+Assert ($publishableProbe.Count -eq 1 -and $publishableProbe[0].Method -eq 'GET' -and (($publishableProbe[0].HeaderNames -join ',') -eq 'apikey') -and $publishableProbe[0].UserAgent -eq $script:BackendUserAgent) 'D: publishable key proven with GET /auth/v1/settings, apikey header only, backend User-Agent'
+
+# --- E. A production ref in scope or in the vault can never reach the staging validator.
+$script:WebRequests = @()
+$productionRef = ConvertTo-SecureString $fakeProductionRef -AsPlainText -Force
+$vault = [pscustomobject]@{ Values = [pscustomobject]@{ SUPABASE_PRODUCTION_PROJECT_REF = (ConvertTo-SecureString $fakeProductionRef -AsPlainText -Force) } }
+$outcome = Test-StagingSecretKeyCapability $fakeStagingSecret
+Assert ($outcome -eq $true -and (LastSupabaseRequest).Host -eq $stagingHost) 'E: staging validator ignores a production ref in scope and in the vault'
+Assert (@($script:WebRequests | Where-Object { $_.Host -like "$fakeProductionRef*" }).Count -eq 0) 'E: no staging validation request touched the production host'
+$savedOrigin = $script:StagingRestOrigin
+$script:StagingRestOrigin = "https://$fakeProductionRef.supabase.co"
+$refusal = ''
+try { Get-StagingRestUri '/rest/v1/' | Out-Null } catch { $refusal = $_.Exception.Message }
+$script:StagingRestOrigin = $savedOrigin
+Assert ($refusal -like "*refused non-staging host '$fakeProductionRef.supabase.co'*") "E: a tampered staging origin is refused before any request: $refusal"
+$outcome = Test-ProductionSecretKeyCapability -Key $fakeProductionSecret -ProjectRef 'gcmuhzxkwvfireyrearl'
+Assert ($outcome -like '*STAGING project ref, not production*') 'E: production validator refuses the staging ref'
+$productionRef.Dispose(); Remove-Variable productionRef; Remove-Variable vault
+
+# --- 5. End-to-end against a temporary vault (staging prompts only), with host-output capture for leakage checks.
 $tempVault = Join-Path $env:TEMP ("credential-refresh-test-" + [guid]::NewGuid().ToString('N') + '.clixml')
 $vaultObject = [pscustomobject]@{
   Version = 1
@@ -100,48 +187,68 @@ $vaultObject = [pscustomobject]@{
   }
 }
 $vaultObject | Export-Clixml -LiteralPath $tempVault
+$hostOutput = @()
 try {
-  Queue @($fakeToken, $fakeStagingSecret, '', '', $fakeStripeTest, '')
-  $refreshed = @(Invoke-CredentialRefresh -VaultPath $tempVault -SkipLive)
-  Assert (($refreshed -join ',') -eq 'STRIPE_SECRET_KEY,SUPABASE_ACCESS_TOKEN,SUPABASE_SECRET_KEY') "refresh reports exactly the entered names: $($refreshed -join ',')"
+  $script:WebRequests = @()
+  Queue @($fakeToken, $fakeInvalidSecret, $fakeStagingSecret, $fakeStagingPublishable, '', $fakeStripeTest, '')
+  $captured = @(Invoke-CredentialRefresh -VaultPath $tempVault -SkipLive 6>&1)
+  $refreshed = @($captured | Where-Object { $_ -is [string] })
+  $hostOutput += @($captured | Where-Object { $_ -isnot [string] } | ForEach-Object { [string]$_ })
+  Assert (($refreshed -join ',') -eq 'STRIPE_SECRET_KEY,SUPABASE_ACCESS_TOKEN,SUPABASE_PUBLISHABLE_KEY,SUPABASE_SECRET_KEY') "refresh reports exactly the entered names: $($refreshed -join ',')"
+  Assert (($hostOutput | Where-Object { $_ -like '*capability check failed: PostgREST read returned 401*' }).Count -eq 1) 'invalid staging key produced one controlled 401 message, then the valid key was accepted'
   $stored = Import-Clixml -LiteralPath $tempVault
   Assert ($stored.Values.SUPABASE_ACCESS_TOKEN -is [Security.SecureString] -and (Plain $stored.Values.SUPABASE_ACCESS_TOKEN) -eq $fakeToken) 'token stored as SecureString and round-trips'
   Assert ((Plain $stored.Values.SUPABASE_SECRET_KEY) -eq $fakeStagingSecret) 'staging secret key stored and round-trips'
+  Assert ((Plain $stored.Values.SUPABASE_PUBLISHABLE_KEY) -eq $fakeStagingPublishable) 'staging publishable key stored and round-trips'
   Assert ((Plain $stored.Values.STRIPE_SECRET_KEY) -eq $fakeStripeTest) 'sandbox key stored and round-trips'
   Assert ((Plain $stored.Values.EXISTING_ENTRY) -eq $fakeExisting) 'untouched entries are preserved'
   Assert ($null -ne $stored.Values.STRIPE_LIVE_SECRET_KEY) 'live entry preserved when -SkipLive'
-  Assert ($null -eq $stored.Values.PSObject.Properties['SUPABASE_PUBLISHABLE_KEY']) 'skipped prompt adds no entry'
   $serialized = Get-Content -LiteralPath $tempVault -Raw
   Assert (-not ($serialized.Contains($fakeToken) -or $serialized.Contains($fakeStagingSecret) -or $serialized.Contains($fakeStripeTest) -or $serialized.Contains($fakeExisting))) 'serialized vault contains no plaintext value'
   Assert (-not (Test-Path -LiteralPath "$tempVault.pending")) 'pending file removed after promotion'
   Assert (($script:RestCalls | Where-Object { $_ -like 'https://api.supabase.com/v1/projects*' }).Count -ge 1) 'token verified via a read-only projects list'
-  Assert (($script:WebCalls | Where-Object { $_ -like 'HEAD https://gcmuhzxkwvfireyrearl.supabase.co/rest/v1/billing_subscriptions*' }).Count -eq 1) 'staging secret key verified via a read-only HEAD'
-  Assert (($script:WebCalls | Where-Object { $_ -like 'GET https://api.stripe.com/v1/prices/price_1TzKso4YQNsZa1pjh5UZvcV7*' }).Count -eq 1) 'sandbox key verified against the sandbox price (read)'
-  Assert (-not ($script:WebCalls -join ' ').Contains($fakeToken) -and -not ($script:RestCalls -join ' ').Contains($fakeToken)) 'no secret value appears in a request URL'
+  Assert (@($script:WebRequests | Where-Object { $_.Method -eq 'GET' -and $_.Uri -eq "https://$stagingHost/rest/v1/consumer_accounts?select=user_id&limit=1" }).Count -eq 2) 'staging secret keys (invalid + valid) verified via the read-only GET probe'
+  Assert (@($script:WebRequests | Where-Object { $_.Uri -like 'https://api.stripe.com/v1/prices/price_1TzKso4YQNsZa1pjh5UZvcV7*' }).Count -eq 1) 'sandbox key verified against the sandbox price (read)'
+  Assert (@($script:WebRequests | Where-Object { $_.Method -notin @('GET', '') }).Count -eq 0) 'every capability request is a GET (read only)'
   Assert-QueueDrained 'staging refresh'
 
   # --- 6. All Enter: no changes, vault untouched.
   $hashBefore = (Get-FileHash -LiteralPath $tempVault -Algorithm SHA256).Hash
   Queue @('', '', '', '', '', '')
-  $none = @(Invoke-CredentialRefresh -VaultPath $tempVault -SkipLive)
+  $none = @(Invoke-CredentialRefresh -VaultPath $tempVault -SkipLive 6>$null)
   Assert ($none.Count -eq 0) 'all-Enter run reports no changes'
   Assert ((Get-FileHash -LiteralPath $tempVault -Algorithm SHA256).Hash -eq $hashBefore) 'all-Enter run leaves the vault byte-identical'
   Assert-QueueDrained 'all-Enter run'
 
   # --- 7. Live prompts (rk_live restricted key, production ref, production secret) store under the expected names.
+  $script:WebRequests = @()
   Queue @('', '', '', '', '', '', $fakeLiveReadOnly, $fakeProductionRef, $fakeProductionSecret)
-  $live = @(Invoke-CredentialRefresh -VaultPath $tempVault)
+  $captured = @(Invoke-CredentialRefresh -VaultPath $tempVault 6>&1)
+  $live = @($captured | Where-Object { $_ -is [string] })
+  $hostOutput += @($captured | Where-Object { $_ -isnot [string] } | ForEach-Object { [string]$_ })
   Assert (($live -join ',') -eq 'STRIPE_LIVE_READONLY_KEY,SUPABASE_PRODUCTION_PROJECT_REF,SUPABASE_PRODUCTION_SECRET_KEY') "live prompts stored under expected names: $($live -join ',')"
   $stored = Import-Clixml -LiteralPath $tempVault
   Assert ((Plain $stored.Values.STRIPE_LIVE_READONLY_KEY) -eq $fakeLiveReadOnly) 'restricted live key round-trips'
   Assert ((Plain $stored.Values.SUPABASE_PRODUCTION_PROJECT_REF) -eq $fakeProductionRef) 'production ref round-trips'
-  Assert (($script:WebCalls | Where-Object { $_ -like "HEAD https://$fakeProductionRef.supabase.co/rest/v1/billing_subscriptions*" }).Count -eq 1) 'production secret verified against the entered production ref (read-only HEAD)'
+  $productionProbe = @($script:WebRequests | Where-Object { $_.Uri -eq "https://$fakeProductionRef.supabase.co/rest/v1/consumer_accounts?select=user_id&limit=1" })
+  Assert ($productionProbe.Count -eq 1 -and $productionProbe[0].Method -eq 'GET' -and (($productionProbe[0].HeaderNames -join ',') -eq 'apikey')) 'production secret verified with a read-only GET, apikey header only, against the entered production ref'
+  Assert (@($script:WebRequests | Where-Object { $_.Host -eq $stagingHost }).Count -eq 0) 'live-only run sends nothing to the staging host'
   Assert ((Plain $stored.Values.SUPABASE_ACCESS_TOKEN) -eq $fakeToken) 'earlier entries survive a later refresh'
   Assert-QueueDrained 'live refresh'
 } finally {
   Remove-Item -LiteralPath $tempVault -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath "$tempVault.pending" -Force -ErrorAction SilentlyContinue
 }
+
+# --- F. Secrets are never logged: host output, recorded request shapes, and REST call log contain no fake secret.
+$everything = @($hostOutput) + @($script:RestCalls) + @($script:WebRequests | ForEach-Object { "$($_.Method) $($_.Uri) $($_.HeaderNames -join ',') $($_.UserAgent)" }) + @($script:PromptLog)
+$leaks = @()
+foreach ($secret in $allFakeSecrets) { foreach ($line in $everything) { if ($line -and $line.Contains($secret)) { $leaks += $secret.Substring(0, 6) } } }
+Assert ($leaks.Count -eq 0) "F: no fake secret appears in host output, request URLs, header names, User-Agent, or prompts ($($everything.Count) lines checked)"
+# Header VALUES never appear: no "Bearer <token>" and no "apikey: <value>" / "apikey=<value>" (the
+# strategy description "apikey header only" in a status message is not a value).
+Assert (($hostOutput | Where-Object { $_ -match 'Bearer\s+\S+' -or $_ -match 'apikey\s*[:=]\s*\S+' }).Count -eq 0) 'F: host output never contains an Authorization or apikey header value'
+Assert ($hostOutput.Count -gt 5) "F: host output was actually captured for the leakage check ($($hostOutput.Count) lines)"
 
 Write-Host ''
 Write-Host "RESULT  passed=$($script:Passes) failed=$($script:Failures)"

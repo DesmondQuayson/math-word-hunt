@@ -2,7 +2,8 @@ param(
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml'),
   [switch]$SkipLive,
   # Dot-source with -LibraryOnly to load the functions without prompting (used by
-  # scripts/tests/invoke-subscription-lifecycle-credential-refresh.test.ps1).
+  # scripts/tests/invoke-subscription-lifecycle-credential-refresh.test.ps1 and
+  # scripts/check-credential-capabilities.ps1).
   [switch]$LibraryOnly
 )
 # OWNER-RUN, FOREGROUND ONLY. Refreshes the credentials the subscription
@@ -14,15 +15,36 @@ param(
 #   * plaintext-absence check on the serialized vault
 # Press Enter on an optional prompt to keep the vault's current value.
 #
+# Supabase key contract (https://supabase.com/docs/guides/api/api-keys):
+#   * modern secret keys (sb_secret_...) are API keys, not JWTs. They travel in
+#     the `apikey` header ONLY and are never sent as `Authorization: Bearer`.
+#   * "A secret key doesn't work in a browser. Supabase matches on the
+#     User-Agent header and returns HTTP 401 Unauthorized." Windows PowerShell's
+#     default User-Agent starts with "Mozilla/5.0 (...) WindowsPowerShell/...",
+#     which that check treats as a browser, so every request here sends an
+#     explicit backend User-Agent.
+#   * legacy service_role JWTs (eyJ...) keep the classic contract:
+#     `apikey: <jwt>` plus `Authorization: Bearer <jwt>`.
+#   * the staging validator is pinned to project gcmuhzxkwvfireyrearl; any other
+#     host is refused before a request is made.
+#
 # Every validator is a ScriptBlock invoked with the plaintext as its only
 # argument. Read-OptionalSecret refuses anything that is not a ScriptBlock
 # before it reads a value, and never assigns a validator's Boolean result to a
 # variable that shares a name with a parameter (PowerShell variable names are
-# case-insensitive; that collision is what broke the first version).
+# case-insensitive).
 $ErrorActionPreference = 'Stop'
 $script:StagingProjectRef = 'gcmuhzxkwvfireyrearl'
+$script:StagingRestOrigin = "https://$($script:StagingProjectRef).supabase.co"
+$script:BackendUserAgent = 'mathnexa-credential-refresh/1.1 (backend script; Windows PowerShell)'
 $script:StripeApiVersion = '2026-07-29.dahlia'
 $script:SandboxPriceId = 'price_1TzKso4YQNsZa1pjh5UZvcV7'
+# Minimal read used to prove a SECRET key: consumer_accounts revokes anon and
+# authenticated access, so a publishable key or a key from another project
+# fails here while the service role reads at most one row (never displayed).
+$script:SecretKeyProbePath = '/rest/v1/consumer_accounts?select=user_id&limit=1'
+# Minimal read used to prove a PUBLISHABLE key (public Auth settings document).
+$script:PublishableKeyProbePath = '/auth/v1/settings'
 
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
@@ -67,20 +89,123 @@ function Read-OptionalSecret {
   throw "Credential correction limit reached for '$Prompt'."
 }
 
+function Get-HttpFailureStatus {
+  param($ErrorRecord)
+  $response = $ErrorRecord.Exception.Response
+  if ($null -ne $response -and $null -ne $response.StatusCode) { return [int]$response.StatusCode }
+  if ($ErrorRecord.Exception.Message -match '\((\d{3})\)') { return [int]$Matches[1] }
+  return 0
+}
+
 function Http {
+  # Read-only request as a backend client. Returns the HTTP status only; the
+  # body is discarded and headers are never echoed.
   param([string]$Uri, [hashtable]$Headers, [string]$Method = 'GET')
   try {
-    $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -Method $Method -UseBasicParsing -TimeoutSec 30
+    $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -Method $Method -UserAgent $script:BackendUserAgent -UseBasicParsing -TimeoutSec 30
     return [int]$response.StatusCode
   } catch {
-    if ($_.Exception.Response) { return [int]$_.Exception.Response.StatusCode }
-    return 0
+    return (Get-HttpFailureStatus $_)
   }
 }
 
 function Json {
   param([string]$Uri, [hashtable]$Headers)
-  return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get -TimeoutSec 30
+  return Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get -UserAgent $script:BackendUserAgent -TimeoutSec 30
+}
+
+# --- Supabase key handling ---------------------------------------------------
+function Get-SupabaseKeyKind {
+  param([string]$Key)
+  if ($Key -match '^sb_secret_[A-Za-z0-9_\-]{10,}$') { return 'secret' }
+  if ($Key -match '^sb_publishable_[A-Za-z0-9_\-]{10,}$') { return 'publishable' }
+  if ($Key -match '^eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+$') { return 'legacy-jwt' }
+  return 'unknown'
+}
+
+function Get-JwtRole {
+  # Reads the `role` claim of a legacy JWT locally (no network, nothing printed).
+  param([string]$Jwt)
+  try {
+    $payload = $Jwt.Split('.')[1].Replace('-', '+').Replace('_', '/')
+    switch ($payload.Length % 4) { 2 { $payload += '==' } 3 { $payload += '=' } }
+    $claims = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload)) | ConvertFrom-Json
+    return [string]$claims.role
+  } catch { return '' }
+}
+
+function New-SupabaseReadHeaders {
+  # Modern keys: apikey only (never Bearer). Legacy JWTs: apikey + Bearer.
+  param([string]$Key)
+  switch (Get-SupabaseKeyKind $Key) {
+    'secret' { return @{ apikey = $Key } }
+    'publishable' { return @{ apikey = $Key } }
+    'legacy-jwt' { return @{ apikey = $Key; Authorization = "Bearer $Key" } }
+    default { throw 'Unsupported Supabase key format.' }
+  }
+}
+
+function Get-StagingRestUri {
+  # Every staging validator URL is built from the pinned staging ref and
+  # re-checked, so a production ref in scope or in the vault can never leak in.
+  param([string]$Path)
+  $uri = "$($script:StagingRestOrigin)$Path"
+  $targetHost = ([Uri]$uri).Host
+  $expectedHost = "$($script:StagingProjectRef).supabase.co"
+  if ($targetHost -ne $expectedHost) { throw "Staging validator refused non-staging host '$targetHost' (expected $expectedHost)." }
+  return $uri
+}
+
+function Test-StagingSecretKeyFormat {
+  param([string]$Key)
+  return ((Get-SupabaseKeyKind $Key) -in @('secret', 'legacy-jwt'))
+}
+
+function Test-StagingSecretKeyCapability {
+  # READ ONLY. Proves the key is accepted by the STAGING project as a secret
+  # (service-level) key. Returns $true or a message that never contains the key.
+  param([string]$Key)
+  $kind = Get-SupabaseKeyKind $Key
+  if ($kind -eq 'legacy-jwt') {
+    $role = Get-JwtRole $Key
+    if ($role -ne 'service_role') { return "legacy JWT role is '$role'; the staging secret must be the service_role JWT or an sb_secret_ key" }
+  }
+  $status = Http (Get-StagingRestUri $script:SecretKeyProbePath) (New-SupabaseReadHeaders $Key)
+  if ($status -ne 200) {
+    $strategy = if ($kind -eq 'legacy-jwt') { 'apikey + Authorization Bearer' } else { 'apikey header only' }
+    return "PostgREST read returned $status from staging project $($script:StagingProjectRef) ($kind key, $strategy, backend User-Agent). A publishable key, a key from another project, or a revoked key fails here."
+  }
+  return $true
+}
+
+function Test-StagingPublishableKeyFormat {
+  param([string]$Key)
+  return ((Get-SupabaseKeyKind $Key) -in @('publishable', 'legacy-jwt'))
+}
+
+function Test-StagingPublishableKeyCapability {
+  # READ ONLY. The PostgREST root (OpenAPI) is not exposed to the anon role on
+  # this project, so a publishable key is proven with the public Auth settings
+  # read, which answers 200 for any valid key of the project.
+  param([string]$Key)
+  $status = Http (Get-StagingRestUri $script:PublishableKeyProbePath) (New-SupabaseReadHeaders $Key)
+  if ($status -ne 200) { return "Auth settings read returned $status from staging project $($script:StagingProjectRef) (apikey header only, backend User-Agent)" }
+  return $true
+}
+
+function Test-ProductionSecretKeyCapability {
+  # READ ONLY against the production project named by the owner. Same header
+  # strategy as staging; the ref comes from this prompt or the vault, never
+  # from the staging constant.
+  param([string]$Key, [string]$ProjectRef)
+  if (-not $ProjectRef) { return 'production project ref is required first' }
+  if ($ProjectRef -notmatch '^[a-z]{20}$') { return 'production project ref must be 20 lowercase letters' }
+  if ($ProjectRef -eq $script:StagingProjectRef) { return 'that is the STAGING project ref, not production' }
+  $kind = Get-SupabaseKeyKind $Key
+  if ($kind -eq 'legacy-jwt' -and (Get-JwtRole $Key) -ne 'service_role') { return 'legacy JWT is not a service_role key' }
+  $status = Http "https://$ProjectRef.supabase.co$($script:SecretKeyProbePath)" (New-SupabaseReadHeaders $Key)
+  if ($status -ne 200) { return "PostgREST read returned $status from production project ($kind key)" }
+  return $true
 }
 
 function Invoke-CredentialRefresh {
@@ -99,7 +224,7 @@ function Invoke-CredentialRefresh {
     Write-Host 'MathNexa subscription lifecycle credential refresh. Values are never displayed.'
     Write-Host 'Where to get each one:'
     Write-Host '  Supabase personal access token  -> supabase.com/dashboard/account/tokens (starts with sbp_)'
-    Write-Host "  Staging secret / publishable key -> project $stagingRef > Settings > API keys"
+    Write-Host "  Staging secret / publishable key -> project $stagingRef > Settings > API keys (sb_secret_ / sb_publishable_, or the legacy service_role / anon JWT)"
     Write-Host '  Stripe SANDBOX secret key        -> Stripe dashboard, TEST/sandbox mode, Developers > API keys (sk_test_)'
     Write-Host '  Stripe LIVE restricted key       -> Developers > API keys > Create restricted key, READ permissions only (rk_live_)'
     Write-Host '  Production Supabase ref/key      -> the production project ref (from its dashboard URL) and its secret key'
@@ -113,20 +238,10 @@ function Invoke-CredentialRefresh {
     }
     if ($token) { $updates['SUPABASE_ACCESS_TOKEN'] = $token }
 
-    $secretKey = Read-OptionalSecret -Prompt 'Staging Supabase secret key (sb_secret_... or service_role JWT)' -FormatCheck { param($v) $v -match '^(sb_secret_[A-Za-z0-9_\-]{10,}|eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)$' } -CapabilityCheck {
-      param($v)
-      $status = Http "https://$stagingRef.supabase.co/rest/v1/billing_subscriptions?select=id&limit=1" @{ apikey = $v; Authorization = "Bearer $v" } 'HEAD'
-      if ($status -ne 200) { return "PostgREST HEAD returned $status" }
-      return $true
-    }
+    $secretKey = Read-OptionalSecret -Prompt 'Staging Supabase secret key (sb_secret_... or legacy service_role JWT)' -FormatCheck { param($v) Test-StagingSecretKeyFormat $v } -CapabilityCheck { param($v) Test-StagingSecretKeyCapability $v }
     if ($secretKey) { $updates['SUPABASE_SECRET_KEY'] = $secretKey }
 
-    $publishable = Read-OptionalSecret -Prompt 'Staging Supabase publishable key (sb_publishable_... or anon JWT)' -FormatCheck { param($v) $v -match '^(sb_publishable_[A-Za-z0-9_\-]{10,}|eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)$' } -CapabilityCheck {
-      param($v)
-      $status = Http "https://$stagingRef.supabase.co/rest/v1/" @{ apikey = $v }
-      if ($status -ne 200) { return "PostgREST root returned $status" }
-      return $true
-    }
+    $publishable = Read-OptionalSecret -Prompt 'Staging Supabase publishable key (sb_publishable_... or legacy anon JWT)' -FormatCheck { param($v) Test-StagingPublishableKeyFormat $v } -CapabilityCheck { param($v) Test-StagingPublishableKeyCapability $v }
     if ($publishable) { $updates['SUPABASE_PUBLISHABLE_KEY'] = $publishable }
 
     $dbPassword = Read-OptionalSecret -Prompt 'Staging database password (only if it was reset since 2026-08-02)' -FormatCheck { param($v) $v.Length -ge 16 } -CapabilityCheck { param($v) $true }
@@ -158,7 +273,7 @@ function Invoke-CredentialRefresh {
       }
       if ($liveReadOnly) { $updates['STRIPE_LIVE_READONLY_KEY'] = $liveReadOnly }
 
-      $productionRef = Read-OptionalSecret -Prompt 'Production Supabase project ref (20 lowercase letters, from the dashboard URL)' -FormatCheck { param($v) $v -match '^[a-z]{20}$' } -CapabilityCheck {
+      $productionRef = Read-OptionalSecret -Prompt 'Production Supabase project ref (20 lowercase letters, from the dashboard URL)' -FormatCheck { param($v) $v -match '^[a-z]{20}$' -and $v -ne $stagingRef } -CapabilityCheck {
         param($v)
         $status = Http "https://$v.supabase.co/rest/v1/" @{}
         if ($status -eq 0) { return 'host does not resolve' }
@@ -166,13 +281,10 @@ function Invoke-CredentialRefresh {
       }
       if ($productionRef) { $updates['SUPABASE_PRODUCTION_PROJECT_REF'] = $productionRef }
 
-      $productionSecret = Read-OptionalSecret -Prompt 'Production Supabase secret key (read-only use; sb_secret_... or service_role JWT)' -FormatCheck { param($v) $v -match '^(sb_secret_[A-Za-z0-9_\-]{10,}|eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)$' } -CapabilityCheck {
+      $productionSecret = Read-OptionalSecret -Prompt 'Production Supabase secret key (read-only use; sb_secret_... or legacy service_role JWT)' -FormatCheck { param($v) Test-StagingSecretKeyFormat $v } -CapabilityCheck {
         param($v)
-        $ref = if ($productionRef) { Open-SecureValue $productionRef } elseif ($vault.Values.PSObject.Properties['SUPABASE_PRODUCTION_PROJECT_REF']) { Open-SecureValue $vault.Values.SUPABASE_PRODUCTION_PROJECT_REF } else { $null }
-        if (-not $ref) { return 'production project ref is required first' }
-        $status = Http "https://$ref.supabase.co/rest/v1/billing_subscriptions?select=id&limit=1" @{ apikey = $v; Authorization = "Bearer $v" } 'HEAD'
-        if ($status -ne 200) { return "PostgREST HEAD returned $status" }
-        return $true
+        $ref = if ($productionRef) { Open-SecureValue $productionRef } elseif ($vault.Values.PSObject.Properties['SUPABASE_PRODUCTION_PROJECT_REF']) { Open-SecureValue $vault.Values.SUPABASE_PRODUCTION_PROJECT_REF } else { '' }
+        Test-ProductionSecretKeyCapability -Key $v -ProjectRef $ref
       }
       if ($productionSecret) { $updates['SUPABASE_PRODUCTION_SECRET_KEY'] = $productionSecret }
     }
