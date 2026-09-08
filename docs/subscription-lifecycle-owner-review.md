@@ -331,3 +331,29 @@ host still served the webhook before the canonical-host redirect shipped on 2026
 latest invoice paid 2026-09-06; entitlement `subscription-active` through 2026-10-06 → access YES. No charge, no refund,
 no new checkout. Requires the production migration and deployment first (the synchronizer RPC does not exist in
 production yet); on the deployed fix the customer's first page view self-heals the row even without the CLI.
+
+## Production repair (2026-09-08, owner-approved)
+
+| Step | Result |
+| --- | --- |
+| Production identity | Vercel project `mathnexa-platform-production` serving `mathnexa.com`; Supabase project `hdtnbuowvdjwnkdqtdbv` (us-east-2) reached over the IPv4 session pooler |
+| Rollback target retained | `dpl_8LhZm4s8jJDvKnLgpxJPPqYVNopQ` (pre-repair application) |
+| Migration | `20260907130000` was the ONLY pending migration (32 applied before, 33 after); rollback file present |
+| Schema verification | synchronizer, throttle, wrapper delegating to it, `sync-billing` admin op, all 5 columns, event alias, failure classes, stale/superseded guards, RLS enabled and forced on all 5 billing tables, 16 policies, 43 indexes, service-role grants, revoked from anon |
+| Billing row counts | unchanged by the migration: customers 1, subscriptions 1, entitlements 1, receipts 7, accounts 4 |
+| Deployment | exact certified runtime `1e707ee`, staged with `--prod --skip-domain` (no domain moved), then promoted |
+| Live webhook host (the defect) | `mathnexa-platform-production.vercel.app/api/billing/webhook`: **308 before → 400 `invalid-signature` after**, handler matched |
+| Apex webhook | 400 `invalid-signature` before and after |
+| Stripe endpoint configuration | UNCHANGED; no new signing secret |
+| Scheduler | `CRON_SECRET` created for production only (differs from staging): no bearer 401, wrong bearer 401, staging bearer 401, production bearer 200 with aggregates (0 candidates) |
+| Customer repair | strict gate passed (1 subscriber, 1 local row, suffix `…BhAsSa`, Stripe active, no cancellation, latest invoice paid, Stripe period later than local); applied owner-scoped: 1 applied / 0 failed |
+| Repaired state | local `active`, period end `2026-10-06T22:17:50Z` = Stripe exactly; entitlement `subscription-active` to the same instant; billing history preserved (first paid 2026-08-05, last paid 2026-09-06); 1 subscription row, 1 entitlement row; all table counts unchanged |
+| Product/security smoke | public pages 200; gated routes 307 to the access gate; forged access query denied; game runtime 401; admin page and action 404; fixture route 404; unsigned and forged-signature webhooks 400; personalized routes `private, no-store` |
+| Observability | structured billing events only (`webhook-signature-invalid`, `reconciliation-sweep-completed` with aggregate counts); no email, key, full customer id, full subscription id or signing secret in sampled logs |
+
+Notes for the next operator:
+
+* The `www.mathnexa.com` 308 is a **Vercel domain-level** redirect (its response carries no application headers), so no runtime change affects it; no Stripe endpoint is configured there.
+* `MVH_BUILD_ID` is a static project variable, so `/api/health` reports the same build string across deployments. Use the deployment id from `vercel inspect`, or the webhook host behaviour, to tell deployments apart.
+* Deployment-specific URLs on this project are behind Vercel SSO and no automation bypass secret is configured, so a staged deployment cannot be probed over HTTP before promotion. The promote step is therefore paired with an immediate live probe and an automatic alias rollback.
+* Two Stripe events from 2026-09-06 remain `pending_webhooks=1`. If Stripe redelivers them, the synchronizer's stale-snapshot guard ignores them (their event timestamp predates the repair), so `current_period_end` cannot regress.

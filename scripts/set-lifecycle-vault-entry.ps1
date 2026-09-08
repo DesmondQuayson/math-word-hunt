@@ -1,5 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)][ValidateSet('CRON_SECRET_STAGING', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_LIVE_READONLY_KEY', 'SUPABASE_PRODUCTION_PROJECT_REF')][string]$Name,
+  [Parameter(Mandatory = $true)][ValidateSet('CRON_SECRET_STAGING', 'CRON_SECRET_PRODUCTION', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_LIVE_READONLY_KEY', 'SUPABASE_PRODUCTION_PROJECT_REF')][string]$Name,
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 # Non-interactive vault write used by the staging pipeline for values it

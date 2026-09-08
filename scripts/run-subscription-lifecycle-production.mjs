@@ -267,32 +267,50 @@ async function verify() {
     supabase(["db", "dump", "--db-url", url, "--schema", "public", "-f", target], workRoot);
     dump = readFileSync(target, "utf8");
   });
+  // pg_dump quotes every identifier ("public"."name"), so each check tolerates
+  // optional quotes rather than assuming the bare form.
   const has = (needle) => dump.includes(needle);
+  const q = (name) => `"?${name}"?`;
+  const definesFunction = (name) => new RegExp(`CREATE (?:OR REPLACE )?FUNCTION ${q("public")}\\.${q(name)}`).test(dump);
+  const rlsFor = (table, mode) => new RegExp(`ALTER TABLE (?:ONLY )?${q("public")}\\.${q(table)} ${mode} ROW LEVEL SECURITY`).test(dump);
   const results = {
-    synchronizer: has("FUNCTION public.synchronize_consumer_billing_subscription"),
-    throttle: has("FUNCTION public.mark_consumer_billing_reconciliation_attempt"),
-    wrapper: has("FUNCTION public.apply_consumer_billing_projection"),
-    adminSyncBilling: /prepare_admin_account_operation[\s\S]{0,4000}sync-billing/.test(dump),
-    columnEndedAt: /billing_subscriptions[\s\S]{0,4000}ended_at timestamp/.test(dump),
+    synchronizer: definesFunction("synchronize_consumer_billing_subscription"),
+    throttle: definesFunction("mark_consumer_billing_reconciliation_attempt"),
+    wrapper: definesFunction("apply_consumer_billing_projection"),
+    wrapperDelegatesToSynchronizer: /apply_consumer_billing_projection[\s\S]{0,2000}synchronize_consumer_billing_subscription/.test(dump),
+    adminSyncBilling: /prepare_admin_account_operation[\s\S]{0,6000}sync-billing/.test(dump),
+    columnEndedAt: new RegExp(`${q("ended_at")} timestamp`).test(dump),
     columnLatestInvoiceId: has("latest_invoice_id"),
     columnLastSynchronizedAt: has("last_synchronized_at"),
     columnLastSynchronizationSource: has("last_synchronization_source"),
     columnLastReconciliationAttemptAt: has("last_reconciliation_attempt_at"),
     eventAlias: has("invoice.payment_succeeded"),
     failureClasses: has("conflicting_current_subscription") && has("invoice_state_conflict") && has("trial_shape_conflict"),
-    rlsEnabled: BILLING_TABLES.filter((table) => new RegExp(`ALTER TABLE ONLY public\\.${table} ENABLE ROW LEVEL SECURITY|ALTER TABLE public\\.${table} ENABLE ROW LEVEL SECURITY`).test(dump)),
+    staleGuard: has("stale_ignored") && has("superseded_ignored"),
+    rlsEnabled: BILLING_TABLES.filter((table) => rlsFor(table, "ENABLE")),
+    rlsForced: BILLING_TABLES.filter((table) => rlsFor(table, "FORCE")),
     policies: (dump.match(/CREATE POLICY/g) ?? []).length,
     indexes: (dump.match(/CREATE (UNIQUE )?INDEX/g) ?? []).length,
-    serviceRoleGrant: /GRANT ALL ON FUNCTION public\.synchronize_consumer_billing_subscription[\s\S]{0,200}service_role|GRANT EXECUTE ON FUNCTION public\.synchronize_consumer_billing_subscription[\s\S]{0,200}service_role/.test(dump),
+    // The synchronizer takes 21 parameters, so its GRANT line is very long: match
+    // the whole line rather than a fixed window after the function name.
+    serviceRoleGrant: dump.split("\n").some((line) =>
+      /^GRANT (?:ALL|EXECUTE) ON FUNCTION "?public"?\."?synchronize_consumer_billing_subscription/.test(line.trim()) && line.includes("service_role")),
+    throttleGrant: dump.split("\n").some((line) =>
+      /^GRANT (?:ALL|EXECUTE) ON FUNCTION "?public"?\."?mark_consumer_billing_reconciliation_attempt/.test(line.trim()) && line.includes("service_role")),
+    synchronizerRevokedFromAnon: dump.split("\n").some((line) =>
+      /^REVOKE ALL ON FUNCTION "?public"?\."?synchronize_consumer_billing_subscription/.test(line.trim())),
     dumpBytes: dump.length
   };
   evidence.verification = results;
   evidence.rowCountsAfter = {};
   for (const table of BILLING_TABLES) evidence.rowCountsAfter[table] = await restCount(ref, table);
-  const pass = results.synchronizer && results.throttle && results.wrapper && results.adminSyncBilling &&
+  const pass = results.synchronizer && results.throttle && results.wrapper && results.wrapperDelegatesToSynchronizer &&
+    results.adminSyncBilling && results.columnEndedAt &&
     results.columnLatestInvoiceId && results.columnLastSynchronizedAt && results.columnLastSynchronizationSource &&
-    results.columnLastReconciliationAttemptAt && results.eventAlias && results.failureClasses &&
-    results.rlsEnabled.length === BILLING_TABLES.length && results.policies > 0 && results.indexes > 0;
+    results.columnLastReconciliationAttemptAt && results.eventAlias && results.failureClasses && results.staleGuard &&
+    results.rlsEnabled.length === BILLING_TABLES.length &&
+    results.serviceRoleGrant && results.throttleGrant && results.synchronizerRevokedFromAnon &&
+    results.policies > 0 && results.indexes > 0;
   evidence.verificationPass = pass;
   console.log(`VERIFY ${JSON.stringify({ ...results, rowCountsAfter: evidence.rowCountsAfter }, null, 2)}`);
   check(pass, "production-schema-verification-failed");
@@ -304,7 +322,12 @@ async function deployPreview() {
   const tree = run("git", ["rev-parse", "HEAD^{tree}"]);
   const commit = run("git", ["rev-parse", "HEAD"]);
   evidence.certifiedRuntime = certified; evidence.candidateTree = tree; evidence.candidateCommit = commit;
-  const output = vercel(["deploy", ".", "--project", PRODUCTION_VERCEL_PROJECT, "--scope", SCOPE, "--yes",
+  // --prod --skip-domain builds with the PRODUCTION environment (every variable
+  // on this project targets Production only, so a plain preview would run
+  // unconfigured) while leaving every domain, including the Stripe-configured
+  // mathnexa-platform-production.vercel.app host, on the current deployment.
+  // Traffic and webhook delivery are untouched until the promote stage.
+  const output = vercel(["deploy", ".", "--project", PRODUCTION_VERCEL_PROJECT, "--scope", SCOPE, "--yes", "--prod", "--skip-domain",
     "--meta", `certifiedRuntime=${certified}`, "--meta", `candidateTree=${tree}`, "--meta", "repair=subscription-lifecycle"]);
   const urls = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) ?? [];
   const url = urls.filter((candidate) => new RegExp(`^https://${PRODUCTION_VERCEL_PROJECT}-[a-z0-9]+-${SCOPE}\\.vercel\\.app$`).test(candidate)).pop() ?? null;
@@ -312,38 +335,51 @@ async function deployPreview() {
   evidence.previewUrl = url;
   const deployment = inspectDeployment(url);
   evidence.previewDeployment = deployment;
-  check(!(deployment.aliases ?? []).includes(PRODUCTION_ORIGIN), "preview-must-not-hold-the-production-alias");
+  check(!(deployment.aliases ?? []).includes(PRODUCTION_ORIGIN), "staged-deployment-must-not-hold-the-production-alias");
+  check(!(deployment.aliases ?? []).includes(`https://${PRODUCTION_VERCEL_HOST}`), "staged-deployment-must-not-hold-the-configured-webhook-host");
+  const stillLive = inspectDeployment(PRODUCTION_ORIGIN);
+  check(stillLive.id !== deployment.id, "production-alias-moved-during-a-staged-deploy");
+  evidence.aliasUnchangedDuringStaging = stillLive.id;
+  // Deployment-specific URLs on this project sit behind Vercel deployment
+  // protection (SSO), and no automation bypass secret is configured, so
+  // readiness is taken from the deployment record rather than an HTTP probe.
   const deadline = Date.now() + 420_000;
-  while (Date.now() < deadline) {
-    const health = await probe(`${url}/api/health`);
-    if (health.status === 200) { evidence.previewHealth = health; break; }
+  let ready = deployment;
+  while (Date.now() < deadline && !/Ready/.test(ready.status ?? "")) {
     await sleep(5000);
+    ready = inspectDeployment(url);
   }
-  check(evidence.previewHealth, "preview-not-ready");
+  evidence.previewReadyState = ready.status;
+  check(/Ready/.test(ready.status ?? ""), `staged-deployment-not-ready:${ready.status}`);
+  const health = await probe(`${url}/api/health`);
+  evidence.previewHealth = health;
+  evidence.previewHostProtected = health.status === 401 || (health.status === 302 && (health.location ?? "").includes("vercel.com/sso-api"));
   console.log(`PREVIEW ${JSON.stringify({ previewUrl: url, deploymentId: deployment.id, certifiedRuntime: certified, health: evidence.previewHealth })}`);
 }
 
 async function probePreview() {
   const url = args.get("--url") ?? required("LIFECYCLE_PREVIEW_URL");
   step(`probing ${url}`);
+  // This deployment carries the production environment, so its own *.vercel.app
+  // host behaves exactly like the Stripe-configured host will after promotion:
+  // the two machine endpoints answer directly and every browser path still 308s
+  // to the apex. That is the precise failure mode being repaired, proven before
+  // any traffic moves.
   const results = {};
   results.health = await probe(`${url}/api/health`);
   results.webhookUnsigned = await probe(`${url}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-  results.scheduler = await probe(`${url}/api/internal/billing/reconcile`);
-  results.fixtureRoute = await probe(`${url}/api/internal/billing/fixture`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
   results.account = await probe(`${url}/account`);
   results.pricing = await probe(`${url}/pricing`);
-  results.gameAccess = await probe(`${url}/game-access`);
-  results.forgedAccess = await probe(`${url}/play?access=active&trialEndsAt=2099-01-01`);
   results.gameRuntime = await probe(`${url}/game/runtime/index.html`);
-  results.mapPrep = await probe(`${url}/map-prep/launch`);
+  results.forgedAccess = await probe(`${url}/play?access=active&trialEndsAt=2099-01-01`);
   evidence.previewProbes = results;
-  const pass = results.health.status === 200 &&
+  const redirectsToApex = (result) => [307, 308].includes(result.status) && (result.location ?? "").startsWith(PRODUCTION_ORIGIN);
+  const pass = results.health.status === 200 && /"status":"ready"/.test(results.health.body) &&
     results.webhookUnsigned.status === 400 && /invalid-signature/.test(results.webhookUnsigned.body) &&
-    [401, 503].includes(results.scheduler.status) && results.fixtureRoute.status === 404 &&
-    ![500, 502, 503].includes(results.account.status) && ![500, 502, 503].includes(results.pricing.status) &&
+    redirectsToApex(results.account) && redirectsToApex(results.pricing) &&
     results.gameRuntime.status !== 200 && !/\/game\/runtime/.test(results.forgedAccess.location ?? "");
   evidence.previewProbesPass = pass;
+  evidence.exemptionProvenOnVercelHost = results.health.status === 200 && results.webhookUnsigned.status === 400;
   console.log(`PREVIEW_PROBES ${JSON.stringify(results, null, 2)}`);
   check(pass, "preview-certification-failed");
 }
@@ -374,6 +410,10 @@ async function promote() {
 
 async function probeLive() {
   step("probing the live hosts");
+  const expected = args.get("--expect-deployment") ?? null;
+  const serving = inspectDeployment(PRODUCTION_ORIGIN);
+  evidence.aliasServes = { id: serving.id, url: serving.url };
+  if (expected) check(serving.id === expected, `alias-serves-unexpected-deployment:${serving.id}`);
   const results = {};
   results.configuredWebhookHost = await probe(`https://${PRODUCTION_VERCEL_HOST}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
   results.apexWebhook = await probe(`${PRODUCTION_ORIGIN}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
@@ -384,12 +424,22 @@ async function probeLive() {
   results.scheduler = await probe(`${PRODUCTION_ORIGIN}/api/internal/billing/reconcile`);
   results.fixtureRoute = await probe(`${PRODUCTION_ORIGIN}/api/internal/billing/fixture`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
   evidence.liveProbes = results;
+  // www.mathnexa.com redirects at the VERCEL DOMAIN level (its 308 carries no
+  // application headers: no CSP, no x-matched-path), so no application change can
+  // stop it and no Stripe endpoint is configured there. Either behaviour is
+  // acceptable for www; the load-bearing hosts are the Stripe-configured
+  // *.vercel.app host and the apex, which must answer the handler directly.
+  const wwwAcceptable = results.wwwWebhook.status === 400 ||
+    ([307, 308].includes(results.wwwWebhook.status) && (results.wwwWebhook.location ?? "").startsWith(PRODUCTION_ORIGIN));
   const pass = results.configuredWebhookHost.status === 400 && /invalid-signature/.test(results.configuredWebhookHost.body) &&
+    results.configuredWebhookHost.matchedPath === "/api/billing/webhook" &&
     results.apexWebhook.status === 400 && /invalid-signature/.test(results.apexWebhook.body) &&
-    results.wwwWebhook.status === 400 && results.health.status === 200 &&
+    wwwAcceptable && results.health.status === 200 && results.configuredHostHealth.status === 200 &&
     [307, 308].includes(results.browserHostStillRedirects.status) &&
     [401, 503].includes(results.scheduler.status) && results.fixtureRoute.status === 404;
   evidence.liveProbesPass = pass;
+  evidence.redirectDefectRepaired = results.configuredWebhookHost.status === 400 && results.configuredWebhookHost.matchedPath === "/api/billing/webhook";
+  evidence.wwwRedirectIsDomainLevel = [307, 308].includes(results.wwwWebhook.status);
   console.log(`LIVE_PROBES ${JSON.stringify(results, null, 2)}`);
   check(pass, "live-webhook-host-certification-failed");
 }
