@@ -1,8 +1,9 @@
 param(
-  [ValidateSet('migrate', 'webhook-config', 'cron-secret', 'deploy', 'certify', 'lifecycle', 'sweep', 'reconcile-dry-run', 'all')] [string]$Stage = 'certify',
+  [ValidateSet('migrate', 'webhook-config', 'staging-env', 'cron-secret', 'deploy', 'certify', 'lifecycle', 'cleanup-orphans', 'sweep', 'reconcile-dry-run', 'all')] [string]$Stage = 'certify',
   [switch]$Alias,
   [switch]$AllowEndpointCreate,
   [string]$Url = '',
+  [string]$LogFile = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 # STAGING-ONLY launcher. Loads only the staging entries of the established
@@ -40,6 +41,7 @@ try {
     Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
   if (-not [string]::IsNullOrWhiteSpace($vercel)) { $env:LIFECYCLE_VERCEL_CLI = $vercel }
   $env:LIFECYCLE_VAULT_SET_SCRIPT = Join-Path $PSScriptRoot 'set-lifecycle-vault-entry.ps1'
+  if ($LogFile) { $env:LIFECYCLE_LOG_FILE = $LogFile }
   Set-Location $repositoryRoot
   $scriptArgs = @("--stage=$Stage")
   if ($Alias) { $scriptArgs += '--alias' }
@@ -48,7 +50,7 @@ try {
   & node scripts/run-subscription-lifecycle-staging.mjs @scriptArgs
   exit $LASTEXITCODE
 } finally {
-  foreach ($name in $stagingNames + @('LIFECYCLE_VERCEL_CLI', 'LIFECYCLE_VAULT_SET_SCRIPT', 'LIFECYCLE_VAULT_SECRET_VALUE')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($name in $stagingNames + @('LIFECYCLE_VERCEL_CLI', 'LIFECYCLE_VAULT_SET_SCRIPT', 'LIFECYCLE_VAULT_SECRET_VALUE', 'LIFECYCLE_LOG_FILE')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
   foreach ($entry in $vault.Values.PSObject.Properties) { $entry.Value.Dispose() }
   $vault = $null
 }

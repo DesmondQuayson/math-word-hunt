@@ -285,3 +285,26 @@ pipeline are documented in `docs/subscription-lifecycle-staging-runbook.md`.
 | `STRIPE_LIVE_READONLY_AUTH` | PASS (read-only balance call with the full live key; a restricted `rk_live` key is requested) |
 | `SUPABASE_PRODUCTION_AUTH` | FAIL (legacy ref `ioodoktlxvvmghyvevgn` does not resolve; current ref required) |
 | `STAGING_LIVE_CHARGES_POSSIBLE` | NO by construction: `consumer-config.ts` refuses live mode unless `MVH_APPLICATION_ORIGIN` is `https://mathnexa.com`, and the launcher refuses non-`sk_test_` keys |
+
+## Hosted staging certification (2026-09-08)
+
+Stable alias `https://mathnexa-platform-staging.vercel.app` serves deployment `dpl_5BkR1XvfQDVPVFjib6SP8CWCx7gc`
+(runtime tree identical to certified commit `1e707ee`; locked staging gate; Stripe TEST mode).
+
+| Gate | Result |
+| --- | --- |
+| Staging migration `20260907130000` | applied to project `gcmuhzxkwvfireyrearl` (mathnexa-platform-staging, ACTIVE_HEALTHY); functions, 5 columns, event alias, failure classes, `sync-billing`, RLS verified; billing row counts unchanged |
+| Remote pgTAP on staging | Files=34, Tests=752, all pass |
+| Stripe TEST webhook endpoint | host `mathnexa-platform-staging.vercel.app/api/billing/webhook`, enabled, API `2026-07-29.dahlia`, 7/7 required events, unsigned POST → 400 `invalid-signature`, no redirect |
+| Hosted lifecycle (test clock) | trial → payments 1–4 → self-heal → drift audit dry run + controlled apply → signed out-of-order (`stale_ignored`) + duplicate (idempotent) → failed renewal (7-day grace, non-extending) → recovery → cancel at period end → genuine expiry → old canceled + new active (`superseded_ignored` on late old event) |
+| SECOND SUCCESSFUL RECURRING RENEWAL | ENTITLED (payments 2, 3 and 4 all retain access) |
+| Missed-webhook self-heal | first `/account` view: claim 04:13:10.826, row repaired 04:13:11.548 (source `reconciliation`), same render decided Available |
+| Scheduler route | 401 without / with wrong bearer; 200 aggregates with the staging-only `CRON_SECRET` |
+| Drift audit (read-only) | 0 persistent staging subscribers after cleanup; MATCHED / MISMATCHED / APPLY paths proven in-harness on the synthetic subscription |
+| Admin `sync-billing` | 404 to unauthenticated callers with and without foreign Origin (fails closed) |
+| Local gates | typecheck 0 errors; lint 0 errors (8 warnings); build OK; core 245/245; web 547 passed + 1 skipped + 1 pre-existing CRLF artifact (`canonical-assets.test.ts`); security 278/278 + bundle and launch audits; e2e 11/11; mutations 13/13 caught; npm audit 0 |
+
+Harness realism notes: the API-created trial mirrors the Checkout activation's trial-redemption claim (frozen clock at the
+claim instant); the staging Vercel project's Stripe TEST keys must be refreshed (`-Stage staging-env`) after a sandbox key
+rotation; the locked gate hides every route but the webhook without its cookie, so the scheduler cannot reach the
+reconcile route on the locked alias (production has no gate).

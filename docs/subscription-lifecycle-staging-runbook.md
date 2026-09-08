@@ -77,14 +77,22 @@ Stages, in order, each printing redacted JSON evidence and a final `EVIDENCE_FIL
    and probes the configured URL (must answer `400 invalid-signature`, never a redirect). With no staging
    endpoint it stops unless `-AllowEndpointCreate` is passed; creation stores the new signing secret in the
    vault and in the staging Vercel project.
-3. `cron-secret`: generates a staging-only scheduler secret, stores it as `CRON_SECRET` on the staging Vercel
+3. `staging-env`: re-proves the vault's Stripe key is TEST mode, then writes `STRIPE_SECRET_KEY` and
+   `STRIPE_PUBLISHABLE_KEY` to the staging Vercel project. Needed whenever the sandbox key is rotated: the
+   hosted webhook otherwise records every event as `retryable_failure (provider_unavailable)` because its
+   authoritative Stripe read fails. A redeploy must follow.
+4. `cron-secret`: generates a staging-only scheduler secret, stores it as `CRON_SECRET` on the staging Vercel
    project (production target of that project only) and as `CRON_SECRET_STAGING` in the vault. Never copies
    a production value.
-4. `deploy`: refuses unless the runtime tree (`apps`, `packages`, `supabase`, lockfiles) is identical to the
-   certified candidate commit `1e707ee`, deploys, and with `-Alias` promotes the stable alias.
-5. `certify`: unsigned webhook 400, health 200, scheduler 401/503, fixture route 404, no-store pages,
-   locked gate.
-6. `lifecycle`: Stripe test clock against the hosted staging product with a synthetic
+5. `deploy`: refuses unless the runtime tree (`apps`, `packages`, `supabase`, lockfiles) is identical to the
+   certified candidate commit `1e707ee`, deploys, waits for health (through the staging gate on the alias),
+   and with `-Alias` promotes the stable alias and verifies the alias serves the new deployment id.
+6. `certify`: unsigned webhook 400 with no redirect, locked gate 404/0 bytes without the cookie, then through
+   the gate cookie: health 200, scheduler 401 (fails closed), fixture route 404, no-store personalized pages.
+   The locked staging gate exempts only the Stripe webhook path, so Vercel's scheduler cannot reach the
+   reconcile route on the locked alias; the `sweep` stage proves the route contract through the gate
+   cookie instead. Production has no such gate.
+7. `lifecycle` (pass `-LogFile <path>` to follow `STEP`/`ROW` lines live): Stripe test clock against the hosted staging product with a synthetic
    `@example.invalid` account (all objects tagged `rehearsal_id`, removed at the end):
    trial → payment 1 → renewals 2, 3, 4 → stale local projection repaired by the access gate on first view →
    drift audit dry run (MATCHED) → controlled `--apply --owner=<synthetic>` repair → signed out-of-order
@@ -93,9 +101,9 @@ Stages, in order, each printing redacted JSON evidence and a final `EVIDENCE_FIL
    active. Every step records `STRIPE_STATUS`, `STRIPE_PERIOD_END`, `LOCAL_STATUS`, `LOCAL_PERIOD_END`,
    `ENTITLEMENT`, `ACCOUNT_UI`, `SUBSCRIPTION_UI`, `PRICING_CTA`, `GAME_ACCESS`, `MAP_PREP_ACCESS`,
    `SUBSCRIPTION_ENDED_MESSAGE`.
-7. `sweep`: scheduler route fails closed without/with wrong bearer (401) and returns aggregates with the
+8. `sweep`: scheduler route fails closed without/with wrong bearer (401) and returns aggregates with the
    staging secret.
-8. `reconcile-dry-run`: read-only drift audit of every staging subscriber.
+9. `reconcile-dry-run`: read-only drift audit of every staging subscriber.
 
 Admin "Sync with Stripe" needs an AAL2 admin session and is verified manually by the owner on the
 staging alias (Admin → Accounts → Sync with Stripe); unit tests cover the handler.

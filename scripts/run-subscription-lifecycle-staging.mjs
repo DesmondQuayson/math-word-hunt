@@ -45,7 +45,7 @@
 // is echoed. Every synthetic Stripe/Supabase object created here carries the
 // rehearsal id in its metadata and is removed in the cleanup step.
 import { spawnSync } from "node:child_process";
-import { createHmac, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -68,6 +68,18 @@ const DAY = 86_400;
 
 const args = new Map(process.argv.slice(2).map((arg) => { const [key, value = "true"] = arg.split("=", 2); return [key, value]; }));
 const stage = args.get("--stage") ?? "certify";
+// Tee every console line into a log file (append) so long stages can be
+// followed while they run; the parent shell's pipe buffering made the first
+// hosted run invisible until exit.
+const logFile = args.get("--log") ?? process.env.LIFECYCLE_LOG_FILE?.trim() ?? "";
+if (logFile) {
+  const { appendFileSync } = await import("node:fs");
+  for (const method of ["log", "error"]) {
+    const original = console[method].bind(console);
+    console[method] = (...parts) => { original(...parts); try { appendFileSync(logFile, `${new Date().toISOString()} ${parts.map(String).join(" ")}\n`); } catch { /* best effort */ } };
+  }
+}
+const step = (label) => console.log(`STEP ${new Date().toISOString()} ${label}`);
 const alias = args.has("--alias");
 const allowEndpointCreate = args.has("--allow-endpoint-create");
 const targetUrl = args.get("--url") ?? STAGING_ORIGIN;
@@ -256,6 +268,22 @@ function storeVaultEntry(name, value) {
   run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Name", name], { env: { ...process.env, LIFECYCLE_VAULT_SECRET_VALUE: value } });
 }
 
+async function stagingEnvironment() {
+  // The staging Vercel project carries its own copy of the Stripe TEST keys.
+  // When the sandbox key is rotated (the 2026-08-02 key expired), the hosted
+  // webhook fails every authoritative read with provider_unavailable until the
+  // project's variables are refreshed. Test mode is re-proven before writing;
+  // only the STAGING project is ever addressed.
+  const secretKey = required("STRIPE_SECRET_KEY", /^sk_test_/);
+  const publishableKey = required("STRIPE_PUBLISHABLE_KEY", /^pk_test_/);
+  secrets.push(secretKey, publishableKey);
+  await stripeClient();
+  upsertStagingVercelEnvironment("STRIPE_SECRET_KEY", secretKey);
+  upsertStagingVercelEnvironment("STRIPE_PUBLISHABLE_KEY", publishableKey);
+  evidence.stagingEnvironment = { project: STAGING_VERCEL_PROJECT, updated: ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY"], mode: "test", redeployRequired: true };
+  console.log(JSON.stringify(evidence.stagingEnvironment));
+}
+
 function cronSecret() {
   const existing = process.env.CRON_SECRET_STAGING?.trim();
   const value = existing && existing.length >= 32 ? existing : randomBytes(32).toString("base64url");
@@ -266,12 +294,22 @@ function cronSecret() {
   evidence.cronSecret = { generated: !existing, length: value.length, stagingVercelEnvUpdated: true, storedInVault: true, productionValueReused: false };
 }
 
-async function waitForOrigin(url, bypass) {
+async function waitForOrigin(url, bypass, stagingToken = null) {
+  // Preview deployments answer /api/health directly. The stable alias runs
+  // behind the locked staging gate (404, empty body, for every route but the
+  // Stripe webhook), so health is read through the gate cookie there.
   const deadline = Date.now() + 300_000;
+  const headers = bypass ? { "x-vercel-protection-bypass": bypass } : {};
+  let cookie = null;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${url}/api/health`, { redirect: "manual", headers: bypass ? { "x-vercel-protection-bypass": bypass } : {} });
-      if (response.status === 200) return await response.json();
+      const response = await fetch(`${url}/api/health`, { redirect: "manual", headers: cookie ? { ...headers, cookie } : headers });
+      if (response.status === 200) return { ...(await response.json()), throughStagingGate: Boolean(cookie) };
+      if (response.status === 404 && stagingToken && !cookie) {
+        const bootstrap = await fetch(`${url}/api/internal/staging-access/bootstrap`, { method: "POST", redirect: "manual", headers: { ...headers, Authorization: `Bearer ${stagingToken}` } });
+        cookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
+        continue;
+      }
     } catch { /* not ready */ }
     await sleep(5000);
   }
@@ -291,12 +329,23 @@ async function deploy() {
   const commandArgs = ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--scope", SCOPE, "--yes", "--meta", `candidateTree=${tree}`, "--meta", `candidateCommit=${commit}`, "--meta", `certifiedRuntime=${certified}`];
   if (alias) commandArgs.push("--prod");
   const output = vercel(commandArgs);
-  const url = output.split("\n").map((line) => line.trim()).reverse().find((line) => /^https:\/\/\S+\.vercel\.app$/.test(line));
+  // Vercel CLI 59 prints a JSON "next steps" block rather than a bare URL line, so
+  // take the deployment-specific URL (hash + team suffix) from anywhere in the output.
+  const urls = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) ?? [];
+  const url = urls.filter((candidate) => new RegExp(`^https://${STAGING_VERCEL_PROJECT}-[a-z0-9]+-${SCOPE}\\.vercel\\.app$`).test(candidate)).pop() ?? null;
   check(url, `deployment-url-missing:${redact(output).slice(-500)}`);
   evidence.deploymentUrl = url; evidence.candidateTree = tree; evidence.candidateCommit = commit; evidence.aliasTarget = alias;
-  evidence.health = await waitForOrigin(alias ? STAGING_ORIGIN : url, bypass);
+  const stagingToken = process.env.MVH_STAGING_ACCESS_TOKEN?.trim() || null;
+  if (stagingToken) secrets.push(stagingToken);
+  evidence.health = await waitForOrigin(alias ? STAGING_ORIGIN : url, bypass, stagingToken);
+  const inspectField = (text, field) => text.split("\n").map((line) => line.trim()).find((line) => new RegExp(`^${field}\\s`).test(line))?.split(/\s+/).pop() ?? null;
   const inspect = vercel(["inspect", url, "--scope", SCOPE], { allowFailure: true });
-  evidence.inspect = redact(inspect.stdout).split("\n").filter((line) => /status|target|name|id/i.test(line)).slice(0, 8);
+  evidence.deployment = { id: inspectField(inspect.stdout, "id"), target: inspectField(inspect.stdout, "target"), status: inspectField(inspect.stdout, "status") };
+  if (alias) {
+    const aliasInspect = vercel(["inspect", STAGING_ORIGIN, "--scope", SCOPE], { allowFailure: true });
+    evidence.aliasServes = inspectField(aliasInspect.stdout, "id");
+    check(evidence.aliasServes && evidence.aliasServes === evidence.deployment.id, `alias-not-pointing-at-new-deployment:${evidence.aliasServes}!=${evidence.deployment.id}`);
+  }
   console.log(JSON.stringify({ deploymentUrl: url, candidateCommit: commit, certifiedRuntime: certified, aliasTarget: alias }));
 }
 
@@ -307,21 +356,33 @@ async function certify() {
   if (stagingToken) secrets.push(stagingToken);
   const base = { redirect: "manual", headers: bypass ? { "x-vercel-protection-bypass": bypass } : {} };
   const results = {};
-  const health = await fetch(`${targetUrl}/api/health`, base);
-  results.health = { status: health.status, body: health.status === 200 ? await health.json() : null };
+  // The stable alias is behind the locked staging gate: without its cookie every
+  // page and internal route answers 404 with no body (recorded below as
+  // lockedGate / lockedHealth). Only the Stripe webhook is exempt. Route
+  // contracts are therefore probed with the gate cookie obtained from the
+  // bootstrap endpoint, exactly as a staging operator would.
+  const lockedHealth = await fetch(`${targetUrl}/api/health`, base);
+  results.lockedHealth = { status: lockedHealth.status, bytes: (await lockedHealth.arrayBuffer()).byteLength };
   const unsigned = await fetch(`${targetUrl}/api/billing/webhook`, { ...base, method: "POST", headers: { ...base.headers, "content-type": "application/json" }, body: "{}" });
-  results.webhookUnsigned = { status: unsigned.status, body: await unsigned.text() };
-  const scheduler = await fetch(`${targetUrl}/api/internal/billing/reconcile`, base);
-  results.schedulerRoute = { status: scheduler.status, body: await scheduler.text(), cacheControl: scheduler.headers.get("cache-control") };
-  const fixture = await fetch(`${targetUrl}/api/internal/billing/fixture`, { ...base, method: "POST", headers: { ...base.headers, "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
-  results.fixtureRoute = { status: fixture.status };
+  results.webhookUnsigned = { status: unsigned.status, body: await unsigned.text(), redirectLocation: unsigned.headers.get("location") };
   const lockedAccount = await fetch(`${targetUrl}/account`, base);
   results.lockedGate = { status: lockedAccount.status, bytes: (await lockedAccount.arrayBuffer()).byteLength, cacheControl: lockedAccount.headers.get("cache-control") };
+  let gateCookie = null;
   if (stagingToken) {
     const bootstrap = await fetch(`${targetUrl}/api/internal/staging-access/bootstrap`, { ...base, method: "POST", headers: { ...base.headers, Authorization: `Bearer ${stagingToken}` } });
-    const cookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
-    results.bootstrap = { status: bootstrap.status, cookie: Boolean(cookie) };
-    if (cookie) {
+    gateCookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
+    results.bootstrap = { status: bootstrap.status, cookie: Boolean(gateCookie) };
+  }
+  const gatedBase = gateCookie ? { ...base, headers: { ...base.headers, cookie: gateCookie } } : base;
+  const health = await fetch(`${targetUrl}/api/health`, gatedBase);
+  results.health = { status: health.status, body: health.status === 200 ? await health.json() : null };
+  const scheduler = await fetch(`${targetUrl}/api/internal/billing/reconcile`, gatedBase);
+  results.schedulerRoute = { status: scheduler.status, body: await scheduler.text(), cacheControl: scheduler.headers.get("cache-control") };
+  const fixture = await fetch(`${targetUrl}/api/internal/billing/fixture`, { ...gatedBase, method: "POST", headers: { ...gatedBase.headers, "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
+  results.fixtureRoute = { status: fixture.status };
+  if (gateCookie) {
+    {
+      const cookie = gateCookie;
       const gated = { ...base, headers: { ...base.headers, cookie } };
       const account = await fetch(`${targetUrl}/account`, gated);
       results.accountSignedOut = { status: account.status, location: account.headers.get("location"), cacheControl: account.headers.get("cache-control") };
@@ -348,7 +409,12 @@ async function supabaseAdmin() {
   const { createClient } = await import("@supabase/supabase-js");
   const key = required("SUPABASE_SECRET_KEY", /^(sb_secret_|eyJ)/);
   secrets.push(key);
-  const admin = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  // Every PostgREST call gets a hard timeout so a stalled connection surfaces as
+  // an error instead of hanging a waitFor loop.
+  const admin = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (input, init = {}) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }) }
+  });
   const probe = await admin.from("billing_subscriptions").select("id", { head: true, count: "exact" });
   check(!probe.error, `staging-service-key-rejected:${probe.error?.message ?? ""}`);
   return admin;
@@ -392,12 +458,18 @@ async function lifecycle() {
   const page = await context.newPage();
   try {
     // ---- account + Stripe customer -------------------------------------------------
+    step("create synthetic account");
     const created = await admin.auth.admin.createUser({ email, email_confirm: true, password, user_metadata: { rehearsal_id: runId } });
     check(!created.error && created.data.user, `user-create-failed:${created.error?.message ?? ""}`);
     resources.userId = created.data.user.id;
     metadata.mathnexa_account_id = resources.userId;
-    await waitFor("consumer-account-provisioned", () => single(admin, "consumer_accounts", "user_id", "user_id", resources.userId), Boolean, 60_000);
-    const initialTime = Math.floor(Date.now() / 1000) - 60;
+    const provisioned = await waitFor("consumer-account-provisioned", () => single(admin, "consumer_accounts", "user_id, created_at", "user_id", resources.userId), Boolean, 60_000);
+    // The trial redemption claim (mirrored below) must not post-date the trial
+    // start: parseGameEntitlementEvidence treats redeemed > startsAt as malformed,
+    // and the real Checkout flow claims first and creates the subscription second.
+    // So the clock is frozen at the claim instant, which is after the account row
+    // was created (the account constraint requires trial_redeemed_at >= created_at).
+    const initialTime = Math.max(Math.floor(Date.now() / 1000), Math.ceil(Date.parse(provisioned.created_at) / 1000) + 1);
     const clock = await stripe.testHelpers.testClocks.create({ frozen_time: initialTime, name: `MathNexa lifecycle ${runId.slice(0, 12)}` });
     resources.clockId = clock.id;
     const customer = await stripe.customers.create({ email, test_clock: clock.id, metadata });
@@ -422,6 +494,7 @@ async function lifecycle() {
     const localSubscription = (id) => single(admin, "billing_subscriptions", "subscription_status, current_period_start, current_period_end, cancel_at_period_end, canceled_at, ended_at, latest_invoice_id, last_synchronized_at, last_synchronization_source, latest_authoritative_event_created_at", "stripe_subscription_id", id);
 
     // ---- browser session through the locked gate --------------------------------
+    step("bootstrap staging gate and sign in");
     const bootstrap = await context.request.post(`${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, { headers: { Authorization: `Bearer ${stagingToken}` } });
     check(bootstrap.status() === 204, `staging-bootstrap-failed-${bootstrap.status()}`);
     await page.goto(`${STAGING_ORIGIN}/sign-in`);
@@ -441,18 +514,27 @@ async function lifecycle() {
       const subscriptionText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
       await page.goto(`${STAGING_ORIGIN}/pricing`, { waitUntil: "networkidle" });
       const pricingText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-      const startTrialButtons = await page.getByRole("button", { name: /start trial|Add payment method/i }).count();
+      // Checkout is offered through the commercial consent form ("Accept terms and
+      // continue to Stripe", disabled until every box is ticked); older copy is kept
+      // in the pattern for safety.
+      const startTrialButtons = (await page.locator("#commercial-consent-heading").count()) + (await page.getByRole("button", { name: /Accept terms and continue to Stripe|start trial|Add payment method/i }).count());
       const runtime = await page.request.get(`${STAGING_ORIGIN}/game/runtime/index.html`, { maxRedirects: 0 });
       const mapPrep = await page.request.get(`${STAGING_ORIGIN}/map-prep/launch`, { maxRedirects: 0 });
       const play = await page.request.get(`${STAGING_ORIGIN}/play`, { maxRedirects: 0 });
       await page.goto(`${STAGING_ORIGIN}/game-access`, { waitUntil: "networkidle" });
       const gameAccessText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+      const gameAccessHeading = (await page.locator("main").getByRole("heading").first().innerText().catch(() => "")).trim();
+      // innerText reflects CSS text-transform (the definition list renders labels in
+      // capitals), so match case-insensitively and test "Unavailable" first.
+      const accountUi = /game access\s*unavailable/i.test(accountText) ? "Unavailable" : /game access\s*available/i.test(accountText) ? "Available" : "unknown";
       const row = {
+        GAME_ACCESS_PAGE: gameAccessHeading.slice(0, 80),
+        ...(accountUi === "unknown" ? { ACCOUNT_SNIPPET: accountText.slice(0, 240) } : {}),
         step: label, subscription: shortId(subscriptionId),
         STRIPE_STATUS: stripeSub.status, STRIPE_PERIOD_END: iso(periodEnd(stripeSub)), STRIPE_CANCEL_AT_PERIOD_END: stripeSub.cancel_at_period_end,
         LOCAL_STATUS: local?.subscription_status ?? null, LOCAL_PERIOD_END: local?.current_period_end ?? null, LOCAL_SYNC_SOURCE: local?.last_synchronization_source ?? null,
         ENTITLEMENT: ent?.entitlement_state ?? null, ENTITLEMENT_PERIOD_END: ent?.current_period_ends_at ?? null, GRACE_ENDS_AT: ent?.grace_ends_at ?? null,
-        ACCOUNT_UI: /Game access\s*Available/.test(accountText) ? "Available" : /Game access\s*Unavailable/.test(accountText) ? "Unavailable" : "unknown",
+        ACCOUNT_UI: accountUi,
         SUBSCRIPTION_UI: statusLabel, SUBSCRIPTION_ENDED_MESSAGE: /Subscription ended/.test(`${accountText} ${subscriptionText} ${gameAccessText}`),
         PRICING_CTA: /Continue playing/.test(pricingText) ? "Continue playing" : /Manage subscription/.test(pricingText) ? "Manage subscription" : /Review subscription status/.test(pricingText) ? "Review subscription status" : startTrialButtons > 0 ? "Checkout offered" : "none",
         DOUBLE_SUBSCRIBE_POSSIBLE: startTrialButtons > 0,
@@ -473,6 +555,15 @@ async function lifecycle() {
     const entitled = { ACCOUNT_UI: "Available", GAME_ACCESS: "ALLOWED", MAP_PREP_ACCESS: "ALLOWED", SUBSCRIPTION_ENDED_MESSAGE: false, PRICING_CTA: "Continue playing", DOUBLE_SUBSCRIBE_POSSIBLE: false };
 
     // ---- trial ------------------------------------------------------------------------
+    // Mirror the one account write the real Checkout activation performs before it
+    // creates the trial subscription: the trial redemption claim. The access gate
+    // treats a trial-active projection as a real trial only for an account whose
+    // trial_redeemed_at is set (lib/repositories/consumer-entitlement.repository.ts),
+    // exactly as a customer who came through Checkout.
+    step("mirror checkout trial redemption claim, then create trial subscription on the test clock");
+    const trialClaim = await admin.rpc("claim_consumer_trial_redemption", { p_owner_user_id: resources.userId, p_checkout_hash: createHash("sha256").update(`cs_lifecycle_${runId}`).digest("hex"), p_redeemed_at: new Date(initialTime * 1000).toISOString() });
+    check(!trialClaim.error, `trial-redemption-claim-failed:${trialClaim.error?.message ?? ""}`);
+    table.trialRedemptionMirrored = String(trialClaim.data);
     let subscription = await stripe.subscriptions.create({
       customer: customer.id, items: [{ price: STRIPE_PRICE_ID, quantity: 1 }], default_payment_method: goodMethod.id,
       collection_method: "charge_automatically", payment_behavior: "default_incomplete", payment_settings: { save_default_payment_method: "on_subscription" },
@@ -489,6 +580,7 @@ async function lifecycle() {
     // ---- payments 1..4 ------------------------------------------------------------------
     const seen = new Set([objectId(subscription.latest_invoice)].filter(Boolean));
     for (let payment = 1; payment <= 4; payment += 1) {
+      step(`payment ${payment}: advance clock, finalize cycle invoice, wait for projection`);
       const before = await entitlement();
       const boundary = payment === 1 ? subscription.trial_end : periodEnd(subscription);
       await advance(boundary + 60);
@@ -505,7 +597,8 @@ async function lifecycle() {
     table.THIRD_AND_FOURTH_RENEWAL = "ENTITLED";
 
     // ---- missed webhook: stale local projection repaired by the access gate -------------
-    const stale = { start: new Date(Date.now() - 31 * DAY).toISOString(), end: new Date(Date.now() - 30_000).toISOString() };
+    step("missed-webhook simulation and self-heal");
+    const stale = { start: new Date(Date.now() - 31 * DAY * 1000).toISOString(), end: new Date(Date.now() - 30_000).toISOString() };
     const staleSubscription = await admin.from("billing_subscriptions").update({ current_period_start: stale.start, current_period_end: stale.end, last_synchronized_at: stale.end, last_synchronization_source: "webhook" }).eq("stripe_subscription_id", primaryId);
     check(!staleSubscription.error, `stale-simulation-failed:${staleSubscription.error?.message ?? ""}`);
     const staleEntitlement = await admin.from("consumer_game_entitlements").update({ current_period_ends_at: stale.end }).eq("user_id", resources.userId);
@@ -513,9 +606,24 @@ async function lifecycle() {
     await admin.from("billing_customers").update({ last_reconciliation_attempt_at: null }).eq("stripe_customer_id", customer.id);
     const beforeHeal = await entitlement();
     check(instant(beforeHeal.current_period_ends_at) < Date.now(), "stale-simulation-not-in-past");
+    const visitStartedAt = new Date().toISOString();
     await page.goto(`${STAGING_ORIGIN}/account`, { waitUntil: "networkidle" });
     const healedText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-    check(/Game access\s*Available/.test(healedText), "missed-webhook-self-heal-did-not-restore-access-on-first-view");
+    const firstViewAvailable = !/game access\s*unavailable/i.test(healedText) && /game access\s*available/i.test(healedText);
+    // Diagnostics for the report either way: what the row, the throttle claim and
+    // the game-access page looked like right after the first view.
+    const afterFirstView = await localSubscription(primaryId);
+    const customerAfterFirstView = await single(admin, "billing_customers", "last_reconciliation_attempt_at", "stripe_customer_id", customer.id);
+    await page.goto(`${STAGING_ORIGIN}/game-access`, { waitUntil: "networkidle" });
+    const gameAccessAfterFirstView = (await page.locator("main").innerText()).replace(/\s+/g, " ").slice(0, 300);
+    table.MISSED_WEBHOOK_FIRST_VIEW = {
+      visitStartedAt, firstViewAvailable,
+      rowAfterFirstView: { periodEnd: afterFirstView?.current_period_end ?? null, syncSource: afterFirstView?.last_synchronization_source ?? null, synchronizedAt: afterFirstView?.last_synchronized_at ?? null },
+      reconciliationClaimedAt: customerAfterFirstView?.last_reconciliation_attempt_at ?? null,
+      gameAccessPage: gameAccessAfterFirstView
+    };
+    console.log(`SELF_HEAL_FIRST_VIEW ${JSON.stringify(table.MISSED_WEBHOOK_FIRST_VIEW)}`);
+    check(firstViewAvailable, `missed-webhook-self-heal-did-not-restore-access-on-first-view:${JSON.stringify(table.MISSED_WEBHOOK_FIRST_VIEW)}`);
     const healed = await waitFor("self-heal-projection", () => localSubscription(primaryId), (value) => value?.last_synchronization_source === "reconciliation" && instant(value.current_period_end) === periodEnd(subscription) * 1000, 60_000);
     table.MISSED_WEBHOOK_SELF_HEAL = { restoredOnFirstView: true, source: healed.last_synchronization_source, periodEnd: healed.current_period_end };
     await observe("MISSED_WEBHOOK_SELF_HEALED", primaryId, { ...entitled, STRIPE_STATUS: "active", ENTITLEMENT: "subscription-active", LOCAL_SYNC_SOURCE: "reconciliation" });
@@ -555,6 +663,7 @@ async function lifecycle() {
     }
 
     // ---- payment 5 fails: grace, non-extending retry, recovery --------------------------
+    step("payment 5 failure, grace, recovery");
     const failingMethod = await stripe.paymentMethods.attach("pm_card_chargeCustomerFail", { customer: customer.id });
     await stripe.customers.update(customer.id, { invoice_settings: { default_payment_method: failingMethod.id } });
     subscription = await stripe.subscriptions.update(primaryId, { default_payment_method: failingMethod.id, proration_behavior: "none" });
@@ -570,7 +679,7 @@ async function lifecycle() {
     const graceAfterRetry = await entitlement();
     check(graceAfterRetry.grace_ends_at === grace.grace_ends_at, "grace-extended-by-retry");
     const failureRow = await single(admin, "billing_subscriptions", "last_payment_failed_at, renewal_grace_ends_at", "stripe_subscription_id", primaryId);
-    const graceDays = (instant(grace.grace_ends_at) - instant(failureRow.last_payment_failed_at)) / DAY;
+    const graceDays = (instant(grace.grace_ends_at) - instant(failureRow.last_payment_failed_at)) / (DAY * 1000);
     check(graceDays === 7 && failureRow.renewal_grace_ends_at === grace.grace_ends_at, `grace-window-not-seven-days:${graceDays}`);
     table.GRACE = { graceEndsAt: grace.grace_ends_at, graceDays, nonExtending: true, accessDuringGrace: graceRow.GAME_ACCESS };
     await stripe.customers.update(customer.id, { invoice_settings: { default_payment_method: goodMethod.id } });
@@ -582,6 +691,7 @@ async function lifecycle() {
     await observe("PAYMENT_5_RECOVERED", primaryId, { ...entitled, STRIPE_STATUS: "active", ENTITLEMENT: "subscription-active", SUBSCRIPTION_UI: "Active" });
 
     // ---- cancel at period end, then genuine expiration ------------------------------------
+    step("cancel at period end, then genuine expiration");
     subscription = await stripe.subscriptions.update(primaryId, { cancel_at_period_end: true });
     await waitFor("cancel-at-period-end-projection", entitlement, (value) => value?.entitlement_state === "subscription-canceled-through-period-end");
     await observe("CANCEL_AT_PERIOD_END", primaryId, { ...entitled, STRIPE_STATUS: "active", STRIPE_CANCEL_AT_PERIOD_END: true, ENTITLEMENT: "subscription-canceled-through-period-end", SUBSCRIPTION_UI: /Active until period end/ });
@@ -592,6 +702,7 @@ async function lifecycle() {
     table.GENUINE_EXPIRATION = "REVOKED_HONESTLY";
 
     // ---- old canceled + new active ----------------------------------------------------------
+    step("old canceled + new active");
     const replacement = await stripe.subscriptions.create({ customer: customer.id, items: [{ price: STRIPE_PRICE_ID, quantity: 1 }], default_payment_method: goodMethod.id, collection_method: "charge_automatically", payment_behavior: "error_if_incomplete", payment_settings: { save_default_payment_method: "on_subscription" }, metadata });
     resources.subscriptionIds.add(replacement.id);
     await waitFor("replacement-projection", entitlement, (value) => value?.entitlement_state === "subscription-active" && instant(value.current_period_ends_at) === periodEnd(replacement) * 1000);
@@ -611,7 +722,12 @@ async function lifecycle() {
     table.rows = table.rows ?? rows;
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
-    const cleanup = { subscriptionsCanceled: 0, clockDeleted: false, userDeleted: false, rowsRemaining: null };
+    const cleanup = { subscriptionsCanceled: 0, clockDeleted: false, userDeleted: false, rowsRemaining: null, recentReceipts: null };
+    try {
+      // Diagnostic only (redacted): how the hosted webhook processed this run's events.
+      const receipts = await admin.from("billing_webhook_events").select("event_type, processing_state, failure_class, attempt_count, received_at").order("received_at", { ascending: false }).limit(8);
+      cleanup.recentReceipts = receipts.data?.map((row) => `${row.event_type}:${row.processing_state}${row.failure_class ? `(${row.failure_class})` : ""}x${row.attempt_count}`) ?? null;
+    } catch { cleanup.recentReceipts = null; }
     for (const id of resources.subscriptionIds) { try { const current = await stripe.subscriptions.retrieve(id); if (current.status !== "canceled") { await stripe.subscriptions.cancel(id); cleanup.subscriptionsCanceled += 1; } } catch { /* already gone */ } }
     if (resources.clockId) { try { await stripe.testHelpers.testClocks.del(resources.clockId); cleanup.clockDeleted = true; } catch (error) { cleanup.clockError = redact(error.message); } }
     if (resources.userId) {
@@ -625,12 +741,55 @@ async function lifecycle() {
   }
 }
 
+async function cleanupOrphans() {
+  // Removes rehearsal leftovers from an interrupted lifecycle run: Stripe TEST
+  // clocks named by this harness (deleting a clock deletes its customers and
+  // subscriptions) and staging auth users with the synthetic
+  // lifecycle-*@example.invalid address (cascades to billing rows). Nothing else
+  // is touched; every deletion is listed in the evidence.
+  const stripe = await stripeClient();
+  const admin = await supabaseAdmin();
+  const removed = { clocks: 0, users: 0 };
+  const clocks = await stripe.testHelpers.testClocks.list({ limit: 100 });
+  for (const clock of clocks.data) {
+    if (!/^MathNexa lifecycle /.test(clock.name ?? "")) continue;
+    await stripe.testHelpers.testClocks.del(clock.id);
+    removed.clocks += 1;
+  }
+  let page = 1;
+  for (;;) {
+    const users = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    check(!users.error, `list-users-failed:${users.error?.message ?? ""}`);
+    for (const user of users.data.users) {
+      if (!/^lifecycle-[a-f0-9]{12}@example\.invalid$/.test(user.email ?? "")) continue;
+      const deleted = await admin.auth.admin.deleteUser(user.id);
+      check(!deleted.error, `delete-user-failed:${deleted.error?.message ?? ""}`);
+      removed.users += 1;
+    }
+    if (users.data.users.length < 200) break;
+    page += 1;
+  }
+  evidence.cleanupOrphans = removed;
+  console.log(JSON.stringify({ cleanupOrphans: removed }));
+}
+
 async function sweep() {
   const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() || null;
   if (bypass) secrets.push(bypass);
   const secret = process.env.CRON_SECRET_STAGING?.trim() || null;
   if (secret) secrets.push(secret);
+  const stagingToken = process.env.MVH_STAGING_ACCESS_TOKEN?.trim() || null;
+  if (stagingToken) secrets.push(stagingToken);
   const headers = bypass ? { "x-vercel-protection-bypass": bypass } : {};
+  // The locked staging gate answers 404 without its cookie; record that, then
+  // probe the route contract through the gate the way a staging operator would.
+  const locked = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers, redirect: "manual" });
+  evidence.sweepLockedGate = { status: locked.status, bytes: (await locked.arrayBuffer()).byteLength };
+  if (stagingToken) {
+    const bootstrap = await fetch(`${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, { method: "POST", redirect: "manual", headers: { ...headers, Authorization: `Bearer ${stagingToken}` } });
+    const cookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
+    if (cookie) headers.cookie = cookie;
+  }
   const closed = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers, redirect: "manual" });
   const wrong = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers: { ...headers, Authorization: "Bearer not-the-secret-value-at-all" }, redirect: "manual" });
   evidence.sweep = { withoutBearer: { status: closed.status, body: (await closed.text()).slice(0, 120) }, wrongBearer: { status: wrong.status, body: (await wrong.text()).slice(0, 120) } };
@@ -653,14 +812,16 @@ async function reconcileDryRun() {
 
 try {
   refuseProductionIdentifiers();
-  const stages = stage === "all" ? ["migrate", "webhook-config", "cron-secret", "deploy", "certify", "lifecycle", "sweep", "reconcile-dry-run"] : [stage];
+  const stages = stage === "all" ? ["migrate", "webhook-config", "staging-env", "cron-secret", "deploy", "certify", "lifecycle", "sweep", "reconcile-dry-run"] : [stage];
   for (const current of stages) {
     if (current === "migrate") await migrate();
     else if (current === "webhook-config") await webhookConfig();
+    else if (current === "staging-env") await stagingEnvironment();
     else if (current === "cron-secret") cronSecret();
     else if (current === "deploy") await deploy();
     else if (current === "certify") await certify();
     else if (current === "lifecycle") await lifecycle();
+    else if (current === "cleanup-orphans") await cleanupOrphans();
     else if (current === "sweep") await sweep();
     else if (current === "reconcile-dry-run") await reconcileDryRun();
     else throw new Error(`unknown-stage:${current}`);
