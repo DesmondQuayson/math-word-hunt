@@ -45,6 +45,19 @@ $script:SandboxPriceId = 'price_1TzKso4YQNsZa1pjh5UZvcV7'
 $script:SecretKeyProbePath = '/rest/v1/consumer_accounts?select=user_id&limit=1'
 # Minimal read used to prove a PUBLISHABLE key (public Auth settings document).
 $script:PublishableKeyProbePath = '/auth/v1/settings'
+# Stripe LIVE restricted-key probes: one generic LIST endpoint per required read
+# permission, limit=1. Paths are LITERAL strings on purpose: in PowerShell `?`
+# is a legal variable-name character, so a dollar-variable followed directly by
+# ?limit=1 inside a double-quoted string is read as one variable named
+# resource?limit (undefined) and produced the request GET /v1/=1 (404).
+$script:StripeApiOrigin = 'https://api.stripe.com'
+$script:StripeLiveReadProbes = [ordered]@{
+  'Webhook Endpoints' = '/v1/webhook_endpoints?limit=1'
+  'Subscriptions'     = '/v1/subscriptions?limit=1'
+  'Invoices'          = '/v1/invoices?limit=1'
+  'Events'            = '/v1/events?limit=1'
+  'Customers'         = '/v1/customers?limit=1'
+}
 
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
@@ -208,6 +221,85 @@ function Test-ProductionSecretKeyCapability {
   return $true
 }
 
+# --- Stripe key handling -----------------------------------------------------
+function Get-StripeKeyMode {
+  # Stripe encodes the mode in the key prefix; live and test can never mix.
+  param([string]$Key)
+  if ($Key -match '^(sk|rk|pk)_live_[A-Za-z0-9]{8,}$') { return 'live' }
+  if ($Key -match '^(sk|rk|pk)_test_[A-Za-z0-9]{8,}$') { return 'test' }
+  return 'unknown'
+}
+
+function Get-StripeKeyKind {
+  param([string]$Key)
+  if ($Key -match '^rk_(live|test)_[A-Za-z0-9]{8,}$') { return 'restricted' }
+  if ($Key -match '^sk_(live|test)_[A-Za-z0-9]{8,}$') { return 'secret' }
+  if ($Key -match '^pk_(live|test)_[A-Za-z0-9]{8,}$') { return 'publishable' }
+  return 'unknown'
+}
+
+function Invoke-StripeListProbe {
+  # READ ONLY GET of one Stripe list endpoint (limit=1) at api.stripe.com.
+  # Returns status, the `livemode` flag of the first object (if any) and the
+  # object count. Never returns or logs ids, headers, or the key.
+  param([string]$Key, [string]$Path)
+  $uri = "$($script:StripeApiOrigin)$Path"
+  $targetHost = ([Uri]$uri).Host
+  if ($targetHost -ne 'api.stripe.com') { throw "Stripe probe refused host '$targetHost'." }
+  $headers = @{ Authorization = "Bearer $Key"; 'Stripe-Version' = $script:StripeApiVersion }
+  try {
+    $response = Invoke-WebRequest -Uri $uri -Headers $headers -Method GET -UserAgent $script:BackendUserAgent -UseBasicParsing -TimeoutSec 30
+    $livemode = $null
+    $count = $null
+    try {
+      $body = $response.Content | ConvertFrom-Json
+      if ($null -ne $body.data) {
+        $items = @($body.data)
+        $count = $items.Count
+        if ($count -gt 0 -and $null -ne $items[0].livemode) { $livemode = [bool]$items[0].livemode }
+      }
+    } catch { $livemode = $null }
+    return @{ Status = [int]$response.StatusCode; Livemode = $livemode; Count = $count }
+  } catch {
+    return @{ Status = (Get-HttpFailureStatus $_); Livemode = $null; Count = $null }
+  }
+}
+
+function Get-StripeProbeVerdict {
+  # Maps an HTTP status to a precise, key-free message; $null means success.
+  param([int]$Status, [string]$Permission)
+  switch ($Status) {
+    200 { return $null }
+    401 { return "401 from Stripe while listing $Permission`: the key is invalid, expired, or revoked (not a permission problem)" }
+    403 { return "403 from Stripe while listing $Permission`: the restricted key lacks the '$Permission' read permission" }
+    404 { return "404 from Stripe while listing $Permission`: wrong endpoint or object (validator or API-path defect), NOT a missing permission" }
+    0 { return "network failure reaching api.stripe.com while listing $Permission" }
+    default { return "unexpected HTTP $Status from Stripe while listing $Permission" }
+  }
+}
+
+function Test-StripeLiveRestrictedKeyFormat {
+  param([string]$Key)
+  return ($Key -match '^rk_live_[A-Za-z0-9]{8,}$')
+}
+
+function Test-StripeLiveRestrictedKeyCapability {
+  # READ ONLY. Proves a LIVE RESTRICTED key can list each resource the live
+  # diagnosis reads, and that Stripe answers with live-mode objects.
+  param([string]$Key)
+  if ((Get-StripeKeyKind $Key) -ne 'restricted') { return 'the live diagnosis key must be a RESTRICTED key (rk_live_...), not a full secret or publishable key' }
+  if ((Get-StripeKeyMode $Key) -ne 'live') { return 'the live diagnosis key must be a LIVE-mode key (rk_live_...); test-mode keys are refused at this prompt' }
+  $observedLivemode = @()
+  foreach ($entry in $script:StripeLiveReadProbes.GetEnumerator()) {
+    $probe = Invoke-StripeListProbe -Key $Key -Path $entry.Value
+    $verdict = Get-StripeProbeVerdict -Status $probe.Status -Permission $entry.Key
+    if ($verdict) { return $verdict }
+    if ($null -ne $probe.Livemode) { $observedLivemode += $probe.Livemode }
+  }
+  if ($observedLivemode -contains $false) { return 'mode mismatch: Stripe returned test-mode objects for a key presented as live' }
+  return $true
+}
+
 function Invoke-CredentialRefresh {
   param([Parameter(Mandatory = $true)][string]$VaultPath, [switch]$SkipLive)
   if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable. Run scripts/invoke-phase7d-credential-prompt.ps1 first.' }
@@ -261,16 +353,7 @@ function Invoke-CredentialRefresh {
     if ($stripeTestPublishable) { $updates['STRIPE_PUBLISHABLE_KEY'] = $stripeTestPublishable }
 
     if (-not $SkipLive) {
-      $liveReadOnly = Read-OptionalSecret -Prompt 'Stripe LIVE RESTRICTED read-only key (rk_live_...) for diagnosis' -FormatCheck { param($v) $v -match '^rk_live_[A-Za-z0-9_]{8,}$' } -CapabilityCheck {
-        param($v)
-        $status = Http 'https://api.stripe.com/v1/webhook_endpoints?limit=1' (@{ Authorization = "Bearer $v" } + $stripeHeaders)
-        if ($status -ne 200) { return "webhook_endpoints read returned $status (grant Webhook Endpoints: read)" }
-        foreach ($resource in @('subscriptions', 'invoices', 'events', 'customers')) {
-          $status = Http "https://api.stripe.com/v1/$resource?limit=1" (@{ Authorization = "Bearer $v" } + $stripeHeaders)
-          if ($status -ne 200) { return "$resource read returned $status (grant read permission)" }
-        }
-        return $true
-      }
+      $liveReadOnly = Read-OptionalSecret -Prompt 'Stripe LIVE RESTRICTED read-only key (rk_live_...) for diagnosis' -FormatCheck { param($v) Test-StripeLiveRestrictedKeyFormat $v } -CapabilityCheck { param($v) Test-StripeLiveRestrictedKeyCapability $v }
       if ($liveReadOnly) { $updates['STRIPE_LIVE_READONLY_KEY'] = $liveReadOnly }
 
       $productionRef = Read-OptionalSecret -Prompt 'Production Supabase project ref (20 lowercase letters, from the dashboard URL)' -FormatCheck { param($v) $v -match '^[a-z]{20}$' -and $v -ne $stagingRef } -CapabilityCheck {

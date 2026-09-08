@@ -34,25 +34,42 @@ function Invoke-RestMethod {
   if ($Uri -like 'https://api.stripe.com/v1/balance*') { return [pscustomobject]@{ livemode = $false } }
   throw "unexpected REST call $Uri"
 }
+# Stripe mock rules: first rule whose Key matches the Bearer key and whose PathLike matches the URL wins.
+# Status 200 returns Content; any other status throws a PowerShell 5.1-style WebException.
+$script:StripeRules = @()
+$script:StripeDefaultListContent = '{"object":"list","data":[{"id":"sub_FAKEFAKEFAKEFAKE","object":"subscription","livemode":true,"customer":"cus_FAKEFAKEFAKE"}],"has_more":false,"url":"/v1/x"}'
+function Set-StripeRule { param([string]$Key, [string]$PathLike, [int]$Status, [string]$Content = '') $script:StripeRules += [pscustomobject]@{ Key = $Key; PathLike = $PathLike; Status = $Status; Content = $Content } }
 function Invoke-WebRequest {
   # Simulates the Supabase gateway and Stripe. Supabase: 200 only when the
   # apikey header carries an accepted fake key; otherwise a PowerShell 5.1-style
-  # WebException for HTTP 401. Stripe and other hosts: 200.
+  # WebException for HTTP 401. Stripe: rule table above, default 200 list body.
   param($Uri, $Headers, $Method, [switch]$UseBasicParsing, $TimeoutSec, $UserAgent)
   $headerNames = @()
   if ($Headers) { $headerNames = @($Headers.Keys | Sort-Object) }
   $apikey = if ($Headers -and $Headers.ContainsKey('apikey')) { [string]$Headers['apikey'] } else { $null }
   $bearer = if ($Headers -and $Headers.ContainsKey('Authorization')) { [string]$Headers['Authorization'] } else { $null }
+  $bearerKey = if ($bearer) { $bearer -replace '^Bearer ', '' } else { $null }
   $script:WebRequests += [pscustomobject]@{
     Method = [string]$Method; Uri = [string]$Uri; Host = ([Uri]$Uri).Host; HeaderNames = $headerNames; UserAgent = [string]$UserAgent
     ApiKeyAccepted = ($null -ne $apikey -and $script:AcceptedSupabaseKeys -contains $apikey)
     BearerMatchesApiKey = ($null -ne $bearer -and $null -ne $apikey -and $bearer -eq "Bearer $apikey")
+    BearerIsFakeLiveRestricted = ($null -ne $bearerKey -and $bearerKey -eq $fakeLiveReadOnly)
+    StripeVersion = if ($Headers -and $Headers.ContainsKey('Stripe-Version')) { [string]$Headers['Stripe-Version'] } else { $null }
   }
   if ($Uri -like '*.supabase.co/*') {
-    if ($null -ne $apikey -and $script:AcceptedSupabaseKeys -contains $apikey) { return [pscustomobject]@{ StatusCode = 200 } }
+    if ($null -ne $apikey -and $script:AcceptedSupabaseKeys -contains $apikey) { return [pscustomobject]@{ StatusCode = 200; Content = '{}' } }
     throw (New-Object System.Net.WebException 'The remote server returned an error: (401) Unauthorized.')
   }
-  return [pscustomobject]@{ StatusCode = 200 }
+  if ($Uri -like 'https://api.stripe.com/*') {
+    $rule = $script:StripeRules | Where-Object { $_.Key -eq $bearerKey -and $Uri -like $_.PathLike } | Select-Object -First 1
+    if ($rule) {
+      if ($rule.Status -eq 200) { return [pscustomobject]@{ StatusCode = 200; Content = $rule.Content } }
+      throw (New-Object System.Net.WebException "The remote server returned an error: ($($rule.Status)) Stripe.")
+    }
+    if ($Uri -like '*limit=1*') { return [pscustomobject]@{ StatusCode = 200; Content = $script:StripeDefaultListContent } }
+    return [pscustomobject]@{ StatusCode = 200; Content = '{}' }
+  }
+  return [pscustomobject]@{ StatusCode = 200; Content = '{}' }
 }
 # Always pass precomputed strings: inside an array literal the comma binds
 # tighter than +, so 'a' + ('b'), 'c' would split into extra queue items.
@@ -79,7 +96,14 @@ $fakeProductionRef = 'abcdefghijklmnopqrst'
 $fakeProductionSecret = 'sb_secret_' + ('E' * 30)
 $fakeExisting = 'existing-fake-value-' + ('F' * 20)
 $fakeRejectedToken = 'sbp_' + ('X' * 40)
-$allFakeSecrets = @($fakeToken, $fakeStagingSecret, $fakeStagingPublishable, $fakeLegacyServiceRole, $fakeLegacyAnon, $fakeInvalidSecret, $fakeStripeTest, $fakeLiveReadOnly, $fakeProductionSecret, $fakeExisting, $fakeRejectedToken)
+$fakeLiveInvalid = 'rk_live_' + ('I' * 24)
+$fakeLiveNoSubscriptions = 'rk_live_' + ('N' * 24)
+$fakeLiveWrongEndpoint = 'rk_live_' + ('W' * 24)
+$fakeLiveTestObjects = 'rk_live_' + ('T' * 24)
+$fakeLiveEmptyLists = 'rk_live_' + ('M' * 24)
+$fakeTestRestricted = 'rk_test_' + ('R' * 24)
+$fakeLiveFullSecret = 'sk_live_' + ('S' * 24)
+$allFakeSecrets = @($fakeToken, $fakeStagingSecret, $fakeStagingPublishable, $fakeLegacyServiceRole, $fakeLegacyAnon, $fakeInvalidSecret, $fakeStripeTest, $fakeLiveReadOnly, $fakeProductionSecret, $fakeExisting, $fakeRejectedToken, $fakeLiveInvalid, $fakeLiveNoSubscriptions, $fakeLiveWrongEndpoint, $fakeLiveTestObjects, $fakeLiveEmptyLists, $fakeTestRestricted, $fakeLiveFullSecret)
 $script:AcceptedSupabaseKeys = @($fakeStagingSecret, $fakeStagingPublishable, $fakeLegacyServiceRole, $fakeProductionSecret)
 $stagingHost = 'gcmuhzxkwvfireyrearl.supabase.co'
 
@@ -176,6 +200,60 @@ $outcome = Test-ProductionSecretKeyCapability -Key $fakeProductionSecret -Projec
 Assert ($outcome -like '*STAGING project ref, not production*') 'E: production validator refuses the staging ref'
 $productionRef.Dispose(); Remove-Variable productionRef; Remove-Variable vault
 
+# --- G. Stripe LIVE restricted key validator.
+$stripeLiveEndpoints = @('https://api.stripe.com/v1/webhook_endpoints?limit=1', 'https://api.stripe.com/v1/subscriptions?limit=1', 'https://api.stripe.com/v1/invoices?limit=1', 'https://api.stripe.com/v1/events?limit=1', 'https://api.stripe.com/v1/customers?limit=1')
+# G1. live restricted key with every read permission succeeds; requests are the literal list endpoints.
+$script:WebRequests = @(); $script:StripeRules = @()
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveReadOnly
+Assert ($outcome -eq $true) 'G1: live restricted key with Subscriptions read (and the other reads) is accepted'
+$stripeRequests = @($script:WebRequests | Where-Object { $_.Host -eq 'api.stripe.com' })
+Assert (($stripeRequests | ForEach-Object { $_.Uri }) -join ' ' -eq ($stripeLiveEndpoints -join ' ')) "G1: probes are exactly the five literal list endpoints in order (got: $(($stripeRequests | ForEach-Object { $_.Uri -replace 'https://api.stripe.com', '' }) -join ' '))"
+Assert (@($stripeRequests | Where-Object { $_.Uri -eq 'https://api.stripe.com/v1/subscriptions?limit=1' }).Count -eq 1) 'G1: the Subscriptions check is GET /v1/subscriptions?limit=1 (regression: a dollar-variable followed by ?limit=1 used to request /v1/=1)'
+Assert (($stripeRequests | Where-Object { $_.Uri -like '*/v1/=1*' -or $_.Uri -like '*/v1/limit=1*' }).Count -eq 0) 'G1: no malformed /v1/=1 request is made'
+Assert (($stripeRequests | Where-Object { $_.Method -ne 'GET' }).Count -eq 0) 'G1: every Stripe probe is a GET (read only)'
+Assert (($stripeRequests | Where-Object { -not $_.BearerIsFakeLiveRestricted }).Count -eq 0) 'G1: the live restricted key is sent as the Bearer credential to every probe'
+Assert (($stripeRequests | Where-Object { $_.StripeVersion -ne '2026-07-29.dahlia' }).Count -eq 0) 'G1: every probe pins the runtime Stripe-Version'
+Assert (($stripeRequests | Where-Object { $_.UserAgent -ne $script:BackendUserAgent }).Count -eq 0) 'G1: every probe uses the backend User-Agent'
+Assert (($script:WebRequests | Where-Object { $_.Host -ne 'api.stripe.com' }).Count -eq 0) 'G1: the live validator contacts only api.stripe.com'
+# G2. empty subscription list still succeeds.
+$script:WebRequests = @(); $script:StripeRules = @()
+Set-StripeRule -Key $fakeLiveEmptyLists -PathLike 'https://api.stripe.com/v1/*' -Status 200 -Content '{"object":"list","data":[],"has_more":false}'
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveEmptyLists
+Assert ($outcome -eq $true) 'G2: empty lists (no subscriptions, invoices, events, customers, endpoints) still pass the permission check'
+# G3. invalid or expired key -> 401 classified as key problem, never as missing permission.
+$script:StripeRules = @()
+Set-StripeRule -Key $fakeLiveInvalid -PathLike 'https://api.stripe.com/v1/*' -Status 401
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveInvalid
+Assert ($outcome -like '401 from Stripe while listing Webhook Endpoints: the key is invalid, expired, or revoked*') "G3: 401 classified as invalid/expired key: $outcome"
+Assert ($outcome -notlike '*grant*' -and $outcome -notlike '*lacks*') 'G3: 401 is not described as a permission problem'
+# G4. permission denial -> 403 names the missing permission.
+$script:StripeRules = @()
+Set-StripeRule -Key $fakeLiveNoSubscriptions -PathLike 'https://api.stripe.com/v1/subscriptions*' -Status 403
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveNoSubscriptions
+Assert ($outcome -like "403 from Stripe while listing Subscriptions: the restricted key lacks the 'Subscriptions' read permission") "G4: 403 classified as missing permission: $outcome"
+# G5. 404 is a wrong endpoint/object, never mislabeled as a missing permission.
+$script:StripeRules = @()
+Set-StripeRule -Key $fakeLiveWrongEndpoint -PathLike 'https://api.stripe.com/v1/subscriptions*' -Status 404
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveWrongEndpoint
+Assert ($outcome -like '404 from Stripe while listing Subscriptions: wrong endpoint or object*NOT a missing permission*') "G5: 404 classified as endpoint/object mismatch: $outcome"
+Assert ($outcome -notlike '*grant read permission*' -and $outcome -notlike '*lacks*') 'G5: 404 never says "grant read permission"'
+Assert ((Get-StripeProbeVerdict -Status 200 -Permission 'Subscriptions') -eq $null) 'G5: 200 is success (no verdict message)'
+# G6. test/live mode cannot be mixed.
+Assert ((Test-StripeLiveRestrictedKeyFormat $fakeTestRestricted) -eq $false) 'G6: rk_test_ key is rejected by the live prompt format check'
+Assert ((Test-StripeLiveRestrictedKeyFormat $fakeLiveFullSecret) -eq $false) 'G6: sk_live_ full secret key is rejected by the restricted-key format check'
+Assert ((Test-StripeLiveRestrictedKeyFormat $fakeLiveReadOnly) -eq $true) 'G6: rk_live_ key passes the format check'
+Assert ((Test-StripeLiveRestrictedKeyCapability $fakeTestRestricted) -like '*must be a LIVE-mode key*') 'G6: capability check refuses a test-mode restricted key even if the format check were bypassed'
+Assert ((Test-StripeLiveRestrictedKeyCapability $fakeLiveFullSecret) -like '*must be a RESTRICTED key*') 'G6: capability check refuses a full live secret key'
+Assert ((Get-StripeKeyMode $fakeStripeTest) -eq 'test' -and (Get-StripeKeyMode $fakeLiveReadOnly) -eq 'live' -and (Get-StripeKeyMode 'nonsense') -eq 'unknown') 'G6: key mode is derived from the prefix'
+$script:StripeRules = @()
+Set-StripeRule -Key $fakeLiveTestObjects -PathLike 'https://api.stripe.com/v1/*' -Status 200 -Content '{"object":"list","data":[{"id":"sub_FAKE","livemode":false}],"has_more":false}'
+$outcome = Test-StripeLiveRestrictedKeyCapability $fakeLiveTestObjects
+Assert ($outcome -like 'mode mismatch: Stripe returned test-mode objects*') "G6: live-mode proof fails when Stripe returns livemode=false objects: $outcome"
+$script:StripeRules = @()
+# G7. no key, id, or header value in any verdict.
+$verdicts = @((Test-StripeLiveRestrictedKeyCapability $fakeLiveInvalid), (Test-StripeLiveRestrictedKeyCapability $fakeLiveReadOnly)) | ForEach-Object { [string]$_ }
+Assert (($verdicts | Where-Object { $_ -match 'rk_live_|Bearer|sub_|cus_|in_[A-Za-z0-9]{6}|evt_' }).Count -eq 0) 'G7: verdict messages contain no key, Authorization header, or Stripe object id'
+
 # --- 5. End-to-end against a temporary vault (staging prompts only), with host-output capture for leakage checks.
 $tempVault = Join-Path $env:TEMP ("credential-refresh-test-" + [guid]::NewGuid().ToString('N') + '.clixml')
 $vaultObject = [pscustomobject]@{
@@ -249,6 +327,8 @@ Assert ($leaks.Count -eq 0) "F: no fake secret appears in host output, request U
 # strategy description "apikey header only" in a status message is not a value).
 Assert (($hostOutput | Where-Object { $_ -match 'Bearer\s+\S+' -or $_ -match 'apikey\s*[:=]\s*\S+' }).Count -eq 0) 'F: host output never contains an Authorization or apikey header value'
 Assert ($hostOutput.Count -gt 5) "F: host output was actually captured for the leakage check ($($hostOutput.Count) lines)"
+# Key-shaped values only: the guidance text legitimately names the rk_live_ prefix.
+Assert (@($hostOutput | Where-Object { $_ -match 'sub_[A-Za-z0-9]{4,}|cus_[A-Za-z0-9]{4,}|evt_[A-Za-z0-9]{4,}|rk_live_[A-Za-z0-9]{8,}|sk_live_[A-Za-z0-9]{8,}' }).Count -eq 0) 'F: host output never contains a Stripe customer, subscription, or event id, or a live key value'
 
 Write-Host ''
 Write-Host "RESULT  passed=$($script:Passes) failed=$($script:Failures)"
