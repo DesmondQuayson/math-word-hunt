@@ -187,15 +187,26 @@ async function pgtapRemote() {
   secrets.push(accessToken, databasePassword);
   const query = (sql) => managementQuery(accessToken, databasePassword, sql);
   const source = readFileSync(resolve("supabase/tests/database/21_security_observability.test.sql"), "utf8").replace(/\r\n/g, "\n");
-  const statements = source.split(/;\n/).map((statement) => statement.trim())
+  // Comment lines are stripped before matching: a statement that follows a
+  // "-- Behaviour:" comment is still a statement. The first version of this
+  // harness dropped exactly those — including the fixture insert and the first
+  // claim — and reported four failures the database was never guilty of.
+  const statements = source.split(/;\n/)
+    .map((statement) => statement.replace(/^(\s*--[^\n]*\n)+/, "").trim())
     .filter((statement) => /^select\s/i.test(statement) && !/^select\s+(no_plan\(\)|\*\s+from\s+finish\(\))/i.test(statement));
   await query("create extension if not exists pgtap with schema extensions");
-  const lines = [];
+  // One call, one session, one transaction: every assertion sees the fixtures
+  // the earlier ones created, exactly as pg_prove would run the file. The TAP
+  // lines are collected in a temporary table and returned by the final SELECT.
+  const script = [
+    "create temp table tap_lines (seq serial, line text)",
+    "select no_plan()",
+    ...statements.map((statement) => `insert into tap_lines (line) ${statement}`),
+    "select line from tap_lines order by seq"
+  ].join(";\n");
+  let lines = [];
   try {
-    for (const statement of statements) {
-      const rows = await query(`select no_plan(); ${statement}`);
-      lines.push(rows.map((row) => String(Object.values(row)[0] ?? "")).join(" | ") || "(no output)");
-    }
+    lines = (await query(script)).map((row) => String(row.line ?? ""));
   } finally {
     await query("delete from public.security_alerts where rule_key = 'pgtap-rule'");
     await query("delete from public.security_alert_state where rule_key = 'pgtap-rule'");
@@ -203,8 +214,44 @@ async function pgtapRemote() {
   }
   const ok = lines.filter((line) => /^ok\b/.test(line)).length;
   const notOk = lines.filter((line) => !/^ok\b/.test(line));
-  evidence.pgtapRemote = { assertions: statements.length, ok, notOk };
+  evidence.pgtapRemote = { assertions: statements.length, returned: lines.length, ok, notOk };
   check(notOk.length === 0 && ok === statements.length, `pgtap-remote-assertions-failed:${notOk.length}`);
+}
+
+/** Diagnostic: shows exactly what the store holds after the pgTAP fixture insert. Staging only. */
+async function inspect() {
+  refuseProductionIdentifiers();
+  const accessToken = required("SUPABASE_ACCESS_TOKEN", /^sbp_/);
+  const databasePassword = required("SUPABASE_DB_PASSWORD", /^.{16,}$/);
+  secrets.push(accessToken, databasePassword);
+  const query = (sql) => managementQuery(accessToken, databasePassword, sql);
+  const fixture = JSON.stringify([{ event_id: "0123456789abcdef0123456789abcdef", occurred_at: "2026-09-09T00:00:00Z", environment: "staging", event_type: "webhook-signature-invalid", category: "billing", severity: "medium", source: "billing-webhook", outcome: "denied", correlation_id: "pgtap-correlation-1", synthetic: false, ingest_source: "in-process", metadata: { reason: "verification-failed" } }]);
+  const probes = [
+    ["inserted", `select public.record_security_events('${fixture}'::jsonb) as inserted`],
+    ["rows", "select event_id, occurred_at, environment, synthetic, ingest_source, correlation_id, severity from public.security_events where correlation_id like 'pgtap-%'"],
+    ["session", "select current_setting('TimeZone') as tz, now() as now, '2026-09-09T00:00:00Z'::timestamptz as parsed, current_user as who"],
+    ["exact", "select public.count_security_events_since(array['webhook-signature-invalid'], '2026-09-09T00:00:00Z'::timestamptz, false, 'staging', '{}'::jsonb) as n"],
+    ["wide", "select public.count_security_events_since(array['webhook-signature-invalid'], '2026-09-01T00:00:00Z'::timestamptz, false, 'staging', '{}'::jsonb) as n"],
+    ["raw-count", "select count(*)::int as n from public.security_events where event_type = 'webhook-signature-invalid' and occurred_at >= '2026-09-09T00:00:00Z'::timestamptz and synthetic = false and environment = 'staging'"],
+    ["summary", "select * from public.summarize_security_events('staging')"],
+    ["pipeline", "select * from public.security_pipeline_health('staging')"],
+    ["claim1", "select public.claim_security_alert('pgtap-rule', false, 3600) as claimed"],
+    ["state1", "select rule_key, synthetic, last_fired_at, fired_count from public.security_alert_state where rule_key = 'pgtap-rule'"],
+    ["claim2", "select public.claim_security_alert('pgtap-rule', false, 3600) as claimed"],
+    ["state2", "select rule_key, synthetic, last_fired_at, fired_count from public.security_alert_state where rule_key = 'pgtap-rule'"],
+    ["all-rows", "select count(*)::int as total, min(occurred_at) as oldest, max(occurred_at) as newest from public.security_events"]
+  ];
+  const out = {};
+  try {
+    for (const [label, sql] of probes) {
+      try { out[label] = await query(sql); } catch (error) { out[label] = `ERROR ${redact(String(error.message)).slice(0, 300)}`; }
+    }
+  } finally {
+    await query("delete from public.security_alerts where rule_key = 'pgtap-rule'");
+    await query("delete from public.security_alert_state where rule_key = 'pgtap-rule'");
+    await query("delete from public.security_events where correlation_id like 'pgtap-correlation-%'");
+  }
+  evidence.inspect = out;
 }
 
 function setStagingEnv(name, value) {
@@ -246,7 +293,14 @@ async function deploy() {
   evidence.commit = run("git", ["rev-parse", "HEAD"]);
   evidence.tree = run("git", ["rev-parse", "HEAD^{tree}"]);
   step("deploy");
-  const output = vercel(["deploy", "--prod", "--yes"], { allowFailure: true });
+  // From the repository root, naming the STAGING project explicitly: the
+  // project's Root Directory setting (apps/platform-web) is resolved by the
+  // platform against the uploaded repository, so the upload must be the whole
+  // repository — exactly as the subscription-lifecycle pipeline deploys.
+  const output = vercel(
+    ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--prod", "--yes", "--meta", `candidateCommit=${evidence.commit}`, "--meta", `candidateTree=${evidence.tree}`],
+    { allowFailure: true, cwd: repositoryRoot }
+  );
   const combined = `${output.stdout}\n${output.stderr}`;
   check(output.status === 0, `deploy-failed:${redact(combined).slice(-1500)}`);
   const deploymentUrl = combined.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g)?.find((url) => url.includes("mathnexa-platform-staging")) ?? null;
@@ -351,6 +405,7 @@ async function certify() {
 try {
   if (stage === "migrate" || stage === "all") { step("migrate"); await migrate(); }
   if (stage === "pgtap-remote") { step("pgtap-remote"); await pgtapRemote(); }
+  if (stage === "inspect") { step("inspect"); await inspect(); }
   if (stage === "env" || stage === "all") { step("env"); await configureEnv(); }
   if (stage === "deploy" || stage === "all") { step("deploy"); await deploy(); }
   if (stage === "certify" || stage === "all") { step("certify"); await certify(); }
