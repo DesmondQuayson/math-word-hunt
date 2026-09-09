@@ -87,7 +87,10 @@ async function probe(url, options = {}) {
 /** A request to a protection-bypassed deployment through the CLI (curl flags after `--`). */
 function curlDeployment(deploymentId, path, curlArgs = []) {
   // curl flags follow the path directly; the CLI forwards every unknown flag.
-  const output = vercel(["curl", path, "-s", "-i", ...curlArgs, "--deployment", deploymentId, "--scope", SCOPE, "--yes"], { allowFailure: true, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
+  // The command runs through cmd.exe, where `&`, `?`, spaces and quotes split
+  // arguments, so every argument is quoted for that shell explicitly.
+  const quote = (value) => `"${String(value).replace(/"/g, "\\\"")}"`;
+  const output = vercel(["curl", quote(path), "-s", "-i", ...curlArgs.map(quote), "--deployment", deploymentId, "--scope", SCOPE, "--yes"], { allowFailure: true, env: { ...process.env, MSYS_NO_PATHCONV: "1" } });
   const text = `${output.stdout}\n${output.stderr}`;
   const statusLine = text.split("\n").map((line) => line.trim()).filter((line) => /^HTTP\/[0-9.]+ \d{3}/.test(line)).pop() ?? "";
   const status = Number((statusLine.match(/ (\d{3})/) ?? [])[1] ?? 0);
@@ -121,7 +124,12 @@ async function preflight() {
   check(live.name === PRODUCTION_VERCEL_PROJECT, `apex-served-by-unexpected-project:${live.name}`);
   check(!FORBIDDEN_PROJECTS.includes(live.name ?? ""), "apex-served-by-a-project-this-hotfix-must-not-touch");
   check(live.target === "production", `apex-deployment-not-production-target:${live.target}`);
-  check((live.aliases ?? []).includes(PRODUCTION_ORIGIN), "apex-alias-missing-from-deployment");
+  // `vercel inspect https://mathnexa.com` resolves the deployment that serves
+  // the apex; CLI 59.13 no longer lists custom domains under Aliases, so the
+  // resolution itself is the evidence, cross-checked below against the HTML.
+  const apexHtml = await probe(`${PRODUCTION_ORIGIN}/`);
+  const apexHtmlDeployment = (apexHtml.body.match(/data-dpl-id="(dpl_[A-Za-z0-9]+)"/) ?? [])[1] ?? null;
+  check(apexHtmlDeployment === live.id, `apex-html-deployment-mismatch:${apexHtmlDeployment}`);
   check(live.id === EXPECTED_ROLLBACK_DEPLOYMENT, `apex-serves-unexpected-deployment:${live.id}`);
   evidence.rollbackTarget = { id: live.id, url: live.url, retained: true };
   step("production behaviour before the change");
@@ -189,20 +197,20 @@ async function probePreview() {
   results.thumbnailAvif = curlDeployment(id, "/media/games/number-cross.avif");
   evidence.previewProbes = results;
   // This deployment carries the production environment on a non-apex host, so
-  // every browser path 308s to the apex (canonical host) while the two exempt
-  // machine endpoints answer directly — exactly the v1.2.7 contract.
+  // every proxied path — pages, admin, the scheduler and fixture routes, static
+  // media — 308s to the apex (canonical host) while the two exempt machine
+  // endpoints answer directly: exactly the v1.2.7 contract, proven before any
+  // traffic moves. The image optimizer sits outside the proxy matcher, so it
+  // answers on this host too. Fail-closed behaviour of the proxied routes is
+  // proven on the apex after promotion and by the standing suites.
   const redirectsToApex = (result) => [307, 308].includes(result.status) && (result.location ?? "").startsWith(PRODUCTION_ORIGIN);
   const checks = {
     health: results.health.status === 200 && /"status":"ready"/.test(results.health.body),
     webhook: results.webhookUnsigned.status === 400 && /invalid-signature/.test(results.webhookUnsigned.body) && !results.webhookUnsigned.location,
-    canonicalHost: redirectsToApex(results.home) && redirectsToApex(results.account) && redirectsToApex(results.pricing) && redirectsToApex(results.admin),
-    scheduler: [401, 503].includes(results.scheduler.status),
-    fixtureAbsent: results.fixture.status === 404,
-    gameRuntimeDenied: results.gameRuntime.status !== 200,
-    forgedAccessDenied: !/\/game\/runtime/.test(results.forgedAccess.location ?? "") && results.forgedAccess.status !== 200 || redirectsToApex(results.forgedAccess),
+    canonicalHost: [results.home, results.account, results.pricing, results.admin, results.scheduler, results.fixture, results.gameRuntime, results.thumbnailAvif, results.forgedAccess].every(redirectsToApex),
+    noServerErrors: Object.values(results).every((result) => result.status > 0 && result.status < 500),
     optimizer: results.optimizerIcon.status === 200 && /^image\//.test(results.optimizerIcon.contentType ?? ""),
-    optimizerRemoteRefused: results.optimizerRemote.status >= 400 && results.optimizerRemote.status < 500,
-    staticAvif: results.thumbnailAvif.status === 200
+    optimizerRemoteRefused: results.optimizerRemote.status >= 400 && results.optimizerRemote.status < 500
   };
   evidence.previewChecks = checks;
   console.log(`PREVIEW_PROBES ${JSON.stringify({ checks, statuses: Object.fromEntries(Object.entries(results).map(([key, value]) => [key, `${value.status}${value.location ? ` -> ${value.location}` : ""}`])) }, null, 2)}`);
@@ -323,9 +331,63 @@ async function probeLive() {
   check(Object.values(checks).every(Boolean), `live-certification-failed:${Object.entries(checks).filter(([, ok]) => !ok).map(([key]) => key).join(",")}`);
 }
 
+/**
+ * READ-ONLY view of every live consumer subscription: the local projection
+ * (PostgREST GET with the production service key) against Stripe (GET with
+ * the restricted read-only key). Nothing is written, charged, refunded or
+ * cancelled. Output carries suffixes only — never a customer id, a whole
+ * subscription id or an email. Also reports the catalogue product/price ids
+ * (not secrets) so the standing drift audit can be run with them.
+ */
+async function subscriberReadonly() {
+  step("read-only subscriber verification");
+  const ref = (process.env.SUPABASE_PRODUCTION_PROJECT_REF ?? "").trim().toLowerCase();
+  const serviceKey = (process.env.SUPABASE_PRODUCTION_SECRET_KEY ?? "").trim();
+  const stripeKey = (process.env.STRIPE_LIVE_READONLY_KEY ?? "").trim();
+  check(/^[a-z]{20}$/.test(ref), "missing-supabase-production-project-ref");
+  check(serviceKey.length >= 20, "missing-supabase-production-secret-key");
+  check(/^rk_live_/.test(stripeKey), "stripe-key-is-not-a-restricted-read-only-live-key");
+  const suffix = (value) => value ? `…${String(value).slice(-6)}` : null;
+  const rest = async (path) => {
+    const response = await fetch(`https://${ref}.supabase.co/rest/v1/${path}`, { headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}`, "user-agent": BACKEND_USER_AGENT, accept: "application/json" } });
+    check(response.ok, `postgrest-read-failed-${response.status}:${path.split("?")[0]}`);
+    return response.json();
+  };
+  const stripe = async (path) => {
+    const response = await fetch(`https://api.stripe.com/v1/${path}`, { headers: { authorization: `Bearer ${stripeKey}`, "user-agent": BACKEND_USER_AGENT } });
+    check(response.ok, `stripe-read-failed-${response.status}:${path.split("?")[0].replace(/sub_[A-Za-z0-9]+/, "sub_…")}`);
+    return response.json();
+  };
+  const subscriptions = await rest("billing_subscriptions?select=stripe_subscription_id,stripe_price_id,subscription_status,current_period_end,cancel_at_period_end,last_synchronized_at,last_synchronization_source,owner_consumer_id,first_paid_at,last_paid_at&owner_consumer_id=not.is.null&order=created_at.asc");
+  const entitlements = await rest("consumer_game_entitlements?select=consumer_user_id,state,current_period_ends_at,updated_at&order=updated_at.desc");
+  const report = [];
+  const catalogue = new Set();
+  for (const row of subscriptions) {
+    const remote = row.stripe_subscription_id ? await stripe(`subscriptions/${row.stripe_subscription_id}`) : null;
+    const price = row.stripe_price_id ? await stripe(`prices/${row.stripe_price_id}`) : null;
+    if (price?.product) catalogue.add(`${typeof price.product === "string" ? price.product : price.product.id}|${row.stripe_price_id}`);
+    const remotePeriodEnd = remote ? new Date((remote.items?.data?.[0]?.current_period_end ?? remote.current_period_end) * 1000).toISOString() : null;
+    const localPeriodEnd = row.current_period_end ? new Date(row.current_period_end).toISOString() : null;
+    report.push({
+      subscription: suffix(row.stripe_subscription_id),
+      local: { status: row.subscription_status, periodEnd: localPeriodEnd, cancelAtPeriodEnd: row.cancel_at_period_end, lastSynchronized: row.last_synchronized_at, source: row.last_synchronization_source, firstPaid: row.first_paid_at, lastPaid: row.last_paid_at },
+      stripe: remote ? { status: remote.status, periodEnd: remotePeriodEnd, cancelAtPeriodEnd: remote.cancel_at_period_end, livemode: remote.livemode } : null,
+      match: Boolean(remote) && remote.status === row.subscription_status && remotePeriodEnd === localPeriodEnd
+    });
+  }
+  evidence.subscriptions = report;
+  evidence.entitlements = entitlements.map((row) => ({ state: row.state, periodEnd: row.current_period_ends_at, updated: row.updated_at }));
+  evidence.catalogue = [...catalogue];
+  const active = report.filter((row) => row.stripe?.status === "active");
+  console.log(`SUBSCRIBER_READONLY ${JSON.stringify({ subscriptions: report, entitlements: evidence.entitlements, catalogue: evidence.catalogue }, null, 2)}`);
+  check(active.length >= 1 && active.every((row) => row.match), "active-subscription-does-not-match-stripe");
+  check(evidence.entitlements.some((row) => /active/.test(row.state ?? "")), "no-active-entitlement");
+}
+
 try {
   check(!Object.entries(process.env).some(([name, value]) => name.startsWith("MVH_STAGING") && value), "staging-variables-loaded-refusing");
-  if (stage === "preflight") await preflight();
+  if (stage === "subscriber-readonly") await subscriberReadonly();
+  else if (stage === "preflight") await preflight();
   else if (stage === "deploy-preview") await deployPreview();
   else if (stage === "probe-preview") await probePreview();
   else if (stage === "promote") await promote();
