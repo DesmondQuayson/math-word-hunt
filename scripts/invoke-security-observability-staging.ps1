@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('migrate', 'env', 'deploy', 'certify', 'all')] [string]$Stage = 'certify',
+  [ValidateSet('migrate', 'pgtap-remote', 'env', 'deploy', 'certify', 'all')] [string]$Stage = 'certify',
   [string]$Url = '',
   [string]$LogFile = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')

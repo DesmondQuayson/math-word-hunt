@@ -4,6 +4,9 @@
 //                     directory, push migrations (adds the security event
 //                     store), run the remote pgTAP suite once, and verify the
 //                     seven functions and three tables exist.
+//   --stage=pgtap-remote  run the pgTAP assertions of the security store test
+//                     through the management API (one per call) for hosts
+//                     without a Docker daemon; removes its fixtures afterwards.
 //   --stage=env       set MVH_SECURITY_EVENT_SINK=database on the staging
 //                     Vercel project and generate a STAGING-only drain secret
 //                     (MVH_SECURITY_DRAIN_SECRET), storing it in the local
@@ -170,6 +173,40 @@ async function migrate() {
   }
 }
 
+/**
+ * Runs the pgTAP assertions of 21_security_observability.test.sql against the
+ * STAGING database through the management API, one assertion per call, for
+ * hosts where `supabase test db` cannot run (it needs a Docker daemon for
+ * pg_prove). The file relies on ROLLBACK for cleanup, so the fixtures it
+ * creates are removed explicitly afterwards.
+ */
+async function pgtapRemote() {
+  refuseProductionIdentifiers();
+  const accessToken = required("SUPABASE_ACCESS_TOKEN", /^sbp_/);
+  const databasePassword = required("SUPABASE_DB_PASSWORD", /^.{16,}$/);
+  secrets.push(accessToken, databasePassword);
+  const query = (sql) => managementQuery(accessToken, databasePassword, sql);
+  const source = readFileSync(resolve("supabase/tests/database/21_security_observability.test.sql"), "utf8").replace(/\r\n/g, "\n");
+  const statements = source.split(/;\n/).map((statement) => statement.trim())
+    .filter((statement) => /^select\s/i.test(statement) && !/^select\s+(no_plan\(\)|\*\s+from\s+finish\(\))/i.test(statement));
+  await query("create extension if not exists pgtap with schema extensions");
+  const lines = [];
+  try {
+    for (const statement of statements) {
+      const rows = await query(`select no_plan(); ${statement}`);
+      lines.push(rows.map((row) => String(Object.values(row)[0] ?? "")).join(" | ") || "(no output)");
+    }
+  } finally {
+    await query("delete from public.security_alerts where rule_key = 'pgtap-rule'");
+    await query("delete from public.security_alert_state where rule_key = 'pgtap-rule'");
+    await query("delete from public.security_events where correlation_id like 'pgtap-correlation-%'");
+  }
+  const ok = lines.filter((line) => /^ok\b/.test(line)).length;
+  const notOk = lines.filter((line) => !/^ok\b/.test(line));
+  evidence.pgtapRemote = { assertions: statements.length, ok, notOk };
+  check(notOk.length === 0 && ok === statements.length, `pgtap-remote-assertions-failed:${notOk.length}`);
+}
+
 function setStagingEnv(name, value) {
   // Removes then adds, always through stdin (never a shell pipe that appends a
   // newline — the MN-09 lesson), on the production target of the STAGING project.
@@ -313,6 +350,7 @@ async function certify() {
 
 try {
   if (stage === "migrate" || stage === "all") { step("migrate"); await migrate(); }
+  if (stage === "pgtap-remote") { step("pgtap-remote"); await pgtapRemote(); }
   if (stage === "env" || stage === "all") { step("env"); await configureEnv(); }
   if (stage === "deploy" || stage === "all") { step("deploy"); await deploy(); }
   if (stage === "certify" || stage === "all") { step("certify"); await certify(); }
