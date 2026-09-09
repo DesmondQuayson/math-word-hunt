@@ -364,8 +364,8 @@ async function subscriberReadonly() {
   const catalogue = new Set();
   for (const row of subscriptions) {
     const remote = row.stripe_subscription_id ? await stripe(`subscriptions/${row.stripe_subscription_id}`) : null;
-    const price = row.stripe_price_id ? await stripe(`prices/${row.stripe_price_id}`) : null;
-    if (price?.product) catalogue.add(`${typeof price.product === "string" ? price.product : price.product.id}|${row.stripe_price_id}`);
+    // The restricted key reads subscriptions and invoices only (403 on prices), which is exactly the scope this stage needs.
+    if (row.stripe_price_id) catalogue.add(row.stripe_price_id);
     const remotePeriodEnd = remote ? new Date((remote.items?.data?.[0]?.current_period_end ?? remote.current_period_end) * 1000).toISOString() : null;
     const localPeriodEnd = row.current_period_end ? new Date(row.current_period_end).toISOString() : null;
     report.push({
