@@ -359,7 +359,7 @@ async function subscriberReadonly() {
     return response.json();
   };
   const subscriptions = await rest("billing_subscriptions?select=stripe_subscription_id,stripe_price_id,subscription_status,current_period_end,cancel_at_period_end,last_synchronized_at,last_synchronization_source,owner_consumer_id,first_paid_at,last_paid_at&owner_consumer_id=not.is.null&order=created_at.asc");
-  const entitlements = await rest("consumer_game_entitlements?select=consumer_user_id,state,current_period_ends_at,updated_at&order=updated_at.desc");
+  const entitlements = await rest("consumer_game_entitlements?select=entitlement_state,current_period_ends_at,trial_ends_at,updated_at&order=updated_at.desc");
   const report = [];
   const catalogue = new Set();
   for (const row of subscriptions) {
@@ -376,7 +376,7 @@ async function subscriberReadonly() {
     });
   }
   evidence.subscriptions = report;
-  evidence.entitlements = entitlements.map((row) => ({ state: row.state, periodEnd: row.current_period_ends_at, updated: row.updated_at }));
+  evidence.entitlements = entitlements.map((row) => ({ state: row.entitlement_state, periodEnd: row.current_period_ends_at, trialEnd: row.trial_ends_at, updated: row.updated_at }));
   evidence.catalogue = [...catalogue];
   const active = report.filter((row) => row.stripe?.status === "active");
   console.log(`SUBSCRIBER_READONLY ${JSON.stringify({ subscriptions: report, entitlements: evidence.entitlements, catalogue: evidence.catalogue }, null, 2)}`);
