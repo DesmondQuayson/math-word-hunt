@@ -402,7 +402,11 @@ body:has(.admin-command-center) > main {
 @media(forced-colors:active){.admin-range-form,.admin-popular-grid article,.admin-provider-grid article,.admin-flag-grid article,.admin-ops-summary,.admin-range-form input,.admin-flag-grid input,.admin-flag-grid textarea,.admin-ops-summary textarea{background:Canvas;color:CanvasText;border-color:CanvasText}}
 
 /* Security Health (PH2-07). Status is always carried by the word; the tone is decoration. */
-.admin-security-page { display: grid; gap: clamp(var(--space-8),5vw,var(--space-12)); }
+/* The single column is minmax(0,1fr), never auto: an auto track grows to the
+   max-content of its widest item, so a 40rem table would widen the whole page
+   at 375px instead of scrolling inside its own region. */
+.admin-security-page { display: grid; grid-template-columns: minmax(0,1fr); gap: clamp(var(--space-8),5vw,var(--space-12)); }
+.admin-security-page > * { min-width: 0; }
 .admin-security-table { overflow: auto; border: 1px solid var(--admin-line); background: var(--admin-panel); }
 .admin-security-table table { width: 100%; min-width: 44rem; border-collapse: collapse; }
 .admin-security-table caption { padding: var(--space-3); color: var(--admin-signal); font: 800 var(--font-size-caption) var(--font-utility); text-align: left; text-transform: uppercase; }

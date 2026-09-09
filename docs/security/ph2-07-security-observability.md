@@ -329,6 +329,42 @@ webhook egress.
 
 ---
 
+## Staging certification (2026-09-09)
+
+Staging project `mathnexa-platform-staging` / `prj_O61Cyx9WMjc0jljpM9erCiSXsJA0`.
+Deployment **`dpl_FeZbD1JF2tZgjCb4n75ZpbDCu8yi`** (`3l3heal7s`), built from commit
+`eb2c6de`, tree `274c1f6`, deployed with `--prod` on the **staging** project; one
+earlier attempt (`ib7xw668r`) errored at build (wrong upload root) and never served.
+Gate **locked** throughout: `/`, `/sign-in`, `/account`, `/admin`, `/sign-in.png` all
+404 with 0 bytes.
+
+| Check | Result |
+|---|---|
+| Migration `20260909010000` on the staging database | applied (33 → 34), 7 functions, 3 tables with enabled + forced RLS; business row counts unchanged |
+| pgTAP `21_security_observability.test.sql` | **26 / 26 ok** through the management API (`pgtap-remote`; Docker is unavailable on the host, so `supabase test db` could not run) |
+| Staging environment | `MVH_SECURITY_EVENT_SINK=database`, `MVH_SECURITY_DRAIN_SECRET` (generated, staging-only, vault `SECURITY_DRAIN_SECRET_STAGING`), gate flag untouched |
+| Ingest unsigned / mis-signed | 401 / 401, `no-store` |
+| Ingest ownership verification | 200, echoes `x-vercel-verify` |
+| Ingest signed synthetic delivery, twice | 200 `stored:1`, then 200 `stored:0` — idempotent |
+| Retention without bearer / with staging bearer | 401 → `scheduler-auth-failed` event; 200 `purged`, 0 deleted (nothing older than 30 / 90 days) |
+| Real events | 6 unsigned webhook posts → 6 `webhook-signature-invalid` rows (`in-process`, `staging`, real); 2 `staging-access-denied` rows from the gate probes (proxy path persists via `after()`); 1 `scheduler-auth-failed` |
+| Real alerts | `webhook-signature-spike` fired at 5 / 5 (HIGH, STAGING, `webhook: not-configured`); `scheduler-auth` fired at 1 / 1 — both recorded in `security_alerts` and announced as `security-alert-raised` in the runtime log |
+| Drain path | signed delivery stored as `synthetic`, `ingest_source = log-drain` |
+| Redaction scan of the store | 0 hits for key, token, JWT, email, whole-id or address shapes; no identity column exists |
+| Runtime log lines | carry `deployment: "staging"`, `eventId`, `emittedAt` — a drain would deliver exactly these |
+| Console-line dedup | throttle / spray / gate lines keep their stable correlation; nothing changed |
+
+**Latency, before → after** (same probes, same locked staging, warm samples):
+unsigned webhook 257–274 ms → 78–198 ms; gated `/sign-in` 187–204 ms → 57–167 ms;
+anonymous `/admin` 148–208 ms → 70–73 ms. No degradation; persistence runs after the
+response.
+
+**Not certified by machine:** the Admin ▸ Security page itself needs an owner AAL2
+session, which no automation holds. Its structure, labels, no-store gating and the
+synthetic form were verified by component tests and a static render with the real
+stylesheets at 375 / 768 / 1280 / 1920 px; the owner sees it live at
+`/admin?section=security` after unlocking staging.
+
 ## Deferred, unchanged
 
 `MVH_AUTH_RATE_LIMIT_SECRET` migration · Vercel Firewall/WAF · `security.txt` ·
