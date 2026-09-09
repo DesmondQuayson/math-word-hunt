@@ -4,8 +4,9 @@
 `579c4374f4afcb26609d0fd32591181fb20c1085` (the `v1.2.7` consolidation; `v1.2.7` →
 `1e707ee`, unchanged). Independent of `feature/security-ph2-07-observability-read-path`
 (`54179a1`), which is preserved and **not** merged or cherry-picked here.
-**Production:** `https://mathnexa.com`, `dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c` (2026-09-08 08:50 UTC).
-**Changed = NO.** **ShowMe / MAP Prep:** untouched.
+**Production:** `https://mathnexa.com` — **promoted 2026-09-09 to `dpl_FVvfWkimRriNgzmuRyzbHadGm5yw`**
+(owner-approved; see the promotion section). Rollback retained: `dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c`
+(v1.2.7). **ShowMe / MAP Prep:** untouched. Not tagged, not merged: owner final check pending.
 
 ---
 
