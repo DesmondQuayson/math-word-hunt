@@ -196,6 +196,53 @@ portal, authenticated game launch, admin AAL2) need the owner's credentials —
 the standing suites cover their logic and the routes above prove the gates in
 front of them. Firefox/WebKit not run (CSP unchanged).
 
+## Production promotion (2026-09-09, owner-approved)
+
+| | |
+|---|---|
+| Previous production deployment (rollback, retained) | **`dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c`** (`mathnexa-platform-production-m10uxfngg-…`, v1.2.7) |
+| New production deployment | **`dpl_FVvfWkimRriNgzmuRyzbHadGm5yw`** (`https://mathnexa-platform-production-pwrldld9h-bright-path-ed-tech.vercel.app`) |
+| Built from | commit `d08326c`, runtime tree byte-identical to the staging-certified `13d307d` (docs/scripts only differ); `next@16.3.4`, `sharp@0.35.4` asserted at deploy time |
+| Method | `scripts/run-nextjs-hotfix-production.mjs`: `preflight` → `deploy-preview` (`--prod --skip-domain`, no alias moved) → `probe-preview` through the CLI protection bypass (`vercel curl`; no protection setting changed) → `promote` → `probe-live`; the same mechanics that promoted v1.2.7 plus pre-promotion probing |
+| Alias | `https://mathnexa.com` → `dpl_FVvf…` (HTML `data-dpl-id` confirms); `www.mathnexa.com` → 308 apex; `mathnexa-platform-production.vercel.app` (Stripe host) serves the new deployment |
+
+**Pre-promotion probes on the staged candidate:** health 200 `status:ready`; unsigned
+`POST /api/billing/webhook` → 400 `invalid-signature`, no redirect; every proxied path
+308 → apex (canonical host, the v1.2.7 contract); optimizer 200 / remote 400; no 5xx.
+
+**Live probes immediately after promotion (19 / 19):**
+
+| Check | Result |
+|---|---|
+| Configured Stripe host `mathnexa-platform-production.vercel.app` unsigned POST | **400 `invalid-signature`**, `x-matched-path: /api/billing/webhook` — no 308, no 404, no 5xx |
+| Apex `https://mathnexa.com/api/billing/webhook` unsigned POST | **400 `invalid-signature`**, no `Location` |
+| `www` webhook | 308 → apex (Vercel domain-level redirect, unchanged; no Stripe endpoint configured there) |
+| Health apex / Stripe host | 200 / 200 |
+| `/`, `/sign-in`, `/sign-up`, `/access`, `/admin/sign-in` | 200 |
+| `/pricing`, `/games`, `/map-prep`, `/homework`, `/quizzes` | 307 → `/access?next=…` — identical to before |
+| `/account`, `/subscription` → `/access?next=…`; `/game-access` → `/sign-in?next=…` | 307, `no-store` |
+| `/admin` anonymous | 404, `no-store` · scheduler 401 · fixture 404 · `/game/runtime/index.html` 401 · forged `?access=active` → `/access` |
+| Security headers on `/` | CSP (`frame-ancestors 'self'`, Stripe `form-action`), HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy — intact |
+| Images | brand png, root icon, `number-cross.avif/.webp`, `math-vocabulary-hunt.webp`, `crosscalc.svg` 200; platform optimizer: icon/brand/webp thumbnail → 200 `image/webp`, AVIF source → 200 `image/avif` (passed through); remote / traversal → 400 |
+| 5xx | none |
+
+**Subscriber (read-only, before and after):** the one live consumer subscription
+`…BhAsSa` — local `active`, period end `2026-10-06T22:17:50Z`, last synchronized
+2026-09-08 08:47 (reconciliation), first paid 2026-08-05, last paid 2026-09-06; Stripe
+`active`, same period end, livemode; entitlement `subscription-active` through
+2026-10-06. Identical before and after promotion. No repair, charge, refund or
+cancellation. (Read through PostgREST and the restricted `rk_live_` key, GET only; the
+standing drift-audit CLI additionally needs the catalogue product id from the
+production environment, which this run did not read.)
+
+**Browser smoke on production (Chromium):** `/`, `/sign-in`, `/sign-up`, `/access`,
+`/admin/sign-in`, `/privacy`, `/pricing`, `/games` — all 200 at their expected destination,
+every image decoded (the home page renders four through `/_next/image`), 0 console
+errors, 0 failed requests. Live client bundles (9 chunks + HTML): 0 secret markers.
+
+**Audit:** before `next 16.2.12` — 2 vulnerabilities (1 critical, 1 high); after
+`next 16.3.4` — 0. Deployed artifact: the deployment's build log shows Next.js 16.3.4.
+
 ## Deferred, separate
 
 PH2-07 (security observability read path) stays on its own branch; after this
