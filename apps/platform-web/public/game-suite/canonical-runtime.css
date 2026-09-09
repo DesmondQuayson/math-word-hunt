@@ -61,3 +61,28 @@ body {
 @media print {
   .mathnexa-back-link { display: none; }
 }
+
+/*
+ * BS-01 — tablet word-bank mid-word wrapping.
+ *
+ * The canonical document lays the word bank out in two columns whenever a
+ * lesson has more than eight placeable terms (`.word-list.dense`) and lets a
+ * term break at any character (`overflow-wrap: anywhere`). Between the
+ * canonical breakpoints of 901 px (first width above the stacked phone
+ * layout) and 1279 px the side panel is 430–684 px wide, so a two-column card
+ * is only 200–327 px and cannot hold the longest placeable term at the dense
+ * font: "Proportionality" measures 240 px at 36 px in Arial Rounded MT Bold
+ * and needs a 312 px card, which two columns first provide at 1280 px. On
+ * every iPad in landscape (1024–1194 px) and on small laptops the terms
+ * therefore rendered as "Decima / l", "Differe / nce", "Proportion / ality".
+ *
+ * Inside that window the dense list uses one column, so every card is at
+ * least 406 px wide, and wrapping is limited to word boundaries. Outside the
+ * window nothing changes: phones keep the canonical single column and
+ * desktops from 1280 px keep the canonical two columns.
+ */
+@media (min-width: 901px) and (max-width: 1279px) {
+  .word-list.dense { grid-template-columns: minmax(0, 1fr); }
+  .word-card .term-display,
+  .word-list.dense .word-card .term-display { overflow-wrap: normal; }
+}
