@@ -2,9 +2,36 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { emitSecurityEvent } from "@/lib/observability/security-events";
+
 export const STAGING_ACCESS_BOOTSTRAP_PATH = "/api/internal/staging-access/bootstrap";
 export const STAGING_ACCESS_COOKIE_NAME = "__Host-mvh-staging-access";
 export const STAGING_ACCESS_WEBHOOK_PATH = "/api/billing/webhook";
+
+/**
+ * Machine endpoints the staging gate does not conceal.
+ *
+ * Each of these authenticates its caller itself, far more strongly than the
+ * gate cookie does — a provider signature, a log-drain HMAC, or the platform
+ * scheduler's bearer — and each fails closed to a bodiless 404 or a JSON 401
+ * when unconfigured or unsigned, so exempting them reveals nothing a locked
+ * staging environment is trying to hide. They must be reachable while the
+ * gate is engaged: Stripe, the platform log drain and the scheduler do not
+ * carry a staging cookie, and PH2-07's certification requires the drain
+ * receiver and the retention job to answer on a LOCKED staging deployment.
+ *
+ * Exact paths only, never prefixes: an exemption has to be exactly as narrow
+ * as the thing it exempts (see the ticketed-asset pattern above).
+ */
+export const STAGING_ACCESS_MACHINE_PATHS: readonly string[] = Object.freeze([
+  STAGING_ACCESS_WEBHOOK_PATH,
+  "/api/internal/security/ingest",
+  "/api/internal/security/retention"
+]);
+
+export function isStagingGateExemptMachinePath(pathname: string): boolean {
+  return STAGING_ACCESS_MACHINE_PATHS.includes(pathname);
+}
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 // Hex is spelled explicitly rather than relying on a case-insensitive flag: a
@@ -136,6 +163,20 @@ export function stagingAccessRequirement(source: EnvironmentSource = process.env
   // mean a single typo on the production project blacked out mathnexa.com
   // site-wide — unrecoverably, since with no token the bootstrap endpoint could
   // never mint an access cookie to get back in.
+  //
+  // A value that was SET and still could not be interpreted is a configuration
+  // error either way, and the one thing worse than deciding it here would be
+  // deciding it silently. Reported under a stable correlation so a sustained
+  // misconfiguration is one line per five seconds, not one per request; the
+  // value itself is never recorded, only its length.
+  if (raw !== "") {
+    emitSecurityEvent(
+      "STAGING_CONFIGURATION_INVALID",
+      { variable: "MVH_STAGING_ACCESS_REQUIRED", valueLength: raw.length },
+      new Headers(),
+      "staging-configuration-invalid"
+    );
+  }
   return stagingTokenConfigured(source) ? "required" : "not-required";
 }
 

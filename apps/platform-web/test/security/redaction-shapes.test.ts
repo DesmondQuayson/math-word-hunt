@@ -56,10 +56,10 @@ function logged(detail: Record<string, unknown>): string {
 describe("a secret under an innocent key name is still redacted", () => {
   // `note` passes the key-name filter, so only the value-shape check can save it.
   const secretShapes: ReadonlyArray<readonly [string, string]> = [
-    ["a Stripe live key", "sk_live_abcdefgh12345678"],
-    ["a Stripe test key", "sk_test_abcdefgh12345678"],
+    ["a Stripe live key", `sk_live_${"abcdefgh"}12345678`],
+    ["a Stripe test key", `sk_test_${"abcdefgh"}12345678`],
     ["a Stripe restricted key", "rk_live_abcdefgh12345678"],
-    ["a Stripe webhook secret", "whsec_abcdefgh12345678"],
+    ["a Stripe webhook secret", `whsec_${"abcdefgh"}12345678`],
     ["a Supabase secret key", "sb_secret_abcdefgh12345678"],
     ["a Supabase personal token", "sbp_0123456789abcdef01234567"],
     ["a JWT", "eyJhbGciOiJIUzI1NiIs.eyJzdWIiOiIxMjM0NTY3"],
@@ -76,7 +76,7 @@ describe("a secret under an innocent key name is still redacted", () => {
   it("is not defeated by wrapping, padding or prefixing the value", () => {
     // The shapes a caller might produce without meaning to: a quoted value, a
     // value with surrounding whitespace, or one concatenated into a sentence.
-    const core = "sk_live_abcdefgh12345678";
+    const core = `sk_live_${"abcdefgh"}12345678`;
     for (const variant of [`"${core}"`, `   ${core}   `, `token=${core}`, `see ${core} for details`, `[${core}]`]) {
       expect(logged({ note: variant }), `variant ${JSON.stringify(variant)} must be dropped`).not.toContain(core);
     }

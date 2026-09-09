@@ -328,7 +328,13 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
   // Clearing it here is safe. Reaching this line means holding a live session
   // for the account and having just set its password; an attacker who could do
   // that already controls the account and has no use for a rate limit.
-  if (data.user.email) await clearConsumerAuthAttempts("sign-in", data.user.email);
+  if (data.user.email) {
+    await clearConsumerAuthAttempts("sign-in", data.user.email);
+    // Makes "the block was cleared correctly" visible to the read path. The
+    // clear is unconditional, so this records that the limiter state for the
+    // account was released, not that a block was necessarily in force.
+    await recordSecurityEvent("AUTH_RECOVERY_CLEARED_BLOCK", { scope: "sign-in" });
+  }
 
   // Containment. This action accepts any authenticated session, not only one
   // that came from a recovery link, and it does not ask for the current
@@ -361,7 +367,13 @@ export async function updatePasswordAction(_previous: AuthFormState, formData: F
   // did — puts a false statement in a security log, and an incident responder
   // reading "other sessions were revoked" would draw exactly the wrong
   // conclusion about whether a stolen session is still live.
-  await recordSecurityEvent("AUTH_PASSWORD_CHANGED", { otherSessionsRevoked });
+  //
+  // The key is deliberately NOT `otherSessionsRevoked`: the security-event
+  // redaction layer refuses any detail key containing "session" (so a session
+  // token can never be attached by mistake), and that filter was silently
+  // dropping this very field — the log line carried no outcome at all. This
+  // spelling passes the filter and says the same thing.
+  await recordSecurityEvent("AUTH_PASSWORD_CHANGED", { otherDevicesSignedOut: otherSessionsRevoked });
   redirect("/account?password=updated");
 }
 

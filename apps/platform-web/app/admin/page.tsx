@@ -8,6 +8,7 @@ import { AdminCmsLibrary,AdminMediaLibrary } from "@/components/admin/admin-cms-
 import { AdminAccountsLibrary } from "@/components/admin/admin-accounts-library";
 import { AdminAnalyticsOperations } from "@/components/admin/admin-analytics-operations";
 import { AdminMapPrep } from "@/components/admin/admin-map-prep";
+import { AdminSecurityHealth } from "@/components/admin/admin-security-health";
 import { parseAdminAnalyticsRange } from "@math-vocabulary-hunt/platform-core";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -19,6 +20,7 @@ import { loadAdminGamePackages } from "@/lib/admin/game-package-library";
 import { loadAdminCmsLibrary } from "@/lib/admin/cms-library";
 import { loadAdminAccounts } from "@/lib/admin/account-operations";
 import { loadAdminAnalyticsOperations } from "@/lib/admin/analytics-operations";
+import { loadAdminSecurityHealth } from "@/lib/admin/security-health";
 import { loadAdminTaxonomy } from "@/lib/admin/taxonomy";
 import { createAdminCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
@@ -26,7 +28,7 @@ import { inspectAdminAccess } from "@/lib/admin/session";
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; ops?:string; taxonomy?:string; map?:string; grade?:string; topic?:string; lesson?:string; query?:string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; ops?:string; taxonomy?:string; map?:string; grade?:string; topic?:string; lesson?:string; query?:string; security?:string }> }) {
   const access = await inspectAdminAccess();
   if (access.state !== "authorized") notFound();
   const config = getAdminSecurityConfig();
@@ -44,10 +46,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const accountsLibrary = allowedSection === "users" || allowedSection === "subscriptions" ? await loadAdminAccounts() : null;
   const analyticsRange = parseAdminAnalyticsRange({ from: params.from ?? "", to: params.to ?? "" }) ?? parseAdminAnalyticsRange({})!;
   const analyticsOperations = ["analytics", "settings", "audit-log"].includes(allowedSection) ? await loadAdminAnalyticsOperations(analyticsRange) : null;
+  const securityHealth = allowedSection === "security" ? await loadAdminSecurityHealth() : null;
 
   return <>
     {params.csrf === "invalid" ? <Container className="page-stack" width="compact"><PageHeader eyebrow="Request expired" title="The state-changing request was blocked" description="Reload the admin workspace before trying again." /></Container> : null}
     <AdminCommandCenter snapshot={snapshot} activeSection={allowedSection} csrfToken={csrfToken} signOutAction={adminSignOutAction}
-      moduleContent={analyticsOperations && (allowedSection === "analytics" || allowedSection === "settings" || allowedSection === "audit-log") ? <AdminAnalyticsOperations snapshot={analyticsOperations} csrfToken={csrfToken} section={allowedSection} result={params.ops} /> : accountsLibrary && (allowedSection === "users" || allowedSection === "subscriptions") ? <AdminAccountsLibrary snapshot={accountsLibrary} csrfToken={csrfToken} result={params.account} mode={allowedSection} /> : allowedSection === "cms" && cmsLibrary ? <AdminCmsLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.cms} /> : allowedSection === "media-library" && cmsLibrary ? <AdminMediaLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.media} /> : allowedSection === "map-prep" && cmsLibrary ? <AdminMapPrep snapshot={cmsLibrary} csrfToken={csrfToken} result={params.map} /> : allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library && taxonomy ? <AdminResourceLibrary kind={libraryKind} snapshot={library} taxonomy={taxonomy} csrfToken={csrfToken} result={params.upload??params.publish} taxonomyResult={params.taxonomy} initialFilters={{grade:params.grade,topic:params.topic,lesson:params.lesson,query:params.query}} /> : undefined} />
+      moduleContent={securityHealth && allowedSection === "security" ? <AdminSecurityHealth snapshot={securityHealth} csrfToken={csrfToken} result={params.security} /> : analyticsOperations && (allowedSection === "analytics" || allowedSection === "settings" || allowedSection === "audit-log") ? <AdminAnalyticsOperations snapshot={analyticsOperations} csrfToken={csrfToken} section={allowedSection} result={params.ops} /> : accountsLibrary && (allowedSection === "users" || allowedSection === "subscriptions") ? <AdminAccountsLibrary snapshot={accountsLibrary} csrfToken={csrfToken} result={params.account} mode={allowedSection} /> : allowedSection === "cms" && cmsLibrary ? <AdminCmsLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.cms} /> : allowedSection === "media-library" && cmsLibrary ? <AdminMediaLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.media} /> : allowedSection === "map-prep" && cmsLibrary ? <AdminMapPrep snapshot={cmsLibrary} csrfToken={csrfToken} result={params.map} /> : allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library && taxonomy ? <AdminResourceLibrary kind={libraryKind} snapshot={library} taxonomy={taxonomy} csrfToken={csrfToken} result={params.upload??params.publish} taxonomyResult={params.taxonomy} initialFilters={{grade:params.grade,topic:params.topic,lesson:params.lesson,query:params.query}} /> : undefined} />
   </>;
 }

@@ -157,12 +157,29 @@ session. Two workable designs:
 Design 2 depends only on values this application controls and is the safer of the
 two to implement without live testing.
 
-### ON-12 — Security events have no read path — OWNER-GATED
+### ON-12 / PH2-07 — Security events have no read path — BUILT, OWNER-GATED FOR PRODUCTION
 
-The taxonomy now emits at eleven denial points, but nothing reads it: no log
-drain, short retention, no alerts. **Writing events without a reader produces the
-appearance of detection.** Exact configuration steps are in the Phase 2 report;
-they need dashboard access.
+The read path now exists: `docs/security/ph2-07-security-observability.md`.
+Events are normalized, redacted again, classified, stored idempotently
+(`security_events`), evaluated against de-duplicated alert rules, and reviewed in
+Admin ▸ Security. Two things remain owner-gated because they are production
+configuration: applying the migration to the production database, and setting
+`MVH_SECURITY_EVENT_SINK=database` (optionally a log drain secret and an alert
+webhook) on the production project. Until then production still writes events
+that nothing reads.
+
+### OB-02 — `next@16.2.12` carries two critical advisories — OWNER-URGENT
+
+Published 2026-08-25 (GitHub advisory database 2026-09-08): GHSA-p293-qw3h-jr36
+(unauthenticated RCE, Windows-hosted servers only — not applicable on Vercel) and
+GHSA-2xp9-vwfh-vxw4 (unauthenticated RCE in the Image Optimization API through
+`libheif`/`sharp` when AVIF input is processed). `/_next/image` is live on
+production and `sharp@0.35.3` is installed. Practical exposure is low — no
+`remotePatterns` are configured, so only same-origin paths are optimized and no
+unauthenticated surface can place an AVIF there — but the framework is on an
+affected version. Fix: `next@16.3.4`, patch-level. Needs its own branch, staging
+rehearsal and full regression; deliberately not folded into PH2-07. Interim
+mitigation if the bump must wait: `images.unoptimized: true`.
 
 ### ON-13 — Dedicated rate-limiter secret not yet set in production — OWNER-GATED
 

@@ -10,7 +10,8 @@ export const ADMIN_SECTIONS = [
   ["media-library", "Media Library", "Protected assets"],
   ["cms", "CMS", "Structured pages"],
   ["settings", "Settings", "Server controls"],
-  ["audit-log", "Audit Log", "Immutable events"]
+  ["audit-log", "Audit Log", "Immutable events"],
+  ["security", "Security", "Health & alerts"]
 ] as const;
 
 export type AdminSectionKey = (typeof ADMIN_SECTIONS)[number][0];

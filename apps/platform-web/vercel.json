@@ -4,6 +4,10 @@
     {
       "path": "/api/internal/billing/reconcile",
       "schedule": "17 6 * * *"
+    },
+    {
+      "path": "/api/internal/security/retention",
+      "schedule": "41 6 * * *"
     }
   ]
 }

@@ -17,6 +17,7 @@ import {
   inspectPreMfaAdmin,
   validateAdminMutationCsrf
 } from "@/lib/admin/session";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const unavailable: AdminAuthFormState = {
@@ -50,21 +51,27 @@ export async function adminSignInAction(
 
   if (!await validateAdminMutationCsrf(formData)) {
     await repository.recordAudit({ adminUserId: null, action: "admin.login.failure", metadata: { reason: "csrf" }, context });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "login", reason: "csrf" });
     return { status: "error", message: "The sign-in request expired. Reload this page and try again." };
   }
 
   const allowed = await repository.consumeRateLimit("login", rateHash, config.loginMaxAttempts,
     config.rateWindowSeconds, config.rateBlockSeconds);
-  if (!allowed) return { status: "error", message: "Sign-in is temporarily unavailable. Wait before trying again." };
+  if (!allowed) {
+    await recordSecurityEvent("ADMIN_AUTH_RATE_LIMITED", { step: "login" });
+    return { status: "error", message: "Sign-in is temporarily unavailable. Wait before trying again." };
+  }
 
   if (!validEmail(email) || password.length < 1 || password.length > 128) {
     await repository.recordAudit({ adminUserId: null, action: "admin.login.failure", metadata: { reason: "invalid-input" }, context });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "login", reason: "invalid-input" });
     return { status: "error", message: "The email or password was not accepted." };
   }
 
   const signIn = await supabase.auth.signInWithPassword({ email, password });
   if (signIn.error || !signIn.data.user || !signIn.data.user.email_confirmed_at) {
     await repository.recordAudit({ adminUserId: null, action: "admin.login.failure", metadata: { reason: "credentials" }, context });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "login", reason: "credentials" });
     return { status: "error", message: "The email or password was not accepted." };
   }
 
@@ -76,6 +83,9 @@ export async function adminSignInAction(
       metadata: { reason: admin?.revoked_at ? "revoked" : "not-authorized" },
       context
     });
+    // A confirmed account that is not on the admin allowlist reached the admin
+    // sign-in: recorded as an anomaly, without the account.
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "login", reason: admin?.revoked_at ? "revoked" : "not-authorized", anomaly: true });
     await supabase.auth.signOut({ scope: "local" });
     notFound();
   }
@@ -114,6 +124,7 @@ export async function adminEnrollMfaAction(
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "csrf" }, context: preliminary.context
     });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "mfa", reason: "csrf" });
     return { status: "error", message: "The MFA setup request expired. Reload this page and try again." };
   }
 
@@ -157,6 +168,7 @@ export async function adminVerifyMfaAction(
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "csrf" }, context: preliminary.context
     });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "mfa", reason: "csrf" });
     return { status: "error", message: "The verification request expired. Reload this page and try again." };
   }
 
@@ -165,7 +177,10 @@ export async function adminVerifyMfaAction(
   const rateHash = createAdminRateSubjectHash("mfa", preliminary.admin.id, preliminary.context, config);
   const allowed = await preliminary.repository.consumeRateLimit("mfa", rateHash, config.mfaMaxAttempts,
     config.rateWindowSeconds, config.rateBlockSeconds);
-  if (!allowed) return { status: "error", message: "MFA verification is temporarily unavailable. Wait before trying again." };
+  if (!allowed) {
+    await recordSecurityEvent("ADMIN_AUTH_RATE_LIMITED", { step: "mfa" });
+    return { status: "error", message: "MFA verification is temporarily unavailable. Wait before trying again." };
+  }
 
   const factorId = field(formData, "factorId");
   const code = field(formData, "code");
@@ -176,6 +191,7 @@ export async function adminVerifyMfaAction(
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "invalid-code" }, context: preliminary.context
     });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "mfa", reason: "invalid-code" });
     return { status: "error", message: "The verification code was not accepted." };
   }
 
@@ -185,6 +201,7 @@ export async function adminVerifyMfaAction(
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "verification" }, context: preliminary.context
     });
+    await recordSecurityEvent("ADMIN_AUTH_FAILED", { step: "mfa", reason: "verification" });
     return { status: "error", message: "The verification code was not accepted." };
   }
 

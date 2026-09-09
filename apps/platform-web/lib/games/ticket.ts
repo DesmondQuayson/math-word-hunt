@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { hasMathNexaModuleAccess } from "@math-vocabulary-hunt/platform-core";
 
 import { getGameAccessView } from "@/lib/game-access/server";
+import { emitSecurityEvent } from "@/lib/observability/security-events";
 
 type TicketAudience="admin-preview"|"subscriber";
 type TicketPayload=Readonly<{v:1;aud:TicketAudience;packageId:string;principalId:string;issuedAt:number;expiresAt:number}>;
@@ -19,7 +20,16 @@ export function createGameAssetTicket(input:Readonly<{audience:TicketAudience;pa
 
 export function verifyGameAssetTicket(value:string,audience:TicketAudience,packageId:string,now=new Date()):TicketPayload|null{
   const key=secret(),parts=value.split(".");if(!key||parts.length!==2||value.length>700||!Number.isFinite(now.getTime()))return null;
-  let supplied:Buffer,payload:unknown;try{supplied=Buffer.from(parts[1]!,"base64url");payload=JSON.parse(Buffer.from(parts[0]!,"base64url").toString("utf8"))}catch{return null}const expected=signature(parts[0]!,key);if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)||!payload||typeof payload!=="object"||Array.isArray(payload))return null;
+  let supplied:Buffer,payload:unknown;try{supplied=Buffer.from(parts[1]!,"base64url");payload=JSON.parse(Buffer.from(parts[0]!,"base64url").toString("utf8"))}catch{return null}const expected=signature(parts[0]!,key);
+  if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){
+    // A ticket that fails its signature was not issued by this deployment: a
+    // forged entitlement attempt, recorded as an authorization anomaly. Expired
+    // or malformed tickets stay silent — a tab left open overnight is ordinary.
+    // Neither the ticket nor the principal is recorded.
+    emitSecurityEvent("AUTHORIZATION_DENIED",{surface:"game-ticket",reason:"signature-invalid",anomaly:true,ticketAudience:audience},new Headers());
+    return null;
+  }
+  if(!payload||typeof payload!=="object"||Array.isArray(payload))return null;
   const item=payload as Record<string,unknown>,keys=Object.keys(item).sort().join("|");if(keys!=="aud|expiresAt|issuedAt|packageId|principalId|v"||item.v!==1||item.aud!==audience||item.packageId!==packageId||typeof item.principalId!=="string"||!/^[0-9a-f-]{36}$/i.test(item.principalId)||!Number.isSafeInteger(item.issuedAt)||!Number.isSafeInteger(item.expiresAt))return null;
   const current=Math.floor(now.getTime()/1000);if((item.issuedAt as number)>current+5||(item.expiresAt as number)<=current||(item.expiresAt as number)-(item.issuedAt as number)!==300)return null;return item as TicketPayload;
 }

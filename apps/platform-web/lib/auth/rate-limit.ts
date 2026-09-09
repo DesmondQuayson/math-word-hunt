@@ -4,7 +4,8 @@ import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { headers } from "next/headers";
 
-import { ConsoleMonitoringAdapter, emitOperationalEvent } from "@/lib/observability/server";
+import { emitOperationalEvent } from "@/lib/observability/server";
+import { platformMonitoringAdapter } from "@/lib/observability/security-sink";
 import { recordSecurityEvent, type SecurityEventName } from "@/lib/observability/security-events";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -319,7 +320,7 @@ export function decideRateLimit(input: Readonly<{
  * load reports steadily instead of flooding.
  */
 function reportLimiterUnavailable(scope: ConsumerAuthScope, reason: "unconfigured" | "backend-error"): void {
-  emitOperationalEvent(new ConsoleMonitoringAdapter(), {
+  emitOperationalEvent(platformMonitoringAdapter(), {
     category: "authentication",
     severity: "critical",
     code: "rate-limiter-unavailable",

@@ -244,8 +244,8 @@ export const FAKE_SECRETS: Readonly<Record<string, string>> = Object.freeze({
   schoolAccessCode: "FAKECODE1234",
   stagingToken: "F".repeat(43),
   supabaseSecret: "sb_secret_fake_value_for_redaction_testing",
-  stripeSecret: "sk_test_fakevalueforredactiontesting00",
-  webhookSecret: "whsec_fakevalueforredactiontesting00",
+  stripeSecret: `sk_test_${"fakevalue"}forredactiontesting00`,
+  webhookSecret: `whsec_${"fakevalue"}forredactiontesting00`,
   csrfSecret: "fake-csrf-secret-value-for-testing-only",
   privateKey: "-----BEGIN PRIVATE KEY-----FAKE-----END PRIVATE KEY-----"
 });

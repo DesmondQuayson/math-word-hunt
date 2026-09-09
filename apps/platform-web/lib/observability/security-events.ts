@@ -2,7 +2,12 @@ import "server-only";
 
 import { headers } from "next/headers";
 
-import { ConsoleMonitoringAdapter, emitOperationalEvent } from "./server";
+import { emitOperationalEvent } from "./server";
+import { securityEnvironmentLabel } from "./security-environment";
+import { sanitizeSecurityDetail, type SecurityEventDetail } from "./security-redaction";
+import { platformMonitoringAdapter } from "./security-sink";
+
+export type { SecurityEventDetail } from "./security-redaction";
 
 /**
  * The MathNexa security-event taxonomy.
@@ -19,10 +24,14 @@ import { ConsoleMonitoringAdapter, emitOperationalEvent } from "./server";
  * containing CR or LF. That is a hard barrier, not a convention: an event that
  * would carry a credential is dropped rather than logged.
  *
- * Transport is the structured console adapter, which reaches the Vercel runtime
- * log drain. Deliberately NOT `recordAggregateSignal` — that writes through the
- * service Supabase client, so it cannot report a failure of that very
- * dependency, and its metric-key union is fixed by a database contract.
+ * Transport is the structured console adapter (`ConsoleMonitoringAdapter`),
+ * which reaches the Vercel runtime log stream and any log drain attached to it.
+ * PH2-07 adds an optional, additive persistence step behind it — see
+ * `platformMonitoringAdapter` — scheduled after the response, so no security
+ * decision ever waits on a store. Deliberately NOT `recordAggregateSignal` for
+ * the console line itself: that writes through the service Supabase client, so
+ * it cannot report a failure of that very dependency, and its metric-key union
+ * is fixed by a database contract.
  */
 export const SECURITY_EVENTS = {
   AUTH_LOGIN_FAILED: { code: "auth-login-failed", category: "authentication", severity: "info" },
@@ -35,6 +44,10 @@ export const SECURITY_EVENTS = {
   AUTHORIZED_CODE_RATE_LIMITED: { code: "authorized-code-rate-limited", category: "authentication", severity: "warning" },
   AUTHORIZATION_DENIED: { code: "authorization-denied", category: "authorization", severity: "info" },
   ADMIN_AUTH_FAILED: { code: "admin-auth-failed", category: "authorization", severity: "warning" },
+  ADMIN_AUTH_RATE_LIMITED: { code: "admin-auth-rate-limited", category: "authorization", severity: "warning" },
+  ADMIN_CSRF_REJECTED: { code: "admin-csrf-rejected", category: "authorization", severity: "warning" },
+  SCHEDULER_AUTH_FAILED: { code: "scheduler-auth-failed", category: "authorization", severity: "warning" },
+  SSRF_BLOCKED: { code: "ssrf-blocked", category: "authorization", severity: "warning" },
   WEBHOOK_SIGNATURE_INVALID: { code: "webhook-signature-invalid", category: "billing", severity: "warning" },
   WEBHOOK_REPLAY_DETECTED: { code: "webhook-replay-detected", category: "billing", severity: "warning" },
   STAGING_ACCESS_DENIED: { code: "staging-access-denied", category: "environment", severity: "info" },
@@ -43,68 +56,18 @@ export const SECURITY_EVENTS = {
   // event that converts a borrowed session into a permanent takeover, so it is
   // worth seeing even when it succeeds.
   AUTH_PASSWORD_CHANGED: { code: "auth-password-changed", category: "authentication", severity: "warning" },
+  // Recovery deliberately clears the sign-in limiter state for the account, so
+  // a victim whose budget an attacker spent has a way back in. Recording it
+  // makes "the block was cleared correctly" a fact a reader can see.
+  AUTH_RECOVERY_CLEARED_BLOCK: { code: "auth-recovery-cleared-block", category: "authentication", severity: "info" },
   SECURITY_CONFIG_ERROR: { code: "security-config-error", category: "environment", severity: "critical" },
-  SECURITY_DEPENDENCY_UNAVAILABLE: { code: "security-dependency-unavailable", category: "health", severity: "critical" }
+  SECURITY_DEPENDENCY_UNAVAILABLE: { code: "security-dependency-unavailable", category: "health", severity: "critical" },
+  // An owner-run scenario on a non-production deployment. Never emitted in
+  // production; the route that emits it refuses there.
+  SECURITY_SYNTHETIC_TEST: { code: "security-synthetic-test", category: "health", severity: "info" }
 } as const;
 
 export type SecurityEventName = keyof typeof SECURITY_EVENTS;
-
-/**
- * Values permitted in an event detail. Deliberately narrow: primitives only, so
- * no object can smuggle a nested credential past the top-level key filter.
- */
-export type SecurityEventDetail = Readonly<Record<string, string | number | boolean | null>>;
-
-/**
- * Keys that are never acceptable on a security event, checked here as well as
- * inside `createSafeEvent`.
- *
- * The overlap is intentional. `createSafeEvent`'s filter protects the generic
- * observability channel; this one additionally refuses fields that are specific
- * to this domain and that a future caller might reasonably think are harmless —
- * an email address, a subject hash, a raw code. Two independent filters mean a
- * change to either one alone cannot open the hole.
- */
-const FORBIDDEN_DETAIL_KEY = new RegExp(
-  [
-    // Mirrors createSafeEvent's own filter.
-    "password", "token", "secret", "authorization", "cookie", "email", "service.?role",
-    // Domain-specific additions.
-    "credential", "api.?key", "session", "subject", "hash", "address", "payload", "body",
-    // The authorized school code, in the spellings a caller might reach for.
-    // Deliberately not a bare /code/ — that would also reject useful,
-    // non-sensitive fields such as statusCode or errorCode.
-    "access.?code", "school.?code", "^code$",
-    // Key material under any of its usual names.
-    "private", "signing", "\\bpem\\b", "certificate", "passphrase", "salt"
-  ].join("|"),
-  "i"
-);
-
-/**
- * Value-shape redaction, applied on top of the key-name filter.
- *
- * Filtering by key name alone assumes the caller names things honestly. It
- * caught `password` but not `privateKey`, and it would never catch a credential
- * passed as `note` or `reason`. Matching the VALUE closes that: a PEM block, a
- * provider-prefixed key or a long high-entropy blob is dropped regardless of
- * what the field is called.
- *
- * Kept narrow on purpose. The point is to catch things that are unmistakably
- * credential-shaped, not to mangle ordinary diagnostic text.
- */
-const CREDENTIAL_SHAPED_VALUE = new RegExp(
-  [
-    "-----BEGIN[\\s\\S]*?KEY",           // PEM block
-    "\\b(?:sk|pk|rk)_(?:live|test)_\\w{8,}", // Stripe
-    "\\bwhsec_\\w{8,}",                   // Stripe webhook
-    "\\bsb_secret_\\w{8,}",               // Supabase
-    "\\bsbp_[a-f0-9]{20,}",               // Supabase personal
-    "\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}", // JWT
-    "\\bBearer\\s+[A-Za-z0-9._~+/-]{16,}" // Authorization value
-  ].join("|"),
-  "i"
-);
 
 /**
  * A per-request identifier, used to stitch an edge request to the security
@@ -155,18 +118,6 @@ export function classifyUserAgent(agent: string): string {
   return "other";
 }
 
-function sanitizeDetail(detail: SecurityEventDetail): SecurityEventDetail {
-  const safe: Record<string, string | number | boolean | null> = {};
-  for (const [key, value] of Object.entries(detail)) {
-    if (FORBIDDEN_DETAIL_KEY.test(key)) continue;
-    if (typeof value === "string" && CREDENTIAL_SHAPED_VALUE.test(value)) continue;
-    // Bound strings so an attacker-controlled field cannot bloat the log, and
-    // strip CR/LF so it cannot forge a second log line.
-    safe[key] = typeof value === "string" ? value.replace(/[\r\n]/g, " ").slice(0, 120) : value;
-  }
-  return Object.freeze(safe);
-}
-
 /**
  * Records one security event. Never throws: a detection failure must not become
  * an availability failure on a request path that was otherwise working.
@@ -209,15 +160,19 @@ export function emitSecurityEvent(
   correlationOverride?: string
 ): boolean {
   const descriptor = SECURITY_EVENTS[name];
-  return emitOperationalEvent(new ConsoleMonitoringAdapter(), {
+  return emitOperationalEvent(platformMonitoringAdapter(), {
     category: descriptor.category,
     severity: descriptor.severity,
     code: descriptor.code,
     correlationId: correlationOverride ?? correlationIdFrom(requestHeaders),
     detail: {
-      ...sanitizeDetail(detail),
+      ...sanitizeSecurityDetail(detail),
       ...coarseClientContext(requestHeaders),
-      environment: process.env.MVH_APP_ENVIRONMENT?.trim().toLowerCase() ?? "unknown"
+      environment: process.env.MVH_APP_ENVIRONMENT?.trim().toLowerCase() ?? "unknown",
+      // `environment` above is the runtime identity and is the same string on
+      // production and staging. `deployment` is the label that tells them
+      // apart, derived from server configuration only.
+      deployment: securityEnvironmentLabel()
     }
   });
 }

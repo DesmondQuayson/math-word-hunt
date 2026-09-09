@@ -5,6 +5,7 @@ import { createConsumerBillingProvider } from "@/lib/billing/consumer-provider-f
 import { runConsumerReconciliationSweep } from "@/lib/billing/consumer-reconciliation";
 import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,9 +32,17 @@ function authorized(request: Request): boolean {
 export async function GET(request: Request) {
   if (!isProductionPlatformMode()) return Response.json({ error: "not-found" }, { status: 404, headers: NO_STORE });
   if ((process.env.CRON_SECRET?.trim() ?? "").length < 16) {
+    // A missing scheduler secret means the daily sweep is not running; that is
+    // a configuration error, reported once per five seconds, not per call.
+    await recordSecurityEvent("SECURITY_CONFIG_ERROR", { component: "scheduler", reason: "secret-missing" }, "scheduler-secret-missing");
     return Response.json({ state: "scheduler-secret-missing" }, { status: 503, headers: NO_STORE });
   }
-  if (!authorized(request)) return Response.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+  if (!authorized(request)) {
+    // Nothing legitimate ever fails this: the platform scheduler presents the
+    // configured bearer. The presented value is never recorded.
+    await recordSecurityEvent("SCHEDULER_AUTH_FAILED", { route: "billing-reconcile" });
+    return Response.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+  }
   const config = tryGetConsumerBillingConfiguration();
   if (!config) return Response.json({ state: "billing-disabled" }, { status: 503, headers: NO_STORE });
   const repository = createConsumerBillingRepository(config);

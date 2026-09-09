@@ -3,6 +3,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { recordSecurityEvent } from "@/lib/observability/security-events";
 import { inspectAdminEmergencyFlag } from "@/lib/operations/server";
 
 import { getAdminSecurityConfig, isAdminFeatureEnabled } from "./config";
@@ -106,7 +107,7 @@ export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessD
     } catch { return { state: "unavailable" }; }
   }
 
-  return decideAdminAccess({
+  const decision = decideAdminAccess({
     featureEnabled,
     infrastructureAvailable: true,
     authenticated: true,
@@ -117,6 +118,14 @@ export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessD
     sessionTokenValid: Boolean(tokenHash),
     now
   });
+  // An authenticated account that is not an admin reaching an admin surface is
+  // the one denial here worth recording as an anomaly. Anonymous visitors
+  // bouncing off the login wall, and real admins whose MFA or session has
+  // lapsed, are ordinary and stay silent. The decision itself is unchanged.
+  if (decision.state === "non-admin") {
+    await recordSecurityEvent("AUTHORIZATION_DENIED", { surface: "admin", reason: "non-admin", anomaly: true });
+  }
+  return decision;
 }
 
 export async function validateAdminMutationCsrf(formData: FormData): Promise<boolean> {
@@ -124,8 +133,11 @@ export async function validateAdminMutationCsrf(formData: FormData): Promise<boo
   if (!config) return false;
   const token = String(formData.get("csrfToken") ?? "");
   const requestHeaders = await headers();
-  return isSameOriginAdminRequest(requestHeaders, config.applicationOrigin) &&
+  const valid = isSameOriginAdminRequest(requestHeaders, config.applicationOrigin) &&
     verifyAdminCsrfToken(token, config);
+  // One choke point covers every admin mutation. The token is never recorded.
+  if (!valid) await recordSecurityEvent("ADMIN_CSRF_REJECTED", { surface: "admin-mutation" });
+  return valid;
 }
 
 export async function createPendingAdminMfaChallenge(

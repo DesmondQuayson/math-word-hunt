@@ -52,6 +52,30 @@ describe("staging access request gate", () => {
     expect(response.status).toBe(200);
   });
 
+  it("excludes only the exact security machine endpoints, which authenticate themselves and fail closed", async () => {
+    enableStagingLock();
+    // Reachable through the gate: the platform log drain and the scheduler
+    // carry no staging cookie. Without their own configuration both answer a
+    // bodiless 404 of their own, so nothing about staging is revealed.
+    for (const pathname of ["/api/internal/security/ingest", "/api/internal/security/retention"]) {
+      expect((await proxy(new NextRequest(`https://staging.example.invalid${pathname}`, { method: "POST" }))).status, pathname).toBe(200);
+    }
+    // Still gated: any other internal route, a prefix, a suffix, or a case variant.
+    for (const pathname of [
+      "/api/internal/security",
+      "/api/internal/security/ingest/",
+      "/api/internal/security/ingest.json",
+      "/api/internal/security/INGEST",
+      "/api/internal/billing/fixture",
+      "/api/internal/staging-access",
+      "/api/health"
+    ]) {
+      const response = await proxy(new NextRequest(`https://staging.example.invalid${pathname}`, { method: "POST" }));
+      expect(response.status, pathname).toBe(404);
+      expect(await response.text(), pathname).toBe("");
+    }
+  });
+
   it("lets only structurally ticketed sandbox assets reach their cryptographic route gate", async () => {
     enableStagingLock();
     process.env.MVH_ADMIN_ENABLED = "true";

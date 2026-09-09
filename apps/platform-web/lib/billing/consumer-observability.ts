@@ -1,6 +1,7 @@
 import "server-only";
 
-import { ConsoleMonitoringAdapter, emitOperationalEvent } from "@/lib/observability/server";
+import { emitOperationalEvent } from "@/lib/observability/server";
+import { platformMonitoringAdapter } from "@/lib/observability/security-sink";
 
 /**
  * Structured, PII-free billing lifecycle events.
@@ -47,7 +48,7 @@ export function emitBillingLifecycleEvent(
       !FORBIDDEN_DETAIL_KEY.test(key) && (value === null || ["string", "number", "boolean"].includes(typeof value))
     )
   );
-  return emitOperationalEvent(new ConsoleMonitoringAdapter(), {
+  return emitOperationalEvent(platformMonitoringAdapter(), {
     category: "billing",
     severity: descriptor.severity,
     code: descriptor.code,

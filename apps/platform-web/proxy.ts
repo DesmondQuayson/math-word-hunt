@@ -5,11 +5,11 @@ import { getServerEnvironment } from "@/lib/environment/server";
 import { isProductionPlatformDeferredBillingPath, isProductionPlatformMode, isProductionPlatformRestrictedPath } from "@/lib/environment/production-platform";
 import {
   isStagingAccessRequired,
+  isStagingGateExemptMachinePath,
   isTicketedGameAssetPath,
   isValidStagingAccessCookie,
   STAGING_ACCESS_BOOTSTRAP_PATH,
   STAGING_ACCESS_COOKIE_NAME,
-  STAGING_ACCESS_WEBHOOK_PATH,
   stagingAccessNotFoundResponse
 } from "@/lib/staging-access/server";
 import { emitSecurityEvent } from "@/lib/observability/security-events";
@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     const gatedPath = request.nextUrl.pathname;
     if (
       gatedPath !== STAGING_ACCESS_BOOTSTRAP_PATH &&
-      gatedPath !== STAGING_ACCESS_WEBHOOK_PATH &&
+      !isStagingGateExemptMachinePath(gatedPath) &&
       !isTicketedGameAssetPath(gatedPath) &&
       !isValidStagingAccessCookie(request.cookies.get(STAGING_ACCESS_COOKIE_NAME)?.value)
     ) {
