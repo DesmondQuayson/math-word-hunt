@@ -92,7 +92,23 @@ and, locally, against benign malformed fixtures written into `public/` before
 header, a `meta` box declaring 2 GiB, PNG bytes under an `.avif` name, an empty
 file, plain text. They are never valid AVIF, never weaponized, never committed.
 
-Results are recorded in the certification section below.
+**Local `next start` on 16.3.4 — 25 probes, 0 failed:**
+
+| Probe | Result |
+|---|---|
+| shipped icon 64 / 256, brand mark, webp thumbnail | 200 `image/webp` |
+| shipped AVIF thumbnail via optimizer | 200 `image/webp` (decoded through the patched libheif) |
+| remote URL, protocol-relative, path traversal, missing upstream, disallowed width, no `url` | 400 (self-hosted Next answers 400 for a missing upstream; production's platform optimizer answers 404) |
+| `valid.png` fixture | served 200, optimized 200 `image/webp` |
+| `truncated.avif` (24 B, `ftyp` only) | served 200; optimizer passes it through unmodified, 200 `image/avif`, 24 B |
+| `oversized-box.avif` (`meta` box declaring 2 GiB) | served 200; passed through unmodified, 200 `image/avif`, 36 B |
+| `png-as.avif` (PNG bytes, AVIF name) | sniffed as PNG and optimized, 200 `image/webp` |
+| `empty.avif` | 400 — "internal image response is empty" |
+| `garbage.avif` (plain text) | 400 — "not a valid image" |
+| server afterwards | healthy, icon still optimized |
+
+No 5xx, no stack trace or path in any response body, no crash. Malformed AVIF
+input is either passed through untouched or refused with a controlled 400.
 
 ---
 
@@ -126,6 +142,59 @@ stale / superseded guards, self-heal, grace and recovery — no billing or auth 
 file is modified by this branch.
 
 ---
+
+## Test gates (candidate, `13d307d` tree)
+
+| Gate | Result | Untouched `main` baseline |
+|---|---|---|
+| `platform-core` unit | 245 passed (35 files) | 245 |
+| `platform-web` unit | 547 passed, 1 skipped, 1 failed — `canonical-assets` CRLF | identical on untouched main (same 1 failure) |
+| `test:security:baseline` | 278 passed (22 files) | 278 |
+| `test:subscription-lifecycle` | 37 + 121 passed (1 skipped) | same |
+| `test:number-cross`, `test:crosscalc:v2` (game launch) | 24 + 20 passed | same |
+| `test:billing:security` | **passes** (977 files) after the test-literal fix | was failing on main |
+| `test:capabilities:security` | passes | same |
+| typecheck / lint | clean / 0 errors (8 pre-existing warnings, untouched file) | same |
+| build | ✓ compiled, 0 warnings | ✓ |
+| `npm audit --omit=dev` | **0** | 2 (1 critical, 1 high) |
+| bundle audit + Number Cross launch audit | pass (30 client assets, 47 core files; 0 secret markers) | pass |
+| mutations | 11 / 11 caught | — |
+
+Build: static output 1,144,484 B / 35 files → 1,099,834 B / 34 files (−3.9 %),
+server output 37.7 MB → 31.3 MB, CSS byte-identical, proxy still emitted as
+`ƒ Proxy (Middleware)`. Wall-clock 36 s → 56 s, but the candidate build ran
+concurrently with the test battery; not a like-for-like timing.
+
+## Staging certification (2026-09-09)
+
+Previous PH2-07 staging deployment **`dpl_FeZbD1JF2tZgjCb4n75ZpbDCu8yi`** (commit
+`eb2c6de`) recorded and retained in the project's deployment list; the staging
+alias now serves the hotfix candidate **`dpl_3woUYZcKnmW1qDwhtzH3U28M84kN`**
+(commit `13d307d`, tree `0988298`, `next@16.3.4`), deployed with `--prod` on the
+**staging** project from the repository root. Gate **locked** throughout.
+
+| Check | Result |
+|---|---|
+| Anonymous `/`, `/sign-in`, `/account`, `/admin`, `/sign-in.png` | 404, 0 bytes (gate) |
+| `POST /api/billing/webhook` unsigned, through the gate exemption | **400 `invalid-signature`, no `Location`** — not 308, not 404, not 5xx |
+| Bootstrap with the staging token | 204 + host cookie (token never printed) |
+| `/`, `/sign-in`, `/sign-up`, `/access`, `/privacy`, `/terms`, `/admin/sign-in`, `/api/health` | 200 |
+| `/pricing`, `/games`, `/map-prep`, `/homework`, `/quizzes` | 307 → `/access?next=…` — **identical to production v1.2.7** (verified read-only on mathnexa.com before the run) |
+| `/account`, `/subscription` → `/access?next=…`; `/game-access` → `/sign-in?next=…` | 307 with `Cache-Control: no-store` |
+| `/admin` anonymous | 404 · `/api/internal/billing/fixture` absent · `/game/runtime/index.html` 401 |
+| Security headers | CSP (`frame-ancestors 'self'`, Stripe `form-action`), HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy — all present, values unchanged |
+| Scheduler `/api/internal/billing/reconcile` | 401 anonymous, 401 wrong bearer, `no-store` |
+| Static images with the gate cookie | brand mark png, root icon, `number-cross.avif/.webp`, `math-vocabulary-hunt.webp`, `number-logic.avif`, `crosscalc.svg` — all 200 with the right `image/*` type |
+| Platform optimizer, gate-exempt sources | icon 64 / 256, brand mark → 200 `image/webp`, `X-Matched-Path` set (Vercel optimizer) |
+| Platform optimizer, gated sources | 404 on a **locked** staging: the platform fetches the source without the visitor's cookie. A property of the locked gate, not of the patch; production has no gate. Owner sees them with staging open |
+| Optimizer refusals | remote URL 400, traversal 400 |
+| Chromium (gate cookie): `/`, `/sign-in`, `/sign-up`, `/access`, `/pricing`, `/games`, `/admin/sign-in`, `/privacy` | all 200, no broken images, **0 console errors**; only aborted RSC prefetches (`ERR_ABORTED …?_rsc=`), which are navigation cancellations, not failures |
+| 5xx anywhere | none |
+
+Not certified by machine: signed-in journeys (account, subscription, customer
+portal, authenticated game launch, admin AAL2) need the owner's credentials —
+the standing suites cover their logic and the routes above prove the gates in
+front of them. Firefox/WebKit not run (CSP unchanged).
 
 ## Deferred, separate
 

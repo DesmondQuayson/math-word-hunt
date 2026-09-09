@@ -141,11 +141,16 @@ async function certify() {
   const gated = { headers: { cookie } };
 
   step("routes answer through the gate");
+  // Expectations mirror the v1.2.7 production runtime exactly (verified read-only
+  // on https://mathnexa.com before this run): a signed-out visitor is sent from
+  // the product surfaces to the access chooser (/access?next=…) or to sign-in;
+  // those are the ONLY acceptable redirects, and the private surfaces must
+  // carry no-store on the way.
   const expectations = [
-    ["/", 200], ["/sign-in", 200], ["/sign-up", 200], ["/pricing", 200], ["/games", 200], ["/map-prep", 200],
-    ["/homework", 200], ["/quizzes", 200], ["/privacy", 200], ["/terms", 200],
-    // Authenticated surfaces redirect a signed-out visitor to sign-in (an expected redirect), and are private.
-    ["/account", "auth-redirect"], ["/subscription", "auth-redirect"], ["/game-access", "auth-redirect"],
+    ["/", 200], ["/sign-in", 200], ["/sign-up", 200], ["/access", 200], ["/privacy", 200], ["/terms", 200],
+    ["/pricing", "access-redirect"], ["/games", "access-redirect"], ["/map-prep", "access-redirect"],
+    ["/homework", "access-redirect"], ["/quizzes", "access-redirect"],
+    ["/account", "private-redirect"], ["/subscription", "private-redirect"], ["/game-access", "private-redirect"],
     ["/api/health", 200], ["/admin", 404], ["/admin/sign-in", 200],
     ["/api/internal/billing/fixture", "absent"], ["/game/runtime/index.html", 401]
   ];
@@ -153,7 +158,9 @@ async function certify() {
   for (const [path, expected] of expectations) {
     const response = await probe(path, gated);
     const isRedirect = response.status >= 300 && response.status < 400;
-    const ok = expected === "auth-redirect" ? isRedirect && /\/sign-in/.test(response.location ?? "") && /no-store/.test(response.cacheControl ?? "")
+    const toAccessOrSignIn = /^(https:\/\/[^/]+)?\/(access|sign-in)\?next=/.test(response.location ?? "");
+    const ok = expected === "access-redirect" ? isRedirect && toAccessOrSignIn
+      : expected === "private-redirect" ? isRedirect && toAccessOrSignIn && /no-store/.test(response.cacheControl ?? "")
       : expected === "absent" ? response.status === 404 || response.status === 405
       : response.status === expected;
     results.routes[path] = { status: response.status, ms: response.ms, location: response.location, cacheControl: response.cacheControl, ok };
@@ -179,21 +186,45 @@ async function certify() {
   }
 
   step("images and the optimizer");
-  const images = [
-    ["brand mark (static)", "/brand/mathnexa-mark.png"],
-    ["game thumbnail png (static)", "/media/games/number-cross.png"],
-    ["game thumbnail avif (static)", "/media/games/number-cross.avif"],
-    ["game thumbnail webp (static)", "/media/games/number-cross.webp"],
-    ["optimizer: icon", "/_next/image?url=%2Ficon.png&w=64&q=75"],
-    ["optimizer: brand mark", "/_next/image?url=%2Fbrand%2Fmathnexa-mark.png&w=128&q=75"],
-    ["optimizer: game thumbnail", "/_next/image?url=%2Fmedia%2Fgames%2Fnumber-cross.png&w=384&q=75"],
-    ["optimizer: avif source", "/_next/image?url=%2Fmedia%2Fgames%2Fnumber-cross.avif&w=384&q=75"]
+  // Static assets under /media/** sit behind the staging gate (only _next/*,
+  // the root icons, brand/, game-suite/ and internal-games/ are exempt), so
+  // they are fetched with the gate cookie, exactly as a visitor's browser
+  // would. The platform optimizer fetches its SOURCE without any visitor
+  // cookie, so on a LOCKED staging it can only optimize gate-exempt sources;
+  // gated sources are recorded for the owner, not asserted — production has
+  // no gate and serves them all.
+  const accept = { accept: "image/avif,image/webp,image/*,*/*;q=0.8" };
+  const staticImages = [
+    ["brand mark (static, exempt)", "/brand/mathnexa-mark.png"],
+    ["root icon (static, exempt)", "/icon.png"],
+    ["game thumbnail avif (static, gated)", "/media/games/number-cross.avif"],
+    ["game thumbnail webp (static, gated)", "/media/games/number-cross.webp"],
+    ["vocabulary hunt thumbnail webp (static, gated)", "/media/games/math-vocabulary-hunt.webp"],
+    ["number logic thumbnail avif (static, gated)", "/media/games/number-logic.avif"],
+    ["crosscalc mark svg (static, gated)", "/media/games/crosscalc.svg"]
   ];
   results.images = {};
-  for (const [label, path] of images) {
-    const response = await probe(path, { headers: { accept: "image/avif,image/webp,image/*,*/*;q=0.8" } });
+  for (const [label, path] of staticImages) {
+    const response = await probe(path, { headers: { ...gated.headers, ...accept } });
     results.images[label] = { status: response.status, type: response.type, bytes: response.bytes, cache: response.headers["x-vercel-cache"] };
     check(response.status === 200 && /^image\//.test(response.type ?? ""), `image-failed:${label}:${response.status}`);
+  }
+  for (const [label, path] of [
+    ["optimizer: icon (exempt source)", "/_next/image?url=%2Ficon.png&w=64&q=75"],
+    ["optimizer: icon 256 (exempt source)", "/_next/image?url=%2Ficon.png&w=256&q=75"],
+    ["optimizer: brand mark (exempt source)", "/_next/image?url=%2Fbrand%2Fmathnexa-mark.png&w=128&q=75"]
+  ]) {
+    const response = await probe(path, { headers: accept });
+    results.images[label] = { status: response.status, type: response.type, bytes: response.bytes, cache: response.headers["x-vercel-cache"], matchedPath: response.headers["x-matched-path"] };
+    check(response.status === 200 && /^image\//.test(response.type ?? ""), `optimizer-failed:${label}:${response.status}`);
+  }
+  for (const [label, path] of [
+    ["optimizer: gated webp source (recorded only on locked staging)", "/_next/image?url=%2Fmedia%2Fgames%2Fnumber-cross.webp&w=384&q=75"],
+    ["optimizer: gated avif source (recorded only on locked staging)", "/_next/image?url=%2Fmedia%2Fgames%2Fnumber-cross.avif&w=384&q=75"]
+  ]) {
+    const response = await probe(path, { headers: accept });
+    results.images[label] = { status: response.status, type: response.type, bytes: response.bytes };
+    check(response.status < 500, `optimizer-5xx:${label}:${response.status}`);
   }
   for (const [label, path] of [["optimizer: remote refused", "/_next/image?url=https%3A%2F%2Fexample.com%2Fa.png&w=64&q=75"], ["optimizer: traversal refused", "/_next/image?url=%2F..%2F..%2Fetc%2Fpasswd&w=64&q=75"]]) {
     const response = await probe(path);
@@ -208,7 +239,10 @@ async function certify() {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await context.addCookies([{ name: "__Host-mvh-staging-access", value: cookie.split("=")[1], url: targetUrl }]);
     results.browser = {};
-    for (const path of ["/", "/sign-in", "/pricing", "/games", "/map-prep", "/homework", "/quizzes"]) {
+    // The product surfaces land on the access chooser for a signed-out visitor,
+    // so the browser pass exercises the public pages plus that chooser and the
+    // admin sign-in page — every page an anonymous visitor can actually render.
+    for (const path of ["/", "/sign-in", "/sign-up", "/access", "/pricing", "/games", "/admin/sign-in", "/privacy"]) {
       const page = await context.newPage();
       const consoleErrors = [];
       const failedRequests = [];
@@ -218,9 +252,11 @@ async function certify() {
       const response = await page.goto(`${targetUrl}${path}`, { waitUntil: "networkidle", timeout: 60_000 });
       const decoded = await page.evaluate(() => [...document.images].map((img) => ({ src: img.currentSrc.replace(location.origin, "").slice(0, 120), complete: img.complete, natural: img.naturalWidth })));
       const brokenImages = decoded.filter((img) => !img.complete || img.natural === 0).map((img) => img.src);
-      results.browser[path] = { status: response?.status() ?? null, finalPath: new URL(page.url()).pathname, images: decoded.length, brokenImages, consoleErrors, failedRequests };
+      const finalPath = new URL(page.url()).pathname;
+      results.browser[path] = { status: response?.status() ?? null, finalPath, images: decoded.length, brokenImages, consoleErrors, failedRequests };
       await page.close();
       check((response?.status() ?? 0) === 200, `browser-status:${path}`);
+      check(finalPath === path || finalPath === "/access", `browser-unexpected-destination:${path}->${finalPath}`);
       check(brokenImages.length === 0, `broken-images:${path}:${brokenImages.join(",")}`);
       check(consoleErrors.length === 0, `console-errors:${path}:${consoleErrors.join(" | ")}`);
     }
