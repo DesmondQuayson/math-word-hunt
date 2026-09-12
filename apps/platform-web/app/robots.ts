@@ -1,32 +1,12 @@
 import type { MetadataRoute } from "next";
-import { isProductionPublicMode } from "@/lib/environment/production-public";
-import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { getPublicCrawlPolicy } from "@/lib/environment/crawl-policy";
 
+/**
+ * Published from the shared crawl policy (lib/environment/crawl-policy.ts), so
+ * robots.txt and the operational status page can never disagree about what is
+ * crawlable (production bug sweep BS-02). The rules served are unchanged.
+ */
 export default function robots(): MetadataRoute.Robots {
-  if (isProductionPublicMode()) return { rules: { userAgent: "*", allow: "/", disallow: ["/not-launched"] }, sitemap: "https://mathnexa.com/sitemap.xml" };
-  if (isProductionPlatformMode()) return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: [
-        "/access",
-        "/confirmation-required",
-        "/sign-in",
-        "/sign-up",
-        "/forgot-password",
-        "/update-password",
-        "/account",
-        "/my-account",
-        "/subscription",
-        "/pricing",
-        "/checkout",
-        "/game-access",
-        "/subscriber-management",
-        "/admin",
-        "/api"
-      ]
-    },
-    sitemap: "https://mathnexa.com/sitemap.xml"
-  };
-  return { rules: { userAgent: "*", disallow: "/" } };
+  const policy = getPublicCrawlPolicy();
+  return policy.sitemap ? { rules: policy.rules, sitemap: policy.sitemap } : { rules: policy.rules };
 }

@@ -4,13 +4,16 @@ test("preview is persistently labeled and not indexable", async ({ page }) => {
   await page.goto("/status");
   await expect(page.getByRole("status", { name: "Preview environment status" })).toContainText("Preview environment");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Preview status");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("MathNexa status");
   await expect(page.getByText("no live payments", { exact: false })).toBeVisible();
+  // BS-02: the status page reports the real capability of THIS environment.
+  await expect(page.getByRole("definition").filter({ hasText: "Blocked" })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: "Test mode" })).toBeVisible();
 });
 
 test("health boundary exposes only safe readiness metadata", async ({ request }) => {
   const response=await request.get("/api/health"); expect(response.status()).toBe(200);
-  const body=await response.json(); expect(body).toEqual({status:"ready",environment:"preview",build:"phase4-e2e"});
+  const body=await response.json(); expect(body).toEqual({status:"ready",environment:"preview",build:"phase4-e2e",searchIndexing:"blocked",payments:"test"});
   expect(JSON.stringify(body)).not.toMatch(/secret|token|key|project/i);
 });
 
