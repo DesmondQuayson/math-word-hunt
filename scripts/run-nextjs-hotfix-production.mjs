@@ -155,7 +155,14 @@ async function deployPreview() {
   // --prod --skip-domain builds with the PRODUCTION environment while leaving
   // every domain — including the Stripe-configured *.vercel.app host — on the
   // current deployment. Traffic and webhook delivery are untouched until promote.
+  // MVH_SOURCE_REVISION stamps this deployment with the revision it was built
+  // from, which is what /api/health publishes as `build` (bug sweep BS-08). A
+  // CLI deployment carries git metadata but no VERCEL_GIT_COMMIT_SHA, so without
+  // this the endpoint would honestly report "unknown" instead of the deployed
+  // commit. Deployment scoped: no project environment variable is created or
+  // changed, and the value is the same non-secret commit already in --meta.
   const output = vercel(["deploy", ".", "--project", PRODUCTION_VERCEL_PROJECT, "--scope", SCOPE, "--yes", "--prod", "--skip-domain",
+    "--env", `MVH_SOURCE_REVISION=${commit}`,
     "--meta", `certifiedRuntime=${runtime.certified}`, "--meta", `candidateCommit=${commit}`, "--meta", `candidateTree=${tree}`, "--meta", "purpose=nextjs-16.3.4-security-hotfix"]);
   const urls = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) ?? [];
   const url = urls.filter((candidate) => new RegExp(`^https://${PRODUCTION_VERCEL_PROJECT}-[a-z0-9]+-${SCOPE}\\.vercel\\.app$`).test(candidate)).pop() ?? null;

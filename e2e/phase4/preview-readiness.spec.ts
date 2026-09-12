@@ -13,8 +13,14 @@ test("preview is persistently labeled and not indexable", async ({ page }) => {
 
 test("health boundary exposes only safe readiness metadata", async ({ request }) => {
   const response=await request.get("/api/health"); expect(response.status()).toBe(200);
-  const body=await response.json(); expect(body).toEqual({status:"ready",environment:"preview",build:"phase4-e2e",searchIndexing:"blocked",payments:"test"});
+  // BS-08: `build` is the deployed source revision this run was given, not the
+  // hand-set MVH_BUILD_ID (still "phase4-e2e" in this environment).
+  const revision="0123456789abcdef0123456789abcdef01234567";
+  const body=await response.json(); expect(body).toEqual({status:"ready",environment:"preview",build:revision,searchIndexing:"blocked",payments:"test"});
   expect(JSON.stringify(body)).not.toMatch(/secret|token|key|project/i);
+  const forged=await request.get("/api/health?build=fake&commit=fake&sha=fake");
+  expect(forged.status()).toBe(200);
+  expect(await forged.json()).toEqual(body);
 });
 
 test("preview UI supports keyboard, focus, reduced motion, and forced colors", async ({ page }) => {

@@ -81,7 +81,12 @@ async function deploy() {
   check(evidence.nextVersion === "16.3.4", `unexpected-next-version:${evidence.nextVersion}`);
   step("deploy");
   const output = vercel(
-    ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--prod", "--yes", "--meta", `candidateCommit=${evidence.commit}`, "--meta", `candidateTree=${evidence.tree}`, "--meta", "purpose=nextjs-16.3.4-security-hotfix"],
+    // MVH_SOURCE_REVISION stamps this deployment with the revision it was built
+    // from, which is what /api/health publishes as `build` (bug sweep BS-08). A
+    // CLI deployment carries git metadata but no VERCEL_GIT_COMMIT_SHA, so
+    // without this the endpoint would honestly report "unknown". Deployment
+    // scoped: no project environment variable is created or changed.
+    ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--prod", "--yes", "--env", `MVH_SOURCE_REVISION=${evidence.commit}`, "--meta", `candidateCommit=${evidence.commit}`, "--meta", `candidateTree=${evidence.tree}`, "--meta", "purpose=nextjs-16.3.4-security-hotfix"],
     { allowFailure: true }
   );
   const combined = `${output.stdout}\n${output.stderr}`;
