@@ -221,7 +221,44 @@ Diff images against main's current rendering (scratchpad `snapshot-deltas-vs-mai
 
 Exact affected URL: **UNKNOWN UNTIL OWNER OPENS INDEXING REPORT**. After promotion: Search Console → Indexing / Pages → "Not found (404)" → open/export the affected URLs; then decide per URL (fix link / 301 / keep 404 / 410). Then inspect `https://mathnexa.com/` and request indexing.
 
-### State
+### State (at candidate handoff)
 
 - Production: unchanged (`c0dbf9c`). MAP Prep / ShowMe: unchanged. Stripe, Supabase, migrations, entitlements: untouched.
 - Main: not merged. Tag: none. Candidate: not promoted.
+
+## 18. PRODUCTION LIVE — OWNER FINAL CHECK PENDING (2026-09-17)
+
+Owner approved the candidate; the exact certified deployment was promoted. No rebuild, no new candidate, no runtime change.
+
+| Item | Value |
+| --- | --- |
+| Runtime commit | `9e54cf7` (tree `aae1e15eff5bdfa2ebb04912b26dee9a2e7ce54f`) |
+| Promotion | `vercel promote dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv --scope bright-path-ed-tech`, 2026-09-17 08:08:49 → 08:08:56 UTC |
+| Previous production = rollback | `dpl_GwdaqjPPjVgsyfaVJtFU94gjdZkq` (`c0dbf9c`), retained, Ready |
+| New production | `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv`, Ready |
+| Hosts moved | `mathnexa.com`, `www.mathnexa.com` (308 → apex), `mathnexa-platform-production.vercel.app` (webhook host; pages 308 → apex) all resolve to the new deployment |
+| Health | `{"status":"ready","environment":"production-platform","build":"9e54cf7…","searchIndexing":"enabled","payments":"live"}` |
+
+Pre-promotion checks: candidate Ready with the expected health; apex on the expected rollback deployment (promotion refused otherwise); `git diff c0dbf9c 9e54cf7` touches no billing, Stripe, Supabase, proxy, security-header, school-access, staging-access, game-access, entitlement, migration, `vercel.json` or `next.config` file (the only `lib/auth` change is the label map in `access-intent.ts`; `app/subscription/page.tsx` changes one notice string).
+
+Live verification on `https://mathnexa.com`:
+
+- **Homepage copy**: eyebrow, H1, description, supporting line exactly as approved; old hero phrase and "MAP Prep" label absent.
+- **Labels**: Math Games / Online Math Prep / Homework PDFs / Quiz PDFs in nav and footer; card "Online Math Prep (Grades 3–8)" with "Learn · Practice · Review · Worksheet Generator".
+- **SEO**: title and description exact; canonical `https://mathnexa.com`; OG and Twitter match; robots `index, follow`; no `X-Robots-Tag` on the homepage; no structured data.
+- **Praxis / middle school**: "Coming soon" note present below the hero with the ETS trademark and non-affiliation sentence; nothing describes MathNexa as a Praxis course.
+- **URL contract**: `/games`, `/map-prep`, `/homework`, `/quizzes` → 307 → `/access?next=…` → 200 with headings "Continue to Math Games / Online Math Prep / Homework PDFs / Quiz PDFs". No slug renamed.
+- **404**: `/definitely-not-a-page` returns a real 404, `noindex, nofollow, noarchive, nocache`, title "Page not found · MathNexa", no redirect. (The layout's canonical tag is still emitted on the 404 document; it is inert on a noindex 404 and can be removed in a later runtime change if wanted.)
+- **Internal-link crawl**: 56 URLs, 34 linked targets, **0 links from any page to a 404/410/5xx**, 0 5xx. Unlinked audit seeds that 404 by design: `/resources`, `/content`, `/game`, `/checkout`, `/pilot`, `/teacher`, `/admin`, `/manifest.webmanifest`, `/icon.svg`, `/network-check`.
+- **Sitemap**: 7 URLs, each 200 in one hop, self-canonical, indexable. **Robots**: `Allow: /`, private deny list, sitemap declared. Both unchanged.
+- **Mobile**: 320/375/390/430/768/1024/1440 Chromium + 390/768/1440 WebKit: no horizontal overflow, captions unclipped, one H1.
+- **Accessibility**: axe WCAG A/AA 0 violations at every viewport; skip link first tab stop with visible outline; all links named.
+- **Product smoke**: `/`, `/about`, `/games`, `/map-prep`, `/homework`, `/quizzes`, `/subscription`, `/account` in Chromium and WebKit: 16/16 clean (no 5xx, console errors, page errors, broken assets, unexpected redirects).
+- **Payments / access (read-only)**: payments `live`; unsigned webhook probe 400 on the apex and on the configured webhook host, same as before; security headers on `/`, `/sign-in`, `/access` byte-identical before and after (nonce normalised); authorized-code form present on `/` and `/access`; `/pricing` and `/subscriber-management` still gate; cron endpoint 401 unauthenticated; `/status` Operational / Enabled. No charge placed.
+- **MAP Prep / ShowMe**: `showme.mathnexa.com` still `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`; no deployment there.
+
+Search Console exact 404 URL: **UNKNOWN**. Owner: Search Console → Indexing → Pages → Not found (404) → open/export the affected URLs. No redirect will be added without that evidence. After that, inspect `https://mathnexa.com/` and request indexing.
+
+Rollback (if any serious regression): `vercel promote dpl_GwdaqjPPjVgsyfaVJtFU94gjdZkq --scope bright-path-ed-tech`.
+
+Main: not merged. Tag: none. Both wait for the owner's final production approval.
