@@ -1,7 +1,9 @@
 # MathNexa homepage positioning + SEO + Google 404 audit (v1)
 
+**STATUS: RELEASED / OWNER VERIFIED / FROZEN — tag `v1.2.9` → `9e54cf7`, production `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` (see §19).**
+
 Branch `feature/homepage-positioning-seo-v1` (off `origin/main` = `c0dbf9c`), runtime commit `9e54cf7`.
-Staging only. Production (mathnexa.com) and MAP Prep / ShowMe are unchanged. Premium Conversion C1 is paused.
+Sections 1–16 are the staging handoff as written at the time (staging only, production unchanged); §17 records the certification and candidate, §18 the promotion, §19 the release. MAP Prep / ShowMe is unchanged throughout. Premium Conversion C1 is paused.
 
 ## 1. Business direction applied
 
@@ -262,3 +264,28 @@ Search Console exact 404 URL: **UNKNOWN**. Owner: Search Console → Indexing �
 Rollback (if any serious regression): `vercel promote dpl_GwdaqjPPjVgsyfaVJtFU94gjdZkq --scope bright-path-ed-tech`.
 
 Main: not merged. Tag: none. Both wait for the owner's final production approval.
+
+## 19. RELEASED / OWNER VERIFIED / FROZEN (2026-09-17)
+
+Owner manually reviewed live `https://mathnexa.com` and returned **PASS** (wording, mobile layout, "Online Math Prep (Grades 3–8)", Worksheet Generator visibility, Homework PDFs, Quiz PDFs, the Praxis / Middle School coming-soon section, `/about`, product access labels, normal product behaviour).
+
+| Item | Value |
+| --- | --- |
+| Release tag | **`v1.2.9`** (MathNexa platform namespace, bare `vX.Y.Z`; previous `v1.2.8` → `13d307d`), annotated, tag object `c1d206f2b76324625e537fc02859606791573faf`, peeled commit `9e54cf78b64bdadae78f7dc9998c572118549602`, pushed |
+| Certified runtime | `9e54cf7` (tree `aae1e15eff5bdfa2ebb04912b26dee9a2e7ce54f`) |
+| Production | `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` on `mathnexa.com` / `www.mathnexa.com` / `mathnexa-platform-production.vercel.app`, Ready; health `ready · production-platform · build 9e54cf7… · searchIndexing enabled · payments live` |
+| Rollback | `dpl_GwdaqjPPjVgsyfaVJtFU94gjdZkq` (`c0dbf9c`), retained |
+| Main | fast-forwarded (`--ff-only`, no squash, no force) from `c0dbf9c` to this release-record commit; every commit after `9e54cf7` is docs or test-only |
+| Runtime equivalence | `apps`, `packages`, `supabase`, `package.json` and `package-lock.json` hash identically at `9e54cf7` and at main; production `/api/health` reports build `9e54cf7` |
+| Closeout deployment | none created for production; the push to main triggers only the Git-connected STAGING project's automatic build |
+| MAP Prep / ShowMe | untouched, still `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9` |
+
+Closeout gates on the release lineage: typecheck, app + root lint, platform-core unit 245/245, platform-web unit 589 pass (single failure = `canonical-assets` sha256, the same test reproduced on a fresh `main` CRLF checkout and passing on the LF checkout of `c0dbf9c`; Windows line-ending artefact unrelated to this release), production build, Phase 9 e2e 9/9 on the approved visual baselines, live harness (copy, SEO contract, routes, 404, sitemap, robots, seven viewports, axe 0 violations, 0 console errors), two-engine product smoke 16/16, internal-link crawl 0 broken, read-only payments/access checks unchanged (webhook 400/400, gating intact, authorized-code form present, cron 401).
+
+SEO contract as released: title `MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets`; description `MathNexa offers math games, online math prep for Grades 3–8, printable homework and quiz PDFs, and a worksheet generator for teachers and families.`; canonical `https://mathnexa.com`; `index, follow`; no `X-Robots-Tag`; Open Graph and Twitter match.
+
+404 audit as released: 0 internal links to a missing page; unknown URLs return a real noindex 404 with no homepage redirect; sitemap 7/7 valid.
+
+**Outstanding (owner action): SEARCH CONSOLE AFFECTED URL: UNKNOWN.** Google Search Console → Indexing → Pages → Not found (404) → open/export the affected URLs. When supplied, classify each: current page that should exist → fix; old page with a replacement → 301; intentional/unknown URL → keep 404; removed page with no replacement → 404/410. Never blanket-redirect 404s to the homepage. Optional later runtime tidy-up: drop the inherited canonical tag from the noindex 404 document.
+
+This phase is closed and this branch is frozen. Future homepage or SEO work starts on a new branch. The next strategic phase (MAP Prep Premium Conversion C1) remains paused and owner-gated.
