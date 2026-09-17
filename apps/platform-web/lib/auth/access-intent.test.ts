@@ -64,4 +64,17 @@ describe("consumer access intent", () => {
     }
     expect(safeProductDestination("/account")).toBe("/games");
   });
+
+  it("labels destinations with the customer-facing product names while the paths stay unchanged", () => {
+    // "Continue to Online Math Prep", never "Continue to MAP Prep": the access
+    // page heading must match the navigation label that was clicked. The
+    // internal "map-prep" path and entitlement identifier are not renamed.
+    expect(destinationLabel("/games")).toBe("Math Games");
+    expect(destinationLabel("/map-prep")).toBe("Online Math Prep");
+    expect(destinationLabel("/homework")).toBe("Homework PDFs");
+    expect(destinationLabel("/quizzes")).toBe("Quiz PDFs");
+    expect(destinationLabel("/subscription")).toBe("Subscription");
+    expect(destinationLabel("/account")).toBe("My Account");
+    expect(PRODUCT_DESTINATIONS).toEqual(["/games", "/map-prep", "/homework", "/quizzes"]);
+  });
 });

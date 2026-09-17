@@ -15,10 +15,10 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
         </div>
         <nav className="footer-column" aria-labelledby="footer-products">
           <h2 id="footer-products">Products</h2>
-          <Link href="/games">Games</Link>
-          <Link href="/map-prep">MAP Prep</Link>
-          <Link href="/homework">Homework</Link>
-          <Link href="/quizzes">Quizzes</Link>
+          <Link href="/games">Math Games</Link>
+          <Link href="/map-prep">Online Math Prep</Link>
+          <Link href="/homework">Homework PDFs</Link>
+          <Link href="/quizzes">Quiz PDFs</Link>
         </nav>
         <nav className="footer-column" aria-labelledby="footer-account">
           <h2 id="footer-account">Account</h2>

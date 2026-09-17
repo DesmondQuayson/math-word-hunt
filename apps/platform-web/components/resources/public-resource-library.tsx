@@ -7,7 +7,8 @@ import { useMemo, useState } from "react";
 import type { PublicResourceLibraryData } from "@/lib/resources/catalog";
 
 export function PublicResourceLibrary({ kind, library }: Readonly<{ kind: "homework" | "quizzes"; library: PublicResourceLibraryData }>) {
-  const title = kind === "homework" ? "Homework" : "Quizzes";
+  const title = kind === "homework" ? "Homework PDFs" : "Quiz PDFs";
+  const noun = kind === "homework" ? "homework" : "quizzes";
   const [gradeId, setGradeId] = useState("");
   const [topicId, setTopicId] = useState("");
   const [lessonId, setLessonId] = useState("");
@@ -31,7 +32,7 @@ export function PublicResourceLibrary({ kind, library }: Readonly<{ kind: "homew
         {kind === "homework" ? <label><span>Lesson</span><select value={lessonId} disabled={!topicId} onChange={(event) => setLessonId(event.target.value)}><option value="">Choose a lesson</option>{lessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label> : null}
       </div>
     </section>
-    {!selectionComplete ? <div className="public-resource-empty"><strong>{library.taxonomy.grades.length ? `Choose ${kind === "homework" ? "a grade, topic, and lesson" : "a grade and topic"}` : `No published ${title.toLowerCase()} yet`}</strong><p>{library.taxonomy.grades.length ? "Your active subscription is ready; use the selectors above to browse published content." : "Your subscription is active. The owner has not published curriculum content for this library yet."}</p></div> : resources.length ? <div className="public-resource-groups">{resources.map((resource) => <article className="public-resource-card" key={resource.id}>
+    {!selectionComplete ? <div className="public-resource-empty"><strong>{library.taxonomy.grades.length ? `Choose ${kind === "homework" ? "a grade, topic, and lesson" : "a grade and topic"}` : `No published ${noun} yet`}</strong><p>{library.taxonomy.grades.length ? "Your active subscription is ready; use the selectors above to browse published content." : "Your subscription is active. The owner has not published curriculum content for this library yet."}</p></div> : resources.length ? <div className="public-resource-groups">{resources.map((resource) => <article className="public-resource-card" key={resource.id}>
       {resource.previewFileIds[0] ? <Image unoptimized width={640} height={360} sizes="(max-width: 48rem) 100vw, 18rem" src={`/resources/${resource.id}/preview/${resource.previewFileIds[0]}`} alt="" /> : <div className="public-resource-placeholder" aria-hidden="true">{resource.grade.replace(/[^0-9]/g, "") || "M"}</div>}
       <div><p className="public-resource-path">{resource.grade} / Topic {resource.topicNumber}: {resource.topic}{resource.lesson ? ` / ${resource.lesson}` : ""}</p><h2>{resource.title}</h2><p>{resource.description}</p>
         <dl><div><dt>Difficulty</dt><dd>{resource.difficulty ?? "Not specified"}</dd></div><div><dt>Recommended time</dt><dd>{resource.minutes ? `${resource.minutes} minutes` : "Not specified"}</dd></div><div><dt>Answer key</dt><dd>{resource.answerKeyResourceId ? "Available" : "Not published"}</dd></div></dl>

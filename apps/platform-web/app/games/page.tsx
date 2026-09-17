@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/container";
 import { requireProductAccess } from "@/lib/access/server";
 import { gamePlayHref, loadPublicGameCatalog } from "@/lib/games/catalog";
 
-export const metadata = { title: "Games" };
+export const metadata = { title: "Math Games" };
 export const dynamic = "force-dynamic";
 
 export default async function GamesPage() {

@@ -58,10 +58,10 @@ export function confirmationRequiredHref(destination: AccessIntentDestination): 
 export function destinationLabel(destination: AccessIntentDestination): string {
   return {
     "/": "Home",
-    "/games": "Games",
-    "/map-prep": "MAP Prep",
-    "/homework": "Homework",
-    "/quizzes": "Quizzes",
+    "/games": "Math Games",
+    "/map-prep": "Online Math Prep",
+    "/homework": "Homework PDFs",
+    "/quizzes": "Quiz PDFs",
     "/subscription": "Subscription",
     "/account": "My Account"
   }[destination];

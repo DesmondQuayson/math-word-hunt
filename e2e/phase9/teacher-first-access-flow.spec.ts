@@ -96,25 +96,28 @@ test.afterAll(async () => {
 
 test("teacher-first homepage uses approved copy, SEO, modules, and public navigation", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("MathNexa | Math Games, MAP Prep, Homework and Quizzes");
+  await expect(page).toHaveTitle("MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    "Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+    "MathNexa offers math games, online math prep for Grades 3–8, printable homework and quiz PDFs, and a worksheet generator for teachers and families."
   );
-  await expect(page.getByText("Teacher-led classroom math resources")).toBeVisible();
+  await expect(page.getByText("Teacher-led math resources", { exact: true })).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^https://mathnexa.com/?$/);
+  await expect(page.getByText("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes");
   await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();
-  await expect(page.getByText("Built for teachers. Useful for families. Engaging for learners.")).toBeVisible();
+  await expect(page.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  const expectedNavigation = ["Home", "Games", "MAP Prep", "Homework", "Quizzes", "Subscription", "My Account"];
+  const expectedNavigation = ["Home", "Math Games", "Online Math Prep", "Homework PDFs", "Quiz PDFs", "Subscription", "My Account"];
   await expect(navigation.getByRole("link")).toHaveCount(expectedNavigation.length);
   for (const label of expectedNavigation) await expect(navigation.getByRole("link", { name: label, exact: true })).toBeVisible();
-  for (const [label, href] of [["Explore Games", "/games"], ["Open MAP Prep", "/map-prep"], ["Browse Homework", "/homework"], ["Browse Quizzes", "/quizzes"]] as const) {
+  for (const [label, href] of [[/Math Games Engage · Practice/, "/games"], [/Online Math Prep (Grades 3–8) Learn · Practice · Review · Worksheet Generator/, "/map-prep"], [/Homework PDFs Practice · Print/, "/homework"], [/Quiz PDFs Assess · Print/, "/quizzes"]] as const) {
     await expect(page.getByRole("link", { name: label })).toHaveAttribute("href", href);
   }
   await expect(page.getByRole("img", { name: /Math Word Hunt game artwork/i })).toBeVisible();
-  await expect(page.getByRole("img", { name: /MAP Prep workspace/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Online Math Prep workspace/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /snack-bag unit-rate problem/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /Grade 7 topic quiz/i })).toBeVisible();
   if (numberCrossPublished) {
@@ -127,10 +130,10 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
 
 test("signed-out product and account choices preserve only allowlisted destinations", async ({ page }) => {
   const destinations = [
-    ["/games", "Games"],
-    ["/map-prep", "MAP Prep"],
-    ["/homework", "Homework"],
-    ["/quizzes", "Quizzes"],
+    ["/games", "Math Games"],
+    ["/map-prep", "Online Math Prep"],
+    ["/homework", "Homework PDFs"],
+    ["/quizzes", "Quiz PDFs"],
     ["/subscription", "Subscription"],
     ["/account", "My Account"]
   ] as const;
@@ -161,7 +164,7 @@ test("signed-out product and account choices preserve only allowlisted destinati
 
 test("pointer and keyboard choices reach the preserved account-intent path", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Open MAP Prep" }).click();
+  await page.getByRole("link", { name: /Online Math Prep (Grades 3–8)/ }).click();
   await expect(page).toHaveURL("/access?next=/map-prep");
   await page.goto("/");
   const createAccount = page.getByRole("link", { name: "Create an account" });
@@ -185,7 +188,7 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/subscription?next=/homework");
   await expect(page.getByRole("heading", { name: "$5.99 USD monthly MathNexa access" })).toBeVisible();
-  await expect(page.getByText("One MathNexa subscription includes Games, MAP Prep, Homework, and Quizzes.", { exact: true })).toBeVisible();
+  await expect(page.getByText("One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.", { exact: true })).toBeVisible();
   await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
   await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
@@ -204,7 +207,7 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await expect(page).toHaveURL("/subscription?next=/map-prep");
 });
 
-test("server-entitled accounts reach all four selected products and validated MAP Prep state", async ({ page }) => {
+test("server-entitled accounts reach all four selected products and validated Online Math Prep state", async ({ page }) => {
   await signIn(page, entitledEmail, "/games");
   await expect(page).toHaveURL("/games");
   await expect(page.getByRole("heading", { name: "Pick a challenge." })).toBeVisible();
@@ -232,7 +235,7 @@ test("server-entitled accounts reach all four selected products and validated MA
   await vocabularyGameCard.getByRole("link", { name: "Play" }).click();
   await expect(page).toHaveURL("/game/runtime/index.html");
   await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
-  for (const [destination, heading] of [["/homework", "Homework"], ["/quizzes", "Quizzes"], ["/map-prep", "MAP Prep"]] as const) {
+  for (const [destination, heading] of [["/homework", "Homework PDFs"], ["/quizzes", "Quiz PDFs"], ["/map-prep", "Online Math Prep"]] as const) {
     await page.goto(destination);
     await expect(page).toHaveURL(destination);
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
@@ -246,10 +249,10 @@ test("server-entitled accounts reach all four selected products and validated MA
   await expect(page.getByRole("combobox", { name: "Topic" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Lesson" })).toHaveCount(0);
   await page.goto("/map-prep");
-  await expect(page.getByText("MAP Prep is not configured", { exact: true })).toBeVisible();
+  await expect(page.getByText("Online Math Prep is not configured", { exact: true })).toBeVisible();
   const beforeMissingMap = await commercialCounts();
   await page.goto("/map-prep?destinationUrl=https://evil.example/override");
-  await expect(page.getByText("MAP Prep is not configured", { exact: true })).toBeVisible();
+  await expect(page.getByText("Online Math Prep is not configured", { exact: true })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/subscription required|checkout required/i);
   expect(new URL(page.url()).pathname).toBe("/map-prep");
   await expect(page.locator('a[href*="evil.example"]')).toHaveCount(0);
@@ -303,7 +306,7 @@ test("fixture Checkout polls server entitlement and returns to the selected prod
   expect(webhook.status()).toBe(200);
   expect(await webhook.json()).toMatchObject({ state: "trial-active" });
   await expect(page).toHaveURL("/quizzes", { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Quizzes" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quiz PDFs" })).toBeVisible();
   expect((await admin.from("consumer_checkout_acceptance_bindings")
     .select("id", { count: "exact", head: true }).eq("owner_user_id", reviewUser.id)).count).toBe(1);
 });
@@ -330,7 +333,7 @@ test("homepage and account-intent UI remain accessible across target devices and
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
   await page.goto("/");
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior)).toBe("auto");
-  const navLink = page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Games" });
+  const navLink = page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Math Games" });
   await navLink.focus();
   await expect(navLink).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

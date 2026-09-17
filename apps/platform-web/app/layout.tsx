@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
+import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
 
 import "./globals.css";
 
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     template: mathNexa ? "%s · MathNexa" : "%s · Math Vocabulary Hunt"
   },
   description: productionPlatform
-    ? "Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+    ? PLATFORM_HOMEPAGE_DESCRIPTION
     : "A teacher-led classroom game for building fluency with the language of mathematics.",
   openGraph: mathNexa
     ? { siteName: "MathNexa", type: "website" }

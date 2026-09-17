@@ -452,3 +452,70 @@
     box-shadow: 0.45rem 0.45rem 0 var(--color-accent-turquoise);
   }
 }
+
+/* ---------- Roadmap note (below the hero, never inside it) ----------
+   A single, quiet "Coming soon" statement about planned middle-school review
+   resources. Kept out of the hero so the approved hero height is unchanged, and
+   the trademark clarification always travels with the Praxis mention. */
+.teacher-home-roadmap {
+  margin-top: var(--space-6);
+  padding-block: var(--space-4);
+  border-top: var(--border-width-thin) solid rgb(255 255 255 / 18%);
+}
+
+.teacher-home-roadmap-heading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-accent-turquoise-ink);
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.teacher-home-roadmap-copy {
+  margin: 0;
+  max-width: 46rem;
+}
+
+.teacher-home-roadmap-note {
+  margin: var(--space-2) 0 0;
+  max-width: 46rem;
+  font-size: var(--font-size-small, 0.85rem);
+  opacity: 0.78;
+}
+
+/* Narrow constellation nodes: the product name and its feature line stack
+   instead of sharing one row, so "Online Math Prep (Grades 3–8)" and
+   "Learn · Practice · Review · Worksheet Generator" wrap into balanced,
+   left-aligned lines rather than a ragged right-aligned column. */
+.constellation-node:not(.constellation-node-wide) .constellation-caption {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.constellation-node:not(.constellation-node-wide) .constellation-caption strong {
+  text-wrap: balance;
+}
+
+/* A feature phrase ("Worksheet Generator") never breaks internally; lines
+   break only at the middot separators. */
+.constellation-feature {
+  white-space: nowrap;
+}
+
+.constellation-node:not(.constellation-node-wide) .constellation-caption span {
+  margin-left: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+@media (max-width: 22.5rem) {
+  /* Below 360px the narrow node is ~110px wide: let a phrase wrap rather
+     than clip. */
+  .constellation-feature {
+    white-space: normal;
+  }
+}

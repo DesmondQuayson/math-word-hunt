@@ -1,10 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Fragment } from "react";
 
 import { ConfirmationReminder } from "@/components/auth/email-confirmation-dialog";
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
+import {
+  PLATFORM_HERO_AUDIENCE,
+  PLATFORM_HERO_DESCRIPTION,
+  PLATFORM_HERO_EYEBROW,
+  PLATFORM_HERO_HEADLINE,
+  PLATFORM_PRODUCTS,
+  PRAXIS_NON_AFFILIATION,
+  ROADMAP_MIDDLE_SCHOOL_REVIEW
+} from "@/lib/seo/platform-positioning";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
 
@@ -33,11 +43,25 @@ function HeroActions({ authState, entitled }: Readonly<{ authState: HomeAuthStat
 }
 
 /**
+ * "Learn · Practice · Review · Worksheet Generator" must only ever break at a
+ * middot, never inside a phrase: each phrase is an unbreakable run and the
+ * separators stay ordinary text, so the rendered text is unchanged.
+ */
+function CaptionFeatures({ features }: Readonly<{ features: string }>) {
+  return <span>{features.split(" · ").map((phrase, index) => <Fragment key={phrase}>{index > 0 ? " · " : null}<span className="constellation-feature">{phrase}</span></Fragment>)}</span>;
+}
+
+/**
  * The MathNexa learning constellation: the real product thumbnails composed
  * as one connected system. Every node is a working link; the connecting paths
  * draw once on page load and then hold. No looping motion.
+ *
+ * Labels are the customer-facing product names (lib/seo/platform-positioning).
+ * The route paths behind them are unchanged on purpose: /games, /map-prep,
+ * /homework and /quizzes are indexed, bookmarked and used by access routing.
  */
 function LearningConstellation() {
+  const [games, mathPrep, homework, quizzes] = PLATFORM_PRODUCTS;
   return <div className="learning-constellation">
     <svg className="constellation-paths" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <path d="M28 34 C 38 52, 30 58, 27 70" />
@@ -48,7 +72,7 @@ function LearningConstellation() {
       <circle cx="73" cy="70" r="1.6" />
     </svg>
     <div className="constellation-grid">
-      <Link className="constellation-node constellation-node-wide" href="/play">
+      <Link className="constellation-node constellation-node-wide" href={games.href}>
         <Image
           src="/media/games/math-vocabulary-hunt.webp"
           alt="Math Vocabulary Hunt game artwork: a neon letter grid highlighting FRACTION, INTEGER, RATIO, AREA, and EQUATION"
@@ -58,44 +82,57 @@ function LearningConstellation() {
           loading="eager"
           priority
         />
-        <span className="constellation-caption"><strong>Math Vocabulary Hunt</strong><span>Engage · Games</span></span>
+        <span className="constellation-caption"><strong>{games.cardTitle}</strong><CaptionFeatures features={games.features} /></span>
       </Link>
-      <Link className="constellation-node" href="/map-prep">
+      <Link className="constellation-node" href={mathPrep.href}>
         <Image
           src="/media/home/map-prep-preview.webp"
-          alt="MathNexa MAP Prep workspace with a graph, working board, and math tools"
+          alt="MathNexa Online Math Prep workspace with a graph, working board, and math tools"
           width={1200}
           height={800}
           sizes="(max-width: 54rem) 44vw, 19vw"
           loading="eager"
         />
-        <span className="constellation-caption"><strong>MAP Prep</strong><span>Prepare</span></span>
+        <span className="constellation-caption"><strong>{mathPrep.cardTitle}</strong><CaptionFeatures features={mathPrep.features} /></span>
       </Link>
-      <Link className="constellation-node" href="/homework">
+      <Link className="constellation-node" href={homework.href}>
         <Image
           src="/media/home/homework-preview.webp"
-          alt="MathNexa homework sheet with fruit diagrams and space to show thinking"
+          alt="MathNexa homework PDF with fruit diagrams and space to show thinking"
           width={1200}
           height={800}
           sizes="(max-width: 54rem) 44vw, 19vw"
           loading="eager"
         />
-        <span className="constellation-caption"><strong>Homework</strong><span>Practice</span></span>
+        <span className="constellation-caption"><strong>{homework.cardTitle}</strong><CaptionFeatures features={homework.features} /></span>
       </Link>
-      <Link className="constellation-node constellation-node-wide" href="/quizzes">
+      <Link className="constellation-node constellation-node-wide" href={quizzes.href}>
         <Image
           src="/media/home/quiz-preview.webp"
-          alt="MathNexa Grade 7 topic quiz with a table and two graphs"
+          alt="MathNexa Grade 7 topic quiz PDF with a table and two graphs"
           width={1200}
           height={800}
           sizes="(max-width: 54rem) 88vw, 38vw"
           loading="eager"
         />
-        <span className="constellation-caption"><strong>Topic Quizzes</strong><span>Check</span></span>
+        <span className="constellation-caption"><strong>{quizzes.cardTitle}</strong><CaptionFeatures features={quizzes.features} /></span>
       </Link>
     </div>
-    <p className="constellation-lede">One connected system: <strong>engage</strong>, <strong>prepare</strong>, <strong>practice</strong>, <strong>check</strong>.</p>
+    <p className="constellation-lede">One connected system: <strong>engage</strong>, <strong>learn</strong>, <strong>practice</strong>, <strong>assess</strong>.</p>
   </div>;
+}
+
+/**
+ * Future-facing note, deliberately kept OUT of the hero so the hero height and
+ * the approved premium layout stay as they are. It describes planned work, not
+ * an existing course, and carries the trademark clarification with it.
+ */
+function RoadmapNote() {
+  return <section className="teacher-home-roadmap container" aria-labelledby="roadmap-heading">
+    <h2 id="roadmap-heading" className="teacher-home-roadmap-heading">Coming soon</h2>
+    <p className="teacher-home-roadmap-copy">{ROADMAP_MIDDLE_SCHOOL_REVIEW}</p>
+    <p className="teacher-home-roadmap-note">{PRAXIS_NON_AFFILIATION}</p>
+  </section>;
 }
 
 export function TeacherFirstHome({
@@ -105,10 +142,10 @@ export function TeacherFirstHome({
   return <>
     <section className="teacher-home-hero container" aria-labelledby="home-title">
       <div className="teacher-home-copy">
-        <p className="eyebrow">Teacher-led classroom math resources</p>
-        <h1 id="home-title">Make every math lesson clearer, more engaging, and ready to teach.</h1>
-        <p className="teacher-home-lede">Games, Missouri MAP Prep, image-rich homework, and topic quizzes—one teacher-friendly platform.</p>
-        <p className="teacher-home-audience">Built for teachers. Useful for families. Engaging for learners.</p>
+        <p className="eyebrow">{PLATFORM_HERO_EYEBROW}</p>
+        <h1 id="home-title">{PLATFORM_HERO_HEADLINE}</h1>
+        <p className="teacher-home-lede">{PLATFORM_HERO_DESCRIPTION}</p>
+        <p className="teacher-home-audience">{PLATFORM_HERO_AUDIENCE}</p>
         <HeroActions authState={authState} entitled={entitled} />
         {authState === "signed-out" ? <AuthorizedCodeForm nextDestination="/games" compact /> : null}
       </div>
@@ -116,5 +153,6 @@ export function TeacherFirstHome({
     </section>
 
     {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
+    <RoadmapNote />
   </>;
 }

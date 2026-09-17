@@ -24,10 +24,10 @@ const publicNavigation = [
 
 const consumerNavigation = [
   { href: "/", label: "Home" },
-  { href: "/games", label: "Games" },
-  { href: "/map-prep", label: "MAP Prep" },
-  { href: "/homework", label: "Homework" },
-  { href: "/quizzes", label: "Quizzes" },
+  { href: "/games", label: "Math Games" },
+  { href: "/map-prep", label: "Online Math Prep" },
+  { href: "/homework", label: "Homework PDFs" },
+  { href: "/quizzes", label: "Quiz PDFs" },
   { href: "/subscription", label: "Subscription" },
   { href: "/account", label: "My Account" }
 ] as const;

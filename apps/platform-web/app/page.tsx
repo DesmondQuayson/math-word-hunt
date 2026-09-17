@@ -13,6 +13,7 @@ import { TeacherFirstHome } from "@/components/public/teacher-first-home";
 import { getGameAccessView } from "@/lib/game-access/server";
 import { loadPublicGameCatalog } from "@/lib/games/catalog";
 import type { Metadata } from "next";
+import { PLATFORM_HOMEPAGE_DESCRIPTION, PLATFORM_HOMEPAGE_TITLE } from "@/lib/seo/platform-positioning";
 
 export const dynamic = "force-dynamic";
 
@@ -59,8 +60,10 @@ export function ConsumerHomePage() {
 
 export async function generateMetadata():Promise<Metadata>{
   if(isProductionPlatformMode())return{
-    title:{absolute:"MathNexa | Math Games, MAP Prep, Homework and Quizzes"},
-    description:"Teacher-led math resources in one platform: interactive games, Missouri MAP Prep, image-rich homework PDFs, and classroom-ready quizzes."
+    title:{absolute:PLATFORM_HOMEPAGE_TITLE},
+    description:PLATFORM_HOMEPAGE_DESCRIPTION,
+    openGraph:{title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION,url:"https://mathnexa.com",siteName:"MathNexa",type:"website"},
+    twitter:{card:"summary",title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION}
   };
   const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
 }
