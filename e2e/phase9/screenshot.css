@@ -1,0 +1,7 @@
+/* Applied only while Playwright captures the homepage visual baselines.
+   The phase 9 runner serves the app with `next dev`, whose issue badge
+   (a <nextjs-portal> element) is dev-only and changes with unrelated console
+   output. Production has no such element, so it is hidden from the capture. */
+nextjs-portal {
+  display: none !important;
+}
