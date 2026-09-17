@@ -171,3 +171,57 @@ axe-core (WCAG 2.0/2.1 A + AA) at every viewport: 0 violations. Exactly one H1; 
 - MAP Prep / ShowMe production: unchanged.
 - No database migration, no Stripe change, no Supabase change, no entitlement change, no billing/AESM code touched.
 - Not merged to main. No tag.
+
+## 17. Owner staging PASS → final certification and production candidate (2026-09-16/17)
+
+Owner reviewed staging `dpl_D5EXvXksnD9DMVGgDBgyYWx2w3XL` and passed it (wording, labels, worksheet generator, mobile, Praxis note, `/about`, product URLs, 404). Runtime is unchanged since `9e54cf7`; the two later commits are docs (`a1d0605`) and test-only (`5cc0823`). `git diff 9e54cf7 HEAD -- apps packages` is empty.
+
+### Phase 9 e2e (local Docker + Supabase, the project's own runner)
+
+- Docker Desktop was started for this run; `supabase start` applied the migrations; the suite ran through `npm run test:e2e:phase9` (`next dev` on 127.0.0.1:3000 with the runner's production-platform environment).
+- **Baseline on main first**: main's own spec against main (`c0dbf9c`, fresh `npm ci` in a throwaway worktree) = **5 failed / 4 passed**. The failures predate this branch: the active nav item carries a visually hidden "Current" label so `{ name: "Home", exact: true }` never matched; the access page button reads "Create account"; the homepage no longer has an "Open MAP Prep" link; the footer adds a second "My Account" link (strict-mode violation); and the five visual baselines were captured from the pre-V1.2 homepage (showcase span, "Math Word Hunt", Number Cross card). Two further stale assertions were masked behind those (game launch URL now carries `?launch=<generation>`, and invalid `next` values fall back to Home, not My Account).
+- **Branch, repaired spec**: functional tests **8/8 pass**, then with regenerated baselines the full suite is **9/9 pass** (two consecutive full runs).
+- Spec changes are assertion repairs only (labels, image names, the four constellation cards, `waitForURL` for the launch generation, the Home fallback, scoping "My Account" to the primary navigation) plus a test-only `e2e/phase9/screenshot.css` that hides the Next dev overlay badge (`nextjs-portal`) during capture so baselines never depend on dev-time console output. Two regex edits initially lost their backslashes through the editing tool; they now use `[(]…[)]` classes.
+
+### Visual baselines (5 regenerated, all reviewed)
+
+| Baseline | Old (pre-V1.2 homepage) | Main's current rendering | New | Legitimate differences |
+| --- | --- | --- | --- | --- |
+| desktop 1440 | 1440×3161 | 1440×1488 | 1440×1693 | nav labels, eyebrow, hero description, longer supporting line (column below it shifts), card titles/feature lines, connected-system verbs, new "Coming soon" section, footer product labels |
+| smartboard 1920 | 1920×3221 | 1920×1531 | 1920×1737 | same set |
+| tablet 768 | 768×4942 | 768×2910 | 768×3152 | same set + nav wrapping with the longer labels |
+| mobile 390 | 390×4956 | 390×3084 | 390×3439 | same set + caption stacking on the narrow cards |
+| mobile 320 | 320×4986 | 320×2999 | 320×3450 | same set + feature phrases wrapping below 360 px |
+
+Diff images against main's current rendering (scratchpad `snapshot-deltas-vs-main`) show the brand mark, H1, account and legal links unchanged; every changed band maps to the approved copy/label changes or the vertical shift they cause. No unrelated UI change.
+
+### Final gates (branch head `5cc0823`, runtime `9e54cf7`)
+
+| Gate | Result |
+| --- | --- |
+| typecheck | pass |
+| lint (app + root) | pass |
+| unit platform-core | 245/245 |
+| unit platform-web | 589 pass, 1 skipped, 1 fail = `canonical-assets` sha256; **same test, same expected/actual sha on a fresh main (`c0dbf9c`) CRLF checkout; passes on the LF checkout of the same commit** (Windows line-ending artefact, unrelated) |
+| production build | pass |
+| Phase 9 e2e | 9/9 |
+| SEO/positioning unit tests | pass |
+| staging crawl (HTTP + Chromium/WebKit + axe + console/page errors) | pass; 0 console/page errors on every viewport; the intentional 404 visit logs only its own 404 |
+| internal-link crawl / 404 audit / sitemap / robots | unchanged from §8–§11, re-verified on staging |
+
+### Production candidate (NOT promoted)
+
+- Built from a pristine detached checkout of `9e54cf7` (tree `aae1e15eff5bdfa2ebb04912b26dee9a2e7ce54f`) with `vercel deploy . --project mathnexa-platform-production --prod --skip-domain --env MVH_SOURCE_REVISION=9e54cf7…` (deployment-scoped, no project env change).
+- Candidate: **`dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv`**, `https://mathnexa-platform-production-a01bvkfay-bright-path-ed-tech.vercel.app`, target production, **Ready**, holds no domain.
+- Apex before and after: `dpl_GwdaqjPPjVgsyfaVJtFU94gjdZkq` (unchanged, = rollback target).
+- Probes through the CLI protection bypass (`vercel curl --deployment`): `/api/health` 200 `{"status":"ready","environment":"production-platform","build":"9e54cf7…","searchIndexing":"enabled","payments":"live"}`; `/`, `/about`, `/games`, `/map-prep`, `/homework`, `/quizzes`, `/subscription`, `/account`, `/definitely-not-a-page`, `/sitemap.xml`, `/robots.txt` all **308 → https://mathnexa.com/<same path>** with `X-Robots-Tag: noindex` on the deployment host; no 5xx.
+- Candidate = staging runtime: same commit `9e54cf7`, same tree, same `build` stamp in `/api/health` (staging reported `9e54cf7…` too). Page content cannot be rendered from the candidate host by design (production canonical-host redirect), and the vault's automation bypass secret is staging-scoped (the production deployment answers with Vercel SSO), so homepage content, metadata, navigation, routes and 404 behaviour are proven on staging (identical source) in Chromium + WebKit, and the candidate is proven on its HTTP contract. Content on the apex is verified after promotion, as in every previous MathNexa promotion.
+
+### Google Search Console
+
+Exact affected URL: **UNKNOWN UNTIL OWNER OPENS INDEXING REPORT**. After promotion: Search Console → Indexing / Pages → "Not found (404)" → open/export the affected URLs; then decide per URL (fix link / 301 / keep 404 / 410). Then inspect `https://mathnexa.com/` and request indexing.
+
+### State
+
+- Production: unchanged (`c0dbf9c`). MAP Prep / ShowMe: unchanged. Stripe, Supabase, migrations, entitlements: untouched.
+- Main: not merged. Tag: none. Candidate: not promoted.
