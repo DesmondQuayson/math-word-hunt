@@ -19,7 +19,9 @@ import { GAME_LABELS, PROBES, measureLayout, openGame, seedRandom, type GameKey 
  */
 
 const label = process.env.MOBILE_GAMEPLAY_AUDIT_LABEL ?? "current";
-const outputRoot = resolve("test-results", "mobile-gameplay-audit", label);
+// Not under test-results/: Playwright empties that on every run, which would
+// discard the "before" record the moment the "after" audit starts.
+const outputRoot = resolve("qa-artifacts", "mobile-gameplay-audit", label);
 
 export const PHONE_VIEWPORTS = [
   { width: 320, height: 568 },
