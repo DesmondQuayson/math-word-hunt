@@ -11,9 +11,7 @@ import {
   PLATFORM_HERO_DESCRIPTION,
   PLATFORM_HERO_EYEBROW,
   PLATFORM_HERO_HEADLINE,
-  PLATFORM_PRODUCTS,
-  PRAXIS_NON_AFFILIATION,
-  ROADMAP_MIDDLE_SCHOOL_REVIEW
+  PLATFORM_PRODUCTS
 } from "@/lib/seo/platform-positioning";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
@@ -122,19 +120,6 @@ function LearningConstellation() {
   </div>;
 }
 
-/**
- * Future-facing note, deliberately kept OUT of the hero so the hero height and
- * the approved premium layout stay as they are. It describes planned work, not
- * an existing course, and carries the trademark clarification with it.
- */
-function RoadmapNote() {
-  return <section className="teacher-home-roadmap container" aria-labelledby="roadmap-heading">
-    <h2 id="roadmap-heading" className="teacher-home-roadmap-heading">Coming soon</h2>
-    <p className="teacher-home-roadmap-copy">{ROADMAP_MIDDLE_SCHOOL_REVIEW}</p>
-    <p className="teacher-home-roadmap-note">{PRAXIS_NON_AFFILIATION}</p>
-  </section>;
-}
-
 export function TeacherFirstHome({
   authState = "signed-out",
   entitled = false
@@ -153,6 +138,5 @@ export function TeacherFirstHome({
     </section>
 
     {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
-    <RoadmapNote />
   </>;
 }

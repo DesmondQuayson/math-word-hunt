@@ -9,8 +9,9 @@ export const metadata = { title: "Math Games" };
 export const dynamic = "force-dynamic";
 
 export default async function GamesPage() {
-  await requireProductAccess("/games");
-  const catalog = await loadPublicGameCatalog();
+  // Speed V2: the entitlement decision and the public catalog read are
+  // independent, so they run in parallel; the access redirect still wins.
+  const [, catalog] = await Promise.all([requireProductAccess("/games"), loadPublicGameCatalog()]);
   return <Container className="game-catalog page-stack" width="wide">
     <header className="game-catalog-hero">
       <p className="eyebrow">Choose a game</p>

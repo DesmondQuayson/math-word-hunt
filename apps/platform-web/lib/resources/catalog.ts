@@ -3,6 +3,7 @@ import "server-only";
 import { readMapPrepDestination, type MapPrepDestination } from "@math-vocabulary-hunt/platform-core";
 
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import { createTtlCache } from "@/lib/resources/ttl-cache";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 export type PublicTaxonomy = Readonly<{
@@ -122,11 +123,30 @@ export async function loadPublicResourceCatalog(kind: "homework" | "quizzes"): P
   return (await loadPublicResourceLibrary(kind)).resources;
 }
 
-export async function loadMapPrepDestination(): Promise<MapPrepDestination | null> {
+async function loadMapPrepDestinationUncached(): Promise<MapPrepDestination | null> {
   const managed = await loadPublishedCmsDocument("map-prep");
   const block = managed?.content.blocks.find((item) => item.type === "external-link");
   const destination = readMapPrepDestination(block);
   return destination?.enabled ? destination : null;
+}
+
+/**
+ * The Online Math Prep destination changes only when the owner publishes a new
+ * CMS version, yet every launch used to read it from Supabase twice (page and
+ * launch route: two or three queries each). It is now held in memory for one
+ * minute per server instance; an admin publish on the same instance drops it
+ * immediately through `invalidateMapPrepDestination`, other instances converge
+ * within the minute. The access decision itself is never cached.
+ */
+export const MAP_PREP_DESTINATION_TTL_MS = 60_000;
+const mapPrepDestinationCache = createTtlCache(loadMapPrepDestinationUncached, MAP_PREP_DESTINATION_TTL_MS);
+
+export async function loadMapPrepDestination(): Promise<MapPrepDestination | null> {
+  return mapPrepDestinationCache.read();
+}
+
+export function invalidateMapPrepDestination(): void {
+  mapPrepDestinationCache.invalidate();
 }
 
 export async function loadPublicResource(resourceId: string): Promise<PublicResource | null> {

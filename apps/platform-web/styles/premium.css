@@ -453,36 +453,65 @@
   }
 }
 
-/* ---------- Roadmap note (below the hero, never inside it) ----------
-   A single, quiet "Coming soon" statement about planned middle-school review
-   resources. Kept out of the hero so the approved hero height is unchanged, and
-   the trademark clarification always travels with the Praxis mention. */
-.teacher-home-roadmap {
-  margin-top: var(--space-6);
-  padding-block: var(--space-4);
-  border-top: var(--border-width-thin) solid rgb(255 255 255 / 18%);
+/* ---------- Product click feedback + route opening state (speed V2) ----------
+   A card or nav pill answers the press itself, before the router has anything
+   to show; the route loading boundary then paints "Opening …" until the server
+   responds. No spinners over content, no overlays, nothing that blocks the click. */
+.constellation-node:active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 60ms;
 }
 
-.teacher-home-roadmap-heading {
-  margin: 0 0 var(--space-1);
+.nav-list a:active {
+  background: rgb(255 255 255 / 18%);
+}
+
+.route-opening {
+  min-height: 40vh;
+  padding-block: var(--space-10);
+}
+
+.route-opening-status {
+  margin: 0;
   color: var(--color-accent-turquoise-ink);
   font-family: var(--font-utility);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.teacher-home-roadmap-copy {
-  margin: 0;
-  max-width: 46rem;
+.route-opening-bar {
+  position: relative;
+  height: 3px;
+  max-width: 22rem;
+  margin-top: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 8%);
 }
 
-.teacher-home-roadmap-note {
-  margin: var(--space-2) 0 0;
-  max-width: 46rem;
-  font-size: var(--font-size-small, 0.85rem);
-  opacity: 0.78;
+.route-opening-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-accent-turquoise);
+  animation: route-opening-sweep 1s ease-in-out infinite;
+}
+
+@keyframes route-opening-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(260%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-opening-bar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
 }
 
 /* Narrow constellation nodes: the product name and its feature line stack

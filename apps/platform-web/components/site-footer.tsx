@@ -13,17 +13,22 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
           <p className="brand-name">Math<strong>Nexa</strong></p>
           <p>Teacher-led math resources in one platform. MathNexa stores only the minimum account and subscription data required to provide protected game access.</p>
         </div>
+        {/* Speed V2: these six routes are already prefetched by the primary
+            navigation (and the product cards). Measured on production, each was
+            fetched twice per homepage view (17 idle RSC requests); the footer
+            copies opt out so the click's own request never competes with
+            duplicate prefetch traffic. Prefetch stays on for everything else. */}
         <nav className="footer-column" aria-labelledby="footer-products">
           <h2 id="footer-products">Products</h2>
-          <Link href="/games">Math Games</Link>
-          <Link href="/map-prep">Online Math Prep</Link>
-          <Link href="/homework">Homework PDFs</Link>
-          <Link href="/quizzes">Quiz PDFs</Link>
+          <Link href="/games" prefetch={false}>Math Games</Link>
+          <Link href="/map-prep" prefetch={false}>Online Math Prep</Link>
+          <Link href="/homework" prefetch={false}>Homework PDFs</Link>
+          <Link href="/quizzes" prefetch={false}>Quiz PDFs</Link>
         </nav>
         <nav className="footer-column" aria-labelledby="footer-account">
           <h2 id="footer-account">Account</h2>
-          <Link href="/account">My Account</Link>
-          <Link href="/subscription">Subscription</Link>
+          <Link href="/account" prefetch={false}>My Account</Link>
+          <Link href="/subscription" prefetch={false}>Subscription</Link>
           <Link href="/play">{legalLabels.get("/play")}</Link>
           <Link href="/support">{legalLabels.get("/support")}</Link>
         </nav>

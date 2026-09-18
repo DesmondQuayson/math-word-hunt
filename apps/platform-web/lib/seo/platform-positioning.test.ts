@@ -21,17 +21,19 @@ const OLD_TITLE = "MathNexa | Math Games, MAP Prep, Homework and Quizzes";
 describe("MathNexa homepage positioning and SEO metadata", () => {
   it("publishes the approved Google-facing title and description", () => {
     expect(PLATFORM_HOMEPAGE_TITLE).toBe("MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets");
-    expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe(
-      "MathNexa offers math games, online math prep for Grades 3–8, printable homework and quiz PDFs, and a worksheet generator for teachers and families."
-    );
+    // Owner-exact wording (V2): identical to the visible hero description, never prefixed with "MathNexa offers".
+    expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.");
+    expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe(PLATFORM_HERO_DESCRIPTION);
+    expect(PLATFORM_HOMEPAGE_DESCRIPTION.startsWith("MathNexa offers")).toBe(false);
+    expect(PLATFORM_HOMEPAGE_DESCRIPTION).not.toMatch(/Missouri|Praxis/);
     expect(PLATFORM_HOMEPAGE_TITLE).not.toBe(OLD_TITLE);
     // Meta descriptions beyond ~160 characters are truncated in search results.
     expect(PLATFORM_HOMEPAGE_DESCRIPTION.length).toBeLessThanOrEqual(160);
     // The description and the visible hero make the same factual claims, so
     // Google has consistent snippet material.
-    for (const concept of ["math games", "online math prep for Grades 3–8", "worksheet generator"]) {
-      expect(PLATFORM_HOMEPAGE_DESCRIPTION.toLowerCase()).toContain(concept.toLowerCase());
-      expect(PLATFORM_HERO_DESCRIPTION.toLowerCase()).toContain(concept.toLowerCase());
+    for (const concept of ["Math games", "online math prep for Grades 3–8", "Homework PDFs", "Quiz PDFs", "worksheet generator"]) {
+      expect(PLATFORM_HOMEPAGE_DESCRIPTION).toContain(concept);
+      expect(PLATFORM_HERO_DESCRIPTION).toContain(concept);
     }
   });
 

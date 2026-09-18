@@ -42,15 +42,15 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByText(/One connected system:/).textContent).toBe("One connected system: engage, learn, practice, assess.");
   });
 
-  it("keeps the future middle-school note out of the hero and never claims a Praxis course or endorsement", () => {
+  it("carries no Coming Soon / Praxis block on the homepage (owner V2), leaving the hero followed directly by the page end", () => {
     const { container } = render(<TeacherFirstHome />);
-    const hero = container.querySelector(".teacher-home-hero");
-    const roadmap = container.querySelector(".teacher-home-roadmap");
-    expect(hero?.textContent).not.toMatch(/Praxis|Coming soon/);
-    expect(roadmap?.textContent).toContain("Middle School Math Review resources for educators, including content review useful when preparing for Praxis® Mathematics (5164).");
-    expect(roadmap?.textContent).toContain("not affiliated with, sponsored by, or endorsed by ETS");
-    expect(roadmap?.textContent).toContain("does not offer a Praxis preparation course");
-    expect(screen.getByRole("heading", { level: 2, name: "Coming soon" })).toBeTruthy();
+    expect(container.querySelector(".teacher-home-roadmap")).toBeNull();
+    expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
+    // The only headings are the H1 and the authorized-code form heading: no empty section wrapper or orphan heading remains.
+    expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
+      "Make every math lesson clearer, more engaging, and ready to teach.",
+      "Enter authorized code to access MathNexa"
+    ]);
   });
 
   it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {

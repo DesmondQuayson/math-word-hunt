@@ -18,10 +18,14 @@ export const PLATFORM_HERO_DESCRIPTION =
 export const PLATFORM_HERO_AUDIENCE =
   "Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.";
 
-/** Google-facing homepage metadata (production platform only). */
+/**
+ * Google-facing homepage metadata (production platform only). The description
+ * is the owner's exact sentence and is the same text the hero shows, so the
+ * visible page and the snippet source agree (V2: no "MathNexa offers" prefix,
+ * no Missouri or Praxis wording).
+ */
 export const PLATFORM_HOMEPAGE_TITLE = "MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets";
-export const PLATFORM_HOMEPAGE_DESCRIPTION =
-  "MathNexa offers math games, online math prep for Grades 3–8, printable homework and quiz PDFs, and a worksheet generator for teachers and families.";
+export const PLATFORM_HOMEPAGE_DESCRIPTION = PLATFORM_HERO_DESCRIPTION;
 
 /**
  * Missouri stays a supported, truthful alignment claim wherever product detail

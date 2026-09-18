@@ -100,7 +100,7 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page).toHaveTitle("MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    "MathNexa offers math games, online math prep for Grades 3–8, printable homework and quiz PDFs, and a worksheet generator for teachers and families."
+    "Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
   );
   await expect(page.getByText("Teacher-led math resources", { exact: true })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://mathnexa.com");
@@ -260,6 +260,10 @@ test("server-entitled accounts reach all four selected products and validated On
 test("fixture Checkout polls server entitlement and returns to the selected product without duplication", async ({ page, request }) => {
   await signIn(page, reviewEmail, "/quizzes");
   await expect(page).toHaveURL("/subscription?next=/quizzes");
+  // The route now streams behind a loading boundary, so the URL changes before
+  // the consent form exists: wait for the rendered form, not just the URL.
+  await expect(page.getByRole("heading", { name: "$5.99 USD monthly MathNexa access" })).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(7);
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture[A-Za-z0-9_]+&next=\/quizzes/);
