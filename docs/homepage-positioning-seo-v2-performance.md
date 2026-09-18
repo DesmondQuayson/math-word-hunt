@@ -187,3 +187,30 @@ MAP Prep / ShowMe: untouched, `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`, live 200 in 19
 - Rollback if needed: `vercel promote dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv --scope bright-path-ed-tech`.
 
 Main: **not merged** (still `cb465c5`). Tag: **none**. Both wait for the owner's final production confirmation.
+
+## 12. RELEASED / OWNER VERIFIED / FROZEN (2026-09-18)
+
+Owner tested live `https://mathnexa.com` and returned **PASS**: Online Math Prep materially faster, first and repeat clicks correct, Math Games / Homework PDFs / Quiz PDFs responsive, homepage description correct, Coming Soon / Praxis block gone, mobile homepage correct, access healthy.
+
+| Item | Value |
+| --- | --- |
+| Release tag | **`v1.2.10`** (MathNexa platform namespace, bare `vX.Y.Z`; previous `v1.2.9` → `9e54cf7`), annotated, tag object `7c1d30253cb8e90939f5fe5024d25ee74548d5c5`, peeled commit `80a509c13bf8f71d05a27eebb8ddc229864986a5`, pushed |
+| Certified runtime | `80a509c` (tree `b1ad36df`) |
+| Production | `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF`, Ready, on `mathnexa.com`, `www.mathnexa.com` and `mathnexa-platform-production.vercel.app`; health `ready · production-platform · build 80a509c… · searchIndexing enabled · payments live` |
+| Rollback | `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` (`9e54cf7`), retained and Ready |
+| Main | fast-forwarded `cb465c5` → **`2920574`** (`--ff-only`, no squash, no force), pushed; every commit after `80a509c` is docs-only |
+| Runtime equivalence | `apps`, `packages`, `supabase`, `scripts` and both package manifests hash identically at `80a509c` and at main; the only differing path is this document; production health reports build `80a509c` |
+| Closeout deployment | none for production; the main push triggered only the Git-connected staging project |
+| MAP Prep / ShowMe | untouched, `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`, live 200 in ~160 ms |
+
+Closeout gates on the release lineage: typecheck, app + root lint, platform-core unit 245/245, platform-web unit 594 pass (single failure = the `canonical-assets` sha256 test, which fails identically on a Windows-line-ending checkout of main and passes on an LF checkout; unrelated), production build, Phase 9 e2e **11/11** including the navigation-performance spec, approved homepage snapshots, link crawl 0 broken, axe 0 violations, responsive 320–1440.
+
+Live contract as released: Coming Soon / Praxis / ETS absent from the homepage; the exact sentence is the visible hero text and all three metadata fields; title unchanged; canonical `https://mathnexa.com`; `index, follow` with no `X-Robots-Tag`; `/map-prep` answers a real HTTP 307 with no meta refresh (the layout-level gate, proving the new launch flow is deployed); `/map-prep/launch` still serves direct hits; payments live, webhook 400/400, all product and account routes gated, cron 401, authorized-code form present, security headers byte-identical to before promotion.
+
+Performance as released: old entitled path ~1827 ms over 4 MathNexa hops, 3 server executions and blocking analytics recorded twice; new path ~740–850 ms in the test environment over 1 hop, 1 server execution, analytics off the critical path. Owner's real-production result: **PASS, navigation materially faster** (no owner-side millisecond figure was measured, so none is claimed). Anonymous product-card clicks on production: 261–287 ms cold, 160–264 ms warm (previously 378–991 ms cold).
+
+Google: live description **PASS**; search-result update **pending recrawl**. Owner action: Search Console → URL Inspection → `https://mathnexa.com/` → Request Indexing. Google may still choose visible page text, and no immediate snippet change is promised.
+
+Search Console 404: the exact reported URL remains **UNKNOWN**; no redirects were added during closeout.
+
+This phase is closed and frozen. Future homepage or performance work starts on a new branch. Premium Conversion C1 remains paused and owner-gated.
