@@ -126,3 +126,64 @@ Staging navigation timing, anonymous visitor through the gate (medians of 2, cli
 Owner staging links (gate bootstrap step as usual): `https://mathnexa-platform-staging.vercel.app/`, `/map-prep`, `/games`, `/homework`, `/quizzes`, `/about`.
 
 Production: unchanged (`dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv`, `9e54cf7`). MAP Prep / ShowMe: unchanged (`dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`). Not merged, not tagged. Search Console exact 404 URL: still unknown, untouched by this task.
+
+## 11. PRODUCTION LIVE — OWNER FINAL CHECK PENDING (2026-09-18)
+
+Owner passed the staging review (homepage cleanup, description, and the feel of all four product clicks). The exact certified candidate was promoted; no rebuild.
+
+| Item | Value |
+| --- | --- |
+| Certified runtime | `80a509c` (tree `b1ad36df`); branch head `b16a8ae` is docs-only (`git diff 80a509c b16a8ae -- apps packages supabase scripts package*.json` is empty, every runtime subtree hash identical) |
+| Candidate | `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF`, built with `--prod --skip-domain` from a pristine detached checkout, Ready, held no domain |
+| Promotion | `vercel promote dpl_AaPnXGGohzFLd3ece7eNyah2xmCF`, 2026-09-18 03:09:55 → 03:10:03 UTC |
+| Previous production = rollback | `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` (`9e54cf7`), retained, Ready |
+| Hosts moved | `mathnexa.com`, `www.mathnexa.com`, `mathnexa-platform-production.vercel.app` |
+| Live health | `{"status":"ready","environment":"production-platform","build":"80a509c…","searchIndexing":"enabled","payments":"live"}` |
+| Candidate = staging | same commit `80a509c` and the same health build stamp as the staging-certified `dpl_CVgpTXMfkV7H86jwy55qd5X8Bged`; candidate probes through the CLI bypass: health 200, every page path 308 → apex (canonical-host design), no 5xx |
+
+### Live homepage and SEO
+
+Coming Soon, Praxis and ETS: **absent** from the homepage, and the `teacher-home-roadmap` wrapper is gone from the markup. `MathNexa offers`: absent. Exact sentence present as visible hero text **and** as `description`, `og:description` and `twitter:description`:
+
+`Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.`
+
+Title unchanged, canonical `https://mathnexa.com`, robots `index, follow`, no `X-Robots-Tag` on the homepage. `/about` still carries the future Praxis note (owner decision pending).
+
+### The architecture is provably live
+
+`/map-prep` answers a document request with a clean **HTTP 307** and a `Location` header, with **no meta refresh**. With the loading boundary deployed, that is only possible when the access + destination decision runs in the segment layout, above the boundary — exactly the new flow. The first staging build (gate inside the page) returned a streamed 200 instead, which is how the regression was caught. `/map-prep/launch` still answers direct hits correctly (anonymous → 307 → `/access?next=/map-prep`).
+
+### Live navigation timings, anonymous visitor (click → meaningful heading, ms, medians of 2)
+
+| Destination | Chromium before → after (cold) | Chromium before → after (warm) | Mobile after (cold / warm) | WebKit after (cold / warm) |
+| --- | --- | --- | --- | --- |
+| Math Games | 378 → **287** | 365 → **166** | 279 / 255 | 542 / 573 |
+| Online Math Prep | 722 → **268** | 367 → **160** | 273 / 261 | 613 / 581 |
+| Homework PDFs | 991 → **265** | 363 → **160** | 271 / 265 | 609 / 1089* |
+| Quiz PDFs | 454 → **261** | 362 → **264** | 260 / 266 | 619 / 510 |
+| Nav → My Account | 419 → 366 | 352 → 370 | 381 / 359 | 571 / 531 |
+| Nav → Subscription | 365 → 367 | 385 → 319 | 347 / 347 | 845 / 881 |
+
+\* single slow run inside a two-run median. Every product card is now well inside the 800 ms desktop and 1.2 s mobile targets, cold and warm.
+
+### Entitled Online Math Prep journey — what is proven and what the owner must confirm
+
+The architectural change is proven live (the 307 shape above) and proven end to end on the identical runtime in the Phase 9 environment: **4 MathNexa hops → 1, three server executions → 1, two launch-counter writes → 1, ~1827 ms → ~740–850 ms click-to-usable**, with the remaining time being ShowMe's own load.
+
+It could **not** be timed by this session on production, because that needs a real subscribed session and this session has no owner credentials (entering them is out of scope). The owner can confirm it in a few seconds: open DevTools → Network, click **Online Math Prep**, and check that there is exactly **one** `mathnexa.com` request (`/map-prep`), **no** `/map-prep/launch` entry, and **no** "Failed to fetch RSC payload" console error before ShowMe appears.
+
+### Live smoke, crawl, access and payments
+
+Two-engine product smoke (`/`, `/about`, `/games`, `/map-prep`, `/homework`, `/quizzes`, `/subscription`, `/account` in Chromium and WebKit): **16/16 clean** — no 5xx, console errors, page errors, broken assets or unexpected redirects. Link crawl: 56 URLs, 34 linked targets, **0 broken links, 0 5xx**. Harness: all checks pass (copy, SEO, routes, 404 noindex, sitemap 7/7, robots, seven viewports, axe 0 violations, 0 console errors).
+
+Read-only access and billing: payments `live`; unsigned webhook probe 400 on both the apex and the configured webhook host (unchanged); all six product/account routes 307 to the access page for anonymous visitors; `/pricing` and `/subscriber-management` still gate; cron endpoint 401 unauthenticated; authorized-code form present; security headers on `/`, `/sign-in` and `/access` **byte-identical** before and after.
+
+MAP Prep / ShowMe: untouched, `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`, live 200 in 193 ms with the correct title.
+
+### Outstanding
+
+- Owner: Search Console → URL Inspection → `https://mathnexa.com/` → Request Indexing. Google must recrawl before the snippet can change, and it may still choose visible page text; no immediate change is promised.
+- Owner: Search Console → Indexing → Pages → "Not found (404)" → export the affected URL(s). Still unknown; untouched by this task.
+- Rollback if needed: `vercel promote dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv --scope bright-path-ed-tech`.
+
+Main: **not merged** (still `cb465c5`). Tag: **none**. Both wait for the owner's final production confirmation.
