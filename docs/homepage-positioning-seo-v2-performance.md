@@ -92,6 +92,37 @@ Preconnect A/B (real intermediate page with `<link rel="preconnect">` + `dns-pre
 
 JS 150 KB, CSS 24 KB, fonts 0 files / 0 KB (system font stacks), hero images as before; no long-task or hydration problem observed (heading visible at DOMContentLoaded). Not changed beyond the prefetch trim.
 
-## 9. Staging (filled after deployment)
+## 9. A regression caught on the first staging build, and its fix
 
-See §10 below once the staging deployment and its measurements exist.
+The first V2 build put loading boundaries under the pages' own access checks. Because a page redirect thrown after the shell has streamed can only be delivered client-side (meta refresh), anonymous document requests to `/games`, `/map-prep`, `/homework`, `/quizzes`, `/subscription` and `/account` answered **200 + streamed shell** instead of the **307 to `/access?next=…`** that crawlers, bookmarks and the URL contract rely on (the staging harness flagged all six). Fix (`80a509c`): the access gate runs in a segment layout above each product route's loading boundary (games, homework, quizzes), the whole Online Math Prep launch decision moved into the map-prep layout, and the subscription/account boundaries were removed. Clicks still paint "Opening …" instantly (the loading state is prefetched with the segment), and document requests get real HTTP redirects again (verified: all six routes 307 → access page on staging).
+
+The same streaming behaviour also raced the Phase 9 checkout test (URL changed before the consent form existed); the test now waits for the rendered form. No user-facing effect.
+
+## 10. Staging
+
+| Item | Value |
+| --- | --- |
+| Branch / commits | `feature/homepage-refinement-speed-v2`: `66b1a3d` (V2) → `80a509c` (layout gates), off main `cb465c5`, pushed |
+| Previous staging deployment (rollback) | `dpl_8qrmMRgWcjX3hT6cn1QLVMNwdcbZ` (the Git-connected build of main `cb465c5`) |
+| Intermediate builds | `dpl_7esqx7YpQZy4AZiYv14TTf2MAz1D` (V2 working tree, revision stamp wrong: a commit that had not landed), `dpl_4RwWDFBkPqqLXN9MFyCSj4pJGESd` (`66b1a3d`, the streamed-redirect regression) — superseded |
+| **New staging deployment** | **`dpl_CVgpTXMfkV7H86jwy55qd5X8Bged`** = `https://mathnexa-platform-staging.vercel.app`, Ready, health `build 80a509c…`, gate locked (404 / 0 bytes without the cookie) |
+| Harness (through the gate) | all checks pass: title, exact 134-character description on meta/OG/Twitter, canonical, robots, H1, hero copy, Coming Soon / Praxis / ETS absent from the homepage, product cards and labels, `/games` `/map-prep` `/homework` `/quizzes` `/subscription` `/account` all 307 → `/access?next=…` with the new headings, sitemap 7/7, robots unchanged, 404 real + noindex, seven Chromium viewports + three WebKit: no overflow, axe 0 violations, 0 console/page errors |
+| `/about` | still carries the future middle-school / Praxis note with the ETS non-affiliation sentence (owner decision pending; not a factual or UX problem) |
+| Gates on `80a509c` | typecheck, lint, platform-core unit 245/245, platform-web unit (only the known Windows CRLF canonical-assets failure), production build, Phase 9 e2e **11/11** including the new strict navigation spec, homepage baselines regenerated (delta = removed block + footer shift only) |
+
+Staging navigation timing, anonymous visitor through the gate (medians of 2, click → meaningful heading, ms):
+
+| Destination | Chromium cold | Chromium warm | Mobile cold | Mobile warm | WebKit cold | WebKit warm |
+| --- | --- | --- | --- | --- | --- | --- |
+| Math Games | 287 | 900* | 294 | 261 | 648 | 1120* |
+| Online Math Prep | 907* | 163 | 286 | 255 | 649 | 500 |
+| Homework PDFs | 274 | 270 | 266 | 268 | 553 | 482 |
+| Quiz PDFs | 269 | 256 | 257 | 157 | 629 | 583 |
+| Nav → My Account | 400 | 273 | 378 | 429 | 662 | 535 |
+| Nav → Subscription | 349 | 324 | 354 | 342 | 681 | 536 |
+
+\* single slow run inside a two-run median. Against the production baseline (§6) the anonymous journeys are level to slightly faster; they were already inside target. The change that matters to the owner is the entitled Online Math Prep journey (§4): 4 MathNexa hops → 1, three server executions → 1, duplicate launch counter → none, ~10 sequential Supabase calls per click → the entitlement decision plus a cached lookup. It could not be timed on staging without an entitled staging account; the owner will feel it directly.
+
+Owner staging links (gate bootstrap step as usual): `https://mathnexa-platform-staging.vercel.app/`, `/map-prep`, `/games`, `/homework`, `/quizzes`, `/about`.
+
+Production: unchanged (`dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv`, `9e54cf7`). MAP Prep / ShowMe: unchanged (`dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`). Not merged, not tagged. Search Console exact 404 URL: still unknown, untouched by this task.
