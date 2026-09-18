@@ -16,7 +16,7 @@ const standaloneRoot = process.env.CROSSCALC_SOURCE_DIR
   : resolve(repositoryRoot, "..", "..", "crosscalc");
 const approvedSource = "9d27dbc21fce043569fae89ab5b4434ae2d0bac0";
 const adapterSource = "8bc4704";
-const layoutHash = "c0ec52bee2e27c3584b0953b018b583bb24c4456389c8d65c50196adee143014";
+const layoutHash = "c3a9f13d49b31b9687a71166c78221f07e6a3607a6e7c90cc20ab9ca96ace7b8";
 const assetHashes = Object.freeze({
   "assets/index-B-S_H4Ce.css": "f5c39c4c16b25b5cdd24827147449ef11c5faaa2f0f769b8a7dec3897568bdbf",
   "assets/index-B0m_QJed.js": "5bb4968416f222c3bcdebfc49844d7084d59999fd5b1efeff049a26fcaf426ac"
@@ -110,10 +110,11 @@ test("compact setup and equation disclosures preserve the native panels and acce
       <section class="play-stage"><div class="stage-heading"><h2>Beginner · Addition</h2></div></section>
       <aside class="equation-panel" aria-label="Live equation proof">
         <div class="panel-heading"><h2>Equation paths</h2><span>0/4</span></div>
-        <ol class="equation-list"><li>1 + ? = 3</li></ol>
+        <ol class="equation-list"><li class="incomplete "><b>01</b><span>1 + blank = 3</span><i>·</i></li></ol>
       </aside>
     </main>
-  </div></body></html>`, {
+  </div>
+  <details class="native-music-credit"><summary>Credits</summary><p>Music credit</p></details></body></html>`, {
     runScripts: "outside-only",
     url: "https://mathnexa.example/internal-games/crosscalc-v2/"
   });
@@ -139,6 +140,21 @@ test("compact setup and equation disclosures preserve the native panels and acce
   assert.equal(document.querySelector(".mission-panel h1").getAttribute("aria-level"), "2");
   assert.match(setup.textContent, /Puzzle Setup\s*Addition · Beginner/);
   assert.match(paths.textContent, /Equation Paths\s*0\/4 proven/);
+
+  // Mobile gameplay fit: the equation being solved is echoed above the board
+  // (visual only: each cell already names its equations), and the music credit
+  // joins the console so a fixed-height surface can never strand it off-screen.
+  const equationLine = document.querySelector(".puzzle-console .compact-console-row > .compact-active-equation");
+  assert.ok(equationLine);
+  assert.equal(equationLine.getAttribute("aria-hidden"), "true");
+  assert.equal(equationLine.getAttribute("data-active"), "false");
+  assert.match(equationLine.textContent, /Solving\s*Tap an empty \? cell to see its equation\./);
+  assert.ok(document.querySelector(".compact-console-row > .native-music-credit"));
+  assert.equal(document.querySelector("body > .native-music-credit"), null);
+  document.querySelector(".equation-list li").className = "incomplete active";
+  await new Promise((resolvePromise) => dom.window.setTimeout(resolvePromise, 0));
+  assert.equal(equationLine.getAttribute("data-active"), "true");
+  assert.deepEqual([...equationLine.querySelectorAll(".compact-active-equation__item")].map((item) => item.textContent), ["1 + ? = 3"]);
 
   setup.click();
   assert.equal(setup.getAttribute("aria-expanded"), "true");
@@ -174,7 +190,8 @@ test("compact setup and equation disclosures preserve the native panels and acce
     setupExpanded: true,
     pathsExpanded: false,
     setupSummary: "Mixed · Hard",
-    pathsSummary: "2/4 proven"
+    pathsSummary: "2/4 proven",
+    activeEquations: ["1 + ? = 3"]
   });
   dom.window.close();
 });

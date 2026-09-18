@@ -17,7 +17,7 @@ export function renderNumberLogicDocument(): string {
     <link rel="stylesheet" href="./assets/index-0S0ADVv9.css" />
   </head>
   <body>
-    <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games">← Back to Games</a>
+    <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games"><span aria-hidden="true">←</span> <span class="native-back-prefix">Back to </span>Games</a>
     <div id="root"></div>
     <details class="native-music-credit">
       <summary>Credits</summary>

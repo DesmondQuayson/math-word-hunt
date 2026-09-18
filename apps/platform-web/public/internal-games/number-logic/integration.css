@@ -365,3 +365,424 @@
   .nl-tutorial-tray span,
   .nl-tutorial-target { forced-color-adjust: auto; }
 }
+
+/* ======================================================================
+ * Mobile Gameplay Fit V1 — Number Logic
+ *
+ * Measured before this pass: during play EVERY viewport scrolled the page —
+ * 900–1,190 px on phones, 471 px on a 1440 × 900 desktop, 291 px on the
+ * 1920 × 1080 Smart Board — and Undo / Redo / Restart / Pause were never on
+ * screen: a separate Back row, the brand header, a large puzzle title and a
+ * two-line board heading pushed the board down, the number tray followed it,
+ * and the controls lived in the proof panel below everything.
+ *
+ * While a puzzle is being played the game is now one fixed 100dvh surface:
+ *
+ *   HEADER      ← Games · brand · sound · settings · Credits
+ *   PUZZLE      ← Exit · puzzle title · active time
+ *   BOARD       board heading and the target, the board (square, sized from
+ *               BOTH the available width and height), the number tray
+ *   CONTROLS    Undo · Redo · Restart · Pause, pinned above the live proof
+ *               and hints, which scroll inside their own panel
+ *
+ * Only the game view is affected: the puzzle library, tutorials, difficulty
+ * choice and results keep their normal page scrolling. The bundled runtime
+ * is unchanged. This stylesheet loads BEFORE the bundle's, so every rule
+ * below is scoped through body:has(main._game_1annj_1) to out-rank it.
+ * ====================================================================== */
+
+html:has(main._game_1annj_1) {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body:has(main._game_1annj_1) {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+/* HEADER: Back to Games and Credits join the brand row. */
+body:has(main._game_1annj_1) > .native-back-link,
+body:has(main._game_1annj_1) > .native-music-credit {
+  position: absolute;
+  z-index: 20;
+  top: max(.4rem, env(safe-area-inset-top));
+  margin: 0;
+}
+
+body:has(main._game_1annj_1) > .native-back-link {
+  left: max(.5rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  width: 5.6rem;
+  min-height: 44px;
+  justify-content: center;
+  gap: .3rem;
+  padding: .3rem .4rem;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+body:has(main._game_1annj_1) > .native-back-link .native-back-prefix { display: none; }
+
+body:has(main._game_1annj_1) > .native-music-credit {
+  right: max(.5rem, env(safe-area-inset-right));
+  max-width: none;
+  padding: 0;
+  font-size: .76rem;
+}
+
+body:has(main._game_1annj_1) > .native-music-credit p {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: min(20rem, 88vw);
+  margin: 0;
+  padding: .6rem .75rem;
+  border: 2px solid #17151d;
+  border-radius: .75rem;
+  background: #fff;
+  box-shadow: 5px 5px 0 #e6dcff;
+}
+
+body:has(main._game_1annj_1) > #root {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body:has(main._game_1annj_1) ._numberLogicRoot_15wx5_1 {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body:has(main._game_1annj_1) ._header_15wx5_121 {
+  flex: none;
+  flex-wrap: nowrap;
+  width: auto;
+  min-height: 52px;
+  margin: 0;
+  gap: .5rem;
+  padding: max(.4rem, env(safe-area-inset-top)) calc(max(.5rem, env(safe-area-inset-right)) + 4.6rem) .4rem calc(max(.5rem, env(safe-area-inset-left)) + 6.1rem);
+}
+
+body:has(main._game_1annj_1) ._footer_15wx5_247 { display: none; }
+
+/* Settings open as a panel over the game instead of pushing it away. */
+body:has(main._game_1annj_1) #settings-panel:not(:empty) {
+  position: absolute;
+  z-index: 25;
+  inset: 52px 0 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: rgba(23, 21, 29, .35);
+}
+
+/* PUZZLE */
+main._game_1annj_1 {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  margin: 0;
+  padding: .35rem max(.5rem, env(safe-area-inset-right)) max(.5rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left));
+}
+
+main._game_1annj_1 ._gameHeader_1annj_1 {
+  flex: none;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .4rem;
+}
+
+main._game_1annj_1 ._gameHeader_1annj_1 > div:first-child {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: .6rem;
+}
+
+main._game_1annj_1 ._gameHeader_1annj_1 ._textButton_1annj_1 { min-height: 44px; padding-block: 0; }
+main._game_1annj_1 ._gameHeader_1annj_1 ._eyebrow_1annj_1 { order: 3; flex-basis: 100%; font-size: .62rem; }
+
+main._game_1annj_1 ._gameHeader_1annj_1 h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 5vw, 2rem);
+  line-height: 1;
+}
+
+main._game_1annj_1 ._clock_1annj_1 { flex: none; }
+main._game_1annj_1 ._clock_1annj_1 span { font-size: .62rem; }
+
+/* BOARD + CONTROLS */
+main._game_1annj_1 ._gameLayout_1annj_1 {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+main._game_1annj_1 ._boardPanel_1annj_1 {
+  --mnx-nl-chrome: 7.6rem;
+  flex: 0 1 calc(min(100vw - 1rem, 34rem) + var(--mnx-nl-chrome));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  padding: .5rem;
+  container-type: size;
+}
+
+main._game_1annj_1 ._boardIntro_1annj_1 {
+  flex: none;
+  min-height: 3.1rem;
+  align-items: center;
+  gap: .6rem;
+}
+
+main._game_1annj_1 ._boardIntro_1annj_1 > div:first-child { min-width: 0; }
+
+main._game_1annj_1 ._boardIntro_1annj_1 > div:first-child > ._eyebrow_1annj_1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+main._game_1annj_1 ._boardIntro_1annj_1 h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  font-size: clamp(.95rem, 3.8vw, 1.25rem);
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+main._game_1annj_1 ._targetChip_1annj_1 {
+  flex: 0 1 auto;
+  min-width: 5.5rem;
+  max-width: 55%;
+  padding: .3rem .6rem;
+}
+
+main._game_1annj_1 ._targetChip_1annj_1 span { font-size: .6rem; }
+
+main._game_1annj_1 ._targetChip_1annj_1 strong {
+  overflow-wrap: anywhere;
+  font-size: clamp(1rem, 4.6vw, 1.35rem);
+  line-height: 1.1;
+}
+
+/* The board: the largest square that fits the width AND the height left
+   between the heading and the tray. */
+main._game_1annj_1 ._board_1annj_1 {
+  flex: none;
+  width: min(100cqw, 34rem, 100cqh - var(--mnx-nl-chrome));
+  margin: 0 auto;
+  container-type: size;
+}
+
+/* Nodes scale with the board they sit on (never below a 44 px target), so a
+   board sized down to fit a short screen never overlaps its own nodes. */
+main._game_1annj_1 ._board_1annj_1 > ._position_1annj_1 {
+  width: clamp(2.75rem, 16cqw, 5rem);
+  height: clamp(2.75rem, 16cqw, 5rem);
+}
+
+/* Product Square keeps its own grid; if it is ever taller than the space it
+   scrolls inside the board panel, never the page. */
+main._game_1annj_1 ._busShell_1ozdl_1 {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  margin: 0 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+main._game_1annj_1 ._boardPanel_1annj_1:has(._busShell_1ozdl_1) { flex-grow: 1; }
+
+main._game_1annj_1 ._tray_1annj_1 {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: .6rem;
+  padding: .45rem .6rem;
+}
+
+main._game_1annj_1 ._tray_1annj_1 p { flex: none; font-size: .78rem; }
+
+main._game_1annj_1 ._tray_1annj_1 > div {
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: .15rem;
+  overscroll-behavior-inline: contain;
+}
+
+main._game_1annj_1 ._tray_1annj_1 button { flex: none; }
+
+main._game_1annj_1 ._proofPanel_1annj_1 {
+  flex: 1 1 0;
+  min-height: 4rem;
+  gap: .7rem;
+  padding: 0 .6rem .6rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+main._game_1annj_1 ._controls_1annj_1 {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: .6rem;
+  padding-bottom: .1rem;
+  background: #fff;
+}
+
+main._game_1annj_1 ._controls_1annj_1 button { min-height: 44px; }
+
+/* Phones: the brand keeps its mark and Settings its icon; both keep their
+   accessible names (the text stays in the DOM, only its glyphs are hidden). */
+@media (max-width: 600px) {
+  body:has(main._game_1annj_1) ._settingsButton_15wx5_147 { min-width: 44px; justify-content: center; padding-inline: .5rem; font-size: 0; }
+  body:has(main._game_1annj_1) ._settingsButton_15wx5_147 span { font-size: 1.15rem; }
+
+  body:has(main._game_1annj_1) ._brand_15wx5_145 strong,
+  main._game_1annj_1 ._tray_1annj_1 > p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* Desktop, tablets in landscape and the Smart Board: board panel and proof
+   panel side by side, both the full height of the play area. */
+@media (min-width: 851px) {
+  main._game_1annj_1 ._gameLayout_1annj_1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(19rem, .75fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  main._game_1annj_1 ._boardPanel_1annj_1 { --mnx-nl-chrome: 8.4rem; }
+  ._numberLogicRoot_15wx5_1[data-classroom="true"] main._game_1annj_1 ._boardPanel_1annj_1 { --mnx-nl-chrome: 9.4rem; }
+  main._game_1annj_1 ._board_1annj_1 { width: min(100cqw, 44rem, 100cqh - var(--mnx-nl-chrome)); }
+}
+
+/* Phones in landscape: board | heading, target and tray | controls and proof;
+   the classroom presentation rail joins the header row. */
+@media (orientation: landscape) and (max-height: 540px) {
+  body:has(main._game_1annj_1) ._numberLogicRoot_15wx5_1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  body:has(main._game_1annj_1) ._header_15wx5_121 {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 48px;
+    padding-block: max(.2rem, env(safe-area-inset-top)) .2rem;
+  }
+
+  body:has(main._game_1annj_1) ._rail_1edxf_1 {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    width: auto;
+    min-height: 0;
+    margin: 0 calc(max(.5rem, env(safe-area-inset-right)) + 4.6rem) 0 0;
+    padding: .15rem .3rem;
+    border-width: 1px;
+    box-shadow: none;
+  }
+
+  body:has(main._game_1annj_1) ._rail_1edxf_1 > div:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  body:has(main._game_1annj_1) ._actions_1edxf_1 { gap: .3rem; }
+
+  /* From 701 px the presentation rail is shown and carries the Credits space. */
+  @media (min-width: 701px) {
+    body:has(main._game_1annj_1) ._header_15wx5_121 { padding-right: .5rem; }
+  }
+  body:has(main._game_1annj_1) ._actions_1edxf_1 button { min-height: 44px; padding: .25rem .6rem; font-size: .76rem; }
+  main._game_1annj_1 { grid-column: 1 / -1; grid-row: 2; }
+
+  body:has(main._game_1annj_1) > .native-back-link,
+  body:has(main._game_1annj_1) > .native-music-credit { top: max(.2rem, env(safe-area-inset-top)); }
+  body:has(main._game_1annj_1) #settings-panel:not(:empty) { inset-block-start: 48px; }
+  main._game_1annj_1 ._gameHeader_1annj_1 ._eyebrow_1annj_1 { flex-basis: auto; order: 0; }
+
+  main._game_1annj_1 ._gameLayout_1annj_1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 32%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  main._game_1annj_1 ._boardPanel_1annj_1 {
+    --mnx-nl-chrome: 0rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 13rem;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "board intro"
+      "board ."
+      "board tray";
+    column-gap: .6rem;
+    row-gap: .4rem;
+    container-type: size;
+  }
+
+  main._game_1annj_1 ._board_1annj_1 { grid-area: board; width: min(100cqh, 100cqw - 13.6rem); align-self: center; justify-self: center; }
+  main._game_1annj_1 ._busShell_1ozdl_1 { grid-area: board; align-self: stretch; }
+  main._game_1annj_1 ._boardIntro_1annj_1 { grid-area: intro; flex-wrap: wrap; min-height: auto; }
+  main._game_1annj_1 ._targetChip_1annj_1 { max-width: none; }
+  main._game_1annj_1 ._tray_1annj_1 { grid-area: tray; flex-direction: column; align-items: flex-start; padding: .4rem; }
+
+  main._game_1annj_1 ._factorKey_1ozdl_1,
+  main._game_1annj_1 ._tray_1annj_1 > p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  main._game_1annj_1 ._tray_1annj_1 > div { flex-wrap: wrap; overflow: visible; }
+  main._game_1annj_1 ._proofPanel_1annj_1 { min-height: 0; }
+  main._game_1annj_1 ._controls_1annj_1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

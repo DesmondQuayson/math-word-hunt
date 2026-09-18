@@ -736,3 +736,521 @@ html, body { margin: 0; min-height: 100%; background: #071525; }
   .compact-disclosure__trigger--setup .compact-disclosure__summary,
   .compact-disclosure__trigger--paths .compact-disclosure__summary { color: ButtonText; }
 }
+
+/* ======================================================================
+ * Mobile Gameplay Fit V1 — CrossCalc
+ *
+ * Measured before this pass: every viewport — phones, tablets, the 1440 ×
+ * 900 desktop and the 1920 × 1080 Smart Board — scrolled the PAGE (130–460
+ * px). A separate Back row, a two-row toolbar and the status cluster pushed
+ * the board down; the board viewport was capped at ~430 px and its 7-column
+ * networks overflowed sideways on most phones; and the sticky tray covered
+ * the board's lower cells. Players scrolled the page to move between the
+ * equation, the board and the tiles.
+ *
+ * Now the game is one fixed 100dvh surface, top to bottom:
+ *
+ *   HEADER     ← Games · status · the seven game controls
+ *   CONSOLE    Puzzle Setup · Equation Paths · the equation being solved
+ *   BOARD      the only region that scrolls, and only when a network is
+ *              taller than the space (Medium on small phones, Hard, Expert)
+ *   TRAY       tiles and Hint / Check, always docked at the bottom
+ *
+ * Wide landscape screens (phones turned sideways, tablets, desktop, Smart
+ * Board) put the board on the left and the heading, tray and hint on the
+ * right. Number tiles and cells keep their 44 px minimum; operator tracks are
+ * narrow (numbers only ever sit on odd grid lines, operators between them —
+ * an invariant of the V2 generator), so a 7-column network fits a 320 px
+ * phone without sideways scrolling. The released bundle is unchanged.
+ * ====================================================================== */
+
+/* --cell is a length everywhere the bundle and this sheet set it; registering
+   it makes each board resolve its (container-relative) size once and every
+   cell inherit a plain pixel length. */
+@property --cell {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 48px;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+body > .native-preview-banner { position: relative; flex: none; }
+
+#root {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Back to Games joins the header row instead of spending a row of its own. */
+body > .native-back-link {
+  position: absolute;
+  z-index: 30;
+  top: max(.45rem, env(safe-area-inset-top));
+  left: max(.5rem, env(safe-area-inset-left));
+  width: 5.6rem;
+  margin: 0;
+  justify-content: center;
+  gap: .3rem;
+  padding-inline: .4rem;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+body > .native-back-link .native-back-prefix { display: none; }
+
+body:not(:has(> .native-back-link)) .app-shell > .topbar { padding-left: max(.5rem, env(safe-area-inset-left)); }
+
+.app-shell > .topbar,
+.app-shell > header.topbar {
+  position: relative;
+  top: auto;
+  flex: none;
+  min-height: 0;
+  padding: max(.45rem, env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right)) .45rem calc(max(.5rem, env(safe-area-inset-left)) + 5.6rem + .5rem);
+}
+
+.app-shell[data-crosscalc-layout="compact"] .game-layout {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: .45rem;
+  padding: .45rem max(.5rem, env(safe-area-inset-right)) max(.45rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left));
+}
+
+.app-shell[data-crosscalc-layout="compact"] .puzzle-console {
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .4rem;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .compact-disclosure__trigger {
+  min-height: 44px;
+  padding-block: .35rem;
+}
+
+/* The equation through the selected cell, always readable above the board,
+   sharing its row with Credits. */
+.compact-console-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.compact-active-equation {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 1.9rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: 0;
+  padding: .2rem .7rem;
+  border: 1px solid #20cfe33d;
+  border-radius: .55rem;
+  color: #f5fbff;
+  background: #0b2944;
+  font: 800 .92rem/1.2 "Segoe UI", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-active-equation__label {
+  flex: none;
+  color: #74e3ed;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-size: .62rem;
+}
+
+.compact-active-equation__text {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem .45rem;
+  overflow-wrap: anywhere;
+}
+
+.compact-active-equation__item {
+  padding: 0 .4rem;
+  border-radius: .35rem;
+  background: #ffffff17;
+  white-space: nowrap;
+}
+
+.compact-active-equation[data-active="false"] .compact-active-equation__text {
+  color: #9bb0c3;
+  font-weight: 700;
+  font-size: .8rem;
+}
+
+.compact-console-row > .native-music-credit {
+  position: relative;
+  flex: none;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.compact-console-row > .native-music-credit summary { min-height: 32px; font-size: .74rem; }
+
+.compact-console-row > .native-music-credit p {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  right: 0;
+  width: min(20rem, 86vw);
+  margin: 0;
+  padding: .55rem .7rem;
+  border: 1px solid #20cfe352;
+  border-radius: .55rem;
+  background: #071525;
+  box-shadow: 0 16px 34px #0009;
+}
+
+/* Visual order = DOM order: console, Setup (opens above the board, next to
+   its trigger), the play stage, then Equation Paths (the proof follows the
+   board). The phone adapter's older order values would put Setup last. */
+.app-shell[data-crosscalc-layout="compact"] .puzzle-console { order: 0; }
+.app-shell[data-crosscalc-layout="compact"] .mission-panel { order: 1; }
+.app-shell[data-crosscalc-layout="compact"] .play-stage { order: 2; }
+.app-shell[data-crosscalc-layout="compact"] .equation-panel { order: 3; }
+
+/* An expanded Setup or Paths panel scrolls inside itself; the board keeps
+   the rest of the screen. */
+.app-shell[data-crosscalc-layout="compact"] [data-compact-panel]:not([hidden]) {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 44%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .equation-panel:not([hidden]) { max-height: 40%; }
+
+.app-shell[data-crosscalc-layout="compact"] .play-stage {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .stage-heading {
+  flex: none;
+  min-height: 0;
+  padding: .45rem .8rem;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .stage-heading .eyebrow {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .stage-heading h2 { font-size: 1.05rem; }
+.app-shell[data-crosscalc-layout="compact"] .stage-heading > p { margin: 0; }
+
+.app-shell[data-crosscalc-layout="compact"] .board-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  padding: .75rem .5rem;
+  place-items: start safe center;
+}
+
+/* Narrow operator tracks: numbers keep --cell, operators take half. */
+.app-shell .board {
+  --mnx-cc-operator: max(22px, calc(var(--cell) * .5));
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-columns: var(--cell) var(--mnx-cc-operator);
+  grid-auto-rows: var(--cell) var(--mnx-cc-operator);
+}
+
+.app-shell .board > .symbol {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  place-self: stretch;
+}
+
+.app-shell[data-crosscalc-layout="compact"] .tray-shell {
+  position: relative;
+  bottom: auto;
+  z-index: 4;
+  flex: none;
+  order: 3;
+  padding: .55rem .75rem max(.6rem, env(safe-area-inset-bottom));
+}
+
+.app-shell[data-crosscalc-layout="compact"] .tray-title { margin-bottom: .45rem; }
+.app-shell[data-crosscalc-layout="compact"] .action-row { margin-top: .5rem; }
+
+/* Snapping respects the tray's own padding, so the first tile is never
+   clipped by a stale 2 px snap offset (e.g. after rotating the phone). */
+.app-shell[data-crosscalc-layout="compact"] .number-tray { scroll-padding-inline: .15rem; }
+
+/* Hint feedback opens above the tray: the tray never moves under a thumb and
+   the board only gives up space at its lower edge. */
+.app-shell[data-crosscalc-layout="compact"] .hint-card {
+  flex: none;
+  order: 2;
+  margin: 0;
+  padding: .45rem .75rem;
+}
+
+/* Portrait phones: the seven game controls form a 4-column grid whose first
+   cell belongs to "← Games" — two rows for eight controls, no row wasted. On
+   tall phones the brand and the Tiles / RI / Chain status keep a row above. */
+@media (max-width: 560px) and (orientation: portrait) {
+  .app-shell > .topbar,
+  .app-shell > header.topbar,
+  .app-shell[data-crosscalc-layout="compact"] .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .45rem .5rem;
+    padding: max(.45rem, env(safe-area-inset-top)) max(.45rem, env(safe-area-inset-right)) .45rem max(.45rem, env(safe-area-inset-left));
+    box-shadow: none;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .brand-mark,
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup small { display: none; }
+
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup { min-height: 44px; }
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup strong { font-size: 1rem; }
+  .app-shell[data-crosscalc-layout="compact"] .status-cluster { align-self: center; }
+
+  .app-shell[data-crosscalc-layout="compact"] .toolbar,
+  .app-shell[data-crosscalc-layout="compact"] header .toolbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    gap: .35rem;
+  }
+
+  body:has(> .native-back-link) .app-shell[data-crosscalc-layout="compact"] .toolbar > button:first-child { grid-column: 2; }
+
+  .app-shell[data-crosscalc-layout="compact"] .toolbar button {
+    padding-inline: .25rem;
+    font-size: .72rem;
+    line-height: 1.1;
+  }
+
+  body > .native-back-link {
+    top: calc(max(.45rem, env(safe-area-inset-top)) + 44px + .45rem);
+    left: max(.45rem, env(safe-area-inset-left));
+    width: calc((100vw - max(.45rem, env(safe-area-inset-left)) - max(.45rem, env(safe-area-inset-right)) - 3 * .35rem) / 4);
+    min-height: 44px;
+    padding-inline: .2rem;
+    font-size: .8rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .game-layout { gap: .4rem; padding-top: .4rem; }
+
+  /* One gutter, not both edges: with desktop (classic) scrollbars the second
+     gutter pushed a 7-column network 8 px past a 320 px window. */
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll {
+    min-height: 0;
+    max-height: none;
+    padding: .7rem .35rem .8rem;
+    scrollbar-gutter: stable;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .tray-shell { padding: .5rem .6rem max(.55rem, env(safe-area-inset-bottom)); }
+  .app-shell[data-crosscalc-layout="compact"] .number-tray { min-height: 52px; padding-bottom: .45rem; }
+  .app-shell[data-crosscalc-layout="compact"] .number-tray button { min-height: 48px; }
+  .app-shell[data-crosscalc-layout="compact"] .action-row button { min-height: 44px; }
+}
+
+/* At 340 px and below the two disclosures stack when there is height to
+   spare (their summaries get the full width); on short phones they stay side
+   by side, still unclipped, and the height goes to the board. */
+@media (max-width: 340px) and (orientation: portrait) and (min-height: 600px) {
+  .app-shell[data-crosscalc-layout="compact"] .puzzle-console { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Short portrait screens: the brand row, the status tiles and the tray hint
+   line give their height to the board (all stay available to assistive
+   technology); "← Games" moves up with the controls grid. */
+@media (max-width: 560px) and (orientation: portrait) and (max-height: 700px) {
+  body > .native-back-link { top: max(.45rem, env(safe-area-inset-top)); }
+
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .status-cluster {
+    position: absolute;
+    display: flex;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .tray-title small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .tray-title { margin-bottom: .3rem; }
+  .app-shell[data-crosscalc-layout="compact"] .compact-active-equation { min-height: 1.75rem; }
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll { padding-block: .4rem .5rem; }
+}
+
+/* Very short portrait screens: the tray's visible title gives way too (the
+   tray keeps its accessible name; the tile count stays in the status). */
+@media (max-width: 560px) and (orientation: portrait) and (max-height: 600px) {
+  .app-shell[data-crosscalc-layout="compact"] .tray-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .compact-disclosure__summary { margin-top: .05rem; }
+}
+
+/* Wide landscape: board on the left at full height; heading, tray and hint
+   on the right. */
+@media (orientation: landscape) and (min-width: 700px) {
+  .app-shell[data-crosscalc-layout="compact"] .play-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 36%);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "board heading"
+      "board tray"
+      "board hint";
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll {
+    grid-area: board;
+    height: 100%;
+    border-right: 1px solid #ffffff12;
+    container-type: size;
+  }
+
+  /* On wide screens the cell also fits the network's HEIGHT (numbers on odd
+     rows, half-height operator rows between), so a Medium network fits a
+     1440 × 900 desktop whole; taller networks keep 44 px cells and scroll. */
+  .app-shell[data-crosscalc-layout="compact"] .board {
+    --cell: clamp(44px, min(5.5vw, calc((100cqh - (var(--rows) - 1) * 6px) * 4 / (3 * var(--rows) + 1))), 66px);
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .stage-heading { grid-area: heading; }
+
+  .app-shell[data-crosscalc-layout="compact"] .tray-shell {
+    grid-area: tray;
+    align-self: start;
+    border-top: 0;
+    padding-bottom: .75rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .number-tray { flex-wrap: wrap; overflow: visible; }
+
+  .app-shell[data-crosscalc-layout="compact"] .hint-card {
+    grid-area: hint;
+    align-self: start;
+    margin: 0 .75rem .75rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .equation-panel:not([hidden]) { max-height: 34%; }
+}
+
+/* Landscape phones: every row of chrome is expensive. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .app-shell > .topbar,
+  .app-shell > header.topbar { gap: .6rem; padding-block: .3rem; }
+
+  body > .native-back-link { top: max(.3rem, env(safe-area-inset-top)); }
+
+  .app-shell[data-crosscalc-layout="compact"] .status-cluster { display: none; }
+  .app-shell[data-crosscalc-layout="compact"] .brand-mark,
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup small { display: none; }
+  .app-shell[data-crosscalc-layout="compact"] .brand-lockup { min-width: 0; }
+
+  .app-shell[data-crosscalc-layout="compact"] .toolbar {
+    flex-wrap: nowrap;
+    max-width: none;
+    margin-left: auto;
+    overflow: visible;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .toolbar button { padding-inline: .5rem; font-size: .74rem; }
+
+  .app-shell[data-crosscalc-layout="compact"] .game-layout { gap: .35rem; padding-top: .35rem; }
+
+  .app-shell[data-crosscalc-layout="compact"] .puzzle-console {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
+    align-items: stretch;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .number-tray {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .4rem;
+  }
+
+  .app-shell[data-crosscalc-layout="compact"] .tray-shell { padding-block: .45rem; }
+
+  .app-shell[data-crosscalc-layout="compact"] .compact-console-row { grid-column: auto; }
+
+  .app-shell[data-crosscalc-layout="compact"] .stage-heading { padding-block: .35rem; }
+  .app-shell[data-crosscalc-layout="compact"] .tray-title small { display: none; }
+  .app-shell[data-crosscalc-layout="compact"] .board-scroll { min-height: 0; max-height: none; padding: .5rem; }
+}

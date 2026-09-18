@@ -32,11 +32,11 @@ body {
   .mathnexa-music-credit,.mathnexa-music-credit summary,.mathnexa-music-credit a { color: CanvasText; }
 }
 
+/* In the header bar's flow (the enhancer injects it there): as a fixed
+   overlay it covered the brand on every screen and New Puzzle on phones. */
 .mathnexa-back-link {
-  position: fixed;
-  top: max(.6rem, env(safe-area-inset-top));
-  left: max(.6rem, env(safe-area-inset-left));
-  z-index: 60;
+  position: static;
+  flex: none;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -78,11 +78,473 @@ body {
  *
  * Inside that window the dense list uses one column, so every card is at
  * least 406 px wide, and wrapping is limited to word boundaries. Outside the
- * window nothing changes: phones keep the canonical single column and
- * desktops from 1280 px keep the canonical two columns.
+ * window nothing changes here: desktops from 1280 px keep the canonical two
+ * columns, and phones use the mobile gameplay shell below (two compact
+ * columns sized so every placeable word fits whole).
  */
 @media (min-width: 901px) and (max-width: 1279px) {
   .word-list.dense { grid-template-columns: minmax(0, 1fr); }
   .word-card .term-display,
   .word-list.dense .word-card .term-display { overflow-wrap: normal; }
+}
+
+/* ======================================================================
+ * Mobile Gameplay Fit V1 — Math Vocabulary Hunt
+ *
+ * Owner evidence: on phones the header stack (breadcrumbs, a 3 × 3 teacher
+ * bar, a stacked scoreboard and a timer banner) took 350 px, the 18 × 18 grid
+ * kept the canonical 24 px minimum cell and rendered 463 px wide inside a
+ * ~370 px board (right columns and bottom rows clipped), and the word bank sat
+ * below the fold. The canonical script then focused the first word card, so
+ * the game even OPENED scrolled, with its header off-screen.
+ *
+ * The phone shell (portrait up to 900 px wide, and every short landscape) is
+ * a fixed 100dvh column of four regions:
+ *
+ *   COMPACT HEADER   ← Games · Grade › Topic › Lesson · Controls
+ *   STATUS           team scores · timer, one row
+ *   BOARD            a square cut from BOTH the available width and height
+ *   WORD BANK        the target terms: the one region allowed to scroll
+ *
+ * The page never scrolls during play. The canonical document is untouched:
+ * the board is sized here through container queries, overriding the cell
+ * size the canonical script computes (it clamps at 24 px, which is exactly
+ * what pushed an 18-cell row past every phone).
+ * ====================================================================== */
+
+.mathnexa-controls-toggle { display: none; }
+
+/* Credits as the last teacher control on desktop and the Smart Board. */
+.teacher-bar > .mathnexa-music-credit {
+  position: relative;
+  flex: none;
+  max-width: none;
+  margin: 0 0 0 .15rem;
+  padding: 0;
+  font-size: .72rem;
+}
+
+.teacher-bar > .mathnexa-music-credit summary { padding: 0 .35rem; }
+
+.teacher-bar > .mathnexa-music-credit p {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + .35rem);
+  right: 0;
+  width: min(22rem, 80vw);
+  margin: 0;
+  padding: .6rem .75rem;
+  border: 1px solid rgba(102, 231, 244, .45);
+  border-radius: 10px;
+  background: #0b2042;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .45);
+}
+
+@media (max-width: 900px), (orientation: landscape) and (max-height: 540px) {
+  html:has(#gameScreen:not(.hidden)) {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html:has(#gameScreen:not(.hidden)) body {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overflow: clip;
+    overscroll-behavior: none;
+  }
+
+  /* COMPACT HEADER */
+  html:has(#gameScreen:not(.hidden)) .breadcrumb-bar {
+    flex: none;
+    height: auto;
+    min-height: 48px;
+    gap: .35rem;
+    padding: max(.2rem, env(safe-area-inset-top)) max(.4rem, env(safe-area-inset-right)) .2rem max(.4rem, env(safe-area-inset-left));
+  }
+
+  html:has(#gameScreen:not(.hidden)) .mathnexa-back-link { padding-inline: .7rem; }
+
+  /* Header context: "Grade 7 › Lesson 2-5". The full lesson title heads the
+     Controls menu; Grades and Topic stay one screen away (Back to Lessons). */
+  html:has(#gameScreen:not(.hidden)) .mathnexa-back-prefix,
+  html:has(#gameScreen:not(.hidden)) .brand-button,
+  html:has(#gameScreen:not(.hidden)) #breadcrumbs > :nth-child(1),
+  html:has(#gameScreen:not(.hidden)) #breadcrumbs > :nth-child(2),
+  html:has(#gameScreen:not(.hidden)) #breadcrumbs > :nth-child(5),
+  html:has(#gameScreen:not(.hidden)) #breadcrumbs > :nth-child(6) {
+    display: none;
+  }
+
+  html:has(#gameScreen:not(.hidden)) #breadcrumbs { flex: 1 1 auto; gap: .15rem; }
+  html:has(#gameScreen:not(.hidden)) .crumb { padding-inline: .25rem; font-size: .8rem; }
+  html:has(#gameScreen:not(.hidden)) .crumb.current { flex: 0 1 auto; }
+
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls] .mathnexa-controls-toggle {
+    flex: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-inline-start: auto;
+    padding: .3rem .75rem;
+    border: 2px solid #3f6fa3;
+    border-radius: 999px;
+    color: #fff;
+    background: #193b69;
+    font-size: .8rem;
+    font-weight: 900;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .mathnexa-controls-toggle[aria-expanded="true"] {
+    border-color: var(--yellow);
+    color: #07152e;
+    background: var(--yellow);
+  }
+
+  .mathnexa-controls-icon { font-size: 1rem; line-height: 1; }
+
+  html:has(#gameScreen:not(.hidden)) #gameScreen {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  /* CONTROLS: an overlay menu under the header, never a band of the layout.
+     Without the disclosure script (no data-mathnexa-controls) every control
+     stays visible in flow. */
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls="closed"] .teacher-bar { display: none; }
+
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls="open"] .teacher-bar {
+    position: absolute;
+    z-index: 80;
+    inset: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: .35rem;
+    padding: .5rem max(.5rem, env(safe-area-inset-right)) .6rem max(.5rem, env(safe-area-inset-left));
+    border-bottom: 2px solid var(--yellow);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .55);
+  }
+
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls="open"] .teacher-bar .game-label {
+    grid-column: 1 / -1;
+    display: block;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls] .teacher-button,
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls] .audio-button {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding-inline: .3rem;
+    white-space: normal;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .teacher-bar > .mathnexa-music-credit {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0 .2rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .teacher-bar > .mathnexa-music-credit p {
+    position: static;
+    width: auto;
+    padding: 0 0 .3rem;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  /* STATUS: team scores and the timer share one compact row. */
+  html:has(#gameScreen:not(.hidden)) .scoreboard {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: .35rem;
+    padding: .3rem max(.4rem, env(safe-area-inset-right)) .3rem max(.4rem, env(safe-area-inset-left));
+  }
+
+  html:has(#gameScreen:not(.hidden)) .team-scores {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .35rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .team-scores:has(> :nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .team-score {
+    min-height: 44px;
+    padding: .15rem .5rem;
+    border-width: 2px;
+    border-radius: 10px;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .team-score small { font-size: .5rem; letter-spacing: .06em; }
+
+  html:has(#gameScreen:not(.hidden)) .team-score strong {
+    display: block;
+    overflow: hidden;
+    font-size: .82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .team-score b { font-size: 1.75rem; }
+
+  html:has(#gameScreen:not(.hidden)) .timer-box {
+    min-width: 4.4rem;
+    min-height: 44px;
+    padding: .15rem .55rem;
+    border-radius: 10px;
+    font-size: .52rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .timer-box b { font-size: 1.15rem; line-height: 1.1; }
+
+  html:has(#gameScreen:not(.hidden)) .thin-banner {
+    min-height: 44px;
+    padding: .25rem .5rem;
+    font-size: .78rem;
+  }
+
+  /* BOARD: a square cut from the space that is actually left. */
+  html:has(#gameScreen:not(.hidden)) .board-panel {
+    container-type: size;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .board-panel,
+  html:has(#gameScreen:not(.hidden)) .board-panel.grid-scroll-x,
+  html:has(#gameScreen:not(.hidden)) .board-panel.grid-scroll-y {
+    justify-content: center;
+    align-items: center;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .letter-grid {
+    --mnx-grid-pad: 3px;
+    --mnx-grid-border: 2px;
+    --mnx-grid-gap: 1px;
+    --cell-size: calc((min(100cqw, 100cqh) - 2 * (var(--mnx-grid-pad) + var(--mnx-grid-border)) - (var(--grid-size) - 1) * var(--mnx-grid-gap)) / var(--grid-size)) !important;
+    gap: var(--mnx-grid-gap);
+    padding: var(--mnx-grid-pad);
+    border-width: var(--mnx-grid-border);
+    border-radius: 12px;
+    box-shadow: none;
+    /* The letter size is resolved ONCE here and inherited as a plain length:
+       if each of the up-to-324 cells resolved the container-relative size
+       itself, opening a lesson cost ~45 ms more (≈430 ms at 4× CPU slowdown). */
+    font-size: calc(var(--cell-size) * .7);
+  }
+
+  html:has(#gameScreen:not(.hidden)) .grid-cell {
+    border-radius: max(2px, .23em);
+    font-size: inherit;
+  }
+
+  /* WORD BANK: every term one tap away; the list is the region that scrolls. */
+  html:has(#gameScreen:not(.hidden)) .word-panel {
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-panel-header {
+    min-height: 0;
+    gap: .5rem;
+    padding: .3rem .7rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-panel-header small { font-size: .54rem; }
+  html:has(#gameScreen:not(.hidden)) .word-panel-header h2 { margin-top: .05rem; font-size: 1rem; }
+  html:has(#gameScreen:not(.hidden)) .progress-count { font-size: 1.5rem; }
+
+  html:has(#gameScreen:not(.hidden)) .word-list,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .35rem;
+    padding: .55rem .45rem .45rem;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #4dd7fa rgba(5, 18, 42, .6);
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-list:has(.clue-text) { grid-template-columns: minmax(0, 1fr); }
+
+  html:has(#gameScreen:not(.hidden)) .word-card {
+    min-height: 44px;
+    padding: .25rem .5rem;
+    border-width: 2px;
+    border-left-width: 5px;
+    border-radius: 9px;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-card .term-display,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense .word-card .term-display {
+    padding-right: 0;
+    overflow-wrap: normal;
+    font-size: clamp(.88rem, 3.9vw, 1.05rem);
+    line-height: 1.14;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-card .clue-text,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense .word-card .clue-text {
+    padding-right: 0;
+    font-size: clamp(.82rem, 3.6vw, .98rem);
+    line-height: 1.25;
+  }
+
+  /* State tags ride on the card edge instead of reserving text space. */
+  html:has(#gameScreen:not(.hidden)) .word-card.active::after,
+  html:has(#gameScreen:not(.hidden)) .word-card.found::after {
+    top: -.45rem;
+    right: .45rem;
+    padding: .08rem .3rem;
+    font-size: .5rem;
+    transform: none;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .anchor-hint {
+    min-height: 0;
+    padding: .15rem .7rem .3rem;
+    font-size: .7rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .bonus-zone { max-height: 5.5rem; padding: .3rem .6rem .4rem; }
+
+  /* Status toasts appear over the header instead of over the word bank. */
+  html:has(#gameScreen:not(.hidden)) .toast {
+    top: calc(max(.2rem, env(safe-area-inset-top)) + 3.1rem);
+    bottom: auto;
+    padding: .55rem .85rem;
+    font-size: .85rem;
+  }
+}
+
+/* Portrait: board above, word bank below. The board keeps the full width
+   (it only gives way below min(width, 28rem) when the height runs out); the
+   rest belongs to the word bank. */
+@media (max-width: 900px) and (orientation: portrait) {
+  html:has(#gameScreen:not(.hidden)) .game-main {
+    container-type: size;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    padding: .1rem max(.4rem, env(safe-area-inset-right)) max(.4rem, env(safe-area-inset-bottom)) max(.4rem, env(safe-area-inset-left));
+  }
+
+  html:has(#gameScreen:not(.hidden)) .board-panel {
+    flex: 0 1000 auto;
+    width: 100%;
+    height: 100cqw;
+    min-height: min(100cqw, 28rem, 100cqh - 8.5rem);
+    max-height: 100cqw;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-panel {
+    flex: 1 1 auto;
+    min-height: min(8.5rem, 100cqh);
+  }
+}
+
+/* Landscape phones: the board takes the full height on the left; status and
+   word bank share the right-hand column. */
+@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 540px) {
+  html:has(#gameScreen:not(.hidden)) .breadcrumb-bar { min-height: 44px; }
+
+  html:has(#gameScreen:not(.hidden)) #gameScreen {
+    container-type: size;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "board thin"
+      "board status"
+      "board words";
+    column-gap: .5rem;
+    padding: .35rem max(.5rem, env(safe-area-inset-right)) max(.35rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left));
+  }
+
+  html:has(#gameScreen:not(.hidden)) .game-main { display: contents; }
+  html:has(#gameScreen:not(.hidden)) .thin-banner { grid-area: thin; margin-bottom: .3rem; border-radius: 10px; }
+
+  html:has(#gameScreen:not(.hidden)) .scoreboard {
+    grid-area: status;
+    padding: 0 0 .35rem;
+    border: 0;
+    background: none;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .board-panel {
+    grid-area: board;
+    align-self: start;
+    width: min(100cqh, 60cqw);
+    height: min(100cqh, 60cqw);
+  }
+
+  html:has(#gameScreen:not(.hidden)) .word-panel { grid-area: words; }
+
+  html:has(#gameScreen:not(.hidden)) .word-list,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  }
+}
+
+/* Narrow phones: the Controls toggle keeps its accessible name but shows only
+   its icon, leaving the header for the lesson context. */
+@media (max-width: 360px) {
+  html:has(#gameScreen:not(.hidden)) body[data-mathnexa-controls] .mathnexa-controls-toggle {
+    min-width: 44px;
+    justify-content: center;
+    padding-inline: .6rem;
+  }
+
+  html:has(#gameScreen:not(.hidden)) .mathnexa-controls-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* Short screens: the word bank header and the anchor hint give their height
+   back to the list, so more target terms show at once. */
+@media (max-width: 900px) and (orientation: portrait) and (max-height: 700px) {
+  html:has(#gameScreen:not(.hidden)) .word-panel-header { padding-block: .2rem; }
+  html:has(#gameScreen:not(.hidden)) .word-panel-header > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .5rem; }
+  html:has(#gameScreen:not(.hidden)) .word-panel-header h2 { order: -1; font-size: .92rem; }
+  html:has(#gameScreen:not(.hidden)) .progress-count { font-size: 1.25rem; }
+  html:has(#gameScreen:not(.hidden)) .anchor-hint { padding-block: .1rem .2rem; font-size: .66rem; }
+}
+
+/* Tablets in portrait have room for larger terms. */
+@media (min-width: 600px) and (max-width: 900px) and (orientation: portrait) {
+  html:has(#gameScreen:not(.hidden)) .word-card .term-display,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense .word-card .term-display { font-size: clamp(1.05rem, 2.6vw, 1.3rem); }
+  html:has(#gameScreen:not(.hidden)) .word-card .clue-text,
+  html:has(#gameScreen:not(.hidden)) .word-list.dense .word-card .clue-text { font-size: clamp(.95rem, 2.3vw, 1.15rem); }
+}
+
+@media (forced-colors: active) {
+  .mathnexa-controls-toggle,
+  .mathnexa-controls-toggle[aria-expanded="true"] { border-color: ButtonText; color: ButtonText; background: ButtonFace; }
 }

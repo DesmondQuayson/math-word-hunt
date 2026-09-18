@@ -3,11 +3,11 @@ const ASSET_BASE = "/internal-games/crosscalc-v2/";
 export const CROSSCALC_V2_VERSION = "0.2.0" as const;
 export const CROSSCALC_V2_APPROVED_SOURCE = "9d27dbc21fce043569fae89ab5b4434ae2d0bac0" as const;
 export const CROSSCALC_V2_ADAPTER_SOURCE = "8bc4704" as const;
-export const CROSSCALC_V2_LAYOUT_ADAPTER_SHA256 = "c0ec52bee2e27c3584b0953b018b583bb24c4456389c8d65c50196adee143014" as const;
+export const CROSSCALC_V2_LAYOUT_ADAPTER_SHA256 = "c3a9f13d49b31b9687a71166c78221f07e6a3607a6e7c90cc20ab9ca96ace7b8" as const;
 
 function renderCrossCalcV2DocumentBody(previewState: "not-live" | "published" | "inspection" | null): string {
   const previewBanner = previewState === null ? `
-    <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games">← Back to Games</a>` : `
+    <a class="native-back-link" href="/games" aria-label="Back to MathNexa Games"><span aria-hidden="true">←</span> <span class="native-back-prefix">Back to </span>Games</a>` : `
     <div class="native-preview-banner" role="status">
       <strong>CrossCalc</strong>
       <span>Admin Preview · Version 0.2.0</span>

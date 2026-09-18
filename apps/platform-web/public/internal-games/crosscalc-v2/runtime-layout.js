@@ -14,7 +14,35 @@
   let pathsTrigger = null;
   let setupSummary = null;
   let pathsSummary = null;
+  let activeEquation = null;
   let expandedPanel = "none";
+
+  const IDLE_EQUATION = "Tap an empty ? cell to see its equation.";
+
+  // The equation(s) through the selected cell, exactly as the released app
+  // marks them in its own Equation Paths list (li.active), with blanks shown
+  // the way the board shows them. On a phone the board scrolls inside its own
+  // viewport, so the current problem stays readable above it at all times.
+  function readActiveEquations() {
+    const rows = [...(pathsPanel?.querySelectorAll(".equation-list li.active > span") ?? [])];
+    return rows.map((row) => row.textContent.trim().replace(/\bblank\b/g, "?")).filter(Boolean);
+  }
+
+  // One chip per equation: a separator such as "·" would read as multiplication.
+  function renderActiveEquation() {
+    const equations = readActiveEquations();
+    const key = equations.join("\n");
+    if (activeEquation.dataset.equations !== key || !activeEquation.firstChild) {
+      activeEquation.dataset.equations = key;
+      activeEquation.replaceChildren(...(equations.length ? equations.map((text) => {
+        const item = document.createElement("span");
+        item.className = "compact-active-equation__item";
+        item.textContent = text;
+        return item;
+      }) : [document.createTextNode(IDLE_EQUATION)]));
+    }
+    activeEquation.parentElement?.setAttribute("data-active", String(equations.length > 0));
+  }
 
   function selectedText(select) {
     return select?.selectedOptions?.[0]?.textContent?.trim() ?? "";
@@ -39,6 +67,7 @@
     const pathsState = readPathsSummary();
     if (setupSummary) setupSummary.textContent = setupState;
     if (pathsSummary) pathsSummary.textContent = pathsState;
+    if (activeEquation) renderActiveEquation();
     setupTrigger?.setAttribute("aria-label", `Puzzle Setup · ${setupState}`);
     pathsTrigger?.setAttribute("aria-label", `Equation Paths · ${pathsState}`);
   }
@@ -118,7 +147,25 @@
     pathsTrigger = paths.button;
     setupSummary = setup.summaryElement;
     pathsSummary = paths.summaryElement;
-    consoleElement.append(pageTitle, setupTrigger, pathsTrigger);
+    // Visual echo only: every number cell already carries its equations in its
+    // accessible name, so assistive technology is not told the same thing twice.
+    const equationLine = document.createElement("p");
+    const equationLabel = document.createElement("span");
+    activeEquation = document.createElement("span");
+    equationLine.className = "compact-active-equation";
+    equationLine.setAttribute("aria-hidden", "true");
+    equationLabel.className = "compact-active-equation__label";
+    equationLabel.textContent = "Solving";
+    activeEquation.className = "compact-active-equation__text";
+    equationLine.append(equationLabel, activeEquation);
+    const detailRow = document.createElement("div");
+    detailRow.className = "compact-console-row";
+    detailRow.append(equationLine);
+    // The music credit joins the console: after the fixed-height play surface
+    // it would sit below the viewport, unreachable during play.
+    const credit = document.querySelector("body > .native-music-credit");
+    if (credit) detailRow.append(credit);
+    consoleElement.append(pageTitle, setupTrigger, pathsTrigger, detailRow);
     layout.insertBefore(consoleElement, setupPanel);
 
     setupTrigger.addEventListener("click", () => {
@@ -137,7 +184,7 @@
 
     contentObserver = new MutationObserver(updateSummaries);
     contentObserver.observe(setupPanel, { childList: true, characterData: true, subtree: true });
-    contentObserver.observe(pathsPanel, { childList: true, characterData: true, subtree: true });
+    contentObserver.observe(pathsPanel, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     contentObserver.observe(stage.querySelector(".stage-heading") ?? stage, {
       childList: true,
       characterData: true,
@@ -164,7 +211,8 @@
         setupExpanded: setupTrigger?.getAttribute("aria-expanded") === "true",
         pathsExpanded: pathsTrigger?.getAttribute("aria-expanded") === "true",
         setupSummary: setupSummary?.textContent ?? "",
-        pathsSummary: pathsSummary?.textContent ?? ""
+        pathsSummary: pathsSummary?.textContent ?? "",
+        activeEquations: Object.freeze(activeEquation?.dataset.equations ? activeEquation.dataset.equations.split("\n") : [])
       });
     }
   });
