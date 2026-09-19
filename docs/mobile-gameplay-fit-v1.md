@@ -1,6 +1,6 @@
 # MathNexa Mobile Gameplay Fit V1
 
-**Status: PRODUCTION LIVE — OWNER FINAL CHECK PENDING.** Owner staging PASS 2026-09-18; the exact certified runtime `c860a28` was promoted to `mathnexa.com` on 2026-09-19 00:33 UTC as `dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ`, with `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF` retained as rollback (§17). MAP Prep / ShowMe, billing, auth and the database are untouched. Not merged, not tagged.
+**Status: RELEASED — OWNER VERIFIED — FROZEN.** Owner staging PASS 2026-09-18 and owner production PASS 2026-09-19. Production `mathnexa.com` = `dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ` (exact certified runtime `c860a28`, promoted 2026-09-19 00:33 UTC), rollback `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF`. Tag `v1.2.11` → `c860a28`; `main` fast-forwarded to the release-record commit (§18). MAP Prep / ShowMe, billing, auth and the database untouched. CSP parity work not included.
 
 Branch `feature/mobile-gameplay-fit-v1` off `origin/main` = `2e1e24f` (fetched 2026-09-18; the v1.2.10 release lineage).
 
@@ -10,7 +10,9 @@ Branch `feature/mobile-gameplay-fit-v1` off `origin/main` = `2e1e24f` (fetched 2
 | `edbb229` | tests | mobile gameplay harness, layout audit, contract gate, real-play touch tests, axe, visual baselines |
 | `0e40259` | tests | audit records survive between runs; per-game and matrix reports |
 | `e5b3c0c` | docs | this record and its screenshots (staging) |
-| (this commit) | docs | production record (§17) |
+| `e0e73a8` | docs | production record (§17) |
+| `f4091fd` | tests | Number Cross visual test: pinned page clock, re-recorded baselines (§18.3) |
+| (this commit) | docs | release record (§18) |
 
 ## 1. Owner problem
 
@@ -514,7 +516,7 @@ Captured from the harness (baseline `origin/main` vs this branch), Chromium phon
 | --- | --- |
 | <img src="mobile-gameplay-fit-v1/before-number-logic-1920x1080.webp" width="460" alt="Number Logic 1920×1080 before"> | <img src="mobile-gameplay-fit-v1/after-number-logic-1920x1080.webp" width="460" alt="Number Logic 1920×1080 after"> |
 
-## 17. Production — PRODUCTION LIVE, OWNER FINAL CHECK PENDING
+## 17. Production promotion (2026-09-19; owner final check passed — §18)
 
 ### 17.1 Owner staging result (2026-09-18, real phone): PASS
 
@@ -591,3 +593,63 @@ The four game routes need a signed-in, entitled account — that is the owner's 
 - **Number Cross visual baseline:** freeze the clock in that test so the puzzle is deterministic (test-only follow-up).
 - **Not driven by this session:** the signed-in game routes themselves (no owner credentials) — the owner's final production check.
 - `main`: not merged. Tag: none.
+
+## 18. Release — RELEASED, OWNER VERIFIED, FROZEN
+
+### 18.1 Owner final production PASS (2026-09-19, https://mathnexa.com, signed in)
+
+- Math Vocabulary Hunt: the full 18 × 18 grid is usable; bottom rows visible and selectable; no awkward page scrolling.
+- CrossCalc: the SOLVING equation stays visible; the board is usable; tiles and Hint / Check stay reachable; the page itself does not need scrolling; board-internal scrolling is acceptable.
+- Number Cross: board and tools usable; tutorial Skip works.
+- Number Logic: board and controls usable; Undo / Redo / Restart / Pause work; Settings works.
+- Orientation: portrait → landscape → portrait works.
+
+The owner's manual pass is the authority for the signed-in game routes; the session's live checks (§17.6) covered everything those routes load.
+
+### 18.2 Release identity
+
+| Item | Value |
+| --- | --- |
+| Certified runtime | `c860a288e36177366d3ffa9c207387aa917c1417` |
+| Production | `dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ` on `mathnexa.com`, `www.mathnexa.com` and the webhook host; health `ready · production-platform · build c860a288… · payments live` |
+| Rollback | `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF` (runtime `80a509c`), Ready, retained: `vercel promote dpl_AaPnXGGohzFLd3ece7eNyah2xmCF --scope bright-path-ed-tech` |
+| Release tag | `v1.2.11` — annotated, object `48380c77b18b8d5a2e923be8bc82870f1e4b32a5`, peeled `c860a288…` |
+| `main` | fast-forwarded (`--ff-only`, no squash, no force) from `2e1e24f` to this release-record commit, which carries the whole approved lineage `c860a28` → `edbb229` → `0e40259` → `e5b3c0c` → `e0e73a8` → `f4091fd` → this commit |
+| Runtime equivalence | the `apps`, `packages` and `supabase` trees at `main` equal those at `c860a28` (`ad514344…`, `8a909a6d…`, `0a99479d…`), as do `docs/index.html`, `docs/vocab.js`, `vocab.js` and `package-lock.json`; everything after `c860a28` is docs, tests and test tooling (plus three npm test scripts). Production serves exactly that runtime (§17.3) |
+| New deployment during closeout | none; production never rebuilt or redeployed. The `main` push lets the Git-connected staging project build its own copy, as usual; production aliases untouched |
+
+### 18.3 Number Cross visual test stabilized (test-only, `f4091fd`)
+
+Number Cross seeds each new puzzle from `${Date.now()}-${Math.random()}`. The visual test seeded only `Math.random`, so the board in its screenshots followed the wall clock (the one failure in §17.6). The test now pins the page clock for the two Number Cross shots (`page.clock.setFixedTime`, timers keep running) and their baselines were re-recorded. The Number Cross runtime and its seed behaviour are untouched. 20 / 20 passes on local bytes and 20 / 20 on production bytes (10 repeats per shot).
+
+### 18.4 Closeout gates on the final branch (runtime `c860a28`)
+
+| Gate | Result |
+| --- | --- |
+| `npm run typecheck` / `npm run lint` | pass / 0 errors (the 8 warnings are in the untouched `public/game-suite/natural-voice.js`) |
+| platform-core / platform-web unit | 245 / 245; 598 passed, 1 skipped |
+| CrossCalc V2 incl. 2,500 generated puzzles / V2 native / V1 native | 20 / 20; 7 / 9 (the two standalone-source provenance tests, environment-bound as proven in §12); 5 / 5 |
+| Number Cross / native; Number Logic / native; Number Logic integration audit | 24 / 24, 5 / 5; 24 / 24, 7 / 7; pass |
+| Content audit, game-suite media audit, Pages redirect | pass, pass, 15 / 15 |
+| Production build | pass |
+| `npm run test:security` | 279 / 279, platform bundle audit pass, Number Cross launch audit pass |
+| MVH atomic delivery / real runtime / audio / session / canonical | 3 / 3 + 9 / 9; 40 / 40; 8 / 8; 4 / 4; 9 / 9 |
+| Mobile gameplay contract | **151 passed, 0 failed, 41 skipped by design** |
+| Number Cross visual shots, 10 repeats per shot | 20 / 20 on local bytes, 20 / 20 on production bytes |
+| CrossCalc all difficulties × 9 profiles / Number Logic 6 modes × 5 profiles + Settings | 45 / 45 / 30 / 30 |
+
+### 18.5 Final live read-only check (2026-09-19)
+
+Production still `dpl_FNf6c8…` (health `c860a28`, payments live); all 541 public game files byte-identical to `c860a28`; status, redirects and ten security headers on eleven routes identical to before the promotion; authorized-code form present; cron 401; webhook route 405 (`Allow: POST`) on the apex and the webhook host; MAP Prep `showme.mathnexa.com` still `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`.
+
+### 18.6 Carried forward (not changed in this release)
+
+- **CrossCalc, pre-existing (also on `origin/main`):** in Chromium phones, switching to Hard or Expert can leave the tile row horizontally offset. Tiles stay visible and usable; the certified contract holds. Future polish item.
+- **Number Logic:** difficulty → playable 33 → 48 / 49 ms at normal CPU — owner-approved tradeoff for V1, not to be reopened here.
+- **CSP parity work is not in this release.** `27dd1eb` (`fix/local-internal-game-csp-parity`) is not an ancestor of `c860a28`, of this branch or of `main`; none of its files are in the production upload.
+
+### 18.7 Frozen
+
+Mobile Gameplay Fit V1 is closed. Future mobile game work needs a new branch and phase.
+
+**NEXT TECHNICAL FOLLOW-UP (not started):** CSP parity fix — branch `fix/local-internal-game-csp-parity`, commit `27dd1eb`. It needs its own staging, owner gate, production candidate, promotion, merge and tag, and must not be folded into this release.
