@@ -1,13 +1,16 @@
 # MathNexa Mobile Gameplay Fit V1
 
-Branch `feature/mobile-gameplay-fit-v1` off `origin/main` = `2e1e24f` (fetched 2026-09-18; the v1.2.10 release lineage). Staging only (`mathnexa-platform-staging`). Production, MAP Prep / ShowMe, billing, auth and the database are untouched. Not merged, not tagged.
+**Status: PRODUCTION LIVE — OWNER FINAL CHECK PENDING.** Owner staging PASS 2026-09-18; the exact certified runtime `c860a28` was promoted to `mathnexa.com` on 2026-09-19 00:33 UTC as `dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ`, with `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF` retained as rollback (§17). MAP Prep / ShowMe, billing, auth and the database are untouched. Not merged, not tagged.
+
+Branch `feature/mobile-gameplay-fit-v1` off `origin/main` = `2e1e24f` (fetched 2026-09-18; the v1.2.10 release lineage).
 
 | Commit | Kind | What |
 | --- | --- | --- |
 | `c860a28` | runtime | fit every game to a phone screen during play (CSS, the Math Vocabulary Hunt enhancer, the CrossCalc layout adapter, two document back-link spans) |
 | `edbb229` | tests | mobile gameplay harness, layout audit, contract gate, real-play touch tests, axe, visual baselines |
 | `0e40259` | tests | audit records survive between runs; per-game and matrix reports |
-| (this commit) | docs | this record and its screenshots |
+| `e5b3c0c` | docs | this record and its screenshots (staging) |
+| (this commit) | docs | production record (§17) |
 
 ## 1. Owner problem
 
@@ -418,7 +421,7 @@ Pass = no page scrolling in any game during play, nothing cut off, the active pr
 
 ## 15. Production, MAP Prep, main, tag
 
-- Production (`mathnexa.com`): **unchanged** — still `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF` (runtime `80a509c`).
+- Production (`mathnexa.com`): during staging review unchanged (`dpl_AaPnXGGohzFLd3ece7eNyah2xmCF`, runtime `80a509c`); after the owner's staging PASS the exact runtime was promoted — see §17 (`dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ`).
 - MAP Prep / ShowMe: **unchanged** — still `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9`.
 - No billing, auth or database change.
 - `main`: **not merged** (still `2e1e24f`). Tag: **none created** (next platform tag remains `v1.2.11`).
@@ -510,3 +513,81 @@ Captured from the harness (baseline `origin/main` vs this branch), Chromium phon
 | Before (origin/main) | After (this branch) |
 | --- | --- |
 | <img src="mobile-gameplay-fit-v1/before-number-logic-1920x1080.webp" width="460" alt="Number Logic 1920×1080 before"> | <img src="mobile-gameplay-fit-v1/after-number-logic-1920x1080.webp" width="460" alt="Number Logic 1920×1080 after"> |
+
+## 17. Production — PRODUCTION LIVE, OWNER FINAL CHECK PENDING
+
+### 17.1 Owner staging result (2026-09-18, real phone): PASS
+
+- Math Vocabulary Hunt: full grid visible and usable, bottom rows reachable, lower-row words selectable, the page does not scroll.
+- CrossCalc: the active equation stays visible, the board is usable, tiles stay visible, no precision page scrolling, internal board scrolling acceptable for tall networks, portrait and landscape both work.
+- Number Cross: board and controls fit, tutorial Skip works, no awkward page scrolling.
+- Number Logic: board and controls fit, Undo / Redo / Restart / Pause reachable, Settings works, no awkward page scrolling.
+- The Number Logic +16 ms difficulty-to-playable cost (§11) is accepted as a V1 tradeoff and is not to be reopened in this release.
+
+### 17.2 Certification on the exact runtime (before the candidate)
+
+| Gate | Result |
+| --- | --- |
+| typecheck / lint | pass / 0 errors |
+| platform-core / platform-web unit | 245 / 245; 598 passed, 1 skipped (committed LF bytes) |
+| CrossCalc V2 incl. 2,500 generated puzzles / V2 native / V1 native | 20 / 20; 7 / 9 (the 2 environment-bound provenance tests, §12); 5 / 5 |
+| Number Cross / native; Number Logic / native | 24 / 24, 5 / 5; 24 / 24, 7 / 7 |
+| Content, media, Pages redirect, security (279 + bundle and launch audits), Number Logic integration audit, production build | pass |
+| MVH atomic delivery / real runtime / audio / session / canonical | 3 / 3 + 9 / 9; 40 / 40; 8 / 8; 4 / 4; 9 / 9 |
+| Mobile gameplay contract | 151 passed, 0 failed, 41 skipped by design |
+| CrossCalc, every difficulty × 9 profiles (phones, landscape, tablets, desktop, Smart Board) | 45 / 45 — page scroll 0, Solving line, tiles and Hint / Check on screen and uncovered, only the board frame scrolls, targets ≥ 44 px |
+| Number Logic, 6 modes × 5 profiles + Settings | 30 / 30 |
+| Number Logic difficulty → playable (normal CPU) | 33 → 48 / 49 ms, no further regression |
+| gzip added (committed LF bytes) | MVH +4.19 KB, CrossCalc +4.49 KB, Number Cross +1.88 KB, Number Logic +3.02 KB; no library added |
+
+### 17.3 Candidate identity
+
+- **`dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ`** (`mathnexa-platform-production-9tl3wtky5-…`), built 2026-09-18 06:24:57 CDT from a pristine LF checkout of `c860a28` (tree `89f9fa35…`) with `vercel deploy . --project mathnexa-platform-production --prod --skip-domain --env MVH_SOURCE_REVISION=c860a28…` (deployment-scoped, no project environment change, no domains assigned). The CLI uploaded no files at all: every source file already existed in Vercel's content store from the staging upload of the same tree.
+- **Source, per Vercel's own file listing** (`/v6/deployments/:id/files`): 1,640 `src` files, every one SHA-1-identical to `c860a28` (the three `.gitignore` files are never uploaded) and identical to the staging deployment `dpl_ApV1224N1gknHqn6xPVofs5MS3PF` (0 of 1,640 differ). The 220 `out/` build entries differ from staging, as expected for two environments. Server-side files by SHA-1 — the Math Vocabulary Hunt enhancer, the CrossCalc V2 and Number Logic document renderers, `next.config.mjs`, `lib/security/headers.mjs`, `lib/games/internal-registry.ts`, `docs/index.html` — identical to `c860a28`.
+- **Served bytes** (through Deployment Protection with `vercel curl`): all 23 game code files — the 5 changed in this phase and the 18 protected bundles and engines — byte-identical to `c860a28`; the 18 are also identical to production runtime `80a509c`. Candidate health: `ready · production-platform · build c860a288… · payments live`.
+- **Line endings.** The previous production deployment served four `game-suite` text files with CRLF (it had been uploaded from a CRLF checkout). The candidate serves the committed LF bytes; content is identical after stripping CR. No normalization was needed to compare the candidate with `c860a28`.
+
+### 17.4 CSP parity work is not in this release
+
+`27dd1eb` (`fix/local-internal-game-csp-parity`) is not an ancestor of `c860a28` or of this branch. The candidate's `next.config.mjs`, `headers.mjs` and `internal-registry.ts` are the `c860a28` versions (SHA-1 differs from `27dd1eb`'s), and `internal-game-headers.mjs` is not in the upload. Live, the game routes still answer with the platform CSP, byte-identical to before promotion.
+
+### 17.5 Promotion
+
+| Item | Value |
+| --- | --- |
+| Previous production (rollback) | `dpl_AaPnXGGohzFLd3ece7eNyah2xmCF` (runtime `80a509c`), Ready, retained |
+| Promoted | **`dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ`** (runtime `c860a28`), exactly as certified, no rebuild |
+| Command | `vercel promote dpl_FNf6c8Zv8VsCefNW1EaLZ3uQiFoJ --scope bright-path-ed-tech`, from a directory linked to `mathnexa-platform-production` |
+| Time | 2026-09-19 00:33:02 → 00:33:11 UTC ("Success! … promoted … [2s]") |
+| Aliases moved | `mathnexa.com`, `www.mathnexa.com` (308 → apex) and the webhook host `mathnexa-platform-production.vercel.app` — all `dpl_FNf6c8…`, Ready |
+| Health | `ready · production-platform · build c860a288… · searchIndexing enabled · payments live` (three reads) |
+| Rollback | `vercel promote dpl_AaPnXGGohzFLd3ece7eNyah2xmCF --scope bright-path-ed-tech` |
+
+### 17.6 Live verification (2026-09-19)
+
+The four game routes need a signed-in, entitled account — that is the owner's final check. Everything they deliver apart from the document itself is public, so the session verified production two ways:
+
+1. **Live bytes:** all 541 public game files on `https://mathnexa.com` are byte-identical to `c860a28` (digest `5eddc010…`, the same as staging).
+2. **Live-asset harness:** the game documents rendered by the exact `c860a28` renderers (what the production route returns), under the real route CSPs, with every other request fetched live from `https://mathnexa.com` — 3,613 requests, 3,224 × 200 and 389 × 206 (audio ranges), 0 failures.
+
+| Check (production bytes) | Result |
+| --- | --- |
+| Full mobile contract: Chromium desktop, Chromium phone, WebKit phone, WebKit desktop (1440 × 900 and 1920 × 1080 in the desktop projects) | **150 passed, 1 failed, 41 skipped by design.** The failure is the Number Cross 390 × 844 visual baseline: new puzzles are seeded with `Date.now()`, and this one opened with 5 lines already solved, so its target badges differ from the baseline (layout identical). Re-run × 6 on production bytes: 6 / 6 pass. A test-determinism follow-up, not a product difference |
+| Math Vocabulary Hunt, 18 × 18 | every lesson grid fits 390 × 844 with its first and last cells on screen; compact header, timer and status visible, Controls menu opens over the game; no mid-word breaks; a word through the bottom rows found by taps (Chromium and WebKit phones) and a touch drag across the last row (Chromium); no page scroll at 320 × 568, 390 × 664, 390 × 844, landscape, tablet, desktop and Smart Board |
+| CrossCalc | Beginner / Easy / Medium / Hard / Expert × 9 profiles: **45 / 45**; the Solving line stays on screen while the board scrolls; a whole Easy network solved by taps on both phones; a Medium network fits 1440 × 900 and 1920 × 1080 whole |
+| Number Cross | Skip is a real 44 px control at every size; first- and last-row play; no page scroll at 320 × 568, 390 × 844, 844 × 390 |
+| Number Logic | 6 modes × 5 profiles + Settings: **30 / 30**; tile placement and Undo; music contracts unchanged (native suite) |
+| Orientation | portrait → landscape → portrait without a reload, all four games, both phone engines |
+| Desktop / Smart Board | 1440 × 900 and 1920 × 1080 pass for all four games |
+| Accessibility | axe WCAG 2.1 AA and keyboard focus checks pass (Number Cross's frozen-engine findings unchanged) |
+| Security headers | `/`, `/sign-in`, `/access`, `/pricing`, `/games`, the three play routes, `/game/runtime/index.html`, `/teacher`, the cron endpoint: status, Location and ten security headers byte-identical before and after promotion |
+| Access / billing | payments live; product and play routes 307 → access page; the MVH runtime 401; cron 401; authorized-code form present; the webhook route answers its own 405 (`Allow: POST`) on the apex and on the webhook host, not redirected; route code unchanged |
+| MAP Prep | `showme.mathnexa.com` still `dpl_B7vcLDDoRpvZAm5UZgPCfhz6u9F9` |
+| Game logic | the runtime diff `80a509c..c860a28` is 8 layout files (+1 unit test); engines, bundles, generators, `lib/games`, billing, auth, access, API routes, proxy, `next.config.mjs`, security, database and canonical documents: 0 changes |
+
+### 17.7 Carried forward
+
+- **CrossCalc, pre-existing (reproduced on `origin/main`):** in Chromium phones, switching to Hard or Expert can leave the tile row with a non-zero horizontal `scrollLeft`, so it opens part-way along. Tiles stay visible and usable and the certified contract holds (page scroll 0, Solving line, tray, Hint / Check, board-only scrolling). Not changed in this release; a future polish item.
+- **Number Cross visual baseline:** freeze the clock in that test so the puzzle is deterministic (test-only follow-up).
+- **Not driven by this session:** the signed-in game routes themselves (no owner credentials) — the owner's final production check.
+- `main`: not merged. Tag: none.
