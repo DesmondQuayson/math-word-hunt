@@ -551,9 +551,16 @@ test.describe("visual regression — phone gameplay", () => {
     { game: "number-logic", viewport: { width: 844, height: 390 } }
   ];
 
+  // Number Cross seeds each new puzzle from `${Date.now()}-${Math.random()}`.
+  // seedRandom() fixes the second half; pinning the page's wall clock fixes the
+  // first, so the board in the screenshot is the same on every run. Timers keep
+  // running; only Date is frozen, and only in this test's page.
+  const NUMBER_CROSS_VISUAL_CLOCK = new Date("2026-09-18T12:00:00.000Z");
+
   for (const shot of SHOTS) {
     test(`${GAME_LABELS[shot.game]} ${shot.viewport.width}×${shot.viewport.height}`, async ({ page }) => {
       await seedRandom(page);
+      if (shot.game === "number-cross") await page.clock.setFixedTime(NUMBER_CROSS_VISUAL_CLOCK);
       await page.setViewportSize(shot.viewport);
       await openGame(page, shot.game);
       await expect(page).toHaveScreenshot(`${shot.game}-${shot.viewport.width}x${shot.viewport.height}.png`, {
