@@ -363,6 +363,62 @@ test("homepage and account-intent UI remain accessible across target devices and
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test("320px at 200% text reflows without horizontal scrolling, including the school-code form and trial onboarding", async ({ page }) => {
+  // WCAG 1.4.4 / 1.4.10: enlarged text must not force sideways page scrolling.
+  // The root font size stands in for the browser's text-size setting.
+  const measure = async (path: string) => {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+    await page.waitForTimeout(150);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path} overflows by ${overflow}px at 320px + 200% text`).toBeLessThanOrEqual(0);
+  };
+  await page.setViewportSize({ width: 320, height: 640 });
+  for (const path of ["/", "/sign-in", "/sign-up?next=/subscription", "/access?next=/games"]) {
+    await measure(path);
+    // The authorized school-code form stays usable: field, reveal control and
+    // Continue all on screen with project-minimum targets.
+    const code = page.getByLabel("Authorized code (required)");
+    await expect(code).toBeVisible();
+    const reveal = page.getByRole("button", { name: "Show code" });
+    const continueButton = page.getByRole("button", { name: "Continue" });
+    for (const control of [reveal, continueButton]) {
+      const box = await control.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
+    }
+    await code.fill("sample-code");
+    await expect(code).toHaveValue("sample-code");
+    await reveal.click();
+    await expect(code).toHaveAttribute("type", "text");
+  }
+  // Signed in without entitlement: the trial onboarding card at the same
+  // size. A fresh confirmed account, because the earlier fixture-Checkout
+  // test has already activated reviewUser's trial by now.
+  const reflowEmail = `${run}-reflow@example.test`;
+  const reflowUser = await createConfirmedUser(reflowEmail);
+  try {
+    await signIn(page, reflowEmail, "/subscription");
+    await expect(page).toHaveURL("/subscription");
+    await measure("/subscription");
+    await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start free trial" })).toBeVisible();
+    // And normal text at 320px and 390px is unchanged: still no overflow.
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const path of ["/", "/sign-in", "/subscription"]) {
+        await page.goto(path);
+        await page.waitForLoadState("networkidle");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      }
+    }
+  } finally {
+    await admin.auth.admin.deleteUser(reflowUser.id);
+  }
+});
+
 test("teacher-first homepage matches mobile, desktop, and smartboard visual baselines", async ({ page }) => {
   for (const [name, viewport] of [
     ["mobile", { width: 320, height: 568 }],

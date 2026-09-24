@@ -107,6 +107,12 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       {subscription ? <ConsumerSubscriptionSummary subscription={subscription} /> : null}
       <div className="button-row">
         {view.decision.allowed && destination !== "/subscription" ? <LinkButton href={destination}>Continue to your selected resource</LinkButton> : null}
+        {/* The one trial is used and access has ended: the existing Checkout
+            (without a new trial) lives on Pricing, which also refuses it while
+            a live subscription exists. */}
+        {view.context.status === "active" && !view.decision.allowed && view.decision.nextAction === "manage-subscription" && view.decision.reason !== "payment-past-due" && view.decision.reason !== "subscription-verification-unavailable"
+          ? <LinkButton href="/pricing">See subscription options</LinkButton>
+          : null}
         {subscription && config?.portalEnabled ? <form action={openBillingPortalAction}><button className="button button-primary" type="submit">Manage or cancel in Stripe</button></form> : null}
         <LinkButton href="/subscriber-management" variant="secondary">Manage billing (backup link)</LinkButton>
       </div>

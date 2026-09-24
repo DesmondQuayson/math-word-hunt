@@ -768,3 +768,143 @@
 .footer-attribution a {
   overflow-wrap: anywhere;
 }
+
+/* ---------- Authorized school-code form: reflow --------------------------
+
+   The code field and Continue button shared a two-column grid, and the
+   button kept an 8.5rem minimum. Those rem sizes grow with enlarged text
+   while the rem-based mobile breakpoint does not fire, so at 320px with 200%
+   text the row was wider than the page. A wrapping flex row keeps the same
+   side-by-side layout wherever it fits and stacks the button under the field
+   wherever it does not. Layout only; the form, field and action are
+   unchanged. */
+.authorized-access-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.authorized-access-form > * {
+  min-width: 0;
+}
+
+.authorized-access-form .error-summary {
+  flex: 1 1 100%;
+}
+
+.authorized-access-form .form-field {
+  flex: 1 1 12rem;
+}
+
+.authorized-access-form .button {
+  flex: 0 1 auto;
+  min-width: min(8.5rem, 100%);
+  max-width: 100%;
+  white-space: normal;
+}
+
+.authorized-access-copy h2 {
+  max-width: min(24ch, 100%);
+  overflow-wrap: break-word;
+}
+
+/* ---------- Onboarding grids: shrinkable tracks --------------------------
+
+   Grid tracks default to the item's min-content width, and an <input> or a
+   large price contributes its intrinsic width to that. At 320px with 200%
+   text the account fieldset and plan card therefore grew past the page. Every
+   grid child in the onboarding surfaces may shrink to the track. */
+.onboarding-page > *,
+.onboarding-card > *,
+.account-form > *,
+.form-section > *,
+.plan-summary > *,
+.plan-summary-card > *,
+.plan-summary-head > *,
+.form-actions--primary > *,
+.consent-form > *,
+.consent-actions > * {
+  min-width: 0;
+}
+
+.account-form .form-field input,
+.form-section .form-field input {
+  min-width: 0;
+}
+
+.account-form .button,
+.consent-actions .button,
+.success-panel .button {
+  min-width: 0;
+  white-space: normal;
+}
+
+.plan-summary-price {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Onboarding at very large text ---------------------------------
+
+   The onboarding column is a size container. Because `rem` inside a container
+   query follows the root font size, `max-width: 14rem` is false at every
+   normal text size (the column is never that narrow) and becomes true only
+   when enlarged text makes the column narrow *in rem terms*: 320px at 200%
+   text, for example. Only then do the nested paddings tighten and the price
+   scale down, so words keep a usable measure instead of overflowing. */
+.onboarding-page {
+  container-type: inline-size;
+  container-name: onboarding;
+}
+
+.account-form--trial,
+.onboarding-card,
+.plan-summary-card,
+.consent-form,
+.success-panel {
+  overflow-wrap: anywhere;
+}
+
+@container onboarding (max-width: 14rem) {
+  .account-form--trial,
+  .onboarding-card,
+  .plan-summary-card {
+    padding: var(--space-3);
+  }
+
+  .plan-summary-price strong {
+    font-size: 1.25rem;
+  }
+
+  .plan-facts li {
+    grid-template-columns: 1rem minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .plan-fact-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .plan-terms ul {
+    padding-left: var(--space-4);
+  }
+
+  .consent-list .checkbox-field {
+    padding-inline: 0;
+  }
+
+  .form-section > legend,
+  .form-section-title {
+    letter-spacing: 0.06em;
+  }
+}
+
+/* ---------- Homepage hero "ready" pill: reflow ----------------------------
+
+   `width: fit-content` on this inline-flex pill lets it size past its
+   column once enlarged text makes the sentence wider than the hero; capping
+   it at the column width lets the sentence wrap instead. Layout only. */
+.teacher-home-ready {
+  max-width: 100%;
+}

@@ -78,7 +78,7 @@ describe("resolveHeaderCta", () => {
       { state: "no-entitlement", trialRedeemedAt: iso(-72 * hour) }
     ]) {
       const cta = resolveHeaderCta(signedIn(evidence));
-      expect(cta).toEqual({ kind: "subscribe", label: "Subscribe", href: "/subscription" });
+      expect(cta).toEqual({ kind: "subscribe", label: "Subscribe", href: "/pricing" });
     }
   });
 

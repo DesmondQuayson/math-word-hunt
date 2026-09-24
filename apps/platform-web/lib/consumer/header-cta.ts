@@ -19,6 +19,13 @@ export type HeaderCta = Readonly<{
 export const START_TRIAL_SIGN_UP_HREF = "/sign-up?next=/subscription" as const;
 /** The existing subscription page: it holds the approved terms and the Stripe hand-off. */
 export const START_TRIAL_SUBSCRIPTION_HREF = "/subscription" as const;
+/**
+ * Where an account whose one trial is used subscribes: /pricing offers the
+ * existing Checkout only when no live subscription exists (and "Manage
+ * subscription" otherwise). /subscription never offers Checkout to these
+ * accounts.
+ */
+export const SUBSCRIBE_HREF = "/pricing" as const;
 /** Where an entitled visitor continues. */
 export const SUBSCRIBER_DESTINATION = "/games" as const;
 
@@ -52,11 +59,11 @@ export function resolveHeaderCta(view: HeaderAccessView): HeaderCta | null {
     case "manage-subscription":
       // The one trial is used. A payment problem or an unverifiable renewal is
       // managed, not re-subscribed; an ended trial or subscription may
-      // subscribe again through the same page, which itself refuses a second
+      // subscribe again through /pricing, which itself refuses a second
       // Checkout while a live subscription exists.
       return view.decision.reason === "payment-past-due" || view.decision.reason === "subscription-verification-unavailable"
         ? { kind: "manage", label: "Manage subscription", href: START_TRIAL_SUBSCRIPTION_HREF }
-        : { kind: "subscribe", label: "Subscribe", href: START_TRIAL_SUBSCRIPTION_HREF };
+        : { kind: "subscribe", label: "Subscribe", href: SUBSCRIBE_HREF };
     default:
       return null;
   }
