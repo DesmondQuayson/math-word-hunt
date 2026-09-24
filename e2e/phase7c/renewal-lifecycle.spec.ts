@@ -31,7 +31,7 @@ const instant = (value: unknown) => typeof value === "string" ? Date.parse(value
 async function signIn(page: Page) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   // Sign-in lands on Home since v1.2.2; the Account page is one click away.
   await expect(page).toHaveURL(/\/(account)?$/);
@@ -129,7 +129,7 @@ test("trial grants real product access", async ({ page, request }) => {
   await signIn(page);
   await page.goto("/pricing");
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
-  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
   const sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
   const mapping = await admin.from("billing_customers").select("stripe_customer_id").eq("owner_consumer_id", accountUser.id).single();
@@ -252,7 +252,7 @@ test("cancel at period end keeps access until the paid boundary, then ends hones
   await expect(page.getByTestId("consumer-subscription-label")).toHaveText("Active until period end");
   await expect(page.getByText(/Cancels:/)).toBeVisible();
   await page.goto("/pricing");
-  await expect(page.getByRole("button", { name: "Accept terms and continue to Stripe" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Start free trial|Continue to secure checkout)$/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Continue playing" })).toBeVisible();
 
   // The paid boundary passes and Stripe ends the subscription. No webhook lands;
@@ -270,7 +270,7 @@ test("cancel at period end keeps access until the paid boundary, then ends hones
   await expectProductAccess(page, false);
   // With no live subscription left, Pricing may offer a fresh Checkout again.
   await page.goto("/pricing");
-  await expect(page.getByRole("button", { name: "Accept terms and continue to Stripe" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Continue to secure checkout" })).toHaveCount(1);
   await page.goto("/subscription");
   await expect(page.getByTestId("consumer-subscription-label")).toHaveText("Ended");
 });

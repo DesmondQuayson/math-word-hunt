@@ -1,0 +1,770 @@
+/* ==========================================================================
+   Subscription conversion UI V1
+   Header call to action + compact menu, password reveal control, and the
+   free-trial onboarding surfaces. Production-platform header only
+   (.site-header--menu); other runtime modes keep their existing header.
+   ========================================================================== */
+
+/* ---------- Header call to action ---------------------------------------- */
+
+.header-cta {
+  min-height: var(--size-target-min);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--space-5);
+  border: var(--border-width-standard) solid transparent;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  line-height: 1.1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+/* The conversion action: brand yellow on the navy header (11:1 with ink). */
+.header-cta--start-trial,
+.header-cta--subscribe {
+  border-color: var(--color-brand-secondary);
+  background: var(--color-brand-secondary);
+  color: var(--color-text-primary);
+  box-shadow: 0 6px 18px rgb(245 197 66 / 22%);
+}
+
+.header-cta--start-trial:hover,
+.header-cta--subscribe:hover {
+  background: #ffd45c;
+  box-shadow: 0 8px 22px rgb(245 197 66 / 32%);
+  transform: translateY(-1px);
+}
+
+/* Existing subscribers get a calm outline action, never a sales prompt. */
+.header-cta--subscriber,
+.header-cta--manage,
+.header-cta--trial-status {
+  border-color: rgb(255 255 255 / 55%);
+  background: transparent;
+  color: var(--color-on-brand);
+}
+
+.header-cta--subscriber:hover,
+.header-cta--manage:hover,
+.header-cta--trial-status:hover {
+  background: rgb(255 255 255 / 11%);
+}
+
+.header-cta:focus-visible {
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Menu button --------------------------------------------------- */
+
+.header-menu-toggle {
+  width: var(--size-target-min);
+  height: var(--size-target-min);
+  flex: 0 0 auto;
+  display: none;
+  place-items: center;
+  padding: 0;
+  border: var(--border-width-thin) solid rgb(255 255 255 / 38%);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-on-brand);
+  cursor: pointer;
+}
+
+.header-menu-toggle:hover {
+  background: rgb(255 255 255 / 11%);
+}
+
+.header-menu-toggle svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+/* ---------- Wide header: brand | navigation | call to action -------------- */
+
+@media (min-width: 80rem) {
+  .site-header--menu .header-inner {
+    gap: var(--space-4);
+  }
+
+  .site-header--menu .header-menu {
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .site-header--menu .nav-list a {
+    padding-inline: var(--space-3);
+  }
+
+  .site-header--menu .nav-account-action button {
+    padding-inline: var(--space-3);
+  }
+
+  .site-header--menu .header-cta--compact {
+    display: none;
+  }
+}
+
+/* Between 80rem and 90rem the signed-in row (seven links, Sign out and the
+   call to action) is within a few link widths of the container, and platform
+   fonts differ in width; tighten the links so no font can force a wrap. */
+@media (min-width: 80rem) and (max-width: 89.99rem) {
+  .site-header--menu .nav-list a,
+  .site-header--menu .nav-account-action button {
+    padding-inline: 0.625rem;
+    font-size: 0.9375rem;
+  }
+
+  .site-header--menu .header-cta {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* ---------- Compact header: brand | call to action | menu ---------------- */
+
+@media (max-width: 79.99rem) {
+  /* One row at every normal text size; with enlarged text the call to
+     action or menu button wraps to a second row instead of forcing the page
+     wider than the viewport (WCAG 1.4.4 / 1.4.10). */
+  .site-header--menu .header-inner {
+    min-height: 4.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+  }
+
+  .site-header--menu .brand {
+    min-width: 2.5rem;
+    align-self: center;
+    margin-right: auto;
+  }
+
+  .site-header--menu .header-cta--wide {
+    display: none;
+  }
+
+  .site-header--menu .header-menu-toggle {
+    display: inline-grid;
+  }
+
+  /* The panel drops below the whole header bar (.site-header is the
+     positioned ancestor), full width, over the page. */
+  .site-header--menu .header-menu-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: none;
+    max-height: calc(100dvh - 4.5rem);
+    overflow-y: auto;
+    padding: var(--space-3) var(--page-gutter) var(--space-5);
+    border-top: var(--border-width-thin) solid rgb(255 255 255 / 16%);
+    background: var(--color-brand-primary-hover);
+    box-shadow: 0 18px 30px rgb(5 21 37 / 28%);
+  }
+
+  .site-header--menu .header-menu[data-open="true"] .header-menu-panel {
+    display: block;
+  }
+
+  .site-header--menu .header-menu-panel nav,
+  .site-header--menu .header-menu-panel .nav-list {
+    width: min(100%, 48rem);
+    margin-inline: auto;
+  }
+
+  .site-header--menu .header-menu-panel .nav-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .site-header--menu .header-menu-panel .nav-list li {
+    width: auto;
+    min-width: 0;
+  }
+
+  .site-header--menu .header-menu-panel .nav-list a {
+    width: 100%;
+    justify-content: flex-start;
+    padding-inline: var(--space-4);
+    border-radius: var(--radius-medium);
+    background: rgb(255 255 255 / 5%);
+  }
+
+  .site-header--menu .header-menu-panel .nav-account-action button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 40rem) {
+  .site-header--menu .header-inner {
+    min-height: 4rem;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+  }
+
+  .site-header--menu .brand {
+    gap: var(--space-2);
+  }
+
+  .site-header--menu .brand-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .site-header--menu .header-cta {
+    padding-inline: var(--space-4);
+  }
+
+  .site-header--menu .header-menu-panel {
+    max-height: calc(100dvh - 4rem);
+  }
+}
+
+@media (max-width: 22.5rem) {
+  .site-header--menu .header-menu-panel .nav-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Very narrow screens (and large text on small screens): the mark alone
+   carries the brand so the call to action and menu stay on one row. The link
+   keeps its "MathNexa home" accessible name. */
+@media (max-width: 23.5rem) {
+  .site-header--menu .brand-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .site-header--menu .header-cta {
+    padding-inline: var(--space-3);
+    font-size: 0.875rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .header-cta,
+  .header-menu-toggle {
+    border: 2px solid ButtonText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-cta,
+  .header-cta:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- Password reveal ---------------------------------------------- */
+
+.password-input {
+  position: relative;
+}
+
+.form-field .password-input input {
+  padding-right: 3.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  width: var(--size-target-min);
+  height: var(--size-target-min);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.password-toggle svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+/* Edge/IE's own reveal button would sit beside ours. */
+.password-input input::-ms-reveal,
+.password-input input::-ms-clear {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  .password-toggle {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* ---------- Onboarding pages --------------------------------------------- */
+
+.onboarding-page {
+  max-width: 36rem;
+  gap: var(--space-6);
+}
+
+.onboarding-header {
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.onboarding-header > * {
+  margin: 0;
+}
+
+.onboarding-header h1 {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.onboarding-header .lede {
+  max-width: 30rem;
+  margin-inline: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-large);
+}
+
+.account-form--trial,
+.onboarding-card {
+  max-width: none;
+  padding: clamp(var(--space-5), 5vw, var(--space-8));
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 1px 2px rgb(5 33 51 / 6%), 0 18px 44px rgb(5 33 51 / 9%);
+}
+
+.onboarding-card {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.account-form > * + * {
+  margin-top: var(--space-5);
+}
+
+.form-section {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-section > legend,
+.form-section-title {
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.form-section > legend {
+  margin-bottom: var(--space-4);
+}
+
+.account-form .form-field input {
+  min-height: 3.25rem;
+  border-width: var(--border-width-thin);
+  border-color: var(--color-border-strong);
+  font-size: 1rem;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.account-form .form-field input:focus-visible {
+  border-color: var(--color-brand-primary);
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+.account-form .form-field input[aria-invalid="true"] {
+  border-width: var(--border-width-standard);
+  border-color: var(--color-danger);
+}
+
+.account-form .form-field label {
+  margin-bottom: var(--space-2);
+}
+
+.account-form .form-field > p:not(.validation-message) {
+  margin-top: calc(-1 * var(--space-1));
+}
+
+.account-form .validation-message {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--font-size-label);
+}
+
+.account-form .validation-message::before {
+  content: "!";
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: var(--color-on-brand);
+  font-size: 0.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.button-large {
+  min-height: 3.5rem;
+  padding-inline: var(--space-6);
+  font-size: 1.0625rem;
+}
+
+.form-actions--primary {
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.form-actions--primary .button {
+  width: 100%;
+}
+
+.form-footnote,
+.form-switch {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.form-switch a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  font-weight: 800;
+}
+
+.account-form .form-switch {
+  text-align: center;
+}
+
+.onboarding-footer-link {
+  text-align: center;
+}
+
+/* Account chip on the signed-in trial page. */
+.account-chip {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface-elevated));
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.account-chip svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--color-success);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+/* ---------- Plan summary -------------------------------------------------- */
+
+.plan-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.plan-summary-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--border-width-standard) solid var(--color-brand-primary);
+  border-radius: var(--radius-medium);
+  background: linear-gradient(180deg, var(--color-warm-paper), var(--color-surface-elevated) 70%);
+}
+
+.plan-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.plan-summary-head p {
+  margin: 0;
+}
+
+.plan-summary-name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.plan-summary-price strong {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.plan-summary-price span {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.plan-summary-includes {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.plan-facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-facts li {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.plan-fact-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  fill: none;
+  stroke: var(--color-success);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.plan-terms {
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border);
+}
+
+.plan-terms-title {
+  margin: 0 0 var(--space-2);
+  font-weight: 800;
+}
+
+.plan-terms ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+}
+
+/* ---------- Consent step -------------------------------------------------- */
+
+.onboarding-card .consent-form {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.consent-form > * + * {
+  margin-top: var(--space-5);
+}
+
+.consent-form-intro h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 1.25rem;
+}
+
+.consent-form-intro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.consent-list {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.consent-list .checkbox-field {
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  line-height: 1.45;
+}
+
+.consent-list .checkbox-field:hover {
+  background: var(--color-surface);
+}
+
+.consent-list .checkbox-field input {
+  width: 1.375rem;
+  height: 1.375rem;
+  margin-top: 0.05rem;
+  flex: 0 0 auto;
+}
+
+.consent-actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.consent-actions .button {
+  width: 100%;
+}
+
+.secure-note {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  justify-content: center;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+  text-align: left;
+}
+
+.secure-note svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+/* ---------- Activation success ------------------------------------------- */
+
+.success-panel {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: clamp(var(--space-8), 7vw, var(--space-12)) var(--space-5);
+  border: var(--border-width-thin) solid color-mix(in srgb, var(--color-success) 35%, var(--color-border));
+  border-radius: var(--radius-large);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 18px 44px rgb(5 33 51 / 9%);
+  text-align: center;
+}
+
+.success-panel > * {
+  margin: 0;
+}
+
+.success-panel h1 {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  letter-spacing: -0.03em;
+}
+
+.success-panel p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-large);
+}
+
+.success-panel .button {
+  margin-top: var(--space-3);
+}
+
+.success-panel-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.success-panel-icon svg {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: var(--color-on-brand);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.6;
+}
+
+@media (max-width: 40rem) {
+  .onboarding-header {
+    text-align: left;
+  }
+
+  .onboarding-header .lede {
+    margin-inline: 0;
+  }
+}
+
+.success-panel-secondary {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-weight: 750;
+}
+
+/* The footer contact address is one long word; let it break under enlarged
+   text instead of widening the page. */
+.footer-attribution a {
+  overflow-wrap: anywhere;
+}

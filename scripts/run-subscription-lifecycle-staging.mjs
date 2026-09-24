@@ -517,7 +517,7 @@ async function lifecycle() {
       // Checkout is offered through the commercial consent form ("Accept terms and
       // continue to Stripe", disabled until every box is ticked); older copy is kept
       // in the pattern for safety.
-      const startTrialButtons = (await page.locator("#commercial-consent-heading").count()) + (await page.getByRole("button", { name: /Accept terms and continue to Stripe|start trial|Add payment method/i }).count());
+      const startTrialButtons = (await page.locator("#commercial-consent-heading").count()) + (await page.getByRole("button", { name: /Accept terms and continue to Stripe|Start free trial|Continue to secure checkout|start trial|Add payment method/i }).count());
       const runtime = await page.request.get(`${STAGING_ORIGIN}/game/runtime/index.html`, { maxRedirects: 0 });
       const mapPrep = await page.request.get(`${STAGING_ORIGIN}/map-prep/launch`, { maxRedirects: 0 });
       const play = await page.request.get(`${STAGING_ORIGIN}/play`, { maxRedirects: 0 });

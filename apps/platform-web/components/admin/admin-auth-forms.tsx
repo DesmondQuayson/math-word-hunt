@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/forms/text-field";
+import { PasswordField } from "@/components/forms/password-field";
 import { initialAdminAuthFormState, type AdminAuthFormState } from "@/lib/admin/form-state";
 
 function AdminFormMessage({ state }: { state: AdminAuthFormState }) {
@@ -28,7 +29,7 @@ export function AdminSignInForm({ csrfToken }: { csrfToken: string }) {
     <AdminFormMessage state={state} />
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <TextField id="admin-email" name="email" type="email" autoComplete="username" label="Owner email address" required />
-    <TextField id="admin-password" name="password" type="password" autoComplete="current-password" label="Password" required />
+    <PasswordField id="admin-password" name="password" autoComplete="current-password" label="Password" required />
     <div className="form-actions"><Button type="submit" loading={pending}>Continue securely</Button></div>
   </form>;
 }

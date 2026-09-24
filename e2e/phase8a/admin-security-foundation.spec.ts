@@ -40,7 +40,7 @@ function totp(secret: string): string {
 async function signIn(page: Page, email: string, submittedPassword = password) {
   await page.goto("/admin/sign-in");
   await page.getByLabel("Owner email address").fill(email);
-  await page.getByLabel("Password").fill(submittedPassword);
+  await page.locator("input[name=\"password\"]").fill(submittedPassword);
   await page.getByRole("button", { name: "Continue securely" }).click();
 }
 
@@ -90,7 +90,7 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     const page = await context.newPage();
     await page.goto("/sign-in");
     await page.getByLabel("Email address").fill(ordinaryEmail);
-    await page.getByLabel("Password").fill(password);
+    await page.locator("input[name=\"password\"]").fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/(?:teacher|account)$/);
     const switchResponse = await page.goto("/admin/sign-in");
@@ -118,7 +118,7 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   await expect(page.locator(".error-summary")).toContainText("email or password was not accepted");
 
   await page.getByLabel("Owner email address").fill(ownerEmail);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Continue securely" }).click();
   await expect(page).toHaveURL(/\/admin\/mfa$/);
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);

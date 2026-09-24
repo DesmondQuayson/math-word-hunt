@@ -45,7 +45,7 @@ test.afterAll(async () => {
 test("owner command center is accessible, responsive, honest, and preference-aware", async ({ page, context }) => {
   await page.goto("/admin/sign-in");
   await page.getByLabel("Owner email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Continue securely" }).click();
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   const secret = (await page.locator("code.admin-setup-secret").textContent())?.trim() ?? "";

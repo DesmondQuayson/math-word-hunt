@@ -54,7 +54,7 @@ async function encodeThumbnail(key, source) {
 async function signIn(page, email) {
   await page.goto(`${origin}/sign-in?next=%2Fgames`, { waitUntil: "domcontentloaded" });
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(capturePassword);
+  await page.locator("input[name=\"password\"]").fill(capturePassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(`${origin}/games`);
 }

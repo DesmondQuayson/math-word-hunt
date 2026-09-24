@@ -61,7 +61,11 @@ async function ConsumerCheckoutStatus({ sessionId, nextDestination }: { sessionI
     : "unavailable";
   const content = consumerCopy[state];
   const destination = safeAccessIntentDestination(nextDestination, "/subscription");
-  const activatedDestination = destination === "/map-prep" ? "/map-prep/launch" : destination;
+  // A trial started from the subscription page itself lands on its
+  // confirmation state; a selected product still opens directly.
+  const activatedDestination = destination === "/map-prep"
+    ? "/map-prep/launch"
+    : destination === "/subscription" ? "/subscription?activated=1" : destination;
   if ((state === "trialing" || state === "active") && access.decision.allowed) redirect(activatedDestination);
   const awaitingAuthoritativeAccess = state === "processing" ||
     ((state === "trialing" || state === "active") && !access.decision.allowed);

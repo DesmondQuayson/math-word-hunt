@@ -15,7 +15,7 @@ let accountUser: User;
 async function signIn(page: Page, next = "/account") {
   await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(/\/account$/, { timeout: 30_000 });
   if (next !== "/account") await page.goto(next);
@@ -63,10 +63,10 @@ test("requires versioned affirmative consent before exact-trial Setup Checkout",
   await expect(page.getByText(/does not promise an exact card-charge minute/)).toBeVisible();
   const checkboxes = page.getByRole("checkbox");
   await expect(checkboxes).toHaveCount(7);
-  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/pricing$/);
   for (const checkbox of await checkboxes.all()) await checkbox.check();
-  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
   const sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
 

@@ -17,7 +17,7 @@ let signupUserId: string | undefined;
 async function signIn(page: Page, email: string) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
   await expect(page.getByTestId("real-teacher-summary")).toBeVisible();
@@ -137,7 +137,7 @@ test("suspended teacher UI and writes fail closed", async ({ page }) => {
   expect(changed.error).toBeNull();
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(emailB);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("This account is suspended")).toBeVisible();
   await expect(page.getByTestId("real-teacher-summary")).toHaveCount(0);

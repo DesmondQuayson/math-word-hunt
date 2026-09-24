@@ -3,9 +3,11 @@ import Link from "next/link";
 import { signOutAction } from "@/app/auth-actions";
 import { exitSchoolAccessAction } from "@/app/school-access-actions";
 import { Container } from "@/components/layout/container";
+import { HeaderMenu } from "@/components/layout/header-menu";
 import { PrimaryNav } from "@/components/layout/primary-nav";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { resolveHeaderCta, type HeaderCta } from "@/lib/consumer/header-cta";
 import { getGameAccessView } from "@/lib/game-access/server";
 
 const navigation = [
@@ -32,6 +34,12 @@ const consumerNavigation = [
   { href: "/account", label: "My Account" }
 ] as const;
 
+function HeaderCtaLink({ cta, variant }: Readonly<{ cta: HeaderCta; variant: "compact" | "wide" }>) {
+  return <Link className={`header-cta header-cta--${variant} header-cta--${cta.kind}`} href={cta.href} data-header-cta={cta.kind}>
+    {cta.label}
+  </Link>;
+}
+
 export async function SiteHeader() {
   const publicProduction = isProductionPublicMode();
   const productionPlatform = isProductionPlatformMode();
@@ -39,10 +47,20 @@ export async function SiteHeader() {
   const items = productionPlatform ? consumerNavigation : publicProduction ? publicNavigation : navigation;
   const access = productionPlatform ? await getGameAccessView() : null;
   const schoolAccess = access?.source === "school-access";
+  const cta = access ? resolveHeaderCta(access) : null;
   const signedIn = schoolAccess || (access !== null && access.context.status !== "anonymous" && access.context.status !== "unconfigured");
+  const navigationMarkup = <nav aria-label="Primary navigation">
+    <PrimaryNav items={items}>
+      {signedIn ? <li className="nav-account-action">
+        <form action={schoolAccess ? exitSchoolAccessAction : signOutAction}>
+          <button type="submit">{schoolAccess ? "Exit authorized access" : "Sign out"}</button>
+        </form>
+      </li> : null}
+    </PrimaryNav>
+  </nav>;
   return (
-    <header className="site-header">
-      <Container className="header-inner">
+    <header className={`site-header${productionPlatform ? " site-header--menu" : ""}`}>
+      <Container className="header-inner" width={productionPlatform ? "wide" : "standard"}>
         <Link className="brand" href="/" aria-label={mathNexa ? "MathNexa home" : "Math Vocabulary Hunt home"}>
           {mathNexa ? (
             // The approved MathNexa mark, generated from the same artwork as the
@@ -83,15 +101,16 @@ export async function SiteHeader() {
           )}
           <span className="brand-name">{mathNexa ? <>Math<strong>Nexa</strong></> : <>Math Vocabulary <strong>Hunt</strong></>}</span>
         </Link>
-        <nav aria-label="Primary navigation">
-          <PrimaryNav items={items}>
-            {signedIn ? <li className="nav-account-action">
-              <form action={schoolAccess ? exitSchoolAccessAction : signOutAction}>
-                <button type="submit">{schoolAccess ? "Exit authorized access" : "Sign out"}</button>
-              </form>
-            </li> : null}
-          </PrimaryNav>
-        </nav>
+        {productionPlatform ? <>
+          {/* The call to action is rendered twice so its reading and focus
+              order always matches what is shown: beside the menu button on a
+              compact header, after the navigation on a wide one. CSS shows
+              exactly one; the hidden copy is display:none and leaves the
+              accessibility tree. */}
+          {cta ? <HeaderCtaLink cta={cta} variant="compact" /> : null}
+          <HeaderMenu>{navigationMarkup}</HeaderMenu>
+          {cta ? <HeaderCtaLink cta={cta} variant="wide" /> : null}
+        </> : navigationMarkup}
       </Container>
     </header>
   );

@@ -40,7 +40,7 @@ async function stableTotp(secret: string): Promise<string> {
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto(`/sign-in?next=${destination}`);
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
@@ -85,7 +85,7 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
 
   await page.goto("/admin/sign-in");
   await page.getByLabel("Owner email address").fill(ownerEmail);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Continue securely" }).click();
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   const mfaSecret = (await page.locator("code.admin-setup-secret").textContent())?.trim() ?? "";

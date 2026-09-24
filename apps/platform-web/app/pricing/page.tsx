@@ -66,7 +66,7 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
       <h2>$5.99 USD / month</h2>
       <SubscriptionTermsList />
       {canCheckout
-        ? <CommercialConsentForm />
+        ? <CommercialConsentForm trialEligible={access.decision.nextAction === "start-checkout"} />
         : access.decision.allowed
           ? <LinkButton href="/play">Continue playing</LinkButton>
           : manageSubscription

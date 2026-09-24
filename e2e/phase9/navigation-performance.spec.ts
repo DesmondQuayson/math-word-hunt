@@ -82,7 +82,7 @@ async function createConfirmedUser(email: string): Promise<User> {
 async function signIn(page: Page) {
   await page.goto("/sign-in?next=/");
   await page.getByLabel("Email address").fill(entitledEmail);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();

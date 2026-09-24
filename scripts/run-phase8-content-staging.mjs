@@ -337,7 +337,7 @@ function gameArchive(runId, version = "1.0.0", unsafe = false) {
 async function loginOwner(page, email, password) {
   await page.goto(`${origin}/admin/sign-in`);
   await page.getByLabel("Owner email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Continue securely" }).click();
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   const secret = (await page.locator("code.admin-setup-secret").textContent())?.trim() ?? "";

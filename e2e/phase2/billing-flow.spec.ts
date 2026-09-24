@@ -10,7 +10,7 @@ let checkoutStatusUrl = "";
 async function signIn(page: Page, user: User) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(user.email!);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
 }

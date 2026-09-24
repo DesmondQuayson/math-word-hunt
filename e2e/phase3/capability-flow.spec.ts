@@ -21,7 +21,7 @@ async function createTeacher(name: string): Promise<User> {
 async function signIn(page: Page, teacher: User) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(teacher.email!);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
 }

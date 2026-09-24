@@ -25,7 +25,7 @@ async function createConfirmedUser(email: string): Promise<User> {
 async function signIn(page: Page, email: string, destination: string) {
   await page.goto(`/sign-in?next=${destination}`);
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
@@ -122,6 +122,8 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page.getByRole("img", { name: /homework PDF with fruit diagrams/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /Grade 7 topic quiz/i })).toBeVisible();
   await expect(page.locator(".constellation-node")).toHaveCount(4);
+  // Anonymous visitors see the free-trial path in the header without searching for pricing.
+  await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/sign-up?next=/subscription");
   await expect(page.locator("body")).not.toContainText("Today's math toolkit");
 });
 
@@ -181,15 +183,18 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await expect(page).toHaveURL("/access?next=/homework");
   await page.getByRole("link", { name: "Sign in" }).click();
   await page.getByLabel("Email address").fill(reviewEmail);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/subscription?next=/homework");
-  await expect(page.getByRole("heading", { name: "$5.99 USD monthly MathNexa access" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
   await expect(page.getByText("One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.", { exact: true })).toBeVisible();
   await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
   await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
-  await expect(page.getByRole("button", { name: "Accept terms and continue to Stripe" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Start free trial" })).toBeEnabled();
+  // Signed in without a subscription: the header still offers the trial,
+  // now straight to the subscription step.
+  await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
   await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
@@ -220,6 +225,9 @@ test("server-entitled accounts reach all four selected products and validated On
   await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "My Account" })).toBeVisible();
   await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
+  // An entitled account is never offered another trial.
+  await expect(page.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
+  await expect(page.getByRole("banner").getByRole("link", { name: "Start learning" })).toHaveAttribute("href", "/games");
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
   await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
@@ -262,10 +270,10 @@ test("fixture Checkout polls server entitlement and returns to the selected prod
   await expect(page).toHaveURL("/subscription?next=/quizzes");
   // The route now streams behind a loading boundary, so the URL changes before
   // the consent form exists: wait for the rendered form, not just the URL.
-  await expect(page.getByRole("heading", { name: "$5.99 USD monthly MathNexa access" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
-  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture[A-Za-z0-9_]+&next=\/quizzes/);
   await expect(page.getByRole("heading", { name: "Activating your MathNexa access" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Refresh status" })).toHaveAttribute("href", /next=%2Fquizzes/);
@@ -326,6 +334,20 @@ test("homepage and account-intent UI remain accessible across target devices and
     await page.setViewportSize(viewport);
     await page.goto("/");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    // One visible header call to action at every width, never wrapped.
+    const cta = page.getByRole("link", { name: "Start free trial" });
+    await expect(cta).toHaveCount(1);
+    await expect(cta).toBeVisible();
+    const ctaBox = await cta.boundingBox();
+    expect(ctaBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(ctaBox?.height ?? 99).toBeLessThan(60);
+    // Compact headers fold the navigation behind the menu button.
+    const menu = page.getByRole("button", { name: "Open menu" });
+    if (await menu.isVisible()) {
+      await expect(menu).toHaveAttribute("aria-expanded", "false");
+      await menu.click();
+      await expect(page.getByRole("button", { name: "Close menu" })).toHaveAttribute("aria-expanded", "true");
+    }
     for (const link of await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").all()) {
       const box = await link.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

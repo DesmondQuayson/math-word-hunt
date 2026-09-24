@@ -17,7 +17,7 @@ let trialEnd = "";
 async function signIn(page: Page) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   // Sign-in lands on Home since v1.2.2; the Account page is one click away.
   await expect(page).toHaveURL(/\/(account)?$/);
@@ -81,7 +81,7 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
   await expect(page.getByText(/Stripe controls invoice creation and payment-attempt timing/i)).toBeVisible();
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
-  await page.getByRole("button", { name: "Accept terms and continue to Stripe" }).click();
+  await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
   sessionId = new URL(page.url()).searchParams.get("session_id") ?? "";
   expect(sessionId).toMatch(/^cs_fixture[A-Za-z0-9]+$/);

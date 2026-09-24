@@ -154,7 +154,7 @@ async function waitForConsumer(userId) {
 async function signIn(page, email, password, destination) {
   await page.goto(`${origin}/sign-in?next=${destination}`);
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(`${origin}${destination}`);
 }

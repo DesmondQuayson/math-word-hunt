@@ -26,7 +26,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     <Notice label={consumerMode ? "Account privacy" : "Restricted pilot authentication"} tone="information"><strong>{consumerMode ? "General public account." : "Teacher-only access."}</strong><p>{consumerMode ? "Sign-in errors do not reveal whether an account exists. No educational profile or gameplay progress is collected." : "Only approved adult teachers may use an active controlled pilot. Sign-in errors do not reveal whether an account exists."}</p></Notice>
     <AuthEmailStatus label="Confirmation and recovery delivery" />
     {!configured ? <Notice label="Account service unavailable" tone="warning"><strong>Local accounts are not configured.</strong><p>Start the local Supabase stack and platform together before signing in.</p></Notice> : null}
-    <SignInForm configured={configured} nextDestination={nextDestination} />
+    <SignInForm configured={configured} nextDestination={nextDestination} consumerMode={consumerMode} signUpHref={consumerMode ? "/sign-up?next=/subscription" : undefined} />
     {consumerMode ? <AuthorizedCodeForm nextDestination={nextDestination ?? POST_AUTH_DESTINATION} compact /> : null}
   </Container>;
 }

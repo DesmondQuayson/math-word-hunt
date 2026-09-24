@@ -18,7 +18,7 @@ let signupUser: User | undefined;
 async function signIn(page: Page) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account$/);
 }
@@ -121,7 +121,7 @@ test("general account signup requires confirmation and recovery stays generic", 
 
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(signupEmail);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText(/email or password was not accepted/i)).toBeVisible();
 

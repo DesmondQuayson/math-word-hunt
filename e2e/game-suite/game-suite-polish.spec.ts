@@ -39,7 +39,7 @@ const viewports = [
 async function signIn(page: Page) {
   await page.goto("/sign-in?next=%2Fgames");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/games$/);
 }

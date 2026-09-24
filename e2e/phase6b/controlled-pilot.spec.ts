@@ -70,7 +70,7 @@ test("organization-label fields are absent and forged signup metadata is rejecte
 test("profile forgery is rejected by the server action and database", async ({ page }) => {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
   await page.goto("/account");

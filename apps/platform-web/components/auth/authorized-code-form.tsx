@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef } from "react";
 import {
   authorizeSchoolAccessAction
 } from "@/app/school-access-actions";
-import { TextField } from "@/components/forms/text-field";
+import { PasswordField } from "@/components/forms/password-field";
 import { Button } from "@/components/ui/button";
 import { initialAuthorizedCodeFormState } from "@/lib/school-access/form-state";
 
@@ -33,10 +33,10 @@ export function AuthorizedCodeForm({ nextDestination, compact = false }: Authori
         <strong>Code not accepted.</strong><p>{state.message}</p>
       </div> : null}
       <input type="hidden" name="next" value={nextDestination} />
-      <TextField
+      <PasswordField
         id="authorized-code"
         name="authorizedCode"
-        type="password"
+        secretName="code"
         autoComplete="off"
         label="Authorized code"
         maxLength={128}

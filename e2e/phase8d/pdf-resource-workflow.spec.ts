@@ -13,7 +13,7 @@ test.beforeAll(async()=>{expect(url).toMatch(/^http:\/\/127\.0\.0\.1:/);admin=cr
 test.afterAll(async()=>{if(owner)await admin.auth.admin.deleteUser(owner.id)});
 
 test("owner reopens a stable Homework draft and publishes a Topic-level Quiz",async({page})=>{
-  await page.goto("/admin/sign-in");await page.getByLabel("Owner email address").fill(email);await page.getByLabel("Password").fill(password);await page.getByRole("button",{name:"Continue securely"}).click();await page.getByRole("button",{name:"Set up authenticator"}).click();const secret=(await page.locator("code.admin-setup-secret").textContent())?.trim()??"";await page.getByLabel("Six-digit authenticator code").fill(totp(secret));await page.getByRole("button",{name:"Verify and open admin"}).click();await expect(page).toHaveURL(/\/admin$/);
+  await page.goto("/admin/sign-in");await page.getByLabel("Owner email address").fill(email);await page.locator("input[name=\"password\"]").fill(password);await page.getByRole("button",{name:"Continue securely"}).click();await page.getByRole("button",{name:"Set up authenticator"}).click();const secret=(await page.locator("code.admin-setup-secret").textContent())?.trim()??"";await page.getByLabel("Six-digit authenticator code").fill(totp(secret));await page.getByRole("button",{name:"Verify and open admin"}).click();await expect(page).toHaveURL(/\/admin$/);
 
   const gradeSlug=`grade-6-${run.slice(-6)}`;const topicSlug=`ratios-${run.slice(-6)}`;const lessonSlug=`equivalent-ratios-${run.slice(-6)}`;
   const grade=await admin.rpc("create_content_grade",{p_actor_admin_id:adminId,p_grade_number:6,p_title:"Grade 6",p_slug:gradeSlug,p_sort_order:6});if(grade.error)throw grade.error;
