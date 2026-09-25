@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { signOutAction } from "@/app/auth-actions";
 import { exitSchoolAccessAction } from "@/app/school-access-actions";
+import { AuthorizedCodeLink } from "@/components/layout/authorized-code-link";
 import { Container } from "@/components/layout/container";
 import { HeaderMenu } from "@/components/layout/header-menu";
 import { PrimaryNav } from "@/components/layout/primary-nav";
@@ -96,12 +97,16 @@ export async function SiteHeader() {
   }
 
   // The MathNexa banner. DOM order: brand, compact call to action, product
-  // navigation, wide call to action, account menu. Below 80rem the layout is
-  // two rows (brand | call to action | account menu, then the product strip);
-  // from 80rem it is one row with the navigation between brand and action.
-  // The call to action is rendered twice so reading and focus order match
-  // what is shown at each layout; CSS displays exactly one copy and the other
-  // is display:none, outside the accessibility tree.
+  // navigation, wide call to action, authorized-code entry, account menu.
+  // Below 80rem the layout is three rows (brand | call to action | account
+  // menu, then the product grid, then the authorized-code entry); from 80rem
+  // it is one row with the navigation between brand and action. The call to
+  // action is rendered twice so reading and focus order match what is shown
+  // at each layout; CSS displays exactly one copy and the other is
+  // display:none, outside the accessibility tree. The authorized-code entry
+  // is permanent in every account state (it omits itself on /sign-in only)
+  // and leads to the homepage's authorized-code form; it is never inside the
+  // account menu.
   return (
     <header className="site-header site-header--banner">
       <Container className="header-inner" width="wide">
@@ -111,6 +116,7 @@ export async function SiteHeader() {
           <ProductNav />
         </nav>
         {cta ? <HeaderCtaLink cta={cta} variant="wide" /> : null}
+        <AuthorizedCodeLink />
         <HeaderMenu>
           <nav aria-label="Account navigation">
             <ul className="account-nav-list">

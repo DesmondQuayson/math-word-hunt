@@ -115,7 +115,8 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   const expectedNavigation = ["Home", "Math Games", "Online Math Prep", "Homework PDFs", "Quiz PDFs", "Worksheet Generator"];
   await expect(navigation.getByRole("link")).toHaveCount(expectedNavigation.length);
   for (const label of expectedNavigation) await expect(navigation.getByRole("link", { name: label === "Home" ? /^Home[ ]?Current$/ : label, exact: label !== "Home" })).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Worksheet Generator" })).toHaveAttribute("href", "https://showme.mathnexa.com/worksheets");
+  // Worksheet Generator enters through the app's own gated route, never a direct off-site link.
+  await expect(navigation.getByRole("link", { name: "Worksheet Generator" })).toHaveAttribute("href", "/worksheets");
   await expect(navigation.getByRole("link", { name: /^Home[ ]?Current$/ })).toHaveAttribute("aria-current", "page");
   // Account actions live in the account menu, never in the product strip.
   await expect(navigation.getByRole("link", { name: /Subscription|My Account/ })).toHaveCount(0);
@@ -440,14 +441,233 @@ test("banner product links resolve on the server (never a silent 404)", async ({
   await page.goto("/");
   const strip = page.getByRole("navigation", { name: "Primary navigation" });
   const hrefs = await strip.getByRole("link").evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-  expect(hrefs).toEqual(["/", "/games", "/map-prep", "/homework", "/quizzes", "https://showme.mathnexa.com/worksheets"]);
-  for (const href of hrefs.filter((value) => value.startsWith("/"))) {
+  expect(hrefs).toEqual(["/", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets"]);
+  for (const href of hrefs) {
     const response = await request.get(href, { maxRedirects: 0 });
     // 200 for public pages; the access gate answers with a redirect for the
     // product entries. Anything 4xx/5xx is a broken banner link.
     expect([200, 307, 308], `${href} answered ${response.status()}`).toContain(response.status());
     if (response.status() !== 200) expect(response.headers().location ?? "").toMatch(/^\/(access|sign-in)\?next=/);
   }
+});
+
+async function makeUsedTrial(user: User) {
+  // A redeemed, ended trial. The account check constraint wants the redemption
+  // stamp at or after the server clock, so it is stamped a second ahead; the
+  // entitlement check constraint wants the trial window to be exactly 24 hours,
+  // so both stamps derive from the same instant.
+  const now = Date.now();
+  const soon = new Date(now + 1000).toISOString();
+  const account = await admin.from("consumer_accounts").update({ trial_redeemed_at: soon }).eq("user_id", user.id);
+  if (account.error) throw account.error;
+  const entitlement = await admin.from("consumer_game_entitlements").insert({
+    user_id: user.id,
+    entitlement_state: "trial-expired",
+    trial_started_at: soon,
+    trial_ends_at: new Date(now + 1000 + 24 * 60 * 60 * 1000).toISOString()
+  });
+  if (entitlement.error) throw entitlement.error;
+}
+
+test("Worksheet Generator is subscription-gated: nobody reaches ShowMe without a server-verified entitlement", async ({ page, context, request }) => {
+  const showMe = "https://showme.mathnexa.com/worksheets";
+  const worksheetLink = () => page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Worksheet Generator" });
+
+  // Anonymous: the banner entry is the app's own route; it answers with the access flow.
+  const anonymous = await request.get("/worksheets", { maxRedirects: 0 });
+  expect(anonymous.status()).toBe(307);
+  expect(anonymous.headers().location).toBe("/access?next=/worksheets");
+  await page.goto("/");
+  await expect(worksheetLink()).toHaveAttribute("href", "/worksheets");
+  await worksheetLink().click();
+  await expect(page).toHaveURL("/access?next=/worksheets");
+  await expect(page.getByRole("heading", { name: "Continue to Worksheet Generator" })).toBeVisible();
+
+  const eligibleEmail = `${run}-worksheets-eligible@example.test`;
+  const usedEmail = `${run}-worksheets-used@example.test`;
+  const eligibleUser = await createConfirmedUser(eligibleEmail);
+  const usedUser = await createConfirmedUser(usedEmail);
+  try {
+    await makeUsedTrial(usedUser);
+
+    // Signed in, trial never used: the existing trial flow, generator remembered as next.
+    await signIn(page, eligibleEmail, "/worksheets");
+    await expect(page).toHaveURL("/subscription?next=/worksheets");
+    await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start free trial" })).toBeVisible();
+    let gate = await page.request.get("/worksheets", { maxRedirects: 0 });
+    expect(gate.status()).toBe(307);
+    expect(gate.headers().location).toBe("/subscription?next=/worksheets");
+    await page.goto("/");
+    await worksheetLink().click();
+    await expect(page).toHaveURL("/subscription?next=/worksheets");
+    await context.clearCookies();
+
+    // Used trial: the existing Subscribe / pricing path, never a second trial offer.
+    await signIn(page, usedEmail, "/worksheets");
+    await expect(page).toHaveURL("/subscription?next=/worksheets");
+    await expect(page.getByRole("link", { name: "See subscription options" })).toHaveAttribute("href", "/pricing");
+    await expect(page.getByRole("button", { name: "Start free trial" })).toHaveCount(0);
+    await expect(page.getByRole("banner").getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
+    gate = await page.request.get("/worksheets", { maxRedirects: 0 });
+    expect(gate.status()).toBe(307);
+    expect(gate.headers().location).toBe("/subscription?next=/worksheets");
+    await context.clearCookies();
+  } finally {
+    for (const user of [eligibleUser, usedUser]) await admin.auth.admin.deleteUser(user.id);
+  }
+
+  // Server-entitled (active trial fixture): straight to the generator, one redirect, nothing in between.
+  await signIn(page, entitledEmail, "/games");
+  await expect(page).toHaveURL("/games");
+  const entitled = await page.request.get("/worksheets", { maxRedirects: 0 });
+  expect(entitled.status()).toBe(307);
+  expect(entitled.headers().location).toBe(showMe);
+  await page.route("https://showme.mathnexa.com/**", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/html",
+    body: "<!doctype html><title>ShowMe stub</title><h1>ShowMe worksheet generator</h1>"
+  }));
+  await page.goto("/");
+  await worksheetLink().click();
+  await expect(page).toHaveURL(showMe);
+  await expect(page.getByRole("heading", { name: "ShowMe worksheet generator" })).toBeVisible();
+  await page.unroute("https://showme.mathnexa.com/**");
+  await context.clearCookies();
+});
+
+test("Authorized code entry is permanent: homepage form plus banner link in every account state; the sign-in page may omit the banner link", async ({ page, context }) => {
+  const codeHeading = page.getByRole("heading", { name: "Enter authorized code to access MathNexa" });
+  const codeField = page.getByLabel("Authorized code (required)");
+  const bannerLink = page.getByRole("banner").getByRole("link", { name: "Authorized code" });
+  const expectEntry = async (label: string) => {
+    await expect(codeHeading, label).toBeVisible();
+    await expect(codeField, label).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show code" }), label).toBeVisible();
+    await expect(bannerLink, label).toHaveAttribute("href", "/#authorized-access");
+    // Reachable immediately: the banner link is on the first screen, no menu, no scrolling.
+    const box = await bannerLink.boundingBox();
+    const viewport = page.viewportSize();
+    expect(
+      !!box && !!viewport && box.y >= 0 && box.y + box.height <= viewport.height && box.x >= 0 && box.x + box.width <= viewport.width,
+      `${label}: banner link within the first screen`
+    ).toBe(true);
+    expect(box?.height ?? 0, `${label}: target height`).toBeGreaterThanOrEqual(44);
+    // Never only inside the account menu; never a "Start learning" anywhere.
+    await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "Authorized code" }), label).toHaveCount(0);
+    await expect(page.locator("body"), label).not.toContainText("Start learning");
+  };
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expectEntry("anonymous");
+  // On the homepage the link brings the form into view and focuses the code field; nothing enters the URL.
+  await bannerLink.click();
+  await expect(codeField).toBeFocused();
+  await expect(page).toHaveURL("/");
+  // From another page it leads to the homepage form.
+  await page.goto("/access?next=/games");
+  await expect(bannerLink).toHaveAttribute("href", "/#authorized-access");
+  await bannerLink.click();
+  await expect(page).toHaveURL("/#authorized-access");
+  await expect(codeHeading).toBeInViewport();
+  // The sign-in page carries the form itself and may omit the banner link.
+  await page.goto("/sign-in");
+  await expect(codeHeading).toBeVisible();
+  await expect(bannerLink).toHaveCount(0);
+
+  const eligibleEmail = `${run}-code-eligible@example.test`;
+  const usedEmail = `${run}-code-used@example.test`;
+  const eligibleUser = await createConfirmedUser(eligibleEmail);
+  const usedUser = await createConfirmedUser(usedEmail);
+  try {
+    await makeUsedTrial(usedUser);
+    await signIn(page, eligibleEmail, "/");
+    await expect(page).toHaveURL("/");
+    await expectEntry("signed in, trial eligible");
+    await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
+    await context.clearCookies();
+
+    await signIn(page, usedEmail, "/");
+    await expect(page).toHaveURL("/");
+    await expectEntry("signed in, used trial");
+    await expect(page.getByRole("banner").getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
+    await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveCount(0);
+    await context.clearCookies();
+  } finally {
+    for (const user of [eligibleUser, usedUser]) await admin.auth.admin.deleteUser(user.id);
+  }
+
+  await signIn(page, entitledEmail, "/");
+  await expect(page).toHaveURL("/");
+  await expectEntry("entitled (active trial)");
+  await expect(page.getByRole("banner").getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
+  await context.clearCookies();
+});
+
+test("mobile banner: all six product destinations visible at once in a two-row grid, nothing scrolls sideways, no label cut off", async ({ page }) => {
+  const labels = ["Home", "Math Games", "Online Math Prep", "Homework PDFs", "Quiz PDFs", "Worksheet Generator"];
+  const measure = async (context: string) => {
+    const nav = page.getByRole("navigation", { name: "Primary navigation" });
+    const links = nav.getByRole("link");
+    await expect(links).toHaveCount(6);
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("viewport size unknown");
+    const boxes: Array<{ x: number; y: number; width: number; height: number }> = [];
+    for (let index = 0; index < labels.length; index += 1) {
+      const link = links.nth(index);
+      const label = `${context}: ${labels[index]}`;
+      await expect(link, label).toBeVisible();
+      const box = await link.boundingBox();
+      if (!box) throw new Error(`${label} has no box`);
+      boxes.push(box);
+      // Whole label: the text fits its own link box in both directions.
+      const whole = await link.evaluate((node) => {
+        const span = node.querySelector("span");
+        return !!span && span.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1;
+      });
+      expect(whole, `${label} is shown whole`).toBe(true);
+      expect(box.height, `${label} target height`).toBeGreaterThanOrEqual(44);
+      expect(box.x, `${label} inside the viewport`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `${label} inside the viewport`).toBeLessThanOrEqual(viewport.width + 0.5);
+      expect(box.y + box.height, `${label} on the first screen`).toBeLessThanOrEqual(viewport.height);
+    }
+    // Nothing scrolls sideways: not the navigation, not its list, not the page.
+    expect(await nav.evaluate((node) => [node, ...node.querySelectorAll("ul")].every((element) => element.scrollWidth <= element.clientWidth + 1)), `${context}: navigation does not scroll`).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${context}: page does not scroll sideways`).toBe(true);
+    return boxes;
+  };
+
+  for (const width of [320, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    const boxes = await measure(`${width}px`);
+    // Two rows of three, in the approved order: Home | Math Games | Online Math Prep, then Homework PDFs | Quiz PDFs | Worksheet Generator.
+    const rows = [...new Set(boxes.map((box) => Math.round(box.y)))];
+    expect(rows, `${width}px: two rows`).toHaveLength(2);
+    expect(boxes.slice(0, 3).map((box) => Math.round(box.y)), `${width}px: row 1`).toEqual([rows[0], rows[0], rows[0]]);
+    expect(boxes.slice(3).map((box) => Math.round(box.y)), `${width}px: row 2`).toEqual([rows[1], rows[1], rows[1]]);
+    for (const row of [boxes.slice(0, 3), boxes.slice(3)]) expect(row[0].x < row[1].x && row[1].x < row[2].x, `${width}px: left to right`).toBe(true);
+    // The rest of the compact banner: the brand, the call to action and the account menu share the top row above the grid.
+    const brand = await page.getByRole("banner").getByRole("link", { name: "MathNexa home" }).boundingBox();
+    expect((brand?.y ?? 0) + (brand?.height ?? 0), `${width}px: brand above the grid`).toBeLessThanOrEqual(rows[0] + 1);
+  }
+
+  // Tablets and desktops: one row, still nothing to scroll.
+  for (const width of [768, 1024, 1366, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const boxes = await measure(`${width}px`);
+    expect(new Set(boxes.map((box) => Math.round(box.y))).size, `${width}px: one row`).toBe(1);
+  }
+
+  // 320px with 200% text: the grid reflows to fewer columns instead of overflowing; every label still whole.
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+  await page.waitForTimeout(150);
+  await measure("320px at 200% text");
 });
 
 test("teacher-first homepage matches mobile, desktop, and smartboard visual baselines", async ({ page }) => {

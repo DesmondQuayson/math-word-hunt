@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TeacherFirstHome } from "./teacher-first-home";
@@ -9,7 +9,8 @@ vi.mock("@/app/auth-actions", () => ({
 }));
 
 vi.mock("@/app/school-access-actions", () => ({
-  authorizeSchoolAccessAction: vi.fn(async (state) => state)
+  authorizeSchoolAccessAction: vi.fn(async (state) => state),
+  exitSchoolAccessAction: vi.fn()
 }));
 
 afterEach(cleanup);
@@ -60,11 +61,44 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
   });
 
-  it("does not prompt subscribers or signed-in users for a code on the homepage", () => {
+  it("keeps the authorized-code entry on the homepage in every account state: same form, same place, same wording, zero clicks", () => {
+    // Owner hotfix 2026-09-25: the entry is permanent, not signed-out only.
+    // Anonymous, unconfirmed, signed in without access, and entitled visitors
+    // all see the unchanged school-code form directly under the hero actions,
+    // inside the element the banner's "Authorized code" link points at.
+    for (const props of [
+      {},
+      { authState: "unconfirmed" as const },
+      { authState: "signed-in" as const },
+      { authState: "signed-in" as const, entitled: true }
+    ]) {
+      const label = JSON.stringify(props);
+      const { container } = render(<TeacherFirstHome {...props} />);
+      const anchor = container.querySelector<HTMLElement>("#authorized-access");
+      expect(anchor, label).toBeTruthy();
+      const entry = within(anchor as HTMLElement);
+      expect(entry.getByRole("heading", { name: "Enter authorized code to access MathNexa" }), label).toBeTruthy();
+      expect(entry.getByLabelText(/Authorized code/), label).toBeTruthy();
+      expect(entry.getByRole("button", { name: "Show code" }), label).toBeTruthy();
+      expect(entry.getByRole("button", { name: "Continue" }), label).toBeTruthy();
+      expect((anchor as HTMLElement).querySelector('input[name="next"]')?.getAttribute("value"), label).toBe("/games");
+      // Placement unchanged: directly after the hero actions, in the hero copy.
+      const before = anchor?.previousElementSibling;
+      expect(before?.classList.contains("teacher-home-actions") || before?.classList.contains("teacher-home-ready"), label).toBe(true);
+      expect(container.textContent, label).not.toContain("Start learning");
+      cleanup();
+    }
     render(<TeacherFirstHome authState="signed-in" entitled />);
-    expect(screen.queryByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeNull();
     expect(screen.getByText("Your MathNexa resource shelf is ready below.")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
+  });
+
+  it("shows the exit control in that place instead of a second code prompt while an authorized code is already active", () => {
+    const { container } = render(<TeacherFirstHome authState="signed-out" entitled schoolAccess />);
+    const anchor = container.querySelector<HTMLElement>("#authorized-access") as HTMLElement;
+    expect(within(anchor).getByRole("heading", { name: "Authorized access active" })).toBeTruthy();
+    expect(within(anchor).getByRole("button", { name: "Exit authorized access" })).toBeTruthy();
+    expect(screen.queryByLabelText(/Authorized code/)).toBeNull();
   });
 
   it("keeps the homepage concise: no showcase span, no commercial details", () => {

@@ -12,11 +12,16 @@ import {
 import { getGameAccessView, type GameAccessView } from "@/lib/game-access/server";
 import { hasMathNexaModuleAccess, type MathNexaProductModule } from "@math-vocabulary-hunt/platform-core";
 
+// The Worksheet Generator is part of the ShowMe Math (Online Math Prep)
+// application, so its entry checks the same product module as /map-prep. The
+// MathNexa all-access entitlement grants every module together; no new module
+// or entitlement rule is introduced for it.
 const destinationModule: Readonly<Record<ProductDestination, MathNexaProductModule>> = {
   "/games": "games",
   "/homework": "homework",
   "/quizzes": "quizzes",
-  "/map-prep": "map_prep"
+  "/map-prep": "map_prep",
+  "/worksheets": "map_prep"
 };
 
 export async function requireProductAccess(destination: ProductDestination): Promise<GameAccessView> {

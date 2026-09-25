@@ -1,8 +1,15 @@
+/**
+ * The product entries that a MathNexa entitlement protects. "/worksheets" is
+ * the app's entry for the ShowMe Math Worksheet Generator: it runs the same
+ * server-side access decision as the other four and then sends an entitled
+ * visitor on to the generator (app/worksheets/layout.tsx).
+ */
 export const PRODUCT_DESTINATIONS = [
   "/games",
   "/map-prep",
   "/homework",
-  "/quizzes"
+  "/quizzes",
+  "/worksheets"
 ] as const;
 
 /**
@@ -62,6 +69,7 @@ export function destinationLabel(destination: AccessIntentDestination): string {
     "/map-prep": "Online Math Prep",
     "/homework": "Homework PDFs",
     "/quizzes": "Quiz PDFs",
+    "/worksheets": "Worksheet Generator",
     "/subscription": "Subscription",
     "/account": "My Account"
   }[destination];

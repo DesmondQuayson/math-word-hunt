@@ -19,6 +19,9 @@ afterEach(() => { cleanup(); state.pathname = "/"; });
 const now = new Date("2026-09-24T12:00:00.000Z");
 const later = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
 const earlier = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+// A valid trial window is exactly 24 hours from its start (platform-core
+// entitlement.ts); any other length is malformed evidence and is denied.
+const trialEnd = new Date(Date.parse(earlier) + 24 * 60 * 60 * 1000).toISOString();
 
 function view(status: string, evidence: unknown, authenticated = true, source?: string) {
   return {
@@ -41,7 +44,7 @@ const PRODUCTS: ReadonlyArray<[string, string]> = [
   ["Online Math Prep", "/map-prep"],
   ["Homework PDFs", "/homework"],
   ["Quiz PDFs", "/quizzes"],
-  ["Worksheet Generator", "https://showme.mathnexa.com/worksheets"]
+  ["Worksheet Generator", "/worksheets"]
 ];
 
 function expectProductStrip(header: HTMLElement) {
@@ -110,11 +113,13 @@ describe("SiteHeader banner", () => {
 
   it("active trial, renewal grace and scheduled cancellation: no call to action either", async () => {
     for (const evidence of [
-      { state: "trial-active", trialRedeemedAt: earlier, startsAt: earlier, endsAt: later },
+      { state: "trial-active", trialRedeemedAt: earlier, startsAt: earlier, endsAt: trialEnd },
       { state: "subscription-grace-period", periodEndsAt: earlier, graceEndsAt: later },
       { state: "subscription-canceled-through-period-end", periodEndsAt: later }
     ]) {
-      const header = await renderHeader(view("active", evidence));
+      const v = view("active", evidence);
+      expect(v.decision.allowed, evidence.state).toBe(true);
+      const header = await renderHeader(v);
       expect(header.querySelector("[data-header-cta]")).toBeNull();
       expect(within(header).queryByRole("link", { name: /Start (free trial|learning)/ })).toBeNull();
       expectProductStrip(header);
@@ -153,5 +158,56 @@ describe("SiteHeader banner", () => {
     const reopened = within(header).getByRole("button", { name: "Open account menu" });
     expect(reopened.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(reopened);
+  });
+
+  it("product navigation: every destination is an app route; Worksheet Generator enters through the gated /worksheets, never a direct off-site link", async () => {
+    const header = await renderHeader(view("anonymous", {}, false));
+    const strip = expectProductStrip(header);
+    for (const link of within(strip).getAllByRole("link")) expect(link.getAttribute("href")).toMatch(/^\/(?!\/)/);
+    expect(strip.querySelector('a[href^="http"]')).toBeNull();
+    expect(within(strip).getByRole("link", { name: "Worksheet Generator" }).getAttribute("href")).toBe("/worksheets");
+    cleanup();
+    state.pathname = "/worksheets";
+    const onWorksheets = await renderHeader(view("active", { state: "subscription-active", periodEndsAt: later }));
+    const current = within(within(onWorksheets).getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: /Worksheet Generator/ });
+    expect(current.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("authorized-code entry: in the banner for every account state, outside the account menu and the product navigation, leading to the homepage form", async () => {
+    for (const [label, v] of [
+      ["anonymous", view("anonymous", {}, false)],
+      ["trial eligible", view("active", { state: "no-entitlement", trialRedeemedAt: null })],
+      ["active trial", view("active", { state: "trial-active", trialRedeemedAt: earlier, startsAt: earlier, endsAt: trialEnd })],
+      ["paid subscriber", view("active", { state: "subscription-active", periodEndsAt: later })],
+      ["used trial", view("active", { state: "trial-expired", trialRedeemedAt: earlier, endedAt: earlier })],
+      ["payment problem", view("active", { state: "subscription-past-due", periodEndsAt: null })],
+      ["scheduled cancellation", view("active", { state: "subscription-canceled-through-period-end", periodEndsAt: later })],
+      ["grace", view("active", { state: "subscription-grace-period", periodEndsAt: earlier, graceEndsAt: later })],
+      ["unconfirmed", view("unconfirmed", {}, true)],
+      ["school-code session", view("anonymous", { state: "subscription-active", periodEndsAt: later }, true, "school-access")]
+    ] as const) {
+      const header = await renderHeader(v);
+      const link = within(header).getByRole("link", { name: "Authorized code" });
+      expect(link.getAttribute("href"), label).toBe("/#authorized-access");
+      // A plain same-origin anchor: it carries no code, no query, no state.
+      expect(link.getAttribute("href"), label).not.toMatch(/[?=]/);
+      expect(within(accountPanel(header)).queryByRole("link", { name: "Authorized code" }), label).toBeNull();
+      expect(within(within(header).getByRole("navigation", { name: "Primary navigation" })).queryByRole("link", { name: "Authorized code" }), label).toBeNull();
+      expect(within(header).queryByRole("link", { name: "Start learning" }), label).toBeNull();
+      cleanup();
+    }
+  });
+
+  it("authorized-code entry is omitted on the sign-in page only: that page carries the form itself", async () => {
+    state.pathname = "/sign-in";
+    const signIn = await renderHeader(view("anonymous", {}, false));
+    expect(within(signIn).queryByRole("link", { name: "Authorized code" })).toBeNull();
+    cleanup();
+    for (const pathname of ["/", "/sign-up", "/access", "/games", "/map-prep", "/subscription", "/account", "/pricing"]) {
+      state.pathname = pathname;
+      const header = await renderHeader(view("anonymous", {}, false));
+      expect(within(header).getByRole("link", { name: "Authorized code" }).getAttribute("href"), pathname).toBe("/#authorized-access");
+      cleanup();
+    }
   });
 });

@@ -81,6 +81,7 @@ export default async function HomePage() {
     return <TeacherFirstHome
       authState={authState}
       entitled={access.decision.allowed}
+      schoolAccess={access.source === "school-access"}
       numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
     />;
   }

@@ -73,8 +73,21 @@ describe("consumer access intent", () => {
     expect(destinationLabel("/map-prep")).toBe("Online Math Prep");
     expect(destinationLabel("/homework")).toBe("Homework PDFs");
     expect(destinationLabel("/quizzes")).toBe("Quiz PDFs");
+    expect(destinationLabel("/worksheets")).toBe("Worksheet Generator");
     expect(destinationLabel("/subscription")).toBe("Subscription");
     expect(destinationLabel("/account")).toBe("My Account");
-    expect(PRODUCT_DESTINATIONS).toEqual(["/games", "/map-prep", "/homework", "/quizzes"]);
+    expect(PRODUCT_DESTINATIONS).toEqual(["/games", "/map-prep", "/homework", "/quizzes", "/worksheets"]);
+  });
+
+  it("treats the Worksheet Generator entry as a product destination: gated, remembered as next, never the off-site URL", () => {
+    // /worksheets is the app's own entry for the ShowMe worksheet generator.
+    // It rides the same access-intent journey as the other products; the
+    // ShowMe URL itself is never an accepted destination.
+    expect(safeProductDestination("/worksheets")).toBe("/worksheets");
+    expect(accessIntentHref("/worksheets")).toBe("/access?next=/worksheets");
+    expect(subscriptionReviewHref("/worksheets")).toBe("/subscription?next=/worksheets");
+    expect(safeAccessIntentDestination("https://showme.mathnexa.com/worksheets")).toBe("/");
+    expect(safeProductDestination("https://showme.mathnexa.com/worksheets")).toBe("/games");
+    expect(safeProductDestination("/worksheets/")).toBe("/games");
   });
 });

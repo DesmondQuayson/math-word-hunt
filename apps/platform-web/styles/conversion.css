@@ -65,15 +65,17 @@
 /* ---------- Banner layout ---------------------------------------------------
 
    Owner-approved structure: the brand picture and six product destinations
-   are always visible; account actions live behind the account menu button.
+   are always visible; account actions live behind the account menu button;
+   the authorized-code entry is permanent (every account state).
 
    DOM order: brand, compact call to action, product navigation, wide call to
-   action, account menu. Below 80rem the banner is two rows — row 1 = brand |
-   call to action | account menu, row 2 = the product strip (horizontally
-   scrollable where it must be). From 80rem it is one row — brand | product
-   navigation | call to action | account menu. CSS shows one call-to-action
-   copy per layout; the other is display:none and outside the accessibility
-   tree, so reading and focus order stay coherent. */
+   action, authorized-code entry, account menu. Below 80rem the banner is
+   three rows — row 1 = brand | call to action | account menu, row 2 = the
+   product grid (all six destinations, nothing scrolls or is swiped to),
+   row 3 = the authorized-code entry. From 80rem it is one row — brand |
+   product navigation | call to action | authorized code | account menu. CSS
+   shows one call-to-action copy per layout; the other is display:none and
+   outside the accessibility tree, so reading and focus order stay coherent. */
 
 .site-header--banner .header-inner {
   min-height: 0;
@@ -81,11 +83,12 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
     "brand cta menu"
-    "nav nav nav";
+    "nav nav nav"
+    "code code code";
   align-items: center;
   column-gap: var(--space-3);
   row-gap: var(--space-1);
-  padding-block: var(--space-2) 0;
+  padding-block: var(--space-2) var(--space-1);
 }
 
 .site-header--banner .brand {
@@ -111,66 +114,88 @@
   justify-self: end;
 }
 
-/* The strip bleeds to the viewport edges so it scrolls edge to edge; the
-   page gutter becomes its inner padding. */
+/* The navigation is a size container: the grid below reflows by its own
+   width (in rem, so enlarged text reflows it too), and its labels can never
+   widen the banner. */
 .site-header--banner .product-nav {
   grid-area: nav;
   width: auto;
   min-width: 0;
-  margin-inline: calc(-1 * var(--page-gutter));
-  padding-inline: var(--page-gutter);
+  container: product-nav / inline-size;
 }
 
-/* ---------- Product navigation strip ------------------------------------ */
+/* ---------- Product navigation grid ---------------------------------------
+
+   Phones: two rows of three — Home | Math Games | Online Math Prep, then
+   Homework PDFs | Quiz PDFs | Worksheet Generator — all six visible at once
+   at 320px and up, no swiping, no menu. A label may take a second line
+   ("Online / Math Prep"); it is never cut off. Tablets (48rem+) show one row
+   of six; desktops (80rem+) the single-row banner. With very large text the
+   grid reflows to two columns, then one, instead of overflowing the page. */
 
 .product-nav-list {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-1);
   margin: 0;
-  padding: 0 0 var(--space-2);
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.product-nav-list::-webkit-scrollbar {
-  display: none;
 }
 
 .product-nav-list li {
-  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
 }
 
 .product-nav-list a {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: var(--size-target-min);
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding-inline: var(--space-3);
+  justify-content: center;
+  padding: var(--space-1) var(--space-2);
   border: var(--border-width-thin) solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-medium);
+  background: rgb(255 255 255 / 6%);
   color: var(--color-on-brand);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 750;
-  line-height: 1.1;
+  line-height: 1.15;
+  text-align: center;
   text-decoration: none;
-  white-space: nowrap;
+  text-wrap: balance;
+  overflow-wrap: normal;
+  hyphens: manual;
   transition: background-color var(--motion-fast) var(--ease-standard);
 }
 
 .product-nav-list a:hover {
-  background: rgb(255 255 255 / 11%);
+  background: rgb(255 255 255 / 12%);
 }
 
-/* Current destination: pill plus a brand-yellow underline. */
+/* Current destination: stronger tile plus a brand-yellow underline. */
 .product-nav-list a[aria-current="page"] {
-  background: rgb(255 255 255 / 14%);
+  background: rgb(255 255 255 / 16%);
   box-shadow: inset 0 -2px 0 var(--color-brand-secondary);
+}
+
+@container product-nav (max-width: 17.5rem) {
+  .product-nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container product-nav (max-width: 12rem) {
+  .product-nav-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 48rem) {
+  .product-nav-list {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
 
 .product-nav-list a:focus-visible {
@@ -280,6 +305,61 @@
   background: transparent;
 }
 
+/* ---------- Authorized code entry ----------------------------------------
+
+   Permanent in every account state and reachable without opening the account
+   menu or scrolling: row 3 of the compact banner, an outlined action beside
+   the call to action from 80rem. It leads to the homepage's authorized-code
+   form (the form itself is unchanged). */
+
+.banner-code-link {
+  grid-area: code;
+  justify-self: end;
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-medium);
+  color: var(--color-on-brand);
+  font-size: 0.875rem;
+  font-weight: 750;
+  line-height: 1.1;
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 45%);
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.banner-code-link svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.banner-code-link:hover {
+  background: rgb(255 255 255 / 11%);
+  text-decoration-color: currentColor;
+}
+
+.banner-code-link:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+/* The homepage form the entry lands on: a little breathing room above it
+   when it is scrolled into view. */
+.teacher-home-authorized-access {
+  scroll-margin-top: var(--space-4);
+}
+
 /* ---------- One-row banner from 80rem ------------------------------------- */
 
 @media (min-width: 80rem) {
@@ -288,7 +368,7 @@
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
     padding-block: 0;
   }
 
@@ -303,12 +383,49 @@
   .site-header--banner .product-nav {
     flex: 1 1 auto;
     min-width: 0;
-    margin-inline: 0;
-    padding-inline: 0;
   }
 
+  /* One row of pills. Where the row is tight, a label wraps onto a second
+     line inside its pill; the row never scrolls. */
   .site-header--banner .product-nav-list {
-    padding-bottom: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .site-header--banner .product-nav-list li {
+    flex: 0 1 auto;
+  }
+
+  /* 80–90rem laptops are the tight case (six labels, the call to action,
+     the authorized-code entry and the menu on one row): slightly smaller
+     pills so every label stays on one line; the roomy sizes return at 90rem. */
+  .site-header--banner .product-nav-list a {
+    padding-inline: var(--space-2);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font-size: 0.875rem;
+    line-height: 1.1;
+  }
+
+  .site-header--banner .product-nav-list a:hover {
+    background: rgb(255 255 255 / 11%);
+  }
+
+  .site-header--banner .product-nav-list a[aria-current="page"] {
+    background: rgb(255 255 255 / 14%);
+  }
+
+  /* Beside the call to action: a calm outline, never a sales prompt. */
+  .site-header--banner .banner-code-link {
+    flex: 0 0 auto;
+    gap: var(--space-1);
+    padding-inline: var(--space-3);
+    border-color: rgb(255 255 255 / 55%);
+    border-radius: var(--radius-pill);
+    font-size: 0.875rem;
+    text-decoration: none;
   }
 
   /* The account panel becomes a dropdown hanging from the banner's bottom
@@ -327,6 +444,24 @@
 
   .site-header--banner .account-nav-list {
     width: 100%;
+  }
+}
+
+/* From 90rem the row has room: the approved desktop sizes. */
+@media (min-width: 90rem) {
+  .site-header--banner .header-inner {
+    gap: var(--space-4);
+  }
+
+  .site-header--banner .product-nav-list a {
+    padding-inline: var(--space-3);
+    font-size: 0.9375rem;
+  }
+
+  .site-header--banner .banner-code-link {
+    gap: var(--space-2);
+    padding-inline: var(--space-4);
+    font-size: 0.9375rem;
   }
 }
 
@@ -369,6 +504,7 @@
 @media (forced-colors: active) {
   .header-cta,
   .header-menu-toggle,
+  .banner-code-link,
   .product-nav-list a[aria-current="page"] {
     border: 2px solid ButtonText;
   }
@@ -377,6 +513,7 @@
 @media (prefers-reduced-motion: reduce) {
   .header-cta,
   .header-cta:hover,
+  .banner-code-link,
   .product-nav-list a {
     transform: none;
     transition: none;

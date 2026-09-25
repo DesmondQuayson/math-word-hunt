@@ -3,9 +3,11 @@ import Link from "next/link";
 import { Fragment } from "react";
 
 import { ConfirmationReminder } from "@/components/auth/email-confirmation-dialog";
+import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access-active-panel";
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
+import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
   PLATFORM_HERO_AUDIENCE,
   PLATFORM_HERO_DESCRIPTION,
@@ -19,6 +21,8 @@ export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
 type TeacherFirstHomeProps = Readonly<{
   authState?: HomeAuthState;
   entitled?: boolean;
+  /** The visitor's access comes from an authorized (school) code already entered in this session. */
+  schoolAccess?: boolean;
   numberCrossPublished?: boolean;
 }>;
 
@@ -122,7 +126,8 @@ function LearningConstellation() {
 
 export function TeacherFirstHome({
   authState = "signed-out",
-  entitled = false
+  entitled = false,
+  schoolAccess = false
 }: TeacherFirstHomeProps) {
   return <>
     <section className="teacher-home-hero container" aria-labelledby="home-title">
@@ -132,7 +137,13 @@ export function TeacherFirstHome({
         <p className="teacher-home-lede">{PLATFORM_HERO_DESCRIPTION}</p>
         <p className="teacher-home-audience">{PLATFORM_HERO_AUDIENCE}</p>
         <HeroActions authState={authState} entitled={entitled} />
-        {authState === "signed-out" ? <AuthorizedCodeForm nextDestination="/games" compact /> : null}
+        {/* The authorized-code entry is permanent on the homepage: the same
+            form, placement and wording in every account state, zero clicks
+            (the banner's "Authorized code" link lands here). A session that
+            already entered a code sees its exit control in the same place. */}
+        <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
+          {schoolAccess ? <AuthorizedAccessActivePanel /> : <AuthorizedCodeForm nextDestination="/games" compact />}
+        </div>
       </div>
       <LearningConstellation />
     </section>
