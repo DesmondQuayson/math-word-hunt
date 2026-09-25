@@ -139,7 +139,7 @@ export function TeacherFirstHome({
         <HeroActions authState={authState} entitled={entitled} />
         {/* The authorized-code entry is permanent on the homepage: the same
             form, placement and wording in every account state, zero clicks
-            (the banner's "Authorized code" link lands here). A session that
+            (the banner's "Authorize Code" link lands here). A session that
             already entered a code sees its exit control in the same place. */}
         <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
           {schoolAccess ? <AuthorizedAccessActivePanel /> : <AuthorizedCodeForm nextDestination="/games" compact />}

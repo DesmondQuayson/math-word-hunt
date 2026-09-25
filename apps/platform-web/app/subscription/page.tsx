@@ -71,7 +71,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
               <p className="plan-summary-name">MathNexa monthly</p>
               <p className="plan-summary-price"><strong>{plan.price}</strong> <span>{plan.currency} / {plan.interval}</span></p>
             </div>
-            <p className="plan-summary-includes">One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.</p>
+            <p className="plan-summary-includes">One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.</p>
             <div className="plan-terms">
               <p className="plan-terms-title">Trial and billing terms</p>
               <SubscriptionTermsList />
@@ -96,10 +96,10 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       </span>
       <h1 id="activation-success-heading">You&apos;re all set!</h1>
       <p role="status">Your MathNexa access is ready.</p>
-      <LinkButton href={SUBSCRIBER_DESTINATION} className="button-large">Start learning</LinkButton>
+      <LinkButton href={SUBSCRIBER_DESTINATION} className="button-large">Go to Math Games</LinkButton>
       <a className="success-panel-secondary" href="/subscription">View subscription details</a>
     </section> : <PageHeader eyebrow="Subscription" title={`${plan.price} ${plan.currency} ${plan.intervalAdverb} MathNexa access`} description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />}
-    {justActivated ? null : <Notice label="Included with your subscription" tone="information"><strong>One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.</strong><p>Every included area uses the same server-verified trial or subscription. You will not be asked to subscribe again for another module.</p></Notice>}
+    {justActivated ? null : <Notice label="Included with your subscription" tone="information"><strong>One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.</strong><p>Every included area uses the same server-verified trial or subscription. You will not be asked to subscribe again for another module.</p></Notice>}
     {justActivated && subscription ? <ConsumerSubscriptionSummary subscription={subscription} /> : null}
     {justActivated ? null : <>
       <CheckoutNotices params={params} configured={Boolean(config)} />

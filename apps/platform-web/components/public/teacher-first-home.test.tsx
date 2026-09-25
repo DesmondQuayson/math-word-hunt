@@ -50,14 +50,14 @@ describe("teacher-first public homepage", () => {
     // The only headings are the H1 and the authorized-code form heading: no empty section wrapper or orphan heading remains.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
       "Make every math lesson clearer, more engaging, and ready to teach.",
-      "Enter authorized code to access MathNexa"
+      "Authorize Code"
     ]);
   });
 
   it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {
     render(<TeacherFirstHome />);
-    expect(screen.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeTruthy();
-    expect(screen.getByLabelText(/Authorized code/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Authorize Code" })).toBeTruthy();
+    expect(screen.getByLabelText(/^Code/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
   });
 
@@ -65,7 +65,7 @@ describe("teacher-first public homepage", () => {
     // Owner hotfix 2026-09-25: the entry is permanent, not signed-out only.
     // Anonymous, unconfirmed, signed in without access, and entitled visitors
     // all see the unchanged school-code form directly under the hero actions,
-    // inside the element the banner's "Authorized code" link points at.
+    // inside the element the banner's "Authorize Code" link points at.
     for (const props of [
       {},
       { authState: "unconfirmed" as const },
@@ -77,8 +77,8 @@ describe("teacher-first public homepage", () => {
       const anchor = container.querySelector<HTMLElement>("#authorized-access");
       expect(anchor, label).toBeTruthy();
       const entry = within(anchor as HTMLElement);
-      expect(entry.getByRole("heading", { name: "Enter authorized code to access MathNexa" }), label).toBeTruthy();
-      expect(entry.getByLabelText(/Authorized code/), label).toBeTruthy();
+      expect(entry.getByRole("heading", { name: "Authorize Code" }), label).toBeTruthy();
+      expect(entry.getByLabelText(/^Code/), label).toBeTruthy();
       expect(entry.getByRole("button", { name: "Show code" }), label).toBeTruthy();
       expect(entry.getByRole("button", { name: "Continue" }), label).toBeTruthy();
       expect((anchor as HTMLElement).querySelector('input[name="next"]')?.getAttribute("value"), label).toBe("/games");
@@ -98,7 +98,7 @@ describe("teacher-first public homepage", () => {
     const anchor = container.querySelector<HTMLElement>("#authorized-access") as HTMLElement;
     expect(within(anchor).getByRole("heading", { name: "Authorized access active" })).toBeTruthy();
     expect(within(anchor).getByRole("button", { name: "Exit authorized access" })).toBeTruthy();
-    expect(screen.queryByLabelText(/Authorized code/)).toBeNull();
+    expect(screen.queryByLabelText(/^Code/)).toBeNull();
   });
 
   it("keeps the homepage concise: no showcase span, no commercial details", () => {

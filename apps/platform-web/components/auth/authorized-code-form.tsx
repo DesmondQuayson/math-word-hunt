@@ -26,7 +26,7 @@ export function AuthorizedCodeForm({ nextDestination, compact = false }: Authori
     aria-labelledby="authorized-access-heading"
   >
     <div className="authorized-access-copy">
-      <h2 id="authorized-access-heading">Enter authorized code to access MathNexa</h2>
+      <h2 id="authorized-access-heading">Authorize Code</h2>
     </div>
     <form className="authorized-access-form" action={action} noValidate>
       {state.status === "error" ? <div className="error-summary" role="alert" tabIndex={-1} ref={messageRef}>
@@ -38,7 +38,7 @@ export function AuthorizedCodeForm({ nextDestination, compact = false }: Authori
         name="authorizedCode"
         secretName="code"
         autoComplete="off"
-        label="Authorized code"
+        label="Code"
         maxLength={128}
         required
       />

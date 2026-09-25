@@ -25,8 +25,8 @@ async function renderAccessPage() {
 }
 
 function expectInlineAuthorizedCode() {
-  expect(screen.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeTruthy();
-  expect(screen.getByLabelText(/^Authorized code/)).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Authorize Code" })).toBeTruthy();
+  expect(screen.getByLabelText(/^Code/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
 }
 
@@ -70,7 +70,7 @@ describe("authorized-code initial visibility on /access", () => {
     state.schoolSession = { id: "11111111-1111-4111-8111-111111111111" };
     await renderAccessPage();
     expect(screen.getByRole("heading", { name: "Authorized access active" })).toBeTruthy();
-    expect(screen.queryByLabelText(/^Authorized code/)).toBeNull();
+    expect(screen.queryByLabelText(/^Code/)).toBeNull();
     expect(screen.getByRole("button", { name: "Exit authorized access" })).toBeTruthy();
   });
 

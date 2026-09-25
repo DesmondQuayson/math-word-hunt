@@ -44,8 +44,8 @@ async function renderAccount() {
 }
 
 function expectAuthorizedCodeField() {
-  expect(screen.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeTruthy();
-  expect(screen.getByLabelText(/^Authorized code/)).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Authorize Code" })).toBeTruthy();
+  expect(screen.getByLabelText(/^Code/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
 }
 
@@ -63,7 +63,7 @@ describe("permanent authorized-code visibility on consumer account controls", ()
     state.schoolSession = { id: "11111111-1111-4111-8111-111111111111" };
     await renderAccount();
     expect(screen.getByRole("heading", { name: "Authorized access active" })).toBeTruthy();
-    expect(screen.queryByLabelText(/^Authorized code/)).toBeNull();
+    expect(screen.queryByLabelText(/^Code/)).toBeNull();
     expect(screen.getByRole("button", { name: "Exit authorized access" })).toBeTruthy();
   });
 

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 
 /**
- * The banner's permanent "Authorized code" entry, shown in every account
+ * The banner's permanent "Authorize Code" entry, shown in every account
  * state. The homepage always renders the authorized-code form; this link
  * brings it into view and focuses the code field there, and leads to it from
  * any other page. The sign-in page carries its own copy of the form, so the
@@ -32,6 +32,6 @@ export function AuthorizedCodeLink() {
       <circle cx="8" cy="12" r="4" />
       <path d="M12 12h9M18 12v3M15 12v2" />
     </svg>
-    <span>Authorized code</span>
+    <span>Authorize Code</span>
   </a>;
 }

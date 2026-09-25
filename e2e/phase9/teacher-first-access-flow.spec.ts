@@ -199,7 +199,7 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL("/subscription?next=/homework");
   await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
-  await expect(page.getByText("One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.", { exact: true })).toBeVisible();
+  await expect(page.getByText("One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.", { exact: true })).toBeVisible();
   await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
   await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(7);
@@ -208,13 +208,13 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   // now straight to the subscription step.
   await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
   await page.goto("/account");
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+  await expect(page.getByLabel("Code (required)")).toBeVisible();
   await page.goto("/access?next=/map-prep");
   await expect(page).toHaveURL("/access?next=/map-prep");
   await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+  await expect(page.getByLabel("Code (required)")).toBeVisible();
   await page.goto("/games?access=active");
   await expect(page).toHaveURL("/subscription?next=/games");
   await page.goto("/map-prep?destinationUrl=https://evil.example/override");
@@ -246,13 +246,13 @@ test("server-entitled accounts reach all four selected products and validated On
   await expect(page.getByRole("banner").locator("[data-header-cta]")).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link")).toHaveCount(6);
   await page.goto("/account");
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+  await expect(page.getByLabel("Code (required)")).toBeVisible();
   await page.goto("/access?next=/map-prep");
   await expect(page).toHaveURL("/access?next=/map-prep");
   await expect(page.getByRole("link", { name: "Account", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+  await expect(page.getByLabel("Code (required)")).toBeVisible();
   await page.goto("/games");
   await vocabularyGameCard.getByRole("link", { name: "Play" }).click();
   await page.waitForURL((url) => url.pathname === "/game/runtime/index.html");
@@ -397,7 +397,7 @@ test("320px at 200% text reflows without horizontal scrolling, including the sch
     await measure(path);
     // The authorized school-code form stays usable: field, reveal control and
     // Continue all on screen with project-minimum targets.
-    const code = page.getByLabel("Authorized code (required)");
+    const code = page.getByLabel("Code (required)");
     await expect(code).toBeVisible();
     const reveal = page.getByRole("button", { name: "Show code" });
     const continueButton = page.getByRole("button", { name: "Continue" });
@@ -536,10 +536,10 @@ test("Worksheet Generator is subscription-gated: nobody reaches ShowMe without a
   await context.clearCookies();
 });
 
-test("Authorized code entry is permanent: homepage form plus banner link in every account state; the sign-in page may omit the banner link", async ({ page, context }) => {
-  const codeHeading = page.getByRole("heading", { name: "Enter authorized code to access MathNexa" });
-  const codeField = page.getByLabel("Authorized code (required)");
-  const bannerLink = page.getByRole("banner").getByRole("link", { name: "Authorized code" });
+test("Authorize Code entry is permanent: homepage form plus banner link in every account state; the sign-in page may omit the banner link", async ({ page, context }) => {
+  const codeHeading = page.getByRole("heading", { name: "Authorize Code" });
+  const codeField = page.getByLabel("Code (required)");
+  const bannerLink = page.getByRole("banner").getByRole("link", { name: "Authorize Code" });
   const expectEntry = async (label: string) => {
     await expect(codeHeading, label).toBeVisible();
     await expect(codeField, label).toBeVisible();
@@ -554,7 +554,7 @@ test("Authorized code entry is permanent: homepage form plus banner link in ever
     ).toBe(true);
     expect(box?.height ?? 0, `${label}: target height`).toBeGreaterThanOrEqual(44);
     // Never only inside the account menu; never a "Start learning" anywhere.
-    await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "Authorized code" }), label).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "Authorize Code" }), label).toHaveCount(0);
     await expect(page.locator("body"), label).not.toContainText("Start learning");
   };
 
@@ -706,4 +706,34 @@ test("SEO boundaries, admin isolation, and signed-out billing isolation remain e
   expect(await adminResponse.text()).not.toMatch(/super admin|mfa|audit log/i);
   await page.goto("/");
   await expect(page.locator("body")).not.toContainText(/sk_test_|whsec_|SUPABASE_SECRET_KEY|STRIPE_SECRET_KEY/);
+});
+
+test("no 'Start learning' anywhere in the current experience; activation success offers Go to Math Games; subscription copy lists Worksheet Generator", async ({ page, context }) => {
+  const included = "One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.";
+  const sweep = async (label: string, paths: string[]) => {
+    for (const path of paths) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("body"), `${label} ${path}`).not.toContainText("Start learning");
+    }
+  };
+  await sweep("anonymous", ["/", "/sign-in", "/sign-up?next=/subscription", "/access?next=/games", "/pricing"]);
+  // The trial sign-up plan summary names every protected product, the generator included.
+  await page.goto("/sign-up?next=/subscription");
+  await expect(page.getByText(/free trial with full access to Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator\./)).toBeVisible();
+
+  // Post-activation success: the action is "Go to Math Games" (destination unchanged: /games).
+  await signIn(page, entitledEmail, "/");
+  await expect(page).toHaveURL("/");
+  await page.goto("/subscription?activated=1");
+  await expect(page.getByRole("heading", { name: "You're all set!" })).toBeVisible();
+  const go = page.getByRole("link", { name: "Go to Math Games" });
+  await expect(go).toHaveAttribute("href", "/games");
+  await expect(page.locator("body")).not.toContainText("Start learning");
+  await go.click();
+  await expect(page).toHaveURL("/games");
+  await page.goto("/subscription");
+  await expect(page.getByText(included, { exact: true })).toBeVisible();
+  await sweep("entitled", ["/", "/subscription", "/account", "/pricing", "/subscription?activated=1"]);
+  await context.clearCookies();
 });

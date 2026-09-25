@@ -35,7 +35,7 @@ export function TrialPlanSummary({ headingLevel = 2 }: Readonly<{ headingLevel?:
         <p className="plan-summary-price"><strong>{plan.price}</strong> <span>{plan.currency} / {plan.interval}</span></p>
       </div>
       <ul className="plan-facts">
-        <li><Check /><span><strong>{plan.trialLabel} free trial</strong> with full access to Math Games, Online Math Prep, Homework PDFs, and Quiz PDFs.</span></li>
+        <li><Check /><span><strong>{plan.trialLabel} free trial</strong> with full access to Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.</span></li>
         <li><Check /><span>After the trial, {plan.price} {plan.currency} is billed {plan.intervalAdverb} and renews automatically until canceled.</span></li>
         <li><Check /><span>Cancel before the {plan.trialLabel} trial ends and you won&apos;t be charged.</span></li>
       </ul>

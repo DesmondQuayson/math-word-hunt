@@ -187,12 +187,12 @@ describe("SiteHeader banner", () => {
       ["school-code session", view("anonymous", { state: "subscription-active", periodEndsAt: later }, true, "school-access")]
     ] as const) {
       const header = await renderHeader(v);
-      const link = within(header).getByRole("link", { name: "Authorized code" });
+      const link = within(header).getByRole("link", { name: "Authorize Code" });
       expect(link.getAttribute("href"), label).toBe("/#authorized-access");
       // A plain same-origin anchor: it carries no code, no query, no state.
       expect(link.getAttribute("href"), label).not.toMatch(/[?=]/);
-      expect(within(accountPanel(header)).queryByRole("link", { name: "Authorized code" }), label).toBeNull();
-      expect(within(within(header).getByRole("navigation", { name: "Primary navigation" })).queryByRole("link", { name: "Authorized code" }), label).toBeNull();
+      expect(within(accountPanel(header)).queryByRole("link", { name: "Authorize Code" }), label).toBeNull();
+      expect(within(within(header).getByRole("navigation", { name: "Primary navigation" })).queryByRole("link", { name: "Authorize Code" }), label).toBeNull();
       expect(within(header).queryByRole("link", { name: "Start learning" }), label).toBeNull();
       cleanup();
     }
@@ -201,12 +201,12 @@ describe("SiteHeader banner", () => {
   it("authorized-code entry is omitted on the sign-in page only: that page carries the form itself", async () => {
     state.pathname = "/sign-in";
     const signIn = await renderHeader(view("anonymous", {}, false));
-    expect(within(signIn).queryByRole("link", { name: "Authorized code" })).toBeNull();
+    expect(within(signIn).queryByRole("link", { name: "Authorize Code" })).toBeNull();
     cleanup();
     for (const pathname of ["/", "/sign-up", "/access", "/games", "/map-prep", "/subscription", "/account", "/pricing"]) {
       state.pathname = pathname;
       const header = await renderHeader(view("anonymous", {}, false));
-      expect(within(header).getByRole("link", { name: "Authorized code" }).getAttribute("href"), pathname).toBe("/#authorized-access");
+      expect(within(header).getByRole("link", { name: "Authorize Code" }).getAttribute("href"), pathname).toBe("/#authorized-access");
       cleanup();
     }
   });

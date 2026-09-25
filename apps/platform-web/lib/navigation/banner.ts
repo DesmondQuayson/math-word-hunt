@@ -45,7 +45,7 @@ export const ACCOUNT_NAVIGATION: readonly BannerLink[] = [
 /**
  * The homepage element that holds the authorized-code form (or, for a session
  * that already entered a code, its exit control). The banner's permanent
- * "Authorized code" link points at it from every page.
+ * "Authorize Code" link points at it from every page.
  */
 export const AUTHORIZED_ACCESS_ANCHOR = "authorized-access" as const;
 

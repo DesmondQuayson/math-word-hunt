@@ -70,7 +70,7 @@ async function ConsumerCheckoutStatus({ sessionId, nextDestination }: { sessionI
   const awaitingAuthoritativeAccess = state === "processing" ||
     ((state === "trialing" || state === "active") && !access.decision.allowed);
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow="Stripe billing" title={awaitingAuthoritativeAccess ? "Activating your MathNexa access" : "Subscription setup status"} description="Only verified Stripe, current consent, and server records can activate Games, MAP Prep, Homework, and Quizzes." />
+    <PageHeader eyebrow="Stripe billing" title={awaitingAuthoritativeAccess ? "Activating your MathNexa access" : "Subscription setup status"} description="Only verified Stripe, current consent, and server records can activate Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator." />
     <Notice label="Setup status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p></Notice>
     {access.decision.accessEndsAt ? <Notice label="Authoritative access window" tone="success"><strong>Verified expiration</strong><p><time dateTime={access.decision.accessEndsAt}>{new Date(access.decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p></Notice> : null}
     {awaitingAuthoritativeAccess ? <CheckoutStatusPoller /> : null}

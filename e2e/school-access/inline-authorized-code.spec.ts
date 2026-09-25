@@ -8,7 +8,7 @@ const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf
 
 async function enterAuthorizedAccess(page: Page, destination = "/games", code = authorizedCode) {
   await page.goto(`/access?next=${encodeURIComponent(destination)}`);
-  await page.getByLabel("Authorized code (required)").fill(code);
+  await page.getByLabel("Code (required)").fill(code);
   await page.getByRole("button", { name: "Continue" }).click();
 }
 
@@ -20,8 +20,8 @@ test("the existing access screen keeps public account choices and shows the mask
   await page.goto("/access?next=/map-prep");
   await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?next=/map-prep");
   await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/sign-up?next=/map-prep");
-  await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-  const input = page.getByLabel("Authorized code (required)");
+  await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+  const input = page.getByLabel("Code (required)");
   await expect(input).toHaveAttribute("type", "password");
   await expect(input).toBeInViewport();
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
@@ -40,8 +40,8 @@ test("the existing access screen keeps public account choices and shows the mask
 test("sign-in and create-account screens keep the code field immediately visible", async ({ page }) => {
   for (const route of ["/sign-in?next=/map-prep", "/sign-up?next=/map-prep"]) {
     await page.goto(route);
-    await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
-    await expect(page.getByLabel("Authorized code (required)")).toHaveAttribute("type", "password");
+    await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
+    await expect(page.getByLabel("Code (required)")).toHaveAttribute("type", "password");
     await expect(page.locator('input[name="next"]').last()).toHaveValue("/map-prep");
   }
 });
@@ -50,11 +50,11 @@ test("invalid input is denied generically and the field remains keyboard reachab
   await page.goto("/access?next=/games");
   await page.keyboard.press("Tab");
   for (let index = 0; index < 20; index += 1) {
-    if (await page.getByLabel("Authorized code (required)").evaluate((element) => element === document.activeElement)) break;
+    if (await page.getByLabel("Code (required)").evaluate((element) => element === document.activeElement)) break;
     await page.keyboard.press("Tab");
   }
-  await expect(page.getByLabel("Authorized code (required)")).toBeFocused();
-  await page.getByLabel("Authorized code (required)").fill("not-the-code");
+  await expect(page.getByLabel("Code (required)")).toBeFocused();
+  await page.getByLabel("Code (required)").fill("not-the-code");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/access\?next=\/games$/);
   const error = page.locator(".authorized-access-form .error-summary");
@@ -95,7 +95,7 @@ test("unsafe next is rejected and account UI contains no fake identity or billin
   await expect(page.getByText("Access provided through an authorized school code.")).toBeVisible();
   await expect(page.locator("#main-content").getByRole("button", { name: "Exit authorized access" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Authorized access active" })).toBeVisible();
-  await expect(page.getByLabel("Authorized code (required)")).toHaveCount(0);
+  await expect(page.getByLabel("Code (required)")).toHaveCount(0);
   await expect(page.getByTestId("consumer-account-summary")).toHaveCount(0);
   await expect(page.locator('input[type="email"], a[href="/subscriber-management"]')).toHaveCount(0);
 });

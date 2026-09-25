@@ -59,7 +59,7 @@ describe("banner navigation", () => {
     const productLabels = PRODUCT_NAVIGATION.map((item) => item.label);
     for (const account of ACCOUNT_NAVIGATION) expect(productLabels).not.toContain(account.label);
     expect(productLabels).not.toContain("Start learning");
-    expect(productLabels).not.toContain("Authorized code");
+    expect(productLabels).not.toContain("Authorize Code");
   });
 
   it("marks the current destination: Home exactly, products with their sub-routes, the worksheet entry included", () => {
@@ -73,7 +73,7 @@ describe("banner navigation", () => {
     expect(isCurrentBannerPath(WORKSHEET_GENERATOR_URL, "/worksheets")).toBe(false);
   });
 
-  it("names the homepage anchor the banner's Authorized code link points at", () => {
+  it("names the homepage anchor the banner's Authorize Code link points at", () => {
     expect(AUTHORIZED_ACCESS_ANCHOR).toBe("authorized-access");
   });
 });
