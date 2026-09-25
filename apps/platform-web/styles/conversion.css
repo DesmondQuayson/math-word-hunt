@@ -1,8 +1,9 @@
 /* ==========================================================================
    Subscription conversion UI V1
-   Header call to action + compact menu, password reveal control, and the
-   free-trial onboarding surfaces. Production-platform header only
-   (.site-header--menu); other runtime modes keep their existing header.
+   Banner (six product destinations + account menu + call to action),
+   password reveal control, and the free-trial onboarding surfaces.
+   Production-platform header only (.site-header--banner); other runtime
+   modes keep their existing header.
    ========================================================================== */
 
 /* ---------- Header call to action ---------------------------------------- */
@@ -44,8 +45,7 @@
   transform: translateY(-1px);
 }
 
-/* Existing subscribers get a calm outline action, never a sales prompt. */
-.header-cta--subscriber,
+/* Manage / status actions are calm outlines, never a sales prompt. */
 .header-cta--manage,
 .header-cta--trial-status {
   border-color: rgb(255 255 255 / 55%);
@@ -53,7 +53,6 @@
   color: var(--color-on-brand);
 }
 
-.header-cta--subscriber:hover,
 .header-cta--manage:hover,
 .header-cta--trial-status:hover {
   background: rgb(255 255 255 / 11%);
@@ -63,13 +62,138 @@
   border-radius: var(--radius-pill);
 }
 
-/* ---------- Menu button --------------------------------------------------- */
+/* ---------- Banner layout ---------------------------------------------------
+
+   Owner-approved structure: the brand picture and six product destinations
+   are always visible; account actions live behind the account menu button.
+
+   DOM order: brand, compact call to action, product navigation, wide call to
+   action, account menu. Below 80rem the banner is two rows — row 1 = brand |
+   call to action | account menu, row 2 = the product strip (horizontally
+   scrollable where it must be). From 80rem it is one row — brand | product
+   navigation | call to action | account menu. CSS shows one call-to-action
+   copy per layout; the other is display:none and outside the accessibility
+   tree, so reading and focus order stay coherent. */
+
+.site-header--banner .header-inner {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "brand cta menu"
+    "nav nav nav";
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  padding-block: var(--space-2) 0;
+}
+
+.site-header--banner .brand {
+  grid-area: brand;
+  min-width: 2.5rem;
+  min-height: var(--size-target-min);
+  align-self: center;
+  justify-self: start;
+}
+
+.site-header--banner .header-cta--compact {
+  grid-area: cta;
+  justify-self: end;
+}
+
+.site-header--banner .header-cta--wide {
+  display: none;
+}
+
+.site-header--banner .header-menu {
+  grid-area: menu;
+  position: static;
+  justify-self: end;
+}
+
+/* The strip bleeds to the viewport edges so it scrolls edge to edge; the
+   page gutter becomes its inner padding. */
+.site-header--banner .product-nav {
+  grid-area: nav;
+  width: auto;
+  min-width: 0;
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding-inline: var(--page-gutter);
+}
+
+/* ---------- Product navigation strip ------------------------------------ */
+
+.product-nav-list {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0 0 var(--space-2);
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.product-nav-list::-webkit-scrollbar {
+  display: none;
+}
+
+.product-nav-list li {
+  flex: 0 0 auto;
+}
+
+.product-nav-list a {
+  min-height: var(--size-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-on-brand);
+  font-size: 0.9375rem;
+  font-weight: 750;
+  line-height: 1.1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.product-nav-list a:hover {
+  background: rgb(255 255 255 / 11%);
+}
+
+/* Current destination: pill plus a brand-yellow underline. */
+.product-nav-list a[aria-current="page"] {
+  background: rgb(255 255 255 / 14%);
+  box-shadow: inset 0 -2px 0 var(--color-brand-secondary);
+}
+
+.product-nav-list a:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+.product-nav-list .nav-current-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Account menu -------------------------------------------------- */
 
 .header-menu-toggle {
   width: var(--size-target-min);
   height: var(--size-target-min);
   flex: 0 0 auto;
-  display: none;
+  display: inline-grid;
   place-items: center;
   padding: 0;
   border: var(--border-width-thin) solid rgb(255 255 255 / 38%);
@@ -89,166 +213,145 @@
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 2;
 }
 
-/* ---------- Wide header: brand | navigation | call to action -------------- */
+/* Below the banner (row 2 included), full width; .site-header is the
+   positioned ancestor, so the banner itself is never covered. */
+.header-menu-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  display: none;
+  max-height: calc(100dvh - 7.5rem);
+  overflow-y: auto;
+  padding: var(--space-3) var(--page-gutter) var(--space-5);
+  border-top: var(--border-width-thin) solid rgb(255 255 255 / 16%);
+  background: var(--color-brand-primary-hover);
+  box-shadow: 0 18px 30px rgb(5 21 37 / 28%);
+}
+
+.header-menu[data-open="true"] .header-menu-panel {
+  display: block;
+}
+
+.account-nav-list {
+  width: min(100%, 24rem);
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.account-nav-list a,
+.account-nav-list button {
+  width: 100%;
+  min-height: var(--size-target-min);
+  display: flex;
+  align-items: center;
+  padding-inline: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: rgb(255 255 255 / 5%);
+  color: var(--color-on-brand);
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-nav-list a:hover,
+.account-nav-list button:hover {
+  background: rgb(255 255 255 / 11%);
+}
+
+.account-nav-list .account-nav-action {
+  margin-top: var(--space-2);
+}
+
+.account-nav-list .account-nav-action button {
+  justify-content: center;
+  border: var(--border-width-thin) solid rgb(255 255 255 / 38%);
+  background: transparent;
+}
+
+/* ---------- One-row banner from 80rem ------------------------------------- */
 
 @media (min-width: 80rem) {
-  .site-header--menu .header-inner {
-    gap: var(--space-4);
-  }
-
-  .site-header--menu .header-menu {
-    min-width: 0;
-    margin-left: auto;
-  }
-
-  .site-header--menu .nav-list a {
-    padding-inline: var(--space-3);
-  }
-
-  .site-header--menu .nav-account-action button {
-    padding-inline: var(--space-3);
-  }
-
-  .site-header--menu .header-cta--compact {
-    display: none;
-  }
-}
-
-/* Between 80rem and 90rem the signed-in row (seven links, Sign out and the
-   call to action) is within a few link widths of the container, and platform
-   fonts differ in width; tighten the links so no font can force a wrap. */
-@media (min-width: 80rem) and (max-width: 89.99rem) {
-  .site-header--menu .nav-list a,
-  .site-header--menu .nav-account-action button {
-    padding-inline: 0.625rem;
-    font-size: 0.9375rem;
-  }
-
-  .site-header--menu .header-cta {
-    padding-inline: var(--space-4);
-  }
-}
-
-/* ---------- Compact header: brand | call to action | menu ---------------- */
-
-@media (max-width: 79.99rem) {
-  /* One row at every normal text size; with enlarged text the call to
-     action or menu button wraps to a second row instead of forcing the page
-     wider than the viewport (WCAG 1.4.4 / 1.4.10). */
-  .site-header--menu .header-inner {
-    min-height: 4.5rem;
-    flex-direction: row;
-    flex-wrap: wrap;
-    row-gap: var(--space-2);
+  .site-header--banner .header-inner {
+    min-height: 5rem;
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
-    gap: var(--space-3);
-    padding-block: var(--space-3);
+    gap: var(--space-4);
+    padding-block: 0;
   }
 
-  .site-header--menu .brand {
-    min-width: 2.5rem;
-    align-self: center;
-    margin-right: auto;
-  }
-
-  .site-header--menu .header-cta--wide {
+  .site-header--banner .header-cta--compact {
     display: none;
   }
 
-  .site-header--menu .header-menu-toggle {
-    display: inline-grid;
+  .site-header--banner .header-cta--wide {
+    display: inline-flex;
   }
 
-  /* The panel drops below the whole header bar (.site-header is the
-     positioned ancestor), full width, over the page. */
-  .site-header--menu .header-menu-panel {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: 0;
-    display: none;
-    max-height: calc(100dvh - 4.5rem);
-    overflow-y: auto;
-    padding: var(--space-3) var(--page-gutter) var(--space-5);
-    border-top: var(--border-width-thin) solid rgb(255 255 255 / 16%);
-    background: var(--color-brand-primary-hover);
-    box-shadow: 0 18px 30px rgb(5 21 37 / 28%);
-  }
-
-  .site-header--menu .header-menu[data-open="true"] .header-menu-panel {
-    display: block;
-  }
-
-  .site-header--menu .header-menu-panel nav,
-  .site-header--menu .header-menu-panel .nav-list {
-    width: min(100%, 48rem);
-    margin-inline: auto;
-  }
-
-  .site-header--menu .header-menu-panel .nav-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-2);
-  }
-
-  .site-header--menu .header-menu-panel .nav-list li {
-    width: auto;
+  .site-header--banner .product-nav {
+    flex: 1 1 auto;
     min-width: 0;
+    margin-inline: 0;
+    padding-inline: 0;
   }
 
-  .site-header--menu .header-menu-panel .nav-list a {
-    width: 100%;
-    justify-content: flex-start;
-    padding-inline: var(--space-4);
+  .site-header--banner .product-nav-list {
+    padding-bottom: 0;
+  }
+
+  /* The account panel becomes a dropdown hanging from the banner's bottom
+     edge, right-aligned with the content column, so it never overlaps the
+     banner itself. */
+  .site-header--banner .header-menu-panel {
+    top: calc(100% + 0.375rem);
+    right: calc((100% - min(90rem, 100% - 2 * var(--page-gutter))) / 2);
+    left: auto;
+    width: 18rem;
+    max-height: calc(100dvh - 6rem);
+    padding: var(--space-3);
+    border: var(--border-width-thin) solid rgb(255 255 255 / 16%);
     border-radius: var(--radius-medium);
-    background: rgb(255 255 255 / 5%);
   }
 
-  .site-header--menu .header-menu-panel .nav-account-action button {
+  .site-header--banner .account-nav-list {
     width: 100%;
   }
 }
+
+/* ---------- Narrow phones -------------------------------------------------- */
 
 @media (max-width: 40rem) {
-  .site-header--menu .header-inner {
-    min-height: 4rem;
-    gap: var(--space-2);
-    padding-block: var(--space-2);
-  }
-
-  .site-header--menu .brand {
+  .site-header--banner .brand {
     gap: var(--space-2);
   }
 
-  .site-header--menu .brand-mark {
+  .site-header--banner .brand-mark {
     width: 2.5rem;
     height: 2.5rem;
   }
 
-  .site-header--menu .header-cta {
+  .site-header--banner .header-cta {
     padding-inline: var(--space-4);
   }
-
-  .site-header--menu .header-menu-panel {
-    max-height: calc(100dvh - 4rem);
-  }
 }
 
-@media (max-width: 22.5rem) {
-  .site-header--menu .header-menu-panel .nav-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Very narrow screens (and large text on small screens): the mark alone
-   carries the brand so the call to action and menu stay on one row. The link
-   keeps its "MathNexa home" accessible name. */
-@media (max-width: 23.5rem) {
-  .site-header--menu .brand-name {
+/* Only where the row truly cannot hold it (320px-class screens): the picture
+   alone carries the brand; the link keeps its "MathNexa home" accessible
+   name. The picture itself is never hidden. */
+@media (max-width: 21.5rem) {
+  .site-header--banner .brand-name {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -257,7 +360,7 @@
     white-space: nowrap;
   }
 
-  .site-header--menu .header-cta {
+  .site-header--banner .header-cta {
     padding-inline: var(--space-3);
     font-size: 0.875rem;
   }
@@ -265,14 +368,16 @@
 
 @media (forced-colors: active) {
   .header-cta,
-  .header-menu-toggle {
+  .header-menu-toggle,
+  .product-nav-list a[aria-current="page"] {
     border: 2px solid ButtonText;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .header-cta,
-  .header-cta:hover {
+  .header-cta:hover,
+  .product-nav-list a {
     transform: none;
     transition: none;
   }

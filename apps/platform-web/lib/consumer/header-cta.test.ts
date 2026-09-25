@@ -17,6 +17,13 @@ function signedIn(evidence: unknown, overrides: Partial<Parameters<typeof decide
   };
 }
 
+const entitledEvidence = [
+  { state: "subscription-active", periodEndsAt: iso(20 * 24 * hour) },
+  { state: "trial-active", trialRedeemedAt: iso(-hour), startsAt: iso(-hour), endsAt: iso(23 * hour) },
+  { state: "subscription-grace-period", periodEndsAt: iso(-hour), graceEndsAt: iso(6 * 24 * hour) },
+  { state: "subscription-canceled-through-period-end", periodEndsAt: iso(5 * 24 * hour) }
+];
+
 describe("resolveHeaderCta", () => {
   it("offers the free trial to an anonymous visitor, starting at account creation", () => {
     const view = {
@@ -45,28 +52,28 @@ describe("resolveHeaderCta", () => {
     expect(resolveHeaderCta(view)?.href).toBe("/subscription");
   });
 
-  it("hides the trial and shows the subscriber action for an active subscription", () => {
-    const cta = resolveHeaderCta(signedIn({ state: "subscription-active", periodEndsAt: iso(20 * 24 * hour) }));
-    expect(cta).toEqual({ kind: "subscriber", label: "Start learning", href: "/games" });
+  it("shows no call to action at all for an account that already has access (subscription, trial, grace, scheduled cancellation)", () => {
+    for (const evidence of entitledEvidence) expect(resolveHeaderCta(signedIn(evidence))).toBeNull();
   });
 
-  it("treats an active trial, a renewal grace period and a scheduled cancellation as premium access", () => {
-    for (const evidence of [
-      { state: "trial-active", trialRedeemedAt: iso(-hour), startsAt: iso(-hour), endsAt: iso(23 * hour) },
-      { state: "subscription-grace-period", periodEndsAt: iso(-hour), graceEndsAt: iso(6 * 24 * hour) },
-      { state: "subscription-canceled-through-period-end", periodEndsAt: iso(5 * 24 * hour) }
-    ]) {
-      expect(resolveHeaderCta(signedIn(evidence))?.kind).toBe("subscriber");
-    }
-  });
-
-  it("gives school-code sessions the subscriber action, never a trial", () => {
+  it("shows no call to action for school-code sessions, and never a trial", () => {
     const view = {
       context: { status: "anonymous" as const },
       source: "school-access" as const,
       decision: decideGameAccess({ authenticated: true, accountStatus: "active", emailConfirmed: true, evidence: { state: "subscription-active", periodEndsAt: iso(hour) }, serverNow: now })
     };
-    expect(resolveHeaderCta(view)?.kind).toBe("subscriber");
+    expect(resolveHeaderCta(view)).toBeNull();
+  });
+
+  it("never produces a 'Start learning' action for any state", () => {
+    const views = [
+      ...entitledEvidence.map((evidence) => signedIn(evidence)),
+      signedIn({ state: "no-entitlement", trialRedeemedAt: null }),
+      signedIn({ state: "trial-expired", trialRedeemedAt: iso(-48 * hour), endedAt: iso(-24 * hour) }),
+      signedIn({ state: "subscription-past-due", periodEndsAt: null }),
+      signedIn({ state: "trial-pending", trialRedeemedAt: iso(-60_000) })
+    ];
+    for (const view of views) expect(resolveHeaderCta(view)?.label).not.toBe("Start learning");
   });
 
   it("never offers a second trial once the trial was redeemed (expired trial, ended or canceled subscription)", () => {
@@ -83,7 +90,7 @@ describe("resolveHeaderCta", () => {
   });
 
   it("sends payment problems and unverifiable renewals to manage, not to a new subscription", () => {
-    expect(resolveHeaderCta(signedIn({ state: "subscription-past-due", periodEndsAt: null }))?.kind).toBe("manage");
+    expect(resolveHeaderCta(signedIn({ state: "subscription-past-due", periodEndsAt: null }))).toEqual({ kind: "manage", label: "Manage subscription", href: "/subscription" });
     const unverified = signedIn({ state: "subscription-active", periodEndsAt: iso(-hour) });
     expect(resolveHeaderCta({ ...unverified, decision: markVerificationUnavailable(unverified.decision) })?.kind).toBe("manage");
   });

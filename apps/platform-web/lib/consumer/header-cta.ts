@@ -7,10 +7,11 @@ import type { GameAccessView } from "@/lib/game-access/server";
  * (`nextAction === "start-checkout"` means the account has never redeemed its
  * one trial). This function only chooses words and a destination; every
  * destination re-checks access on the server before it shows or starts
- * anything.
+ * anything. An account that already has access gets no call to action at
+ * all: the permanent product navigation is its way in.
  */
 export type HeaderCta = Readonly<{
-  kind: "start-trial" | "subscriber" | "subscribe" | "manage" | "trial-status";
+  kind: "start-trial" | "subscribe" | "manage" | "trial-status";
   label: string;
   href: string;
 }>;
@@ -26,7 +27,7 @@ export const START_TRIAL_SUBSCRIPTION_HREF = "/subscription" as const;
  * accounts.
  */
 export const SUBSCRIBE_HREF = "/pricing" as const;
-/** Where an entitled visitor continues. */
+/** Where a newly activated account continues from the subscription success panel. */
 export const SUBSCRIBER_DESTINATION = "/games" as const;
 
 type HeaderAccessView = Readonly<{
@@ -37,10 +38,8 @@ type HeaderAccessView = Readonly<{
 
 export function resolveHeaderCta(view: HeaderAccessView): HeaderCta | null {
   // Already inside MathNexa: school access or a live trial / subscription /
-  // renewal grace. Never offer these accounts another trial.
-  if (view.source === "school-access" || view.decision.allowed) {
-    return { kind: "subscriber", label: "Start learning", href: SUBSCRIBER_DESTINATION };
-  }
+  // renewal grace. No commercial action, and never another trial offer.
+  if (view.source === "school-access" || view.decision.allowed) return null;
   const status = view.context.status;
   if (status === "anonymous" || status === "unconfigured") {
     return { kind: "start-trial", label: "Start free trial", href: START_TRIAL_SIGN_UP_HREF };

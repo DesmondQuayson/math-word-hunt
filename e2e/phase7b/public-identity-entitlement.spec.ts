@@ -238,7 +238,8 @@ test("consumer identity and access states retain accessible interaction", async 
   await signIn(page);
   await page.goto("/account");
   await expect(page.locator("h1")).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
+  await page.getByRole("button", { name: "Open account menu" }).click();
+  await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.goto("/game-access");
   await expect(page.locator("[aria-live]")).toHaveCount(1);
 });

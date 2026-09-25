@@ -111,9 +111,20 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  const expectedNavigation = ["Home", "Math Games", "Online Math Prep", "Homework PDFs", "Quiz PDFs", "Subscription", "My Account"];
+  // The permanent product strip: six destinations, in the approved order.
+  const expectedNavigation = ["Home", "Math Games", "Online Math Prep", "Homework PDFs", "Quiz PDFs", "Worksheet Generator"];
   await expect(navigation.getByRole("link")).toHaveCount(expectedNavigation.length);
   for (const label of expectedNavigation) await expect(navigation.getByRole("link", { name: label === "Home" ? /^Home[ ]?Current$/ : label, exact: label !== "Home" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Worksheet Generator" })).toHaveAttribute("href", "https://showme.mathnexa.com/worksheets");
+  await expect(navigation.getByRole("link", { name: /^Home[ ]?Current$/ })).toHaveAttribute("aria-current", "page");
+  // Account actions live in the account menu, never in the product strip.
+  await expect(navigation.getByRole("link", { name: /Subscription|My Account/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Open account menu" }).click();
+  const accountNavigation = page.getByRole("navigation", { name: "Account navigation" });
+  await expect(accountNavigation.getByRole("link", { name: "Subscription" })).toHaveAttribute("href", "/subscription");
+  await expect(accountNavigation.getByRole("link", { name: "My Account" })).toHaveAttribute("href", "/account");
+  await expect(accountNavigation.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
   for (const [label, href] of [[/Math Games Engage · Practice/, "/games"], [/Online Math Prep [(]Grades 3–8[)] Learn · Practice · Review · Worksheet Generator/, "/map-prep"], [/Homework PDFs Practice · Print/, "/homework"], [/Quiz PDFs Assess · Print/, "/quizzes"]] as const) {
     await expect(page.getByRole("link", { name: label })).toHaveAttribute("href", href);
   }
@@ -222,12 +233,17 @@ test("server-entitled accounts reach all four selected products and validated On
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Create an account" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "My Account" })).toBeVisible();
+  await page.getByRole("button", { name: "Open account menu" }).click();
+  await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "My Account" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
   // An entitled account is never offered another trial.
   await expect(page.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
-  await expect(page.getByRole("banner").getByRole("link", { name: "Start learning" })).toHaveAttribute("href", "/games");
+  // No large call to action for an entitled account: the product strip is the way in.
+  await expect(page.getByRole("banner").getByRole("link", { name: "Start learning" })).toHaveCount(0);
+  await expect(page.getByRole("banner").locator("[data-header-cta]")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link")).toHaveCount(6);
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Enter authorized code to access MathNexa" })).toBeVisible();
   await expect(page.getByLabel("Authorized code (required)")).toBeVisible();
@@ -342,12 +358,13 @@ test("homepage and account-intent UI remain accessible across target devices and
     expect(ctaBox?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(ctaBox?.height ?? 99).toBeLessThan(60);
     // Compact headers fold the navigation behind the menu button.
-    const menu = page.getByRole("button", { name: "Open menu" });
-    if (await menu.isVisible()) {
-      await expect(menu).toHaveAttribute("aria-expanded", "false");
-      await menu.click();
-      await expect(page.getByRole("button", { name: "Close menu" })).toHaveAttribute("aria-expanded", "true");
-    }
+    const menu = page.getByRole("button", { name: "Open account menu" });
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
+    await menu.click();
+    await expect(page.getByRole("button", { name: "Close account menu" })).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Escape");
+    // The product strip never widens the page; it scrolls within itself.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     for (const link of await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").all()) {
       const box = await link.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -416,6 +433,20 @@ test("320px at 200% text reflows without horizontal scrolling, including the sch
     }
   } finally {
     await admin.auth.admin.deleteUser(reflowUser.id);
+  }
+});
+
+test("banner product links resolve on the server (never a silent 404)", async ({ page, request }) => {
+  await page.goto("/");
+  const strip = page.getByRole("navigation", { name: "Primary navigation" });
+  const hrefs = await strip.getByRole("link").evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+  expect(hrefs).toEqual(["/", "/games", "/map-prep", "/homework", "/quizzes", "https://showme.mathnexa.com/worksheets"]);
+  for (const href of hrefs.filter((value) => value.startsWith("/"))) {
+    const response = await request.get(href, { maxRedirects: 0 });
+    // 200 for public pages; the access gate answers with a redirect for the
+    // product entries. Anything 4xx/5xx is a broken banner link.
+    expect([200, 307, 308], `${href} answered ${response.status()}`).toContain(response.status());
+    if (response.status() !== 200) expect(response.headers().location ?? "").toMatch(/^\/(access|sign-in)\?next=/);
   }
 });
 

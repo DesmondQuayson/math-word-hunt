@@ -4,15 +4,16 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /**
- * The compact-header menu. From tablet width down the primary navigation folds
- * behind one menu button so the brand and the header call to action stay on a
- * single row; on wide screens the button is hidden by CSS and the navigation
- * is always shown. The navigation markup is rendered on the server either way.
+ * The account menu: one button in the banner's top row that discloses the
+ * account actions (Subscription, My Account, Sign out). The product
+ * destinations are never inside it; they have their own permanent strip.
+ * Escape closes it and returns focus to the button; a pointer press outside
+ * closes it; any navigation closes it. The panel markup is server-rendered.
  */
 export function HeaderMenu({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? "/";
-  // The menu is open for the route it was opened on; any navigation (a nav
-  // link, Back, a redirect) therefore closes it without an effect.
+  // The menu is open for the route it was opened on; any navigation (a link,
+  // Back, a redirect) therefore closes it without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === pathname;
   const panelId = useId();
@@ -47,13 +48,16 @@ export function HeaderMenu({ children }: Readonly<{ children: ReactNode }>) {
       className="header-menu-toggle"
       aria-expanded={open}
       aria-controls={panelId}
-      aria-label={open ? "Close menu" : "Open menu"}
+      aria-label={open ? "Close account menu" : "Open account menu"}
       onClick={() => setOpenOn(open ? null : pathname)}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         {open
           ? <path d="M6 6l12 12M18 6L6 18" />
-          : <path d="M4 7h16M4 12h16M4 17h16" />}
+          : <>
+            <circle cx="12" cy="8" r="3.6" />
+            <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5" />
+          </>}
       </svg>
     </button>
     <div className="header-menu-panel" id={panelId}>

@@ -201,8 +201,8 @@ test("entitled product and account navigations: single first-party hop, no forei
     ["Math Games", () => page.getByRole("link", { name: /Math Games Engage/ }), "Pick a challenge."],
     ["Homework PDFs", () => page.getByRole("link", { name: /Homework PDFs Practice/ }), "Homework PDFs"],
     ["Quiz PDFs", () => page.getByRole("link", { name: /Quiz PDFs Assess/ }), "Quiz PDFs"],
-    ["Account", () => page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "My Account", exact: true }), ""],
-    ["Subscription", () => page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Subscription", exact: true }), ""]
+    ["Account", () => page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "My Account", exact: true }), ""],
+    ["Subscription", () => page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "Subscription", exact: true }), ""]
   ];
   for (const [name, locator, heading] of destinations) {
     const timings: number[] = [];
@@ -210,6 +210,8 @@ test("entitled product and account navigations: single first-party hop, no forei
     for (let run = 0; run < runs; run++) {
       await page.goto("/");
       await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
+      // Account links live in the account menu; open it first (not timed).
+      if (name === "Account" || name === "Subscription") await page.getByRole("button", { name: "Open account menu" }).click();
       const result = await clickAndMeasure(page, locator(), async () => {
         if (heading) await expect(page.getByRole("heading", { name: heading })).toBeVisible();
         else await expect(page.locator("h1").first()).toBeVisible();
