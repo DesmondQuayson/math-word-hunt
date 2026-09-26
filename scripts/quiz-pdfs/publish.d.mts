@@ -18,16 +18,20 @@ export type QuizPublishOutcome = Readonly<{
   published: readonly Readonly<{ slug: string; resourceId: string; topicId: string }>[];
   skipped: readonly Readonly<{ slug: string; resourceId: string; topicId: string }>[];
 }>;
+export type QuizVerificationDetail = Readonly<{
+  bucketPublic: boolean | null; objectPath: string | null; downloadedBytes: number; downloadedSha256: string | null; pages: number | null;
+  pageMethod: "pdfinfo" | "page-objects" | null; lessonAssignments: number | null; manifestPages: number | null;
+}>;
 export type QuizVerification = Readonly<{
   ok: boolean;
-  results: readonly Readonly<{ gradeNumber: number; topic: string; topicSortOrder: number | null; slug: string; title: string; resourceId: string | null; topicId: string | null; ok: boolean; problems: readonly string[] }>[];
+  results: readonly Readonly<{ gradeNumber: number; topic: string; topicSortOrder: number | null; slug: string; title: string; resourceId: string | null; topicId: string | null; ok: boolean; problems: readonly string[]; detail: QuizVerificationDetail | null }>[];
 }>;
 export function readTaxonomy(client: Client): Promise<Readonly<{ grades: readonly ExistingGrade[]; topics: readonly ExistingTopic[] }>>;
 export function readTopicQuizzes(client: Client, topicIds: readonly string[]): Promise<readonly ExistingTopicQuiz[]>;
 export function buildQuizPlan(input: Readonly<{ client: Client; manifest: QuizManifest }>): Promise<QuizPublishPlan>;
 export function describePlan(plan: QuizPublishPlan): string;
 export function applyQuizPlan(input: Readonly<{ client: Client; actorAdminId: string; plan: QuizPublishPlan; log?: (line: string) => void }>): Promise<QuizPublishOutcome>;
-export function verifyQuizPublication(input: Readonly<{ client: Client; manifest: QuizManifest }>): Promise<QuizVerification>;
+export function verifyQuizPublication(input: Readonly<{ client: Client; manifest: QuizManifest; deep?: boolean }>): Promise<QuizVerification>;
 export function resolveActorAdmin(input: Readonly<{ client: Client; email?: string | null; adminId?: string | null }>): Promise<string>;
 export function createSyntheticOwner(input: Readonly<{ client: Client; runId: string }>): Promise<Readonly<{ adminId: string; userId: string; email: string }>>;
 export function revokeSyntheticOwner(input: Readonly<{ client: Client; userId: string }>): Promise<void>;

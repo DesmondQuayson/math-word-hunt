@@ -3,7 +3,7 @@
 //
 //   node scripts/publish-quiz-pdfs.mjs --plan   [--target local|env]
 //   node scripts/publish-quiz-pdfs.mjs --apply  [--target local|env] (--actor-email <owner email> | --actor-admin-id <uuid> | --synthetic-owner)
-//   node scripts/publish-quiz-pdfs.mjs --verify [--target local|env] [--origin http://127.0.0.1:3000] [--json]
+//   node scripts/publish-quiz-pdfs.mjs --verify [--target local|env] [--deep] [--origin http://127.0.0.1:3000] [--json]
 //
 // Targets: `local` reads the running local Supabase stack (`supabase status`);
 // `env` reads SUPABASE_URL and SUPABASE_SECRET_KEY from the process environment
@@ -64,7 +64,13 @@ console.log(`manifest: ${manifest.quizzes.length} quiz PDFs across ${manifest.gr
 const client = createClient(connection.url, connection.secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
 function printVerification(verification) {
-  for (const item of verification.results) console.log(`${item.ok ? "ok  " : "FAIL"} Grade ${item.gradeNumber} / Topic ${item.topicSortOrder ?? "?"}: ${item.topic} - ${item.title} ${item.resourceId ?? ""} ${item.problems.join(",")}`);
+  for (const item of verification.results) {
+    console.log(`${item.ok ? "ok  " : "FAIL"} Grade ${item.gradeNumber} / Topic ${item.topicSortOrder ?? "?"}: ${item.topic} - ${item.title} ${item.resourceId ?? ""} ${item.problems.join(",")}`);
+    if (item.detail) {
+      const d = item.detail;
+      console.log(`      object ${d.objectPath ?? "?"} | bucket public: ${d.bucketPublic} | ${d.downloadedBytes} bytes | sha256 ${d.downloadedSha256 ? d.downloadedSha256.slice(0, 16) : "?"}... | pages ${d.pages ?? "?"} (${d.pageMethod ?? "n/a"}, manifest ${d.manifestPages ?? "?"}) | lesson assignments ${d.lessonAssignments ?? "?"}`);
+    }
+  }
 }
 
 // The process ends on its own once the client's sockets drain; an explicit
@@ -109,7 +115,10 @@ if (mode[0] === "apply") {
 }
 
 if (mode[0] === "verify") {
-  const verification = await verifyQuizPublication({ client, manifest });
+  // --deep also downloads every stored object from the private bucket and
+  // proves bytes, sha256, PDF structure, page count, bucket privacy and the
+  // absence of any lesson assignment.
+  const verification = await verifyQuizPublication({ client, manifest, deep: flag("deep") });
   const origin = option("origin");
   const routes = [];
   if (origin) {

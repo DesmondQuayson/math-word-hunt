@@ -1,0 +1,297 @@
+// Quiz PDFs V1 - real-browser owner review against a STAGING deployment.
+//
+// Runs only through scripts/invoke-quiz-pdfs-staging.ps1 -Stage review, which
+// supplies STAGING_ORIGIN, the Vercel protection-bypass entry and the staging
+// Supabase service credential from the process-only vault. Synthetic consumer
+// accounts (fresh, used-trial, active-trial, subscriber) are created on the
+// staging project, exercised through the real sign-in, and deleted at the end.
+// Secrets are never printed; the bypass value travels only in request headers.
+import { execFileSync } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
+
+import { chromium } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+
+import { loadQuizManifest } from "./quiz-pdfs/manifest.mjs";
+import { verifyQuizPublication } from "./quiz-pdfs/publish.mjs";
+
+const PRODUCTION_PROJECT_REF = "ioodoktlxvvmghyvevgn";
+const require = createRequire(import.meta.url);
+const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+
+function required(name, pattern = /\S/) {
+  const value = process.env[name]?.trim() ?? "";
+  if (!pattern.test(value)) throw new Error(`missing-${name.toLowerCase().replaceAll("_", "-")}`);
+  return value;
+}
+const origin = required("STAGING_ORIGIN", /^https:\/\/mathnexa-platform-staging[a-z0-9-]*\.vercel\.app$/);
+const bypassSecret = required("VERCEL_AUTOMATION_BYPASS_SECRET", /^[A-Za-z0-9_-]{20,}$/);
+const supabaseUrl = required("SUPABASE_URL", /^https:\/\//);
+const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
+if (new URL(supabaseUrl).hostname.startsWith(`${PRODUCTION_PROJECT_REF}.`)) throw new Error("the review harness never runs against the production project");
+const out = resolve(process.env.REVIEW_OUT ?? "owner-review/quiz-pdfs-v1/staging");
+mkdirSync(out, { recursive: true });
+
+const manifest = loadQuizManifest();
+const grade6 = manifest.grades.find((grade) => grade.gradeNumber === 6);
+const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
+const run = `quiz-review-${randomBytes(6).toString("hex")}`;
+const password = `${randomBytes(12).toString("base64url")}Aa1!`;
+const REVIEW_WIDTHS = [320, 375, 390, 430, 768, 820, 1180, 1366, 1920];
+
+const notes = [];
+const results = [];
+const note = (message) => { notes.push(message); console.log(message); };
+const ok = (message) => { results.push(1); note(`ok   ${message}`); };
+const bad = (message) => { results.push(0); note(`FAIL ${message}`); };
+const check = (condition, message) => (condition ? ok : bad)(message);
+const created = [];
+
+async function user(kind) {
+  const email = `${run}-${kind}@example.invalid`;
+  const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: "quiz-pdfs-staging-review" } });
+  if (made.error) throw made.error;
+  const id = made.data.user.id;
+  created.push(id);
+  const now = Date.now();
+  const day = 86_400_000;
+  const startsAt = new Date(now + 1000).toISOString();
+  const trialEnds = new Date(now + 1000 + day).toISOString();
+  const set = async (table, payload, op = "insert") => {
+    const response = await (op === "insert" ? admin.from(table).insert(payload) : admin.from(table).update(payload).eq("user_id", id));
+    if (response.error) throw new Error(`${kind} ${table}: ${response.error.message}`);
+  };
+  if (kind === "subscribed") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "subscription-active", current_period_ends_at: new Date(now + 20 * day).toISOString() }); }
+  if (kind === "trial-active") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "trial-active", trial_started_at: startsAt, trial_ends_at: trialEnds }); }
+  if (kind === "used-trial") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "trial-expired", trial_started_at: startsAt, trial_ends_at: trialEnds }); }
+  return { id, email };
+}
+
+// Which quizzes are live on staging (resource ids by manifest slug, topic order from the database).
+async function liveQuizzes() {
+  const assignments = await admin.from("topic_resource_assignments").select("resource_id,slug,topic_id");
+  if (assignments.error) throw assignments.error;
+  const resources = await admin.from("content_resources").select("id").eq("resource_type", "quiz_pdf").eq("publication_state", "published").eq("resource_scope", "topic").eq("scope_status", "current");
+  if (resources.error) throw resources.error;
+  const topics = await admin.from("content_topics").select("id,title,sort_order").eq("publication_state", "published");
+  if (topics.error) throw topics.error;
+  const publishedIds = new Set(resources.data.map((row) => row.id));
+  return grade6.topics.map((topic) => {
+    const assignment = assignments.data.find((row) => row.slug === topic.quiz.slug && publishedIds.has(row.resource_id));
+    if (!assignment) throw new Error(`quiz ${topic.quiz.slug} is not published on staging`);
+    const dbTopic = topics.data.find((row) => row.id === assignment.topic_id);
+    return { resourceId: assignment.resource_id, topicId: assignment.topic_id, topicSortOrder: dbTopic?.sort_order ?? null, topicTitle: dbTopic?.title ?? null, quiz: topic.quiz };
+  }).sort((left, right) => left.topicSortOrder - right.topicSortOrder);
+}
+
+const browser = await chromium.launch();
+async function open(state, viewport) {
+  const context = await browser.newContext({ viewport, bypassCSP: true, extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret } });
+  const page = await context.newPage();
+  // Set the bypass cookie once so client-side fetches pass as well, then leave the bootstrap URL behind.
+  await page.goto(`${origin}/?x-vercel-protection-bypass=${bypassSecret}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+  if (state !== "anonymous") {
+    await page.goto(`${origin}/sign-in?next=/quizzes`);
+    await page.getByLabel("Email address").fill(users[state].email);
+    await page.locator("input[name=\"password\"]").fill(password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    for (let i = 0; i < 120 && new URL(page.url()).pathname.startsWith("/sign-in"); i += 1) await page.waitForTimeout(500);
+  }
+  return { context, page };
+}
+async function shot(page, name, options = {}) {
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/${name}.png`, ...options });
+  note(`shot ${name}.png ${new URL(page.url()).pathname}${new URL(page.url()).search}`);
+}
+async function selectGrade(page) {
+  await page.getByRole("combobox", { name: "Grade" }).selectOption({ label: "Grade 6" });
+  await page.getByRole("heading", { name: "Quiz Topics" }).waitFor();
+}
+const pageFacts = (page) => page.evaluate(() => ({
+  overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  cards: document.querySelectorAll("article").length,
+  current: document.querySelector('.product-nav-list a[aria-current="page"]')?.textContent?.replace("Current", "").trim() ?? "none",
+  lessonWording: /\blessons?\b/i.test(document.querySelector(".public-resource-shell")?.textContent ?? "")
+}));
+async function axeSerious(page) {
+  await page.addScriptTag({ content: axeSource });
+  return page.evaluate(async () => {
+    const result = await globalThis.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } });
+    return result.violations.filter((violation) => ["serious", "critical"].includes(violation.impact)).map((violation) => `${violation.id}(${violation.nodes.length})`);
+  });
+}
+
+let users = {};
+try {
+  const live = await liveQuizzes();
+  check(live.length === grade6.topics.length, `staging publishes ${live.length} of ${grade6.topics.length} manifest quizzes`);
+  const deep = await verifyQuizPublication({ client: admin, manifest, deep: true });
+  for (const item of deep.results) check(item.ok, `database + private storage: Grade ${item.gradeNumber} / Topic ${item.topicSortOrder}: ${item.topic} - ${item.title} ${item.problems.join(",")}${item.detail ? ` [${item.detail.downloadedBytes} bytes, pages ${item.detail.pages}, lesson assignments ${item.detail.lessonAssignments}, bucket public ${item.detail.bucketPublic}]` : ""}`);
+  users = { eligible: await user("eligible"), "used-trial": await user("used-trial"), "trial-active": await user("trial-active"), subscribed: await user("subscribed") };
+
+  // 18. Anonymous: gated route, no file exposure.
+  {
+    const { context, page } = await open("anonymous", { width: 1366, height: 900 });
+    const landing = await context.request.get(`${origin}/quizzes`, { maxRedirects: 0 });
+    check(landing.status() === 307 && (landing.headers().location ?? "").endsWith("/access?next=/quizzes"), `anonymous GET /quizzes -> ${landing.status()} ${landing.headers().location ?? ""}`);
+    for (const item of live) {
+      const download = await context.request.get(`${origin}/resources/${item.resourceId}/download`, { maxRedirects: 0 });
+      check(download.status() === 401 && !(await download.body()).subarray(0, 5).equals(Buffer.from("%PDF-")), `anonymous download ${item.quiz.slug} -> ${download.status()}`);
+    }
+    const guessed = await context.request.get(`${origin}/content/quiz-pdfs/grade-6/grade-6-ratios-and-rates-quiz.pdf`, { maxRedirects: 0 });
+    check(guessed.status() === 404, `stored copy is not a web asset -> ${guessed.status()}`);
+    await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+    await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Quiz PDFs" }).click();
+    await page.waitForURL((u) => u.pathname === "/access", { timeout: 30_000 });
+    await page.waitForLoadState("networkidle");
+    await shot(page, "18-anonymous-1366", { fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+    check(new URL(page.url()).pathname === "/access", `anonymous banner click lands on /access (${new URL(page.url()).pathname}${new URL(page.url()).search})`);
+    await shot(page, "18b-anonymous-390", { fullPage: true });
+    await context.close();
+  }
+  // Signed-in states without access, then entitled states.
+  for (const [state, expectedPath, marker, name] of [
+    ["eligible", "/subscription", "Start your free trial", "18c-signed-in-trial-eligible-390"],
+    ["used-trial", "/subscription", "Trial ended", "18d-used-trial-390"],
+    ["trial-active", "/quizzes", "Quiz PDFs", "19b-active-trial-390"]
+  ]) {
+    const { context, page } = await open(state, { width: 390, height: 844 });
+    await page.waitForLoadState("networkidle");
+    const url = new URL(page.url());
+    check(url.host === new URL(origin).host, `${state}: stays on the staging host (${url.host})`);
+    check(url.pathname === expectedPath && (expectedPath === "/quizzes" || url.searchParams.get("next") === "/quizzes"), `${state}: sign-in with next=/quizzes -> ${url.pathname}${url.search}`);
+    check((await page.locator("body").innerText()).includes(marker), `${state}: page shows "${marker}"`);
+    await shot(page, name, { fullPage: true });
+    await context.close();
+  }
+
+  // 1-3, 16-17 + cards: subscriber.
+  {
+    const { context, page } = await open("subscribed", { width: 1366, height: 900 });
+    await page.waitForLoadState("networkidle");
+    check(new URL(page.url()).pathname === "/quizzes", `subscriber: sign-in with next=/quizzes -> ${new URL(page.url()).pathname}`);
+    await shot(page, "01-landing-1366-subscriber", { fullPage: true });
+    check((await page.getByRole("combobox", { name: "Grade" }).locator("option").allTextContents()).join("|") === "Choose a grade|Grade 6", "grade control offers exactly Grade 6");
+    check((await page.getByRole("combobox", { name: "Topic" }).count()) === 0 && (await page.getByRole("combobox", { name: "Lesson" }).count()) === 0, "no Topic or Lesson selector on the quiz page");
+    await selectGrade(page);
+    const facts = await pageFacts(page);
+    check(facts.cards === live.length && facts.overflow === 0 && !facts.lessonWording, `Grade 6 selected: ${facts.cards} cards, overflow ${facts.overflow}px, lesson wording ${facts.lessonWording}, banner current "${facts.current}"`);
+    await shot(page, "02-grade-6-selected-1366", { fullPage: true });
+    const cards = page.locator("article");
+    const region = await page.locator(".public-resource-groups").boundingBox();
+    await page.screenshot({ path: `${out}/03-all-topic-cards-1366.png`, fullPage: true, clip: { x: 0, y: Math.max(0, region.y - 90), width: 1366, height: region.height + 120 } });
+    note("shot 03-all-topic-cards-1366.png");
+    const cardNames = ["04-card-ratios-and-rates", "05-card-percent", "06-card-positive-rational-numbers", "07-card-integers-and-rational-numbers", "08-card-expressions", "09-card-equations", "10-card-geometry-measurement", "11-card-data"];
+    for (const [index, item] of live.entries()) {
+      const card = cards.nth(index);
+      // textContent, not innerText: the path label is upper-cased by CSS only.
+      const path = (await card.locator(".public-resource-path").textContent())?.trim() ?? "";
+      const title = (await card.getByRole("heading", { level: 2 }).textContent())?.trim() ?? "";
+      const download = await card.getByRole("link", { name: "Download PDF" }).getAttribute("href");
+      const details = await card.getByRole("link", { name: "Details" }).getAttribute("href");
+      check(path === `Grade 6 / Topic ${item.topicSortOrder}: ${item.topicTitle}` && title === item.quiz.title && download === `/resources/${item.resourceId}/download` && details === `/resources/${item.resourceId}`, `card ${index + 1}: "${path}" - "${title}" -> ${download}`);
+      check((await card.getByText("Quiz PDF", { exact: true }).count()) === 1 && (await card.getByText("Included in PDF").count()) === 1, `card ${index + 1}: Quiz PDF designation + answer key included`);
+      await card.scrollIntoViewIfNeeded();
+      const box = await card.boundingBox();
+      await page.screenshot({ path: `${out}/${cardNames[index]}-1366.png`, clip: { x: box.x - 8, y: box.y - 8, width: box.width + 16, height: box.height + 16 } });
+      note(`shot ${cardNames[index]}-1366.png`);
+    }
+    await shot(page, "16-desktop-1366-first-screen");
+    // 12. Downloads through the real route: exact bytes for all eight.
+    const countEvents = async () => (await admin.from("resource_download_events").select("id", { count: "exact", head: true }).eq("consumer_user_id", users.subscribed.id)).count ?? 0;
+    const before = await countEvents();
+    for (const item of live) {
+      const response = await page.request.get(`${origin}/resources/${item.resourceId}/download`);
+      const body = await response.body();
+      const sha = createHash("sha256").update(body).digest("hex");
+      check(response.status() === 200 && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `attachment; filename="${item.quiz.downloadFilename}"` && body.length === item.quiz.bytes && sha === item.quiz.sha256, `download ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-type"]} ${body.length} bytes sha256 ${sha.slice(0, 16)}... ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
+      if (live.indexOf(item) === 0) {
+        writeFileSync(`${out}/12-downloaded-${item.quiz.downloadFilename}`, body);
+        try {
+          execFileSync("pdftoppm", ["-f", "1", "-l", "1", "-png", "-r", "70", "-singlefile", `${out}/12-downloaded-${item.quiz.downloadFilename}`, `${out}/12-downloaded-pdf-page-1`]);
+          execFileSync("pdftoppm", ["-f", String(item.quiz.pages), "-l", String(item.quiz.pages), "-png", "-r", "70", "-singlefile", `${out}/12-downloaded-${item.quiz.downloadFilename}`, `${out}/12b-downloaded-pdf-answers-page`]);
+          note("shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by staging)");
+        } catch (error) { note(`  pdftoppm unavailable: ${String(error.message).split("\n")[0]}`); }
+      }
+    }
+    check((await countEvents()) - before === live.length, `download evidence recorded: ${live.length} events`);
+    // 11. Details page.
+    await cards.first().getByRole("link", { name: "Details" }).click();
+    await page.waitForURL((u) => /^\/resources\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 30_000 });
+    await page.waitForLoadState("networkidle");
+    check((await page.locator("h1").innerText()) === live[0].quiz.title && (await page.getByText("Included in PDF").count()) === 1, `details page: h1 "${await page.locator("h1").innerText()}"`);
+    await shot(page, "11-pdf-details-1366", { fullPage: true });
+    await page.getByRole("link", { name: "Back to library" }).click();
+    await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
+    ok("Back to library returns to /quizzes");
+    // 13-17: widths, 200% text, forced colors, axe, keyboard.
+    for (const width of REVIEW_WIDTHS) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
+      await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+      await selectGrade(page);
+      const f = await pageFacts(page);
+      const clipped = await page.evaluate(() => [...document.querySelectorAll(".public-resource-card h2, .public-resource-path, .public-resource-actions a, .resource-kind-label")]
+        .filter((element) => { const rect = element.getBoundingClientRect(); return rect.right > document.documentElement.clientWidth + 0.5 || rect.left < -0.5 || element.scrollWidth > element.clientWidth + 1; }).length);
+      const short = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".public-resource-actions a, .resource-filter-grid select")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
+      check(f.cards === live.length && f.overflow === 0 && clipped === 0 && short === 0, `${width}px: ${f.cards} cards, overflow ${f.overflow}px, clipped ${clipped}, short targets ${short}`);
+      const name = { 320: "14-mobile-320", 375: "13b-mobile-375", 390: "13-mobile-390", 430: "13c-mobile-430", 768: "15-tablet-768", 820: "15b-tablet-820", 1180: "16b-desktop-1180", 1366: "16c-desktop-1366", 1920: "17-desktop-1920" }[width];
+      await shot(page, `${name}-grade-6`, { fullPage: true });
+      if (width === 320) {
+        await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+        await page.waitForTimeout(200);
+        const zoomed = await pageFacts(page);
+        check(zoomed.overflow === 0, `320px at 200% text: overflow ${zoomed.overflow}px`);
+        await shot(page, "14b-mobile-320-text-200", { fullPage: true });
+      }
+    }
+    await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+    await selectGrade(page);
+    check((await pageFacts(page)).cards === live.length, "forced colors: cards render");
+    await page.emulateMedia({ forcedColors: "none", reducedMotion: "no-preference" });
+    for (const width of [1366, 390]) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+      const landingViolations = await axeSerious(page);
+      check(landingViolations.length === 0, `axe ${width} landing: ${landingViolations.join(", ") || "0 serious/critical"}`);
+      await selectGrade(page);
+      const selectedViolations = await axeSerious(page);
+      check(selectedViolations.length === 0, `axe ${width} grade selected: ${selectedViolations.join(", ") || "0 serious/critical"}`);
+    }
+    await page.getByRole("combobox", { name: "Grade" }).focus();
+    const reached = new Map();
+    for (let step = 0; step < 6 && reached.size < 2; step += 1) {
+      await page.keyboard.press("Tab");
+      const focused = await page.evaluate(() => {
+        const element = document.activeElement;
+        if (!element) return null;
+        const style = getComputedStyle(element);
+        return { text: element.textContent?.trim() ?? "", ring: (style.outlineStyle !== "none" && style.outlineWidth !== "0px") || style.boxShadow !== "none" };
+      });
+      if (focused && ["Details", "Download PDF"].includes(focused.text) && !reached.has(focused.text)) reached.set(focused.text, focused.ring);
+    }
+    check([...reached.keys()].sort().join(",") === "Details,Download PDF" && [...reached.values()].every(Boolean), `keyboard: Tab reaches Details and Download PDF with a visible focus ring (${[...reached.entries()].map(([k, v]) => `${k}:${v}`).join(", ")})`);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+    await selectGrade(page);
+    await shot(page, "19-subscriber-390-first-screen");
+    await context.close();
+  }
+} finally {
+  await browser.close();
+  for (const id of created) await admin.auth.admin.deleteUser(id).catch((error) => note(`cleanup: could not delete synthetic account ${id}: ${error.message}`));
+  note(`cleanup: ${created.length} synthetic staging accounts deleted`);
+  const summary = `SUMMARY ok=${results.filter(Boolean).length} fail=${results.filter((r) => !r).length}`;
+  note(summary);
+  writeFileSync(`${out}/NOTES.txt`, notes.join("\n"));
+  process.exitCode = results.every(Boolean) ? 0 : 1;
+}

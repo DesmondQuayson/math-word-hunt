@@ -5,8 +5,11 @@
 // same structural PDF validator and the same draft -> validating ->
 // ready_for_review -> published transitions. Nothing here bypasses the content
 // admin authority: every mutation names an active, MFA-enrolled owner row.
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { inspectPdfUpload } from "../../packages/platform-core/src/admin-files/pdf-validation.ts";
 import { sha256Of } from "./manifest.mjs";
@@ -35,7 +38,7 @@ export async function readTopicQuizzes(client, topicIds) {
   if (!resourceIds.length) return Object.freeze([]);
   const [resources, versions, files] = await Promise.all([
     client.from("content_resources").select("id,resource_type,publication_state,current_version_number,published_version_number,lock_version,resource_scope,scope_status").in("id", resourceIds),
-    client.from("content_resource_versions").select("id,resource_id,version_number,publication_state,title,source_version_id").in("resource_id", resourceIds),
+    client.from("content_resource_versions").select("id,resource_id,version_number,publication_state,title,source_version_id,content_manifest").in("resource_id", resourceIds),
     client.from("resource_files").select("id,resource_id,resource_version_number,file_role,sha256,byte_size,validation_state,normalized_filename,original_filename,bucket_id,object_path").in("resource_id", resourceIds).eq("file_role", "primary_pdf")
   ]);
   const resourceRows = unwrap(resources, "read resources");
@@ -55,7 +58,8 @@ export async function readTopicQuizzes(client, topicIds) {
       publishedVersion: resource.published_version_number, lockVersion: Number(resource.lock_version), resourceScope: resource.resource_scope,
       scopeStatus: resource.scope_status, versionState: version?.publication_state ?? null, title: version?.title ?? null,
       fileId: file?.id ?? null, fileSha256: file?.sha256 ?? null, fileBytes: file?.byte_size ?? null, fileState: file?.validation_state ?? null,
-      fileName: file?.normalized_filename ?? null, originalFilename: file?.original_filename ?? null
+      fileName: file?.normalized_filename ?? null, originalFilename: file?.original_filename ?? null,
+      bucketId: file?.bucket_id ?? null, objectPath: file?.object_path ?? null, versionManifest: version?.content_manifest ?? null
     })];
   }));
 }
@@ -219,10 +223,71 @@ export async function applyQuizPlan({ client, actorAdminId, plan, log = console.
   return Object.freeze(outcome);
 }
 
+function countPdfPages(bytes) {
+  // Local poppler when present (exact); otherwise the page-object count from the PDF structure.
+  try {
+    const directory = mkdtempSync(join(tmpdir(), "quiz-pdf-pages-"));
+    const path = join(directory, "quiz.pdf");
+    writeFileSync(path, bytes);
+    try {
+      const output = execFileSync("pdfinfo", [path], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      const match = output.match(/^Pages:\s+(\d+)/m);
+      if (match) return { pages: Number(match[1]), method: "pdfinfo" };
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  } catch { /* poppler unavailable */ }
+  const source = Buffer.from(bytes).toString("latin1");
+  const count = (source.match(/\/Type\s*\/Page(?![s\w])/g) ?? []).length;
+  return { pages: count, method: "page-objects" };
+}
+
+/**
+ * Deep checks on the stored object itself: downloaded from the private bucket
+ * with the service credential, hashed byte-for-byte, parsed for header, end
+ * marker and page count. Also proves the bucket is private, that no lesson
+ * assignment exists for the quiz, and that object paths are unique.
+ */
+async function deepVerify({ client, live, quiz, seenPaths }) {
+  const problems = [];
+  const detail = { bucketPublic: null, objectPath: live.objectPath, downloadedBytes: 0, downloadedSha256: null, pages: null, pageMethod: null, lessonAssignments: null, manifestPages: null };
+  const bucket = await client.storage.getBucket(live.bucketId ?? "resource-files");
+  if (bucket.error) problems.push("bucket-unreadable");
+  else { detail.bucketPublic = bucket.data.public === true; if (bucket.data.public) problems.push("bucket-is-public"); }
+  if (!live.objectPath) problems.push("object-path-missing");
+  else {
+    if (seenPaths.has(live.objectPath)) problems.push("duplicate-object-path");
+    seenPaths.add(live.objectPath);
+    if (!live.objectPath.startsWith("resources/")) problems.push("object-path-outside-resources-prefix");
+    const downloaded = await client.storage.from(live.bucketId ?? "resource-files").download(live.objectPath);
+    if (downloaded.error || !downloaded.data) problems.push("object-download-failed");
+    else {
+      const bytes = Buffer.from(await downloaded.data.arrayBuffer());
+      detail.downloadedBytes = bytes.length;
+      detail.downloadedSha256 = sha256Of(bytes);
+      if (bytes.length === 0) problems.push("object-empty");
+      if (bytes.length !== quiz.bytes) problems.push("object-size-mismatch");
+      if (detail.downloadedSha256 !== quiz.sha256) problems.push("object-sha256-mismatch");
+      if (!bytes.subarray(0, 5).equals(Buffer.from("%PDF-"))) problems.push("object-not-a-pdf");
+      if (!bytes.subarray(Math.max(0, bytes.length - 2048)).includes("%%EOF")) problems.push("object-missing-eof");
+      const counted = countPdfPages(bytes);
+      detail.pages = counted.pages;
+      detail.pageMethod = counted.method;
+      if (counted.method === "pdfinfo" && counted.pages !== quiz.pages) problems.push(`object-page-count-${counted.pages}`);
+    }
+  }
+  const lessons = await client.from("lesson_resource_assignments").select("id", { count: "exact", head: true }).eq("resource_id", live.resourceId);
+  if (lessons.error) problems.push("lesson-assignments-unreadable");
+  else { detail.lessonAssignments = lessons.count ?? 0; if ((lessons.count ?? 0) > 0) problems.push("lesson-assignment-present"); }
+  const manifestPages = live.versionManifest && typeof live.versionManifest === "object" ? live.versionManifest.pages : null;
+  detail.manifestPages = manifestPages ?? null;
+  if (manifestPages !== quiz.pages) problems.push("version-manifest-pages-mismatch");
+  return { problems, detail };
+}
+
 /** Read-only proof that every manifest quiz is live: published, topic-scoped, current, with the exact accepted file. */
-export async function verifyQuizPublication({ client, manifest }) {
+export async function verifyQuizPublication({ client, manifest, deep = false }) {
   const taxonomy = await readTaxonomy(client);
   const results = [];
+  const seenPaths = new Set();
   for (const grade of manifest.grades) {
     const gradeRow = taxonomy.grades.find((row) => row.gradeNumber === grade.gradeNumber) ?? null;
     const gradeTopics = gradeRow ? taxonomy.topics.filter((topic) => topic.gradeId === gradeRow.id) : [];
@@ -249,9 +314,15 @@ export async function verifyQuizPublication({ client, manifest }) {
       }
       const publishedInTopic = topicQuizzes.filter((entry) => entry.publicationState === "published").length;
       if (publishedInTopic > 1) problems.push("multiple-published-quizzes-in-topic");
+      let detail = null;
+      if (deep && live) {
+        const checked = await deepVerify({ client, live, quiz, seenPaths });
+        problems.push(...checked.problems);
+        detail = checked.detail;
+      }
       results.push(Object.freeze({
         gradeNumber: grade.gradeNumber, topic: plan.manifest.title, topicSortOrder: plan.existing?.sortOrder ?? null, slug: quiz.slug, title: quiz.title,
-        resourceId: live?.resourceId ?? null, topicId: plan.existing?.id ?? null, ok: problems.length === 0, problems: Object.freeze(problems)
+        resourceId: live?.resourceId ?? null, topicId: plan.existing?.id ?? null, ok: problems.length === 0, problems: Object.freeze(problems), detail
       }));
     }
   }

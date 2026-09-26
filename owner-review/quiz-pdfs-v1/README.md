@@ -9,8 +9,7 @@ overlay for the pre-existing dev-only CSP `eval()` notice; it does not exist in 
 | # | File | What it shows |
 | --- | --- | --- |
 | 1 | `01-landing-1366-subscriber.png` | Quiz PDFs landing page for a subscriber before a grade is chosen (banner item current). |
-| 5 | `05-grade-6-selected-1366.png` | Grade 6 selected: "Quiz Topics", eight topic cards in topic order. |
-| 8 | `08-topic-cards-1366.png` | The topic cards region (designation label, path, title, success criteria, answer key, actions). |
+| 5 | `05-grade-6-selected-1366.png` | Grade 6 selected: "Quiz Topics", all eight topic cards in topic order (designation label, path, title, success criteria, answer key, actions). |
 | 9 | `09-pdf-view-details-1366.png` | The Details page of a quiz (the blueprint's "view" step) with Download PDF and Back to library. |
 | 9 | `09c-downloaded-pdf-page-1.png` | Page 1 of the PDF actually served by the download route, rendered from the downloaded bytes (sha256 equal to the owner's file). |
 | 10 | `10-mobile-390-grade-6.png`, `10b-mobile-430-grade-6.png`, `10c-mobile-375-grade-6.png` | Mobile widths with Grade 6 selected. |
@@ -27,3 +26,8 @@ overlay for the pre-existing dev-only CSP `eval()` notice; it does not exist in 
 cards (8) and the banner's current item, plus the download proof (HTTP 200, `application/pdf`,
 `attachment; filename="grade-6-ratios-and-rates-quiz.pdf"`, 532,861 bytes, sha256 identical to
 the manifest).
+
+## Staging pack
+
+`staging/` holds the same review captured against the populated STAGING deployment through the real sign-in
+(see `staging/README.md`). Those captures are the ones to review; this folder documents the local rehearsal.
