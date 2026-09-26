@@ -102,3 +102,35 @@ exercised with temporary synthetic accounts that were deleted at the end of the 
   not state them); the owner can set both through the admin revise flow.
 - Next platform tag: v1.2.13 (owner closeout; this record is committed docs-only after promotion,
   following the pattern of earlier records).
+
+## Release closeout (2026-09-26, v1.2.13)
+
+- **Tag:** annotated `v1.2.13` → runtime commit `d72c788` ("MathNexa v1.2.13 — Quiz PDFs V1"), following the
+  repository convention (v1.2.10–v1.2.12 tag the runtime commit; the release record is a docs-only commit
+  after the tag). Main at closeout: `a522df3` + this closeout commit; production still serves `d72c788`
+  (health build confirmed at closeout), `dpl_97Z79gBiGEA13Gaia4bTAEascGKy` on the apex.
+- **Read-only re-verification at closeout:** production plan shows 8 quizzes already published with the
+  identical files (skip 8, conflicts 0); deep verify 8/8; Grade 6 inventory unchanged (8 topics, 59 published
+  lessons, 167 lesson assignments, one published quiz per topic, no Topics 9–15, 0 quiz lesson assignments).
+  No database writes were made during closeout.
+- **Rollback (unchanged, do not delete):** `dpl_4QC4MDtdKvR5ie1LxpB3tqYjyR8N` (READY). Procedure:
+  `vercel promote dpl_4QC4MDtdKvR5ie1LxpB3tqYjyR8N --scope bright-path-ed-tech`, then confirm
+  `https://mathnexa.com/api/health` reports build `b7138368…`. Rolling the code back keeps the published quiz
+  content; the previous page shape renders it with a Topic selector.
+- **Staging difference (known, not reconciled):** staging holds the earlier quiz-specific Grade 6 topic
+  taxonomy created during staging certification; production uses the approved Option A mapping onto the
+  existing Grade 6 curriculum topics. Backlog: *Align Quiz PDFs staging taxonomy with production topic
+  mapping before the next Quiz PDFs content expansion.* No code or database change now.
+- **Backlog (recorded, not implemented):**
+  - A. Grade label capitalization: production grade row title is "grade 6"; a future label could be "Grade 6"
+    (owner content-label decision; the quiz page shows the row title as stored).
+  - B. Quiz metadata: cards show "Difficulty: Not specified" and "Recommended time: Not specified" (not stated
+    in the PDFs; do not invent values; settable through the admin revise flow).
+  - C. Additional grades: the quiz corpus is Grade 6 only; Grades 3, 4, 5, 7 and 8 require actual
+    owner-approved quiz PDFs before any publication.
+- **Cleanup:** temporary worktrees `C:/GitHub/mathnexa-quiz-pdfs` (feature development, staging
+  certification) and `C:/GitHub/mathnexa-release-d72c788` (pristine production release source) removed after
+  confirming main, the release docs and the tag were pushed and no unique review evidence remained only there
+  (all review packs are committed under `owner-review/quiz-pdfs-v1/`). The main checkout
+  `C:/GitHub/mathnexa-platform`, the approved source PDFs and the production/rollback deployments were not
+  touched. The local branch `feature/quiz-pdfs-v1` is kept (merged).
