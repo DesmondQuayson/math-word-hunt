@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { inspectPdfUpload } from "../../packages/platform-core/src/admin-files/pdf-validation.ts";
-import { sha256Of } from "./manifest.mjs";
+import { sha256Of, topicMapForGrade } from "./manifest.mjs";
 import { planGrade, planQuiz, planTopics, publicationSteps } from "./plan.mjs";
 
 const QUIZ_TYPES = ["quiz_pdf", "quiz_answer_key"];
@@ -64,20 +64,36 @@ export async function readTopicQuizzes(client, topicIds) {
   }));
 }
 
-export async function buildQuizPlan({ client, manifest }) {
+export async function buildQuizPlan({ client, manifest, topicMap = null }) {
   const taxonomy = await readTaxonomy(client);
   const grades = [];
   for (const grade of manifest.grades) {
     const gradePlan = planGrade(taxonomy.grades, grade);
     const existingTopics = gradePlan.action === "reuse" ? taxonomy.topics.filter((topic) => topic.gradeId === gradePlan.existing.id) : [];
-    const topicPlans = planTopics(existingTopics, grade.topics);
+    const topicPlans = planTopics(existingTopics, grade.topics, topicMapForGrade(topicMap, grade.gradeNumber));
     const reusedTopicIds = topicPlans.filter((plan) => plan.action === "reuse").map((plan) => plan.existing.id);
     const existingQuizzes = await readTopicQuizzes(client, reusedTopicIds);
     const topics = topicPlans.map((plan) => Object.freeze({
       ...plan,
-      quiz: planQuiz(plan.action === "reuse" ? existingQuizzes.filter((entry) => entry.topicId === plan.existing.id) : [], plan.manifest.quiz)
+      quiz: plan.action === "conflict"
+        ? Object.freeze({ action: "conflict", reason: plan.reason, existing: null })
+        : planQuiz(plan.action === "reuse" ? existingQuizzes.filter((entry) => entry.topicId === plan.existing.id) : [], plan.manifest.quiz)
     }));
-    grades.push(Object.freeze({ manifest: grade, ...gradePlan, topics: Object.freeze(topics) }));
+    // What the grade already holds (read-only), so a reviewer sees the full
+    // topic list the quizzes would join, not only the matched topics.
+    let inventory = [];
+    if (existingTopics.length) {
+      const topicIds = existingTopics.map((topic) => topic.id);
+      const lessons = unwrap(await client.from("content_lessons").select("topic_id,publication_state").in("topic_id", topicIds), "read lessons");
+      const allQuizzes = await readTopicQuizzes(client, topicIds);
+      inventory = existingTopics.map((topic) => ({
+        id: topic.id, sortOrder: topic.sortOrder, title: topic.title, slug: topic.slug, publicationState: topic.publicationState,
+        lessons: lessons.filter((row) => row.topic_id === topic.id).length,
+        publishedLessons: lessons.filter((row) => row.topic_id === topic.id && row.publication_state === "published").length,
+        quizzes: allQuizzes.filter((entry) => entry.topicId === topic.id).map((entry) => `${entry.resourceType}:${entry.publicationState}:${entry.slug}`)
+      })).sort((left, right) => left.sortOrder - right.sortOrder);
+    }
+    grades.push(Object.freeze({ manifest: grade, ...gradePlan, topics: Object.freeze(topics), inventory: Object.freeze(inventory) }));
   }
   const conflicts = grades.flatMap((grade) => [
     ...(grade.action === "conflict" ? [{ kind: "grade", grade: grade.manifest.gradeNumber, reason: grade.reason }] : []),
@@ -101,8 +117,12 @@ export function describePlan(plan) {
   const lines = [];
   for (const grade of plan.grades) {
     lines.push(`Grade ${grade.manifest.gradeNumber} "${grade.manifest.title}": ${grade.action}${grade.existing ? ` (existing ${grade.existing.id}, ${grade.existing.publicationState})` : ` (sort order ${grade.sortOrder})`}${grade.reason ? ` - ${grade.reason}` : ""}`);
+    if (grade.inventory?.length) {
+      lines.push(`  Existing topics in this grade (${grade.inventory.length}):`);
+      for (const topic of grade.inventory) lines.push(`    Topic ${topic.sortOrder} "${topic.title}" [${topic.slug}] ${topic.publicationState} - lessons ${topic.lessons} (published ${topic.publishedLessons}), quizzes ${topic.quizzes.length ? topic.quizzes.join(", ") : "none"}`);
+    }
     for (const topic of grade.topics) {
-      lines.push(`  Topic ${topic.sortOrder} "${topic.manifest.title}": ${topic.action}${topic.existing ? ` (existing ${topic.existing.id}, ${topic.existing.publicationState})` : ""}`);
+      lines.push(`  Topic ${topic.sortOrder} "${topic.manifest.title}": ${topic.action}${topic.existing ? ` (existing ${topic.existing.id}, ${topic.existing.publicationState}, title "${topic.existing.title}")` : ""}${topic.mappedSlug ? ` [mapped to existing slug ${topic.mappedSlug}]` : ""}${topic.action === "conflict" ? ` - ${topic.reason}` : ""}`);
       lines.push(`    Quiz "${topic.manifest.quiz.title}" [${topic.manifest.quiz.slug}]: ${topic.quiz.action}${topic.quiz.reason ? ` - ${topic.quiz.reason}` : ""}`);
     }
   }
@@ -321,7 +341,7 @@ export async function verifyQuizPublication({ client, manifest, deep = false }) 
         detail = checked.detail;
       }
       results.push(Object.freeze({
-        gradeNumber: grade.gradeNumber, topic: plan.manifest.title, topicSortOrder: plan.existing?.sortOrder ?? null, slug: quiz.slug, title: quiz.title,
+        gradeNumber: grade.gradeNumber, topic: plan.existing?.title ?? plan.manifest.title, topicSortOrder: plan.existing?.sortOrder ?? null, slug: quiz.slug, title: quiz.title,
         resourceId: live?.resourceId ?? null, topicId: plan.existing?.id ?? null, ok: problems.length === 0, problems: Object.freeze(problems), detail
       }));
     }
@@ -342,7 +362,7 @@ async function findAuthUserByEmail(client, email) {
   return null;
 }
 
-export async function resolveActorAdmin({ client, email = null, adminId = null }) {
+export async function resolveActorAdmin({ client, email = null, adminId = null, soleOwner = false }) {
   let query = client.from("admin_users").select("id,user_id,role,mfa_enrolled,revoked_at");
   if (adminId) {
     if (!UUID.test(adminId)) throw new Error("actor admin id must be a UUID");
@@ -351,7 +371,13 @@ export async function resolveActorAdmin({ client, email = null, adminId = null }
     const user = await findAuthUserByEmail(client, email);
     if (!user) throw new Error("no account with that email address");
     query = query.eq("user_id", user.id);
-  } else throw new Error("an actor (email or admin id) is required");
+  } else if (soleOwner) {
+    // The real owner row, chosen without naming an address: exactly one active,
+    // MFA-enrolled owner must exist, otherwise the caller must name the actor.
+    const owners = unwrap(await query.is("revoked_at", null).eq("role", "owner").eq("mfa_enrolled", true), "read owner admins");
+    if (owners.length !== 1) throw new Error(`expected exactly one active MFA-enrolled owner admin, found ${owners.length}; name the actor with --actor-email or --actor-admin-id`);
+    return owners[0].id;
+  } else throw new Error("an actor (email, admin id or --actor-sole-owner) is required");
   const rows = unwrap(await query, "read admin users");
   const row = rows.find((entry) => entry.revoked_at === null) ?? null;
   if (!row) throw new Error("no active admin row for that actor");

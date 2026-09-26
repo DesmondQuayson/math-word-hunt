@@ -17,8 +17,10 @@ export function normalizeTitle(value) {
   return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-export function matchExistingTopic(existingTopics, manifestTopic) {
+export function matchExistingTopic(existingTopics, manifestTopic, mappedSlug = null) {
   const active = existingTopics.filter((topic) => topic.publicationState !== "archived");
+  // An explicit map names the existing topic and disables title guessing.
+  if (mappedSlug) return active.find((topic) => topic.slug === mappedSlug) ?? null;
   return active.find((topic) => topic.slug === manifestTopic.slug)
     ?? active.find((topic) => normalizeTitle(topic.title) === normalizeTitle(manifestTopic.title))
     ?? null;
@@ -36,14 +38,16 @@ export function planGrade(existingGrades, manifestGrade) {
   return Object.freeze({ action: "create", existing: null, sortOrder, publish: true });
 }
 
-export function planTopics(existingTopics, manifestTopics) {
+export function planTopics(existingTopics, manifestTopics, topicMap = new Map()) {
   const ordered = [...manifestTopics].sort((left, right) => left.sortOrder - right.sortOrder);
   const taken = new Set(existingTopics.map((topic) => topic.sortOrder));
   const gradeIsEmpty = existingTopics.length === 0;
   let next = Math.max(0, ...existingTopics.map((topic) => topic.sortOrder)) + 1;
   return Object.freeze(ordered.map((manifest) => {
-    const existing = matchExistingTopic(existingTopics, manifest);
-    if (existing) return Object.freeze({ manifest, action: "reuse", existing, sortOrder: existing.sortOrder, publish: existing.publicationState !== "published" });
+    const mappedSlug = topicMap.get(manifest.slug) ?? null;
+    const existing = matchExistingTopic(existingTopics, manifest, mappedSlug);
+    if (mappedSlug && !existing) return Object.freeze({ manifest, action: "conflict", reason: `mapped-topic-missing:${mappedSlug}`, existing: null, sortOrder: 0, publish: false, mappedSlug });
+    if (existing) return Object.freeze({ manifest, action: "reuse", existing, sortOrder: existing.sortOrder, publish: existing.publicationState !== "published", mappedSlug });
     // An empty grade keeps the manifest's own numbering; a grade that already
     // has topics (for example the Homework taxonomy) appends after them so the
     // owner's existing "Topic N" labels never move.

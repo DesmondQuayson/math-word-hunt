@@ -12,13 +12,15 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
-import { chromium } from "@playwright/test";
+import playwright from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+
+const { chromium } = playwright;
 
 import { loadQuizManifest } from "./quiz-pdfs/manifest.mjs";
 import { verifyQuizPublication } from "./quiz-pdfs/publish.mjs";
 
-const PRODUCTION_PROJECT_REF = "ioodoktlxvvmghyvevgn";
+const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 
@@ -27,12 +29,22 @@ function required(name, pattern = /\S/) {
   if (!pattern.test(value)) throw new Error(`missing-${name.toLowerCase().replaceAll("_", "-")}`);
   return value;
 }
-const origin = required("STAGING_ORIGIN", /^https:\/\/mathnexa-platform-staging[a-z0-9-]*\.vercel\.app$/);
-const bypassSecret = required("VERCEL_AUTOMATION_BYPASS_SECRET", /^[A-Za-z0-9_-]{20,}$/);
+// Staging previews (SSO-protected, need the bypass entry), production candidates
+// and the apex are the only origins this harness will drive.
+const ORIGIN_ALLOWLIST = /^https:\/\/(mathnexa-platform-(?:staging|production)[a-z0-9-]*\.vercel\.app|mathnexa\.com)$/;
+const origin = (process.env.REVIEW_ORIGIN?.trim() || process.env.STAGING_ORIGIN?.trim() || "").replace(/\/$/, "");
+if (!ORIGIN_ALLOWLIST.test(origin)) throw new Error("REVIEW_ORIGIN must be a MathNexa staging/production deployment or the apex");
+const bypassSecret = /^[A-Za-z0-9_-]{20,}$/.test(process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() ?? "") ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET.trim() : null;
 const supabaseUrl = required("SUPABASE_URL", /^https:\/\//);
 const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
-if (new URL(supabaseUrl).hostname.startsWith(`${PRODUCTION_PROJECT_REF}.`)) throw new Error("the review harness never runs against the production project");
-const out = resolve(process.env.REVIEW_OUT ?? "owner-review/quiz-pdfs-v1/staging");
+// Any hosted project other than staging is production for this harness.
+const isProduction = process.env.REVIEW_TARGET === "production" || !new URL(supabaseUrl).hostname.startsWith(`${STAGING_PROJECT_REF}.`);
+if (isProduction && process.env.REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION !== "yes") {
+  throw new Error("production review creates temporary synthetic consumer accounts; the production launcher must opt in explicitly");
+}
+const expectedBuild = process.env.REVIEW_EXPECT_BUILD?.trim() || null;
+const engines = (process.env.REVIEW_ENGINES ?? "chromium").split(",").map((name) => name.trim()).filter(Boolean);
+const out = resolve(process.env.REVIEW_OUT ?? (isProduction ? "owner-review/quiz-pdfs-v1/production" : "owner-review/quiz-pdfs-v1/staging"));
 mkdirSync(out, { recursive: true });
 
 const manifest = loadQuizManifest();
@@ -88,11 +100,25 @@ async function liveQuizzes() {
 }
 
 const browser = await chromium.launch();
-async function open(state, viewport) {
-  const context = await browser.newContext({ viewport, bypassCSP: true, extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret } });
+const serverErrors = [];
+const consoleErrors = [];
+function observe(page) {
+  page.on("response", (response) => { if (response.status() >= 500) serverErrors.push(`${response.status()} ${new URL(response.url()).pathname}`); });
+  page.on("pageerror", (error) => consoleErrors.push(`pageerror: ${String(error).slice(0, 160)}`));
+  page.on("console", (message) => {
+    const text = message.text();
+    // Aborted RSC prefetches during our own navigations are harness noise, not application errors.
+    if (message.type() === "error" && !/_rsc=|Failed to load resource: net::ERR_ABORTED|Fetch API cannot load/.test(text)) consoleErrors.push(`console: ${text.slice(0, 160)}`);
+  });
+}
+async function open(state, viewport, engine = chromium) {
+  const context = await engine.newContext({ viewport, bypassCSP: true, ...(bypassSecret ? { extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret } } : {}) });
   const page = await context.newPage();
-  // Set the bypass cookie once so client-side fetches pass as well, then leave the bootstrap URL behind.
-  await page.goto(`${origin}/?x-vercel-protection-bypass=${bypassSecret}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  observe(page);
+  if (bypassSecret) {
+    // Set the bypass cookie once so client-side fetches pass as well, then leave the bootstrap URL behind.
+    await page.goto(`${origin}/?x-vercel-protection-bypass=${bypassSecret}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  }
   await page.goto(`${origin}/`, { waitUntil: "networkidle" });
   if (state !== "anonymous") {
     await page.goto(`${origin}/sign-in?next=/quizzes`);
@@ -129,8 +155,13 @@ async function axeSerious(page) {
 
 let users = {};
 try {
+  note(`review origin ${origin} (${isProduction ? "PRODUCTION project" : "staging project"}); engines ${engines.join(", ")}`);
+  const health = await fetch(`${origin}/api/health`, { redirect: "manual", headers: { "user-agent": "MathNexa-Quiz-Review/1.0", ...(bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {}) } });
+  const healthBody = await health.text();
+  check(health.status === 200 && /"status":"ready"/.test(healthBody), `health ${health.status} ${healthBody.slice(0, 120)}`);
+  if (expectedBuild) check(healthBody.includes(`"build":"${expectedBuild}"`), `health build = ${expectedBuild.slice(0, 7)}`);
   const live = await liveQuizzes();
-  check(live.length === grade6.topics.length, `staging publishes ${live.length} of ${grade6.topics.length} manifest quizzes`);
+  check(live.length === grade6.topics.length, `${isProduction ? "production" : "staging"} publishes ${live.length} of ${grade6.topics.length} manifest quizzes`);
   const deep = await verifyQuizPublication({ client: admin, manifest, deep: true });
   for (const item of deep.results) check(item.ok, `database + private storage: Grade ${item.gradeNumber} / Topic ${item.topicSortOrder}: ${item.topic} - ${item.title} ${item.problems.join(",")}${item.detail ? ` [${item.detail.downloadedBytes} bytes, pages ${item.detail.pages}, lesson assignments ${item.detail.lessonAssignments}, bucket public ${item.detail.bucketPublic}]` : ""}`);
   users = { eligible: await user("eligible"), "used-trial": await user("used-trial"), "trial-active": await user("trial-active"), subscribed: await user("subscribed") };
@@ -286,6 +317,32 @@ try {
     await shot(page, "19-subscriber-390-first-screen");
     await context.close();
   }
+  // WebKit: render, cards, overflow and axe (the keyboard walk is Chromium-only:
+  // the Windows WebKit test build never Tab-focuses links from a form control).
+  if (engines.includes("webkit")) {
+    const webkit = await playwright.webkit.launch();
+    try {
+      const { context, page } = await open("subscribed", { width: 1366, height: 900 }, webkit);
+      await page.waitForLoadState("networkidle");
+      check(new URL(page.url()).pathname === "/quizzes", `webkit subscriber: sign-in with next=/quizzes -> ${new URL(page.url()).pathname}`);
+      for (const width of [1366, 390]) {
+        await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+        await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+        const landingViolations = await axeSerious(page);
+        check(landingViolations.length === 0, `webkit axe ${width} landing: ${landingViolations.join(", ") || "0 serious/critical"}`);
+        await selectGrade(page);
+        const facts = await pageFacts(page);
+        check(facts.cards === live.length && facts.overflow === 0 && !facts.lessonWording, `webkit ${width}px: ${facts.cards} cards, overflow ${facts.overflow}px, lesson wording ${facts.lessonWording}`);
+        const selectedViolations = await axeSerious(page);
+        check(selectedViolations.length === 0, `webkit axe ${width} grade selected: ${selectedViolations.join(", ") || "0 serious/critical"}`);
+        if (width === 390) await shot(page, "20-webkit-390-grade-6", { fullPage: true });
+      }
+      note("webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)");
+      await context.close();
+    } finally { await webkit.close(); }
+  }
+  check(serverErrors.length === 0, `no 5xx responses (${serverErrors.length ? serverErrors.join("; ") : "0"})`);
+  check(consoleErrors.length === 0, `no console/page errors (${consoleErrors.length ? consoleErrors.slice(0, 5).join("; ") : "0"})`);
 } finally {
   await browser.close();
   for (const id of created) await admin.auth.admin.deleteUser(id).catch((error) => note(`cleanup: could not delete synthetic account ${id}: ${error.message}`));

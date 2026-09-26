@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "purpose": "PRODUCTION ONLY. Attaches each approved Grade 6 quiz to the Grade 6 curriculum topic that already exists in the production content database (the owner's Homework PDFs taxonomy, Topics 1-8). Existing topics keep their titles and numbering; no topic is created, renamed or moved. The quiz cards read 'Grade 6 / Topic N: <existing topic title>' with the quiz's verbatim PDF title underneath. Used by scripts/invoke-quiz-pdfs-production.ps1 -TopicMap only after owner approval.",
+  "grades": {
+    "6": {
+      "positive-rational-numbers": { "existingSlug": "numbers", "note": "Production Topic 1 'Use Positive Rational Numbers' <- quiz 'Positive Rational Numbers Practice'" },
+      "integers-and-rational-numbers": { "existingSlug": "integers-and-rational-numbers", "note": "Production Topic 2 'Integers and Rational Numbers' <- quiz 'Integers And Rational Numbers' (exact title match)" },
+      "numeric-and-algebraic-expressions": { "existingSlug": "numerical-and-algebraic-expressions", "note": "Production Topic 3 'Numerical and Algebraic Expressions' <- quiz 'Numeric and Algebraic Expressions'" },
+      "represent-and-solve-equations": { "existingSlug": "equations-and-inequalities", "note": "Production Topic 4 'Equations and Inequalities' <- quiz 'Represent and Solve Equations'" },
+      "ratios-and-rates": { "existingSlug": "ratios-rates-and-unit-conversions", "note": "Production Topic 5 'Ratios, Rates, and Unit Conversions' <- quiz 'Ratios And Rates Practice'" },
+      "understanding-and-using-percent": { "existingSlug": "percents", "note": "Production Topic 6 'Percents' <- quiz 'Understanding and Using Percent'" },
+      "area-surface-area-volume": { "existingSlug": "area-surface-area-and-volume", "note": "Production Topic 7 'Area, Surface Area, and Volume' <- quiz 'Area Surface Area Volume Practice'" },
+      "displaying-describing-summarising-data": { "existingSlug": "statistics-and-data-distributions", "note": "Production Topic 8 'Statistics and Data Distributions' <- quiz 'Displaying Describing Summarising Data'" }
+    }
+  }
+}

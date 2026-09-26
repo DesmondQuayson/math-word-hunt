@@ -31,3 +31,8 @@ export function verifyQuizFiles(manifest: QuizManifest): QuizFileVerification;
 export function findPublicPdfs(root?: string): readonly string[];
 export function summarizeQuizManifest(manifest: QuizManifest): QuizManifestSummary;
 export function renderContentAudit(summary: QuizManifestSummary, verification?: QuizFileVerification | null): string;
+export type QuizTopicMapEntry = Readonly<{ gradeNumber: number; manifestSlug: string; existingSlug: string; note: string }>;
+export type QuizTopicMap = Readonly<{ path: string; entries: ReadonlyMap<string, QuizTopicMapEntry>; size: number; purpose: string }>;
+export const QUIZ_TOPIC_MAP_PATH: string;
+export function loadQuizTopicMap(manifest: QuizManifest, path?: string): QuizTopicMap;
+export function topicMapForGrade(topicMap: QuizTopicMap | null, gradeNumber: number): Map<string, string>;

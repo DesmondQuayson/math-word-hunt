@@ -1,4 +1,4 @@
-import type { QuizManifest } from "./manifest.mjs";
+import type { QuizManifest, QuizTopicMap } from "./manifest.mjs";
 import type { ExistingGrade, ExistingTopic, GradePlan, QuizPlan, TopicPlan } from "./plan.mjs";
 type Client = { from: (...args: unknown[]) => unknown; rpc: (...args: unknown[]) => unknown; storage: unknown; auth: unknown };
 export type ExistingTopicQuiz = Readonly<{
@@ -28,10 +28,10 @@ export type QuizVerification = Readonly<{
 }>;
 export function readTaxonomy(client: Client): Promise<Readonly<{ grades: readonly ExistingGrade[]; topics: readonly ExistingTopic[] }>>;
 export function readTopicQuizzes(client: Client, topicIds: readonly string[]): Promise<readonly ExistingTopicQuiz[]>;
-export function buildQuizPlan(input: Readonly<{ client: Client; manifest: QuizManifest }>): Promise<QuizPublishPlan>;
+export function buildQuizPlan(input: Readonly<{ client: Client; manifest: QuizManifest; topicMap?: QuizTopicMap | null }>): Promise<QuizPublishPlan>;
 export function describePlan(plan: QuizPublishPlan): string;
 export function applyQuizPlan(input: Readonly<{ client: Client; actorAdminId: string; plan: QuizPublishPlan; log?: (line: string) => void }>): Promise<QuizPublishOutcome>;
-export function verifyQuizPublication(input: Readonly<{ client: Client; manifest: QuizManifest; deep?: boolean }>): Promise<QuizVerification>;
-export function resolveActorAdmin(input: Readonly<{ client: Client; email?: string | null; adminId?: string | null }>): Promise<string>;
+export function verifyQuizPublication(input: Readonly<{ client: Client; manifest: QuizManifest; deep?: boolean; topicMap?: QuizTopicMap | null }>): Promise<QuizVerification>;
+export function resolveActorAdmin(input: Readonly<{ client: Client; email?: string | null; adminId?: string | null; soleOwner?: boolean }>): Promise<string>;
 export function createSyntheticOwner(input: Readonly<{ client: Client; runId: string }>): Promise<Readonly<{ adminId: string; userId: string; email: string }>>;
 export function revokeSyntheticOwner(input: Readonly<{ client: Client; userId: string }>): Promise<void>;

@@ -17,6 +17,7 @@ export const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), 
 export const QUIZ_CONTENT_ROOT = "content/quiz-pdfs";
 export const QUIZ_MANIFEST_PATH = `${QUIZ_CONTENT_ROOT}/manifest.json`;
 export const PUBLIC_ASSET_ROOT = "apps/platform-web/public";
+export const QUIZ_TOPIC_MAP_PATH = `${QUIZ_CONTENT_ROOT}/production-topic-map.json`;
 export const QUIZ_ANSWER_KEY_MODES = Object.freeze(["included", "separate", "none"]);
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -238,4 +239,39 @@ export function renderContentAudit(summary, verification = null) {
     `Without answer key: ${summary.withoutAnswerKey}`
   );
   return lines.join("\n");
+}
+
+/**
+ * Optional production topic map: manifest topic slug -> the slug of a topic
+ * that already exists in that grade of the target content database. A mapped
+ * quiz joins the existing topic (title and numbering untouched) instead of
+ * creating a new one. Unmapped topics keep the default slug/title matching.
+ */
+export function loadQuizTopicMap(manifest, path = resolve(manifest.root, QUIZ_TOPIC_MAP_PATH)) {
+  const raw = JSON.parse(readFileSync(path, "utf8"));
+  if (raw.version !== 1 || !raw.grades || typeof raw.grades !== "object" || Array.isArray(raw.grades)) fail("topic-map-shape", "a version 1 topic map with a grades object is required");
+  const entries = new Map();
+  for (const [gradeKey, topics] of Object.entries(raw.grades)) {
+    const gradeNumber = Number(gradeKey);
+    const grade = manifest.grades.find((item) => item.gradeNumber === gradeNumber);
+    if (!grade) fail("topic-map-grade", `grade ${gradeKey} is not in the manifest`);
+    if (!topics || typeof topics !== "object" || Array.isArray(topics)) fail("topic-map-grade", `grade ${gradeKey} must map topic slugs`);
+    const targets = new Set();
+    for (const [manifestSlug, target] of Object.entries(topics)) {
+      if (!grade.topics.some((topic) => topic.slug === manifestSlug)) fail("topic-map-topic", `${manifestSlug} is not a manifest topic of grade ${gradeKey}`);
+      const existingSlug = typeof target === "string" ? target : target?.existingSlug;
+      if (typeof existingSlug !== "string" || !SLUG.test(existingSlug)) fail("topic-map-target", `${manifestSlug} must map to a lowercase hyphenated existing topic slug`);
+      if (targets.has(existingSlug)) fail("topic-map-target", `existing topic ${existingSlug} is mapped twice in grade ${gradeKey}`);
+      targets.add(existingSlug);
+      entries.set(`${gradeNumber}:${manifestSlug}`, Object.freeze({ gradeNumber, manifestSlug, existingSlug, note: target && typeof target === "object" && typeof target.note === "string" ? target.note : "" }));
+    }
+  }
+  return Object.freeze({ path, entries, size: entries.size, purpose: typeof raw.purpose === "string" ? raw.purpose : "" });
+}
+
+export function topicMapForGrade(topicMap, gradeNumber) {
+  const map = new Map();
+  if (!topicMap) return map;
+  for (const entry of topicMap.entries.values()) if (entry.gradeNumber === gradeNumber) map.set(entry.manifestSlug, entry.existingSlug);
+  return map;
 }
