@@ -17,7 +17,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const { chromium } = playwright;
 
-import { loadQuizManifest } from "./quiz-pdfs/manifest.mjs";
+import { applyQuizTopicMap, loadQuizManifest, loadQuizTopicMap } from "./quiz-pdfs/manifest.mjs";
 import { verifyQuizPublication } from "./quiz-pdfs/publish.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
@@ -47,13 +47,19 @@ const engines = (process.env.REVIEW_ENGINES ?? "chromium").split(",").map((name)
 const out = resolve(process.env.REVIEW_OUT ?? (isProduction ? "owner-review/quiz-pdfs-v1/production" : "owner-review/quiz-pdfs-v1/staging"));
 mkdirSync(out, { recursive: true });
 
-const manifest = loadQuizManifest();
+// REVIEW_TOPIC_MAP (optional): the same explicit map the publish stages used, so
+// the database verification matches quizzes to the existing topics by slug.
+const sourceManifest = loadQuizManifest();
+const topicMap = process.env.REVIEW_TOPIC_MAP?.trim() ? loadQuizTopicMap(sourceManifest, resolve(process.env.REVIEW_TOPIC_MAP.trim())) : null;
+const manifest = applyQuizTopicMap(sourceManifest, topicMap);
 const grade6 = manifest.grades.find((grade) => grade.gradeNumber === 6);
 const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const run = `quiz-review-${randomBytes(6).toString("hex")}`;
 const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const REVIEW_WIDTHS = [320, 375, 390, 430, 768, 820, 1180, 1366, 1920];
 
+// The grade's display title is whatever the target database holds (production: "grade 6").
+let gradeTitle = "Grade 6";
 const notes = [];
 const results = [];
 const note = (message) => { notes.push(message); console.log(message); };
@@ -90,6 +96,9 @@ async function liveQuizzes() {
   if (resources.error) throw resources.error;
   const topics = await admin.from("content_topics").select("id,title,sort_order").eq("publication_state", "published");
   if (topics.error) throw topics.error;
+  const gradeRow = await admin.from("content_grades").select("title").eq("grade_number", 6).eq("publication_state", "published").maybeSingle();
+  if (gradeRow.error || !gradeRow.data) throw new Error("published Grade 6 row not found");
+  gradeTitle = gradeRow.data.title;
   const publishedIds = new Set(resources.data.map((row) => row.id));
   return grade6.topics.map((topic) => {
     const assignment = assignments.data.find((row) => row.slug === topic.quiz.slug && publishedIds.has(row.resource_id));
@@ -111,7 +120,7 @@ function observe(page) {
     if (message.type() === "error" && !/_rsc=|Failed to load resource: net::ERR_ABORTED|Fetch API cannot load/.test(text)) consoleErrors.push(`console: ${text.slice(0, 160)}`);
   });
 }
-async function open(state, viewport, engine = chromium) {
+async function open(state, viewport, engine = browser) {
   const context = await engine.newContext({ viewport, bypassCSP: true, ...(bypassSecret ? { extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret } } : {}) });
   const page = await context.newPage();
   observe(page);
@@ -136,7 +145,7 @@ async function shot(page, name, options = {}) {
   note(`shot ${name}.png ${new URL(page.url()).pathname}${new URL(page.url()).search}`);
 }
 async function selectGrade(page) {
-  await page.getByRole("combobox", { name: "Grade" }).selectOption({ label: "Grade 6" });
+  await page.getByRole("combobox", { name: "Grade" }).selectOption({ label: gradeTitle });
   await page.getByRole("heading", { name: "Quiz Topics" }).waitFor();
 }
 const pageFacts = (page) => page.evaluate(() => ({
@@ -210,7 +219,7 @@ try {
     await page.waitForLoadState("networkidle");
     check(new URL(page.url()).pathname === "/quizzes", `subscriber: sign-in with next=/quizzes -> ${new URL(page.url()).pathname}`);
     await shot(page, "01-landing-1366-subscriber", { fullPage: true });
-    check((await page.getByRole("combobox", { name: "Grade" }).locator("option").allTextContents()).join("|") === "Choose a grade|Grade 6", "grade control offers exactly Grade 6");
+    check((await page.getByRole("combobox", { name: "Grade" }).locator("option").allTextContents()).join("|") === `Choose a grade|${gradeTitle}`, `grade control offers exactly "${gradeTitle}"`);
     check((await page.getByRole("combobox", { name: "Topic" }).count()) === 0 && (await page.getByRole("combobox", { name: "Lesson" }).count()) === 0, "no Topic or Lesson selector on the quiz page");
     await selectGrade(page);
     const facts = await pageFacts(page);
@@ -228,7 +237,7 @@ try {
       const title = (await card.getByRole("heading", { level: 2 }).textContent())?.trim() ?? "";
       const download = await card.getByRole("link", { name: "Download PDF" }).getAttribute("href");
       const details = await card.getByRole("link", { name: "Details" }).getAttribute("href");
-      check(path === `Grade 6 / Topic ${item.topicSortOrder}: ${item.topicTitle}` && title === item.quiz.title && download === `/resources/${item.resourceId}/download` && details === `/resources/${item.resourceId}`, `card ${index + 1}: "${path}" - "${title}" -> ${download}`);
+      check(path === `${gradeTitle} / Topic ${item.topicSortOrder}: ${item.topicTitle}` && title === item.quiz.title && download === `/resources/${item.resourceId}/download` && details === `/resources/${item.resourceId}`, `card ${index + 1}: "${path}" - "${title}" -> ${download}`);
       check((await card.getByText("Quiz PDF", { exact: true }).count()) === 1 && (await card.getByText("Included in PDF").count()) === 1, `card ${index + 1}: Quiz PDF designation + answer key included`);
       await card.scrollIntoViewIfNeeded();
       const box = await card.boundingBox();

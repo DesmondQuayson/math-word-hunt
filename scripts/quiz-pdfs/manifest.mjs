@@ -275,3 +275,21 @@ export function topicMapForGrade(topicMap, gradeNumber) {
   for (const entry of topicMap.entries.values()) if (entry.gradeNumber === gradeNumber) map.set(entry.manifestSlug, entry.existingSlug);
   return map;
 }
+
+/**
+ * The manifest as the target database sees it: every mapped topic carries the
+ * existing topic's slug (its original slug kept in `mappedFrom`), so planning
+ * and verification match the existing topic by slug. Nothing else changes.
+ */
+export function applyQuizTopicMap(manifest, topicMap) {
+  if (!topicMap) return manifest;
+  const grades = manifest.grades.map((grade) => {
+    const map = topicMapForGrade(topicMap, grade.gradeNumber);
+    return Object.freeze({ ...grade, topics: Object.freeze(grade.topics.map((topic) => map.has(topic.slug) ? Object.freeze({ ...topic, slug: map.get(topic.slug), mappedFrom: topic.slug }) : topic)) });
+  });
+  const quizzes = manifest.quizzes.map((quiz) => {
+    const map = topicMapForGrade(topicMap, quiz.gradeNumber);
+    return map.has(quiz.topicSlug) ? Object.freeze({ ...quiz, topicSlug: map.get(quiz.topicSlug), mappedFrom: quiz.topicSlug }) : quiz;
+  });
+  return Object.freeze({ ...manifest, grades: Object.freeze(grades), quizzes: Object.freeze(quizzes) });
+}

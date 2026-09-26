@@ -36,3 +36,4 @@ export type QuizTopicMap = Readonly<{ path: string; entries: ReadonlyMap<string,
 export const QUIZ_TOPIC_MAP_PATH: string;
 export function loadQuizTopicMap(manifest: QuizManifest, path?: string): QuizTopicMap;
 export function topicMapForGrade(topicMap: QuizTopicMap | null, gradeNumber: number): Map<string, string>;
+export function applyQuizTopicMap(manifest: QuizManifest, topicMap: QuizTopicMap | null): QuizManifest;

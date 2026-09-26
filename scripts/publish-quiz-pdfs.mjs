@@ -19,7 +19,7 @@ import { resolve } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { loadQuizManifest, loadQuizTopicMap, topicMapForGrade, verifyQuizFiles } from "./quiz-pdfs/manifest.mjs";
+import { applyQuizTopicMap, loadQuizManifest, loadQuizTopicMap, verifyQuizFiles } from "./quiz-pdfs/manifest.mjs";
 import { applyQuizPlan, buildQuizPlan, createSyntheticOwner, describePlan, resolveActorAdmin, revokeSyntheticOwner, verifyQuizPublication } from "./quiz-pdfs/publish.mjs";
 
 // The production project is never named in source: the production launcher
@@ -77,19 +77,7 @@ console.log(`manifest: ${manifest.quizzes.length} quiz PDFs across ${manifest.gr
 // touched, and a mapped topic that does not exist is a conflict, never a create.
 const topicMap = option("topic-map") ? loadQuizTopicMap(manifest, resolve(option("topic-map"))) : null;
 if (topicMap) console.log(`topic map: ${topicMap.size} mapped topic(s) from ${option("topic-map")}`);
-function withTopicMap(source) {
-  if (!topicMap) return source;
-  const grades = source.grades.map((grade) => {
-    const map = topicMapForGrade(topicMap, grade.gradeNumber);
-    return Object.freeze({ ...grade, topics: Object.freeze(grade.topics.map((topic) => map.has(topic.slug) ? Object.freeze({ ...topic, slug: map.get(topic.slug), mappedFrom: topic.slug }) : topic)) });
-  });
-  const quizzes = source.quizzes.map((quiz) => {
-    const map = topicMapForGrade(topicMap, quiz.gradeNumber);
-    return map.has(quiz.topicSlug) ? Object.freeze({ ...quiz, topicSlug: map.get(quiz.topicSlug), mappedFrom: quiz.topicSlug }) : quiz;
-  });
-  return Object.freeze({ ...source, grades: Object.freeze(grades), quizzes: Object.freeze(quizzes) });
-}
-const effective = withTopicMap(manifest);
+const effective = applyQuizTopicMap(manifest, topicMap);
 function assertMappedTopicsExist(plan) {
   if (!topicMap) return;
   // Strict: a mapped topic must be reused through the exact mapped slug (no title guessing, no creation).

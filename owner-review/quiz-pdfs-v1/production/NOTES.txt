@@ -1,0 +1,122 @@
+review origin https://mathnexa.com (PRODUCTION project); engines chromium, webkit
+ok   health 200 {"status":"ready","environment":"production-platform","build":"d72c78886667b2c18da9953f1ff626880440d2ba","searchIndexing
+ok   health build = d72c788
+ok   production publishes 8 of 8 manifest quizzes
+ok   database + private storage: Grade 6 / Topic 5: Ratios, Rates, and Unit Conversions - Ratios And Rates Practice  [532861 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 6: Percents - Understanding and Using Percent  [478014 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 1: Use Positive Rational Numbers - Positive Rational Numbers Practice  [1060871 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 2: Integers and Rational Numbers - Integers And Rational Numbers  [145654 bytes, pages 3, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 3: Numerical and Algebraic Expressions - Numeric and Algebraic Expressions  [737164 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 4: Equations and Inequalities - Represent and Solve Equations  [609316 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 7: Area, Surface Area, and Volume - Area Surface Area Volume Practice  [682816 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 8: Statistics and Data Distributions - Displaying Describing Summarising Data  [619124 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   anonymous GET /quizzes -> 307 /access?next=/quizzes
+ok   anonymous download positive-rational-numbers-quiz -> 401
+ok   anonymous download integers-and-rational-numbers-quiz -> 401
+ok   anonymous download numeric-and-algebraic-expressions-quiz -> 401
+ok   anonymous download represent-and-solve-equations-quiz -> 401
+ok   anonymous download ratios-and-rates-quiz -> 401
+ok   anonymous download understanding-and-using-percent-quiz -> 401
+ok   anonymous download area-surface-area-volume-quiz -> 401
+ok   anonymous download displaying-describing-summarising-data-quiz -> 401
+ok   stored copy is not a web asset -> 404
+shot 18-anonymous-1366.png /access?next=/quizzes
+ok   anonymous banner click lands on /access (/access?next=/quizzes)
+shot 18b-anonymous-390.png /access?next=/quizzes
+ok   eligible: stays on the staging host (mathnexa.com)
+ok   eligible: sign-in with next=/quizzes -> /subscription?next=/quizzes
+ok   eligible: page shows "Start your free trial"
+shot 18c-signed-in-trial-eligible-390.png /subscription?next=/quizzes
+ok   used-trial: stays on the staging host (mathnexa.com)
+ok   used-trial: sign-in with next=/quizzes -> /subscription?next=/quizzes
+ok   used-trial: page shows "Trial ended"
+shot 18d-used-trial-390.png /subscription?next=/quizzes
+ok   trial-active: stays on the staging host (mathnexa.com)
+ok   trial-active: sign-in with next=/quizzes -> /quizzes
+ok   trial-active: page shows "Quiz PDFs"
+shot 19b-active-trial-390.png /quizzes
+ok   subscriber: sign-in with next=/quizzes -> /quizzes
+shot 01-landing-1366-subscriber.png /quizzes
+ok   grade control offers exactly "grade 6"
+ok   no Topic or Lesson selector on the quiz page
+ok   Grade 6 selected: 8 cards, overflow 0px, lesson wording false, banner current "Quiz PDFs"
+shot 02-grade-6-selected-1366.png /quizzes
+shot 03-all-topic-cards-1366.png
+ok   card 1: "grade 6 / Topic 1: Use Positive Rational Numbers" - "Positive Rational Numbers Practice" -> /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/download
+ok   card 1: Quiz PDF designation + answer key included
+shot 04-card-ratios-and-rates-1366.png
+ok   card 2: "grade 6 / Topic 2: Integers and Rational Numbers" - "Integers And Rational Numbers" -> /resources/42215d2a-8b58-43d5-8b1f-12f8ac98dc1f/download
+ok   card 2: Quiz PDF designation + answer key included
+shot 05-card-percent-1366.png
+ok   card 3: "grade 6 / Topic 3: Numerical and Algebraic Expressions" - "Numeric and Algebraic Expressions" -> /resources/5b8bdc39-ff4b-4ce7-bc1f-225617a05d62/download
+ok   card 3: Quiz PDF designation + answer key included
+shot 06-card-positive-rational-numbers-1366.png
+ok   card 4: "grade 6 / Topic 4: Equations and Inequalities" - "Represent and Solve Equations" -> /resources/1d80b325-ac3e-4b8b-8fe7-043f3e9c9745/download
+ok   card 4: Quiz PDF designation + answer key included
+shot 07-card-integers-and-rational-numbers-1366.png
+ok   card 5: "grade 6 / Topic 5: Ratios, Rates, and Unit Conversions" - "Ratios And Rates Practice" -> /resources/e01a72e2-c1ea-4f81-97e2-71a4aa6b10f1/download
+ok   card 5: Quiz PDF designation + answer key included
+shot 08-card-expressions-1366.png
+ok   card 6: "grade 6 / Topic 6: Percents" - "Understanding and Using Percent" -> /resources/3e25faa1-455b-4ac2-8e9e-c3715c471ccc/download
+ok   card 6: Quiz PDF designation + answer key included
+shot 09-card-equations-1366.png
+ok   card 7: "grade 6 / Topic 7: Area, Surface Area, and Volume" - "Area Surface Area Volume Practice" -> /resources/339aa712-f619-460f-9ae5-3f864e6970df/download
+ok   card 7: Quiz PDF designation + answer key included
+shot 10-card-geometry-measurement-1366.png
+ok   card 8: "grade 6 / Topic 8: Statistics and Data Distributions" - "Displaying Describing Summarising Data" -> /resources/7654e5e9-9e4a-46b7-bc45-8049352ff3c5/download
+ok   card 8: Quiz PDF designation + answer key included
+shot 11-card-data-1366.png
+shot 16-desktop-1366-first-screen.png /quizzes
+ok   download grade-6-positive-rational-numbers-quiz.pdf: 200 application/pdf 1060871 bytes sha256 3b8e8a9b485097b5... == owner file
+shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by staging)
+ok   download grade-6-integers-and-rational-numbers-quiz.pdf: 200 application/pdf 145654 bytes sha256 ec18dc452b12d4b3... == owner file
+ok   download grade-6-numeric-and-algebraic-expressions-quiz.pdf: 200 application/pdf 737164 bytes sha256 3a768894911083f2... == owner file
+ok   download grade-6-represent-and-solve-equations-quiz.pdf: 200 application/pdf 609316 bytes sha256 2d84ebe2629a10e9... == owner file
+ok   download grade-6-ratios-and-rates-quiz.pdf: 200 application/pdf 532861 bytes sha256 4dacd687c623f02c... == owner file
+ok   download grade-6-understanding-and-using-percent-quiz.pdf: 200 application/pdf 478014 bytes sha256 cfdff264ec7ea864... == owner file
+ok   download grade-6-area-surface-area-volume-quiz.pdf: 200 application/pdf 682816 bytes sha256 2da222c60876b479... == owner file
+ok   download grade-6-displaying-describing-summarising-data-quiz.pdf: 200 application/pdf 619124 bytes sha256 a6eb70ac2c847c4c... == owner file
+ok   download evidence recorded: 8 events
+ok   details page: h1 "Positive Rational Numbers Practice"
+shot 11-pdf-details-1366.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888
+ok   Back to library returns to /quizzes
+ok   320px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 14-mobile-320-grade-6.png /quizzes
+ok   320px at 200% text: overflow 0px
+shot 14b-mobile-320-text-200.png /quizzes
+ok   375px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 13b-mobile-375-grade-6.png /quizzes
+ok   390px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 13-mobile-390-grade-6.png /quizzes
+ok   430px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 13c-mobile-430-grade-6.png /quizzes
+ok   768px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 15-tablet-768-grade-6.png /quizzes
+ok   820px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 15b-tablet-820-grade-6.png /quizzes
+ok   1180px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 16b-desktop-1180-grade-6.png /quizzes
+ok   1366px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 16c-desktop-1366-grade-6.png /quizzes
+ok   1920px: 8 cards, overflow 0px, clipped 0, short targets 0
+shot 17-desktop-1920-grade-6.png /quizzes
+ok   forced colors: cards render
+ok   axe 1366 landing: 0 serious/critical
+ok   axe 1366 grade selected: 0 serious/critical
+ok   axe 390 landing: 0 serious/critical
+ok   axe 390 grade selected: 0 serious/critical
+ok   keyboard: Tab reaches Details and Download PDF with a visible focus ring (Details:true, Download PDF:true)
+shot 19-subscriber-390-first-screen.png /quizzes
+ok   webkit subscriber: sign-in with next=/quizzes -> /quizzes
+ok   webkit axe 1366 landing: 0 serious/critical
+ok   webkit 1366px: 8 cards, overflow 0px, lesson wording false
+ok   webkit axe 1366 grade selected: 0 serious/critical
+ok   webkit axe 390 landing: 0 serious/critical
+ok   webkit 390px: 8 cards, overflow 0px, lesson wording false
+ok   webkit axe 390 grade selected: 0 serious/critical
+shot 20-webkit-390-grade-6.png /quizzes
+webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)
+ok   no 5xx responses (0)
+ok   no console/page errors (0)
+cleanup: 4 synthetic staging accounts deleted
+SUMMARY ok=87 fail=0

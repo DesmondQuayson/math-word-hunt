@@ -84,14 +84,20 @@ export async function buildQuizPlan({ client, manifest, topicMap = null }) {
     let inventory = [];
     if (existingTopics.length) {
       const topicIds = existingTopics.map((topic) => topic.id);
-      const lessons = unwrap(await client.from("content_lessons").select("topic_id,publication_state").in("topic_id", topicIds), "read lessons");
+      const lessons = unwrap(await client.from("content_lessons").select("id,topic_id,publication_state").in("topic_id", topicIds), "read lessons");
+      const lessonIds = lessons.map((row) => row.id);
+      const homeworkAssignments = lessonIds.length ? unwrap(await client.from("lesson_resource_assignments").select("lesson_id,resource_id").in("lesson_id", lessonIds), "read lesson assignments") : [];
       const allQuizzes = await readTopicQuizzes(client, topicIds);
-      inventory = existingTopics.map((topic) => ({
-        id: topic.id, sortOrder: topic.sortOrder, title: topic.title, slug: topic.slug, publicationState: topic.publicationState,
-        lessons: lessons.filter((row) => row.topic_id === topic.id).length,
-        publishedLessons: lessons.filter((row) => row.topic_id === topic.id && row.publication_state === "published").length,
-        quizzes: allQuizzes.filter((entry) => entry.topicId === topic.id).map((entry) => `${entry.resourceType}:${entry.publicationState}:${entry.slug}`)
-      })).sort((left, right) => left.sortOrder - right.sortOrder);
+      inventory = existingTopics.map((topic) => {
+        const topicLessonIds = new Set(lessons.filter((row) => row.topic_id === topic.id).map((row) => row.id));
+        return {
+          id: topic.id, sortOrder: topic.sortOrder, title: topic.title, slug: topic.slug, publicationState: topic.publicationState,
+          lessons: topicLessonIds.size,
+          publishedLessons: lessons.filter((row) => row.topic_id === topic.id && row.publication_state === "published").length,
+          lessonAssignments: homeworkAssignments.filter((row) => topicLessonIds.has(row.lesson_id)).length,
+          quizzes: allQuizzes.filter((entry) => entry.topicId === topic.id).map((entry) => `${entry.resourceType}:${entry.publicationState}:${entry.slug}`)
+        };
+      }).sort((left, right) => left.sortOrder - right.sortOrder);
     }
     grades.push(Object.freeze({ manifest: grade, ...gradePlan, topics: Object.freeze(topics), inventory: Object.freeze(inventory) }));
   }
@@ -119,7 +125,9 @@ export function describePlan(plan) {
     lines.push(`Grade ${grade.manifest.gradeNumber} "${grade.manifest.title}": ${grade.action}${grade.existing ? ` (existing ${grade.existing.id}, ${grade.existing.publicationState})` : ` (sort order ${grade.sortOrder})`}${grade.reason ? ` - ${grade.reason}` : ""}`);
     if (grade.inventory?.length) {
       lines.push(`  Existing topics in this grade (${grade.inventory.length}):`);
-      for (const topic of grade.inventory) lines.push(`    Topic ${topic.sortOrder} "${topic.title}" [${topic.slug}] ${topic.publicationState} - lessons ${topic.lessons} (published ${topic.publishedLessons}), quizzes ${topic.quizzes.length ? topic.quizzes.join(", ") : "none"}`);
+      for (const topic of grade.inventory) lines.push(`    Topic ${topic.sortOrder} "${topic.title}" [${topic.slug}] ${topic.publicationState} - lessons ${topic.lessons} (published ${topic.publishedLessons}), lesson assignments ${topic.lessonAssignments}, quizzes ${topic.quizzes.length ? topic.quizzes.join(", ") : "none"}`);
+      const totals = grade.inventory.reduce((sum, topic) => ({ lessons: sum.lessons + topic.lessons, published: sum.published + topic.publishedLessons, assignments: sum.assignments + topic.lessonAssignments }), { lessons: 0, published: 0, assignments: 0 });
+      lines.push(`  Grade totals: topics ${grade.inventory.length}, lessons ${totals.lessons} (published ${totals.published}), lesson assignments ${totals.assignments}`);
     }
     for (const topic of grade.topics) {
       lines.push(`  Topic ${topic.sortOrder} "${topic.manifest.title}": ${topic.action}${topic.existing ? ` (existing ${topic.existing.id}, ${topic.existing.publicationState}, title "${topic.existing.title}")` : ""}${topic.mappedSlug ? ` [mapped to existing slug ${topic.mappedSlug}]` : ""}${topic.action === "conflict" ? ` - ${topic.reason}` : ""}`);

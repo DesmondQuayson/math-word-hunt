@@ -59,6 +59,7 @@ try {
     $env:REVIEW_ENGINES = $Engines
     $env:REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION = 'yes'
     if ($ExpectBuild) { $env:REVIEW_EXPECT_BUILD = $ExpectBuild }
+    if ($TopicMap) { $env:REVIEW_TOPIC_MAP = $TopicMap }
     & node scripts/review-quiz-pdfs-staging.mjs
     exit $LASTEXITCODE
   }
@@ -69,7 +70,7 @@ try {
   & node scripts/publish-quiz-pdfs.mjs @scriptArgs
   exit $LASTEXITCODE
 } finally {
-  foreach ($name in $names + @('SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'QUIZ_PDFS_PRODUCTION_HOST', 'REVIEW_ORIGIN', 'REVIEW_TARGET', 'REVIEW_OUT', 'REVIEW_ENGINES', 'REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION', 'REVIEW_EXPECT_BUILD')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($name in $names + @('SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'QUIZ_PDFS_PRODUCTION_HOST', 'REVIEW_ORIGIN', 'REVIEW_TARGET', 'REVIEW_OUT', 'REVIEW_ENGINES', 'REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION', 'REVIEW_EXPECT_BUILD', 'REVIEW_TOPIC_MAP')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
   foreach ($entry in $vault.Values.PSObject.Properties) { if ($entry.Value -is [IDisposable]) { $entry.Value.Dispose() } }
   $vault = $null
 }
