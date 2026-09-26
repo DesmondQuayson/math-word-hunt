@@ -250,9 +250,13 @@ test("an entitled account previews every quiz in place: the same private PDF, de
   }
 
   // The preview page for every quiz: title, actions, and one drawn canvas per PDF page.
+  // The card's Preview link is a client-side navigation; let that first render finish
+  // before the full navigations below (a worker interrupted mid-bootstrap by a
+  // navigation is reported by WebKit as a page error, which is noise, not a defect).
   await selectGrade(page);
   await page.getByRole("article").first().getByRole("link", { name: "Preview" }).click();
   await expect(page).toHaveURL(`/resources/${live[0].resourceId}/preview`);
+  await expect(page.getByRole("status")).toHaveText(`${live[0].quiz.pages} pages`, { timeout: 60_000 });
   for (const item of live) {
     await page.goto(`/resources/${item.resourceId}/preview`);
     await expect(page.getByRole("heading", { level: 1, name: item.quiz.title })).toBeVisible();
@@ -264,14 +268,14 @@ test("an entitled account previews every quiz in place: the same private PDF, de
     const canvases = page.locator(".pdf-viewer-pages canvas");
     await expect(canvases).toHaveCount(item.quiz.pages);
     await expect(canvases.first()).toHaveAttribute("aria-label", `Page 1 of ${item.quiz.pages}: ${item.quiz.title}`);
-    // Every page is drawn (not blank) and fits the viewport; nothing is framed or embedded.
+    // Every page is drawn (at least 0.05% dark pixels: a sparse answers page still has hundreds, a blank canvas none) and fits the viewport; nothing is framed or embedded.
     const drawn = await page.evaluate(() => [...document.querySelectorAll<HTMLCanvasElement>(".pdf-viewer-pages canvas")].map((canvas) => {
       const context = canvas.getContext("2d");
       if (!context) return false;
       const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
       let ink = 0;
       for (let index = 0; index < data.length; index += 4) if (data[index] < 200 || data[index + 1] < 200 || data[index + 2] < 200) ink += 1;
-      return ink > 500 && canvas.getBoundingClientRect().width <= document.documentElement.clientWidth;
+      return ink > Math.max(50, canvas.width * canvas.height * 0.0005) && canvas.getBoundingClientRect().width <= document.documentElement.clientWidth;
     }));
     expect(drawn, `${item.quiz.slug}: pages drawn`).toEqual(Array.from({ length: item.quiz.pages }, () => true));
     expect(await page.locator("iframe, object, embed").count()).toBe(0);

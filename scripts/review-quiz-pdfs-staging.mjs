@@ -180,18 +180,22 @@ async function bannerShot(page, name) {
   await page.screenshot({ path: `${out}/${name}.png`, clip: { x: 0, y: 0, width: page.viewportSize().width, height: Math.ceil(box.y + box.height + 8) } });
   note(`shot ${name}.png ${new URL(page.url()).pathname}`);
 }
-// Every drawn page has ink and sits inside the viewport width.
+// Every drawn page has ink (at least 0.05% of its pixels are dark: a sparse
+// answers page on a 320px phone still has hundreds, a blank canvas none) and
+// sits inside the viewport width.
 const drawnPages = (page) => page.evaluate(() => [...document.querySelectorAll(".pdf-viewer-pages canvas")].map((canvas) => {
   const context = canvas.getContext("2d");
-  if (!context) return false;
+  if (!context) return { ok: false, ink: -1, fit: false };
   const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
   let ink = 0;
   for (let index = 0; index < data.length; index += 4) if (data[index] < 200 || data[index + 1] < 200 || data[index + 2] < 200) ink += 1;
   const rect = canvas.getBoundingClientRect();
-  return ink > 500 && rect.left >= -0.5 && rect.right <= document.documentElement.clientWidth + 0.5;
+  const fit = rect.width > 0 && rect.left >= -0.5 && rect.right <= document.documentElement.clientWidth + 0.5;
+  return { ok: ink > Math.max(50, canvas.width * canvas.height * 0.0005) && fit, ink, fit };
 }));
 async function openPreview(page, item, label) {
-  await page.goto(`${origin}/resources/${item.resourceId}/preview`, { waitUntil: "networkidle" });
+  // domcontentloaded, not networkidle: the PDF itself streams in after load, and the status line is the real readiness signal.
+  await page.goto(`${origin}/resources/${item.resourceId}/preview`, { waitUntil: "domcontentloaded" });
   await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
   const canvases = await page.locator(".pdf-viewer-pages canvas").count();
   const drawn = await drawnPages(page);
@@ -199,7 +203,7 @@ async function openPreview(page, item, label) {
   const embedded = await page.locator("iframe, object, embed").count();
   const stored = await page.evaluate(() => localStorage.length + sessionStorage.length);
   const leaked = /supabase|resource-files|signedUrl|token=/i.test(await page.content());
-  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every(Boolean) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn, overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
+  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every((entry) => entry.ok) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn (ink ${drawn.map((entry) => entry.ink).join("/")}, fit ${drawn.every((entry) => entry.fit)}), overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
 }
 
 let users = {};
@@ -374,6 +378,13 @@ try {
       await shot(page, { 320: "24-preview-320", 390: "24b-preview-390", 768: "24c-preview-768", 1920: "24d-preview-1920" }[width]);
       if (width === 390) {
         await shot(page, "24b2-preview-390-full", { fullPage: true });
+        // A full-page capture changes the emulated viewport for a moment; the viewer must settle on its pages afterwards and stay there.
+        const samples = [];
+        for (let sample = 0; sample < 4; sample += 1) {
+          await page.waitForTimeout(1000);
+          samples.push(`${(await page.getByRole("status").textContent())?.trim() ?? ""}/${await page.locator(".pdf-viewer-pages canvas").count()}`);
+        }
+        check(samples.slice(1).every((entry) => entry === `${live[0].quiz.pages} pages/${live[0].quiz.pages}`), `390px preview after the full-page capture settles and stays: ${samples.join(", ")}`);
         const violations = await axeSerious(page);
         check(violations.length === 0, `axe 390 preview: ${violations.join(", ") || "0 serious/critical"}`);
       }

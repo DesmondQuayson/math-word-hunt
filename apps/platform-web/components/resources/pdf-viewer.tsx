@@ -24,16 +24,28 @@ export function PdfViewer({ src, title }: Readonly<{ src: string; title: string 
   const [renderKey, setRenderKey] = useState(0);
 
   // Render once at the first measured width, then again only when the width
-  // moves by 48px or more (rotation, a real window resize). Smaller moves are
-  // ignored on purpose: the scrollbar that appears once pages are drawn takes
-  // about 17px, and re-rendering for it would clear the pages and loop.
+  // has moved by 48px or more and stayed there for a moment (rotation, a real
+  // window resize). Smaller moves are ignored on purpose: the scrollbar that
+  // appears once pages are drawn takes about 17px, and re-rendering for it
+  // would clear the pages and loop. Transient layout churn is debounced away.
   useEffect(() => {
     const element = pagesRef.current;
     if (!element) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const consider = (width: number) => {
-      if (renderedWidth.current !== 0 && Math.abs(width - renderedWidth.current) < 48) return;
-      renderedWidth.current = Math.max(1, width);
-      setRenderKey((key) => key + 1);
+      if (renderedWidth.current === 0) {
+        renderedWidth.current = Math.max(1, width);
+        setRenderKey((key) => key + 1);
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        const settled = element.clientWidth;
+        if (Math.abs(settled - renderedWidth.current) < 48) return;
+        renderedWidth.current = Math.max(1, settled);
+        setRenderKey((key) => key + 1);
+      }, 200);
     };
     if (typeof ResizeObserver === "undefined") {
       consider(element.clientWidth);
@@ -41,7 +53,10 @@ export function PdfViewer({ src, title }: Readonly<{ src: string; title: string 
     }
     const observer = new ResizeObserver((entries) => consider(entries[0]?.contentRect.width ?? element.clientWidth));
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
