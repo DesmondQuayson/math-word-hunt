@@ -208,8 +208,10 @@ text (branch `hotfix/quiz-preview-200pct-reflow`) to the first production runtim
 
 ## 7. Hotfix 2026-09-26: the homepage Authorize Code card is for signed-out visitors only (v1.2.15)
 
-Branch `hotfix/hide-authorize-code-after-signin` (from `main` ed17ed4, the v1.2.14 state). One
-rendering condition, nothing else:
+Branch `hotfix/hide-authorize-code-after-signin` (from `main` ed17ed4, the v1.2.14 state).
+Released as **v1.2.15** on 2026-09-26: production runtime `2532244` (`mathnexa.com` =
+`dpl_3DUHT7Lcfy1VvGWStF9JLGnnkyyN`); record: `docs/releases/mathnexa-v1.2.15-release-record.md`.
+One rendering condition, nothing else:
 
 - `components/public/teacher-first-home.tsx` renders the whole card container
   (`<div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">`) only when
@@ -249,4 +251,7 @@ rendering condition, nothing else:
   (the server's generic refusal, nothing in the URL or web storage); a payment-problem synthetic
   account; no card on the homepage for the trial-eligible, used-trial, payment-problem and
   active-trial accounts at 390 px, the subscriber at all nine widths, and the WebKit subscriber at
-  390 px; owner screenshots `26a`-`26g`.
+  390 px; owner screenshots `26a`-`26g`. A staging branch preview has no school-access
+  configuration (the staging project sets `MATHNEXA_SCHOOL_ACCESS_*` for its Production environment
+  only), so there the dummy code is answered "Authorized access is temporarily unavailable.", which
+  the harness records; on production the server must refuse it ("Invalid authorized code.").

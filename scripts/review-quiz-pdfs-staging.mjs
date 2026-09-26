@@ -299,7 +299,10 @@ async function bannerShot(page, name) {
 // with Continue: the server's existing validation must refuse it with its
 // generic message (the target records one refused attempt, never the code),
 // the page stays on the homepage and the value appears in neither the URL nor
-// web storage.
+// web storage. Production must answer with the refusal. A staging branch
+// preview has no school-access configuration (the staging project sets
+// MATHNEXA_SCHOOL_ACCESS_* for its Production environment only), so there the
+// server's "temporarily unavailable" answer is accepted and recorded instead.
 async function authorizeCodeForm(page, label, { toggle = false, submit = false } = {}) {
   const card = page.locator("#authorized-access");
   const cards = await card.count();
@@ -332,7 +335,16 @@ async function authorizeCodeForm(page, label, { toggle = false, submit = false }
     const after = new URL(page.url());
     const storedAfter = await page.evaluate((value) => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]).includes(value), dummy);
     const typeAfter = await field.getAttribute("type").catch(() => "gone");
-    check(/Code not accepted\.\s*Invalid authorized code\./.test(message) && after.pathname === "/" && after.search === "" && !page.url().includes(dummy) && !storedAfter && typeAfter === "password", `${label}: Continue sends the code to the server, which refuses a wrong code with "${message}"; page ${after.pathname}${after.search}, code in URL ${page.url().includes(dummy)}, in web storage ${storedAfter}, field ${typeAfter}`);
+    const refused = /^Code not accepted\.\s*Invalid authorized code\.$/.test(message);
+    const unconfigured = /^Code not accepted\.\s*Authorized access is temporarily unavailable\.$/.test(message);
+    const unchanged = after.pathname === "/" && after.search === "" && !page.url().includes(dummy) && !storedAfter && typeAfter === "password";
+    const facts = `page ${after.pathname}${after.search}, code in URL ${page.url().includes(dummy)}, in web storage ${storedAfter}, field ${typeAfter}`;
+    if (unconfigured && !isProduction) {
+      note(`  ${label}: this staging preview has no school-access configuration, so the server answers "${message}"; the refusal of a wrong code is checked on production`);
+      check(unchanged, `${label}: Continue sends the code to the server, which answers "${message}" (no school-access configuration on this preview); ${facts}`);
+    } else {
+      check(refused && unchanged, `${label}: Continue sends the code to the server, which refuses a wrong code with "${message}"; ${facts}`);
+    }
   }
   if (await field.count()) await field.fill("");
 }
