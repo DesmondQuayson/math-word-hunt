@@ -43,6 +43,60 @@ describe("Quiz PDFs protection boundary", () => {
     expect(download).not.toMatch(/signed\.data\.signedUrl\s*\}/);
   });
 
+  it("the inline preview delivery applies the download route's authorization step for step and only changes the disposition", () => {
+    const download = read("app/resources/[resourceId]/download/route.ts");
+    const inline = read("app/resources/[resourceId]/inline/route.ts");
+    for (const marker of ["access.decision.allowed", "record_resource_download", "createSignedUrl", '"Cache-Control":"private, no-store, max-age=0"', '"X-Content-Type-Options":"nosniff"', '"Referrer-Policy":"no-referrer"']) {
+      expect(inline, marker).toContain(marker);
+    }
+    expect(inline.indexOf("access.decision.allowed")).toBeLessThan(inline.indexOf("createSignedUrl"));
+    expect(inline).toContain('"Content-Type":"application/pdf"');
+    expect(inline).toContain("inline; filename=");
+    expect(inline).not.toContain("attachment;");
+    expect(inline).not.toMatch(/signed\.data\.signedUrl\s*\}/);
+    expect(inline).not.toMatch(/Response\.redirect|redirect\(/);
+    // Quiz resources only; every other resource type is not found.
+    expect(inline).toContain('resource_type.startsWith("quiz_")');
+    // Same query chain and same authorization as the download route: the file lookup is identical (comments aside).
+    const chain = (source: string) => source.split("\n")
+      .filter((line) => !/^\s*(\*|\/\*|\/\/)/.test(line))
+      .filter((line) => /content_resources|content_resource_versions|resource_files|record_resource_download|createSignedUrl/.test(line))
+      .map((line) => line.replace(/\s+/g, ""))
+      .join("\n");
+    expect(chain(inline)).toBe(chain(download));
+  });
+
+  it("the preview page is quiz-only and behind the same server-side entitlement as /quizzes; the viewer embeds nothing", () => {
+    const page = read("app/resources/[resourceId]/preview/page.tsx");
+    expect(page).toContain('requireProductAccess("/quizzes")');
+    expect(page).toContain('resource.resourceType !== "quiz_pdf"');
+    // The layout gate sits above the loading boundary, so the refusal is an HTTP redirect, never a streamed shell.
+    expect(read("app/resources/[resourceId]/preview/layout.tsx")).toContain('await requireProductAccess("/quizzes")');
+    expect(page).toContain("/inline`");
+    const viewer = read("components/resources/pdf-viewer.tsx");
+    expect(viewer).toContain("withCredentials: true");
+    expect(viewer).toContain("useWasm: false");
+    expect(viewer).not.toMatch(/<iframe|<object|<embed/);
+    expect(viewer).not.toMatch(/localStorage|sessionStorage|indexedDB/);
+    expect(viewer).not.toMatch(/supabase/i);
+    // Homework cards never get the preview action; quiz cards do.
+    const library = read("components/resources/public-resource-library.tsx");
+    expect(library).toContain('designation="Quiz PDF" preview />');
+    expect(library.match(/<ResourceCard key=\{resource\.id\} resource=\{resource\} \/>/g)).toHaveLength(1);
+  });
+
+  it("the banner carries no Authorize Code item; the homepage form stays the entry", () => {
+    const header = read("components/site-header.tsx");
+    expect(header).not.toMatch(/AuthorizedCodeLink|authorized-code-link|banner-code-link|Authorize Code/);
+    expect(read("styles/conversion.css")).not.toContain("banner-code-link");
+    expect(read("styles/conversion.css")).not.toContain('"code code code"');
+    expect(() => read("components/layout/authorized-code-link.tsx")).toThrow();
+    const home = read("components/public/teacher-first-home.tsx");
+    expect(home).toContain("<AuthorizedCodeForm");
+    expect(home).toContain("id={AUTHORIZED_ACCESS_ANCHOR}");
+    expect(read("components/auth/authorized-code-form.tsx")).toContain("Authorize Code");
+  });
+
   it("reads quizzes topic-scoped and never mixes in lesson-scoped Homework rows", () => {
     const catalog = read("lib/resources/catalog.ts");
     expect(catalog).toContain('kind === "homework" ? ["homework_pdf", "homework_answer_key"] : ["quiz_pdf", "quiz_answer_key"]');

@@ -73,7 +73,7 @@ describe("banner navigation", () => {
     expect(isCurrentBannerPath(WORKSHEET_GENERATOR_URL, "/worksheets")).toBe(false);
   });
 
-  it("names the homepage anchor the banner's Authorize Code link points at", () => {
+  it("names the homepage anchor that holds the authorized-code form (the banner carries no code item)", () => {
     expect(AUTHORIZED_ACCESS_ANCHOR).toBe("authorized-access");
   });
 });

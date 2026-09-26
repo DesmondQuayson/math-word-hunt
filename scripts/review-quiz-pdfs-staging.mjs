@@ -161,6 +161,46 @@ async function axeSerious(page) {
     return result.violations.filter((violation) => ["serious", "critical"].includes(violation.impact)).map((violation) => `${violation.id}(${violation.nodes.length})`);
   });
 }
+// The banner after the hotfix: brand, six products, call to action, account menu; no Authorize Code item.
+const bannerFacts = (page) => page.evaluate(() => {
+  const banner = document.querySelector("header.site-header");
+  const links = [...(banner?.querySelectorAll("a") ?? [])];
+  return {
+    codeLinks: links.filter((a) => /authorize code/i.test(a.textContent ?? "") || /authorized-access/.test(a.getAttribute("href") ?? "")).length + (banner?.querySelectorAll(".banner-code-link").length ?? 0),
+    productLinks: banner?.querySelectorAll(".product-nav-list a").length ?? 0
+  };
+});
+async function expectNoBannerCode(page, label) {
+  const facts = await bannerFacts(page);
+  check(facts.codeLinks === 0 && facts.productLinks === 6, `${label}: banner has no Authorize Code item (${facts.codeLinks}) and exactly six product links (${facts.productLinks})`);
+}
+async function bannerShot(page, name) {
+  await page.evaluate(() => document.fonts.ready);
+  const box = await page.locator("header.site-header").boundingBox();
+  await page.screenshot({ path: `${out}/${name}.png`, clip: { x: 0, y: 0, width: page.viewportSize().width, height: Math.ceil(box.y + box.height + 8) } });
+  note(`shot ${name}.png ${new URL(page.url()).pathname}`);
+}
+// Every drawn page has ink and sits inside the viewport width.
+const drawnPages = (page) => page.evaluate(() => [...document.querySelectorAll(".pdf-viewer-pages canvas")].map((canvas) => {
+  const context = canvas.getContext("2d");
+  if (!context) return false;
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+  let ink = 0;
+  for (let index = 0; index < data.length; index += 4) if (data[index] < 200 || data[index + 1] < 200 || data[index + 2] < 200) ink += 1;
+  const rect = canvas.getBoundingClientRect();
+  return ink > 500 && rect.left >= -0.5 && rect.right <= document.documentElement.clientWidth + 0.5;
+}));
+async function openPreview(page, item, label) {
+  await page.goto(`${origin}/resources/${item.resourceId}/preview`, { waitUntil: "networkidle" });
+  await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+  const canvases = await page.locator(".pdf-viewer-pages canvas").count();
+  const drawn = await drawnPages(page);
+  const facts = await pageFacts(page);
+  const embedded = await page.locator("iframe, object, embed").count();
+  const stored = await page.evaluate(() => localStorage.length + sessionStorage.length);
+  const leaked = /supabase|resource-files|signedUrl|token=/i.test(await page.content());
+  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every(Boolean) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn, overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
+}
 
 let users = {};
 try {
@@ -186,15 +226,32 @@ try {
     }
     const guessed = await context.request.get(`${origin}/content/quiz-pdfs/grade-6/grade-6-ratios-and-rates-quiz.pdf`, { maxRedirects: 0 });
     check(guessed.status() === 404, `stored copy is not a web asset -> ${guessed.status()}`);
+    // The preview page and its inline delivery are closed the same way: no bytes, no storage URL.
+    for (const item of live) {
+      const preview = await context.request.get(`${origin}/resources/${item.resourceId}/preview`, { maxRedirects: 0 });
+      const inline = await context.request.get(`${origin}/resources/${item.resourceId}/inline`, { maxRedirects: 0 });
+      const inlineBody = await inline.text();
+      check(preview.status() === 307 && (preview.headers().location ?? "").endsWith("/access?next=/quizzes") && inline.status() === 401 && !inlineBody.startsWith("%PDF-") && !/supabase|signedUrl|token=/i.test(inlineBody), `anonymous preview ${item.quiz.slug} -> ${preview.status()} ${preview.headers().location ?? ""}; inline -> ${inline.status()}`);
+    }
     await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+    await expectNoBannerCode(page, "anonymous 1366 (home)");
+    await bannerShot(page, "21-banner-anonymous-1366");
+    check((await page.getByRole("heading", { name: "Authorize Code" }).count()) === 1 && (await page.getByLabel("Code (required)").count()) === 1 && (await page.getByRole("button", { name: "Show code" }).count()) === 1, "homepage keeps the Authorize Code form (heading, Code field, Show code)");
     await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Quiz PDFs" }).click();
     await page.waitForURL((u) => u.pathname === "/access", { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
+    await expectNoBannerCode(page, "anonymous 1366 (/access)");
     await shot(page, "18-anonymous-1366", { fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
     check(new URL(page.url()).pathname === "/access", `anonymous banner click lands on /access (${new URL(page.url()).pathname}${new URL(page.url()).search})`);
     await shot(page, "18b-anonymous-390", { fullPage: true });
+    await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+    await expectNoBannerCode(page, "anonymous 390 (home)");
+    await bannerShot(page, "21b-banner-anonymous-390");
+    const form = await page.locator("#authorized-access").evaluate((element) => { const rect = element.getBoundingClientRect(); return { y: rect.top + window.scrollY, height: rect.height }; });
+    await page.screenshot({ path: `${out}/21c-homepage-authorize-code-form-390.png`, fullPage: true, clip: { x: 0, y: Math.max(0, form.y - 16), width: 390, height: form.height + 32 } });
+    note("shot 21c-homepage-authorize-code-form-390.png /");
     await context.close();
   }
   // Signed-in states without access, then entitled states.
@@ -209,7 +266,16 @@ try {
     check(url.host === new URL(origin).host, `${state}: stays on the staging host (${url.host})`);
     check(url.pathname === expectedPath && (expectedPath === "/quizzes" || url.searchParams.get("next") === "/quizzes"), `${state}: sign-in with next=/quizzes -> ${url.pathname}${url.search}`);
     check((await page.locator("body").innerText()).includes(marker), `${state}: page shows "${marker}"`);
+    await expectNoBannerCode(page, `${state} 390`);
     await shot(page, name, { fullPage: true });
+    if (expectedPath === "/subscription") {
+      // The preview page and the inline delivery decide exactly like the library and the download.
+      await page.goto(`${origin}/resources/${live[0].resourceId}/preview`, { waitUntil: "networkidle" });
+      const landed = new URL(page.url());
+      check(landed.pathname === "/subscription" && landed.searchParams.get("next") === "/quizzes", `${state}: preview page -> ${landed.pathname}${landed.search}`);
+      const inline = await page.request.get(`${origin}/resources/${live[0].resourceId}/inline`, { maxRedirects: 0 });
+      check(inline.status() === 401 && !(await inline.text()).startsWith("%PDF-"), `${state}: inline delivery -> ${inline.status()}`);
+    }
     await context.close();
   }
 
@@ -225,6 +291,8 @@ try {
     const facts = await pageFacts(page);
     check(facts.cards === live.length && facts.overflow === 0 && !facts.lessonWording, `Grade 6 selected: ${facts.cards} cards, overflow ${facts.overflow}px, lesson wording ${facts.lessonWording}, banner current "${facts.current}"`);
     await shot(page, "02-grade-6-selected-1366", { fullPage: true });
+    await expectNoBannerCode(page, "subscriber 1366");
+    await bannerShot(page, "21d-banner-subscriber-1366");
     const cards = page.locator("article");
     const region = await page.locator(".public-resource-groups").boundingBox();
     await page.screenshot({ path: `${out}/03-all-topic-cards-1366.png`, fullPage: true, clip: { x: 0, y: Math.max(0, region.y - 90), width: 1366, height: region.height + 120 } });
@@ -237,7 +305,9 @@ try {
       const title = (await card.getByRole("heading", { level: 2 }).textContent())?.trim() ?? "";
       const download = await card.getByRole("link", { name: "Download PDF" }).getAttribute("href");
       const details = await card.getByRole("link", { name: "Details" }).getAttribute("href");
-      check(path === `${gradeTitle} / Topic ${item.topicSortOrder}: ${item.topicTitle}` && title === item.quiz.title && download === `/resources/${item.resourceId}/download` && details === `/resources/${item.resourceId}`, `card ${index + 1}: "${path}" - "${title}" -> ${download}`);
+      const preview = await card.getByRole("link", { name: "Preview" }).getAttribute("href");
+      const order = (await card.locator(".public-resource-actions a").allTextContents()).map((text) => text.trim()).join("|");
+      check(path === `${gradeTitle} / Topic ${item.topicSortOrder}: ${item.topicTitle}` && title === item.quiz.title && preview === `/resources/${item.resourceId}/preview` && download === `/resources/${item.resourceId}/download` && details === `/resources/${item.resourceId}` && order === "Preview|Details|Download PDF", `card ${index + 1}: "${path}" - "${title}" -> ${preview} [${order}]`);
       check((await card.getByText("Quiz PDF", { exact: true }).count()) === 1 && (await card.getByText("Included in PDF").count()) === 1, `card ${index + 1}: Quiz PDF designation + answer key included`);
       await card.scrollIntoViewIfNeeded();
       const box = await card.boundingBox();
@@ -263,15 +333,52 @@ try {
       }
     }
     check((await countEvents()) - before === live.length, `download evidence recorded: ${live.length} events`);
+    // Inline delivery for the preview: the same bytes, displayed not downloaded, never cached, database-authorized.
+    const beforeInline = await countEvents();
+    for (const item of live) {
+      const response = await page.request.get(`${origin}/resources/${item.resourceId}/inline`);
+      const body = await response.body();
+      const sha = createHash("sha256").update(body).digest("hex");
+      check(response.status() === 200 && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `inline; filename="${item.quiz.downloadFilename}"` && response.headers()["cache-control"] === "private, no-store, max-age=0" && body.length === item.quiz.bytes && sha === item.quiz.sha256, `inline ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-disposition"]} ${response.headers()["cache-control"]} ${body.length} bytes ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
+    }
+    check((await countEvents()) - beforeInline === live.length, `inline delivery evidence recorded: ${live.length} events`);
     // 11. Details page.
     await cards.first().getByRole("link", { name: "Details" }).click();
     await page.waitForURL((u) => /^\/resources\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
     check((await page.locator("h1").innerText()) === live[0].quiz.title && (await page.getByText("Included in PDF").count()) === 1, `details page: h1 "${await page.locator("h1").innerText()}"`);
+    check((await page.getByRole("link", { name: "Preview" }).getAttribute("href")) === `/resources/${live[0].resourceId}/preview`, "details page offers Preview");
     await shot(page, "11-pdf-details-1366", { fullPage: true });
     await page.getByRole("link", { name: "Back to library" }).click();
     await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
     ok("Back to library returns to /quizzes");
+    // 22-24. Preview: from the card to the in-app viewer, every quiz, widths, then Back to Quiz PDFs.
+    await selectGrade(page);
+    await cards.first().getByRole("link", { name: "Preview" }).click();
+    await page.waitForURL((u) => /^\/resources\/[0-9a-f-]{36}\/preview$/.test(u.pathname), { timeout: 30_000 });
+    await page.getByRole("status").filter({ hasText: `${live[0].quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+    check((await page.locator("h1").innerText()) === live[0].quiz.title && (await page.getByRole("link", { name: "Back to Quiz PDFs" }).getAttribute("href")) === "/quizzes", `preview page from the card: h1 "${await page.locator("h1").innerText()}"`);
+    await shot(page, "22-preview-1366-first-screen");
+    await shot(page, "22b-preview-1366-full", { fullPage: true });
+    for (const [index, item] of live.entries()) await openPreview(page, item, `subscriber 1366 #${index + 1}`);
+    const previewViolations = await axeSerious(page);
+    check(previewViolations.length === 0, `axe 1366 preview: ${previewViolations.join(", ") || "0 serious/critical"}`);
+    await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+    await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
+    ok("Back to Quiz PDFs returns to /quizzes");
+    for (const width of [320, 390, 768, 1920]) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
+      await openPreview(page, live[0], `subscriber ${width}`);
+      const short = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".resource-preview-actions a")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
+      check(short === 0, `${width}px preview: short targets ${short}`);
+      await shot(page, { 320: "24-preview-320", 390: "24b-preview-390", 768: "24c-preview-768", 1920: "24d-preview-1920" }[width]);
+      if (width === 390) {
+        await shot(page, "24b2-preview-390-full", { fullPage: true });
+        const violations = await axeSerious(page);
+        check(violations.length === 0, `axe 390 preview: ${violations.join(", ") || "0 serious/critical"}`);
+      }
+    }
+    await page.setViewportSize({ width: 1366, height: 900 });
     // 13-17: widths, 200% text, forced colors, axe, keyboard.
     for (const width of REVIEW_WIDTHS) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
@@ -309,7 +416,7 @@ try {
     }
     await page.getByRole("combobox", { name: "Grade" }).focus();
     const reached = new Map();
-    for (let step = 0; step < 6 && reached.size < 2; step += 1) {
+    for (let step = 0; step < 8 && reached.size < 3; step += 1) {
       await page.keyboard.press("Tab");
       const focused = await page.evaluate(() => {
         const element = document.activeElement;
@@ -317,9 +424,9 @@ try {
         const style = getComputedStyle(element);
         return { text: element.textContent?.trim() ?? "", ring: (style.outlineStyle !== "none" && style.outlineWidth !== "0px") || style.boxShadow !== "none" };
       });
-      if (focused && ["Details", "Download PDF"].includes(focused.text) && !reached.has(focused.text)) reached.set(focused.text, focused.ring);
+      if (focused && ["Preview", "Details", "Download PDF"].includes(focused.text) && !reached.has(focused.text)) reached.set(focused.text, focused.ring);
     }
-    check([...reached.keys()].sort().join(",") === "Details,Download PDF" && [...reached.values()].every(Boolean), `keyboard: Tab reaches Details and Download PDF with a visible focus ring (${[...reached.entries()].map(([k, v]) => `${k}:${v}`).join(", ")})`);
+    check([...reached.keys()].join(",") === "Preview,Details,Download PDF" && [...reached.values()].every(Boolean), `keyboard: Tab reaches Preview, Details and Download PDF in order with a visible focus ring (${[...reached.entries()].map(([k, v]) => `${k}:${v}`).join(", ")})`);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
     await selectGrade(page);
@@ -346,6 +453,20 @@ try {
         check(selectedViolations.length === 0, `webkit axe ${width} grade selected: ${selectedViolations.join(", ") || "0 serious/critical"}`);
         if (width === 390) await shot(page, "20-webkit-390-grade-6", { fullPage: true });
       }
+      // iOS Safari / WebKit at phone width: no Authorize Code in the banner, the preview page shows the PDF in place (no download), Back to Quiz PDFs works.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+      await expectNoBannerCode(page, "webkit 390 (home)");
+      await bannerShot(page, "25-webkit-390-banner");
+      await openPreview(page, live[0], "webkit 390");
+      await shot(page, "25b-webkit-390-preview");
+      await shot(page, "25c-webkit-390-preview-full", { fullPage: true });
+      const webkitPreviewViolations = await axeSerious(page);
+      check(webkitPreviewViolations.length === 0, `webkit axe 390 preview: ${webkitPreviewViolations.join(", ") || "0 serious/critical"}`);
+      await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+      await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
+      ok("webkit: Back to Quiz PDFs returns to /quizzes");
+      for (const item of live.slice(1)) await openPreview(page, item, "webkit 390");
       note("webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)");
       await context.close();
     } finally { await webkit.close(); }

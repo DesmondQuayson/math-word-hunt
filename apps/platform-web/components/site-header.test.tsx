@@ -173,7 +173,7 @@ describe("SiteHeader banner", () => {
     expect(current.getAttribute("aria-current")).toBe("page");
   });
 
-  it("authorized-code entry: in the banner for every account state, outside the account menu and the product navigation, leading to the homepage form", async () => {
+  it("no Authorize Code item in the banner for any account state: the six products, the call to action and the account menu are all it holds", async () => {
     for (const [label, v] of [
       ["anonymous", view("anonymous", {}, false)],
       ["trial eligible", view("active", { state: "no-entitlement", trialRedeemedAt: null })],
@@ -187,26 +187,25 @@ describe("SiteHeader banner", () => {
       ["school-code session", view("anonymous", { state: "subscription-active", periodEndsAt: later }, true, "school-access")]
     ] as const) {
       const header = await renderHeader(v);
-      const link = within(header).getByRole("link", { name: "Authorize Code" });
-      expect(link.getAttribute("href"), label).toBe("/#authorized-access");
-      // A plain same-origin anchor: it carries no code, no query, no state.
-      expect(link.getAttribute("href"), label).not.toMatch(/[?=]/);
-      expect(within(accountPanel(header)).queryByRole("link", { name: "Authorize Code" }), label).toBeNull();
-      expect(within(within(header).getByRole("navigation", { name: "Primary navigation" })).queryByRole("link", { name: "Authorize Code" }), label).toBeNull();
+      expect(within(header).queryByRole("link", { name: /Authorize Code/i }), label).toBeNull();
+      expect(header.querySelector(".banner-code-link, a[href='/#authorized-access'], a[href*='authorized-access']"), label).toBeNull();
+      expect(within(accountPanel(header)).queryByRole("link", { name: /Authorize Code/i }), label).toBeNull();
       expect(within(header).queryByRole("link", { name: "Start learning" }), label).toBeNull();
+      // Exactly six product links, and every banner link is a product, the brand or the call to action.
+      const strip = expectProductStrip(header);
+      expect(within(strip).getAllByRole("link"), label).toHaveLength(6);
+      const allowed = new Set(["/", ...PRODUCTS.map(([, href]) => href), "/subscription", "/account", "/pricing", "/sign-up?next=/subscription"]);
+      for (const link of within(header).getAllByRole("link")) expect(allowed.has(link.getAttribute("href") ?? ""), `${label}: ${link.getAttribute("href")}`).toBe(true);
       cleanup();
     }
   });
 
-  it("authorized-code entry is omitted on the sign-in page only: that page carries the form itself", async () => {
-    state.pathname = "/sign-in";
-    const signIn = await renderHeader(view("anonymous", {}, false));
-    expect(within(signIn).queryByRole("link", { name: "Authorize Code" })).toBeNull();
-    cleanup();
-    for (const pathname of ["/", "/sign-up", "/access", "/games", "/map-prep", "/subscription", "/account", "/pricing"]) {
+  it("no Authorize Code item on any route, the sign-in page included; the homepage form remains the entry", async () => {
+    for (const pathname of ["/", "/sign-in", "/sign-up", "/access", "/games", "/quizzes", "/map-prep", "/subscription", "/account", "/pricing"]) {
       state.pathname = pathname;
       const header = await renderHeader(view("anonymous", {}, false));
-      expect(within(header).getByRole("link", { name: "Authorize Code" }).getAttribute("href"), pathname).toBe("/#authorized-access");
+      expect(within(header).queryByRole("link", { name: /Authorize Code/i }), pathname).toBeNull();
+      expect(within(within(header).getByRole("navigation", { name: "Primary navigation" })).getAllByRole("link"), pathname).toHaveLength(6);
       cleanup();
     }
   });

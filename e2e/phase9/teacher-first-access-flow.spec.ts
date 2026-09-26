@@ -539,45 +539,47 @@ test("Worksheet Generator is subscription-gated: nobody reaches ShowMe without a
   await context.clearCookies();
 });
 
-test("Authorize Code entry is permanent: homepage form plus banner link in every account state; the sign-in page may omit the banner link", async ({ page, context }) => {
+test("Authorize Code lives on the homepage form only: no banner item in any account state, the form, its Code field and Show/Hide control intact, and the code never enters the URL", async ({ page, context }) => {
   const codeHeading = page.getByRole("heading", { name: "Authorize Code" });
   const codeField = page.getByLabel("Code (required)");
-  const bannerLink = page.getByRole("banner").getByRole("link", { name: "Authorize Code" });
+  const banner = page.getByRole("banner");
+  const bannerLink = banner.getByRole("link", { name: /Authorize Code/i });
   const expectEntry = async (label: string) => {
     await expect(codeHeading, label).toBeVisible();
     await expect(codeField, label).toBeVisible();
     await expect(page.getByRole("button", { name: "Show code" }), label).toBeVisible();
-    await expect(bannerLink, label).toHaveAttribute("href", "/#authorized-access");
-    // Reachable immediately: the banner link is on the first screen, no menu, no scrolling.
-    const box = await bannerLink.boundingBox();
-    const viewport = page.viewportSize();
-    expect(
-      !!box && !!viewport && box.y >= 0 && box.y + box.height <= viewport.height && box.x >= 0 && box.x + box.width <= viewport.width,
-      `${label}: banner link within the first screen`
-    ).toBe(true);
-    expect(box?.height ?? 0, `${label}: target height`).toBeGreaterThanOrEqual(44);
-    // Never only inside the account menu; never a "Start learning" anywhere.
-    await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: "Authorize Code" }), label).toHaveCount(0);
+    // The banner: brand, six products, the call to action and the account menu. Nothing else.
+    await expect(bannerLink, label).toHaveCount(0);
+    await expect(banner.locator(".banner-code-link, a[href*='authorized-access']"), label).toHaveCount(0);
+    await expect(banner.getByRole("navigation", { name: "Primary navigation" }).getByRole("link"), label).toHaveCount(6);
+    await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: /Authorize Code/i }), label).toHaveCount(0);
     await expect(page.locator("body"), label).not.toContainText("Start learning");
   };
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expectEntry("anonymous");
-  // On the homepage the link brings the form into view and focuses the code field; nothing enters the URL.
-  await bannerLink.click();
-  await expect(codeField).toBeFocused();
+  await expectEntry("anonymous, 390px");
+  // Show/Hide: the field is a password field until the visitor asks to see the code, and back again.
+  await expect(codeField).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "Show code" }).click();
+  await expect(codeField).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Hide code" }).click();
+  await expect(codeField).toHaveAttribute("type", "password");
+  // Typing a code changes nothing in the URL or web storage.
+  await codeField.fill("NOT-A-REAL-CODE-1234");
   await expect(page).toHaveURL("/");
-  // From another page it leads to the homepage form.
-  await page.goto("/access?next=/games");
-  await expect(bannerLink).toHaveAttribute("href", "/#authorized-access");
-  await bannerLink.click();
-  await expect(page).toHaveURL("/#authorized-access");
-  await expect(codeHeading).toBeInViewport();
-  // The sign-in page carries the form itself and may omit the banner link.
+  expect(await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]))).not.toContain("NOT-A-REAL-CODE-1234");
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto("/");
+  await expectEntry("anonymous, 1366px");
+  // Other routes: still no banner item; the access and sign-in pages carry the form themselves.
+  for (const path of ["/access?next=/games", "/sign-in", "/pricing"]) {
+    await page.goto(path);
+    await expect(bannerLink, path).toHaveCount(0);
+    await expect(banner.getByRole("navigation", { name: "Primary navigation" }).getByRole("link"), path).toHaveCount(6);
+  }
   await page.goto("/sign-in");
   await expect(codeHeading).toBeVisible();
-  await expect(bannerLink).toHaveCount(0);
 
   const eligibleEmail = `${run}-code-eligible@example.test`;
   const usedEmail = `${run}-code-used@example.test`;
@@ -588,14 +590,14 @@ test("Authorize Code entry is permanent: homepage form plus banner link in every
     await signIn(page, eligibleEmail, "/");
     await expect(page).toHaveURL("/");
     await expectEntry("signed in, trial eligible");
-    await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
+    await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
     await context.clearCookies();
 
     await signIn(page, usedEmail, "/");
     await expect(page).toHaveURL("/");
     await expectEntry("signed in, used trial");
-    await expect(page.getByRole("banner").getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
-    await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveCount(0);
+    await expect(banner.getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
+    await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
     await context.clearCookies();
   } finally {
     for (const user of [eligibleUser, usedUser]) await admin.auth.admin.deleteUser(user.id);
@@ -604,7 +606,7 @@ test("Authorize Code entry is permanent: homepage form plus banner link in every
   await signIn(page, entitledEmail, "/");
   await expect(page).toHaveURL("/");
   await expectEntry("entitled (active trial)");
-  await expect(page.getByRole("banner").getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
+  await expect(banner.getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
   await context.clearCookies();
 });
 

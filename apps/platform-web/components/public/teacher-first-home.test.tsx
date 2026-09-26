@@ -65,7 +65,7 @@ describe("teacher-first public homepage", () => {
     // Owner hotfix 2026-09-25: the entry is permanent, not signed-out only.
     // Anonymous, unconfirmed, signed in without access, and entitled visitors
     // all see the unchanged school-code form directly under the hero actions,
-    // inside the element the banner's "Authorize Code" link points at.
+    // inside the anchored element; the banner itself carries no code item.
     for (const props of [
       {},
       { authState: "unconfirmed" as const },

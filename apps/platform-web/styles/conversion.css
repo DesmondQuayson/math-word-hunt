@@ -65,17 +65,17 @@
 /* ---------- Banner layout ---------------------------------------------------
 
    Owner-approved structure: the brand picture and six product destinations
-   are always visible; account actions live behind the account menu button;
-   the authorized-code entry is permanent (every account state).
+   are always visible; account actions live behind the account menu button.
+   The authorized-code entry is the homepage form (plus the access and sign-in
+   page copies), never a banner item.
 
    DOM order: brand, compact call to action, product navigation, wide call to
-   action, authorized-code entry, account menu. Below 80rem the banner is
-   three rows — row 1 = brand | call to action | account menu, row 2 = the
-   product grid (all six destinations, nothing scrolls or is swiped to),
-   row 3 = the authorized-code entry. From 80rem it is one row — brand |
-   product navigation | call to action | authorized code | account menu. CSS
-   shows one call-to-action copy per layout; the other is display:none and
-   outside the accessibility tree, so reading and focus order stay coherent. */
+   action, account menu. Below 80rem the banner is two rows — row 1 = brand |
+   call to action | account menu, row 2 = the product grid (all six
+   destinations, nothing scrolls or is swiped to). From 80rem it is one row —
+   brand | product navigation | call to action | account menu. CSS shows one
+   call-to-action copy per layout; the other is display:none and outside the
+   accessibility tree, so reading and focus order stay coherent. */
 
 .site-header--banner .header-inner {
   min-height: 0;
@@ -83,8 +83,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
     "brand cta menu"
-    "nav nav nav"
-    "code code code";
+    "nav nav nav";
   align-items: center;
   column-gap: var(--space-3);
   row-gap: var(--space-1);
@@ -307,54 +306,8 @@
 
 /* ---------- Authorized code entry ----------------------------------------
 
-   Permanent in every account state and reachable without opening the account
-   menu or scrolling: row 3 of the compact banner, an outlined action beside
-   the call to action from 80rem. It leads to the homepage's authorized-code
-   form (the form itself is unchanged). */
-
-.banner-code-link {
-  grid-area: code;
-  justify-self: end;
-  min-height: var(--size-target-min);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-inline: var(--space-2);
-  border: var(--border-width-thin) solid transparent;
-  border-radius: var(--radius-medium);
-  color: var(--color-on-brand);
-  font-size: 0.875rem;
-  font-weight: 750;
-  line-height: 1.1;
-  text-decoration: underline;
-  text-decoration-color: rgb(255 255 255 / 45%);
-  text-underline-offset: 0.2em;
-  white-space: nowrap;
-  transition: background-color var(--motion-fast) var(--ease-standard);
-}
-
-.banner-code-link svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: 0 0 auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.banner-code-link:hover {
-  background: rgb(255 255 255 / 11%);
-  text-decoration-color: currentColor;
-}
-
-.banner-code-link:focus-visible {
-  outline: var(--focus-outline);
-  outline-offset: 2px;
-}
-
-/* The homepage form the entry lands on: a little breathing room above it
+   The homepage's authorized-code form (also present on the access and
+   sign-in pages). It is not a banner item: a little breathing room above it
    when it is scrolled into view. */
 .teacher-home-authorized-access {
   scroll-margin-top: var(--space-4);
@@ -398,9 +351,9 @@
     flex: 0 1 auto;
   }
 
-  /* 80–90rem laptops are the tight case (six labels, the call to action,
-     the authorized-code entry and the menu on one row): slightly smaller
-     pills so every label stays on one line; the roomy sizes return at 90rem. */
+  /* 80–90rem laptops are the tight case (six labels, the call to action
+     and the menu on one row): slightly smaller pills so every label stays on
+     one line; the roomy sizes return at 90rem. */
   .site-header--banner .product-nav-list a {
     padding-inline: var(--space-2);
     border-radius: var(--radius-pill);
@@ -415,17 +368,6 @@
 
   .site-header--banner .product-nav-list a[aria-current="page"] {
     background: rgb(255 255 255 / 14%);
-  }
-
-  /* Beside the call to action: a calm outline, never a sales prompt. */
-  .site-header--banner .banner-code-link {
-    flex: 0 0 auto;
-    gap: var(--space-1);
-    padding-inline: var(--space-3);
-    border-color: rgb(255 255 255 / 55%);
-    border-radius: var(--radius-pill);
-    font-size: 0.875rem;
-    text-decoration: none;
   }
 
   /* The account panel becomes a dropdown hanging from the banner's bottom
@@ -455,12 +397,6 @@
 
   .site-header--banner .product-nav-list a {
     padding-inline: var(--space-3);
-    font-size: 0.9375rem;
-  }
-
-  .site-header--banner .banner-code-link {
-    gap: var(--space-2);
-    padding-inline: var(--space-4);
     font-size: 0.9375rem;
   }
 }
@@ -504,7 +440,6 @@
 @media (forced-colors: active) {
   .header-cta,
   .header-menu-toggle,
-  .banner-code-link,
   .product-nav-list a[aria-current="page"] {
     border: 2px solid ButtonText;
   }
@@ -513,7 +448,6 @@
 @media (prefers-reduced-motion: reduce) {
   .header-cta,
   .header-cta:hover,
-  .banner-code-link,
   .product-nav-list a {
     transform: none;
     transition: none;

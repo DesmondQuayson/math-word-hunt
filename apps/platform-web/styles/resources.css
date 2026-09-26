@@ -40,3 +40,18 @@
 .resource-kind-label { display:inline-flex; margin-bottom:var(--space-3); padding:var(--space-1) var(--space-2); border:var(--border-width-thin) solid var(--color-brand-primary); border-radius:var(--radius-small); color:var(--color-brand-primary); font:900 var(--font-size-caption) var(--font-utility); letter-spacing:.04em; text-transform:uppercase; }
 @media(max-width:48rem){.resource-filter-grid--single{grid-template-columns:1fr}}
 @media(forced-colors:active){.resource-kind-label{border-color:CanvasText;color:CanvasText}}
+/* Quiz PDF preview: the approved PDF drawn page by page, fitted to the page width. */
+.resource-preview { display:grid; gap:var(--space-6); }
+.resource-preview-header { display:grid; gap:var(--space-2); max-width:52rem; }
+.resource-preview-header h1 { margin-top:var(--space-1); }
+.resource-preview-lead { color:var(--color-text-secondary); }
+.resource-preview-actions { margin-top:var(--space-3); }
+.pdf-viewer { display:grid; gap:var(--space-4); }
+.pdf-viewer-status { margin:0; color:var(--color-text-secondary); font-weight:800; }
+.pdf-viewer-fallback { padding:var(--space-5); border:var(--border-width-standard) solid var(--color-border-strong); border-radius:var(--radius-medium); background:var(--color-surface-elevated); }
+.pdf-viewer-fallback p + p { margin-top:var(--space-2); }
+.pdf-viewer-pages { display:grid; gap:var(--space-5); justify-items:center; }
+.pdf-viewer-page { width:100%; max-width:60rem; }
+.pdf-viewer-page canvas { display:block; width:100%; height:auto; border:var(--border-width-thin) solid var(--color-border); border-radius:var(--radius-medium); background:#fff; box-shadow:var(--shadow-small); }
+@media(max-width:22rem){.resource-preview-actions>*{width:100%;justify-content:center}}
+@media(forced-colors:active){.pdf-viewer-page canvas,.pdf-viewer-fallback{border-color:CanvasText;box-shadow:none}}

@@ -84,7 +84,7 @@ function QuizLibrary({ library }: Readonly<{ library: PublicResourceLibraryData 
               <h2 id="quiz-topics-heading">Quiz Topics</h2>
               <p>{grade.title} · {topics.length === 1 ? "1 topic" : `${topics.length} topics`}, one quiz PDF each.</p>
             </div>
-            <div className="public-resource-groups">{cards.map((resource) => <ResourceCard key={resource.id} resource={resource} designation="Quiz PDF" />)}</div>
+            <div className="public-resource-groups">{cards.map((resource) => <ResourceCard key={resource.id} resource={resource} designation="Quiz PDF" preview />)}</div>
           </section>
           : <EmptyState title={`No quiz has been published for ${grade.title} yet`} detail="Your subscription is active. Choose another grade, or check back after new content is published." status />}
   </div>;
@@ -100,7 +100,7 @@ function answerKeyStatus(resource: PublicResource): string {
   return "Not published";
 }
 
-function ResourceCard({ resource, designation }: Readonly<{ resource: PublicResource; designation?: string }>) {
+function ResourceCard({ resource, designation, preview = false }: Readonly<{ resource: PublicResource; designation?: string; preview?: boolean }>) {
   return <article className="public-resource-card">
     {resource.previewFileIds[0]
       ? <Image unoptimized width={640} height={360} sizes="(max-width: 48rem) 100vw, 18rem" src={`/resources/${resource.id}/preview/${resource.previewFileIds[0]}`} alt="" />
@@ -116,6 +116,7 @@ function ResourceCard({ resource, designation }: Readonly<{ resource: PublicReso
         <div><dt>Answer key</dt><dd>{answerKeyStatus(resource)}</dd></div>
       </dl>
       <div className="public-resource-actions">
+        {preview && resource.downloadable ? <Link href={`/resources/${resource.id}/preview`}>Preview</Link> : null}
         <Link href={`/resources/${resource.id}`}>Details</Link>
         {resource.downloadable ? <a href={`/resources/${resource.id}/download`}>Download PDF</a> : <span>PDF not yet published</span>}
         {resource.answerKeyResourceId ? <a href={`/resources/${resource.answerKeyResourceId}/download`}>Answer key</a> : null}
