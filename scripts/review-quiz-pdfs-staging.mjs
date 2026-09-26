@@ -1,11 +1,23 @@
-// Quiz PDFs V1 - real-browser owner review against a STAGING deployment.
+// Quiz PDFs V1 - real-browser owner review against a STAGING deployment (or,
+// through scripts/invoke-quiz-pdfs-production.ps1, the production apex).
 //
 // Runs only through scripts/invoke-quiz-pdfs-staging.ps1 -Stage review, which
 // supplies STAGING_ORIGIN, the Vercel protection-bypass entry and the staging
 // Supabase service credential from the process-only vault. Synthetic consumer
 // accounts (fresh, used-trial, active-trial, subscriber) are created on the
-// staging project, exercised through the real sign-in, and deleted at the end.
+// target project, exercised through the real sign-in, and deleted at the end.
 // Secrets are never printed; the bypass value travels only in request headers.
+//
+// Coverage: the banner (six product destinations, no Authorize Code item, each
+// destination reachable), the homepage Authorize Code form (present, masked,
+// Show/Hide, a typed value never reaches the URL or web storage; never
+// submitted), every Quiz PDF card (Preview, Details, Download PDF), the protected
+// preview (server gate, inline delivery, pages drawn, last page reachable by
+// scrolling, no forced download, Download PDF and Back to Quiz PDFs), all review
+// widths, 200% text, axe, keyboard order, Chromium and WebKit. Console and page
+// errors are classified: only errors raised by the app itself fail the run;
+// preview-only noise (the Vercel toolbar script, deployment-protection refusals
+// of RSC fetches) is counted separately and shown with its evidence.
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -34,6 +46,7 @@ function required(name, pattern = /\S/) {
 const ORIGIN_ALLOWLIST = /^https:\/\/(mathnexa-platform-(?:staging|production)[a-z0-9-]*\.vercel\.app|mathnexa\.com)$/;
 const origin = (process.env.REVIEW_ORIGIN?.trim() || process.env.STAGING_ORIGIN?.trim() || "").replace(/\/$/, "");
 if (!ORIGIN_ALLOWLIST.test(origin)) throw new Error("REVIEW_ORIGIN must be a MathNexa staging/production deployment or the apex");
+const originHost = new URL(origin).host;
 const bypassSecret = /^[A-Za-z0-9_-]{20,}$/.test(process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() ?? "") ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET.trim() : null;
 const supabaseUrl = required("SUPABASE_URL", /^https:\/\//);
 const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
@@ -57,6 +70,10 @@ const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: f
 const run = `quiz-review-${randomBytes(6).toString("hex")}`;
 const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const REVIEW_WIDTHS = [320, 375, 390, 430, 768, 820, 1180, 1366, 1920];
+// The six banner destinations, in order (lib/navigation/banner.ts PRODUCT_NAVIGATION).
+const PRODUCTS = [["Home", "/"], ["Math Games", "/games"], ["Online Math Prep", "/map-prep"], ["Homework PDFs", "/homework"], ["Quiz PDFs", "/quizzes"], ["Worksheet Generator", "/worksheets"]];
+const PRODUCT_LABELS = PRODUCTS.map(([label]) => label).join("|");
+const WORKSHEET_GENERATOR_URL = "https://showme.mathnexa.com/worksheets";
 
 // The grade's display title is whatever the target database holds (production: "grade 6").
 let gradeTitle = "Grade 6";
@@ -88,7 +105,7 @@ async function user(kind) {
   return { id, email };
 }
 
-// Which quizzes are live on staging (resource ids by manifest slug, topic order from the database).
+// Which quizzes are live on the target (resource ids by manifest slug, topic order from the database).
 async function liveQuizzes() {
   const assignments = await admin.from("topic_resource_assignments").select("resource_id,slug,topic_id");
   if (assignments.error) throw assignments.error;
@@ -102,7 +119,7 @@ async function liveQuizzes() {
   const publishedIds = new Set(resources.data.map((row) => row.id));
   return grade6.topics.map((topic) => {
     const assignment = assignments.data.find((row) => row.slug === topic.quiz.slug && publishedIds.has(row.resource_id));
-    if (!assignment) throw new Error(`quiz ${topic.quiz.slug} is not published on staging`);
+    if (!assignment) throw new Error(`quiz ${topic.quiz.slug} is not published on the target`);
     const dbTopic = topics.data.find((row) => row.id === assignment.topic_id);
     return { resourceId: assignment.resource_id, topicId: assignment.topic_id, topicSortOrder: dbTopic?.sort_order ?? null, topicTitle: dbTopic?.title ?? null, quiz: topic.quiz };
   }).sort((left, right) => left.topicSortOrder - right.topicSortOrder);
@@ -110,20 +127,83 @@ async function liveQuizzes() {
 
 const browser = await chromium.launch();
 const serverErrors = [];
+// Every console error and page error, with the engine and the page it came from.
 const consoleErrors = [];
-function observe(page) {
-  page.on("response", (response) => { if (response.status() >= 500) serverErrors.push(`${response.status()} ${new URL(response.url()).pathname}`); });
-  page.on("pageerror", (error) => consoleErrors.push(`pageerror: ${String(error).slice(0, 160)} [${new URL(page.url()).pathname}; stack: ${String(error.stack ?? "").replace(/\s+/g, " ").slice(0, 160)}]`));
+// Evidence for RSC fetch failures: redirected RSC responses and failed RSC requests.
+const rscEvidence = { redirects: new Set(), failures: new Set() };
+const pathOf = (page) => { try { const url = new URL(page.url()); return url.host === originHost ? url.pathname : `${url.host}${url.pathname}`; } catch { return "?"; } };
+// The review step an error follows: the last recorded note.
+const lastStep = () => (notes.at(-1) ?? "start").replace(/^(ok|FAIL) +/, "").slice(0, 110);
+function observe(page, engine) {
+  page.on("response", (response) => {
+    let url;
+    try { url = new URL(response.url()); } catch { return; }
+    if (response.status() >= 500) serverErrors.push(`${engine} ${response.status()} ${url.host === originHost ? "" : url.host}${url.pathname}`);
+    if (url.host === originHost && url.searchParams.has("_rsc") && response.status() >= 300 && response.status() < 400) {
+      let target = response.headers().location ?? "";
+      try { target = new URL(target, url).host; } catch { /* keep the raw value */ }
+      rscEvidence.redirects.add(`${engine} ${response.status()} ${url.pathname} -> ${target}`);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.host === originHost && url.searchParams.has("_rsc")) rscEvidence.failures.add(`${engine} ${url.pathname} ${request.failure()?.errorText ?? ""}`.trim());
+  });
+  page.on("pageerror", (error) => consoleErrors.push({ engine, kind: "pageerror", path: pathOf(page), after: lastStep(), text: `${String(error).slice(0, 200)} | stack: ${String(error.stack ?? "").replace(/\s+/g, " ").slice(0, 200)}` }));
   page.on("console", (message) => {
-    const text = message.text();
-    // Aborted RSC prefetches during our own navigations are harness noise, not application errors.
-    if (message.type() === "error" && !/_rsc=|Failed to load resource: net::ERR_ABORTED|Fetch API cannot load/.test(text)) consoleErrors.push(`console: ${text.slice(0, 160)}`);
+    if (message.type() !== "error") return;
+    const source = message.location()?.url ?? "";
+    consoleErrors.push({ engine, kind: "console", path: pathOf(page), after: lastStep(), text: `${message.text().slice(0, 200)}${source ? ` @ ${source.slice(0, 120)}` : ""}` });
   });
 }
-async function open(state, viewport, engine = browser) {
-  const context = await engine.newContext({ viewport, bypassCSP: true, ...(bypassSecret ? { extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret } } : {}) });
+// Let in-flight requests (Next.js link prefetches) finish before the review
+// navigates on its own: WebKit reports a prefetch aborted by a navigation as
+// "Fetch API cannot load … due to access control checks" / "Load failed".
+// Playwright's networkidle is a one-time lifecycle event, so in-flight
+// requests are counted here instead.
+const inflight = new WeakMap();
+function trackRequests(page) {
+  const open = new Set();
+  inflight.set(page, open);
+  page.on("request", (request) => open.add(request));
+  page.on("requestfinished", (request) => open.delete(request));
+  page.on("requestfailed", (request) => open.delete(request));
+  page.on("download", () => open.clear());
+}
+async function settle(page, quietMs = 600, timeoutMs = 15_000) {
+  const open = inflight.get(page);
+  if (!open) return;
+  const deadline = Date.now() + timeoutMs;
+  let quietSince = 0;
+  while (Date.now() < deadline) {
+    if (open.size === 0) {
+      quietSince ||= Date.now();
+      if (Date.now() - quietSince >= quietMs) return;
+    } else quietSince = 0;
+    await page.waitForTimeout(100);
+  }
+}
+async function open(state, viewport, engine = browser, engineName = "chromium") {
+  // On a protected preview: the bypass entry, and x-vercel-skip-toolbar so the
+  // Vercel feedback toolbar (preview-only, never on production) stays inactive.
+  const context = await engine.newContext({ viewport, bypassCSP: true, ...(bypassSecret ? { extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret, "x-vercel-skip-toolbar": "1" } } : {}) });
   const page = await context.newPage();
-  observe(page);
+  trackRequests(page);
+  const goto = page.goto.bind(page);
+  page.goto = async (url, options) => {
+    await settle(page);
+    try {
+      return await goto(url, options);
+    } catch (error) {
+      // A remote preview can keep the network busy past the 30 s budget; retry
+      // once on the plain load event (recorded). Content checks follow anyway.
+      if (!/Timeout \d+ms exceeded/.test(String(error.message))) throw error;
+      note(`  navigation to ${String(url).replace(/x-vercel-protection-bypass=[^&]+/, "x-vercel-protection-bypass=[hidden]").replace(origin, "")} timed out waiting for ${options?.waitUntil ?? "load"}; retried once on load`);
+      return goto(url, { ...options, waitUntil: "load", timeout: 60_000 });
+    }
+  };
+  observe(page, engineName);
   if (bypassSecret) {
     // Set the bypass cookie once so client-side fetches pass as well, then leave the bootstrap URL behind.
     await page.goto(`${origin}/?x-vercel-protection-bypass=${bypassSecret}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
@@ -165,14 +245,19 @@ async function axeSerious(page) {
 const bannerFacts = (page) => page.evaluate(() => {
   const banner = document.querySelector("header.site-header");
   const links = [...(banner?.querySelectorAll("a") ?? [])];
+  const products = [...(banner?.querySelectorAll(".product-nav-list a") ?? [])];
+  const width = document.documentElement.clientWidth;
   return {
     codeLinks: links.filter((a) => /authorize code/i.test(a.textContent ?? "") || /authorized-access/.test(a.getAttribute("href") ?? "")).length + (banner?.querySelectorAll(".banner-code-link").length ?? 0),
-    productLinks: banner?.querySelectorAll(".product-nav-list a").length ?? 0
+    productLinks: products.length,
+    labels: products.map((a) => (a.textContent ?? "").replace("Current", "").trim()).join("|"),
+    visible: products.filter((a) => { const rect = a.getBoundingClientRect(); return rect.width > 0 && rect.height > 0 && rect.left >= -0.5 && rect.right <= width + 0.5; }).length
   };
 });
 async function expectNoBannerCode(page, label) {
   const facts = await bannerFacts(page);
-  check(facts.codeLinks === 0 && facts.productLinks === 6, `${label}: banner has no Authorize Code item (${facts.codeLinks}) and exactly six product links (${facts.productLinks})`);
+  check(facts.codeLinks === 0 && facts.productLinks === 6 && facts.labels === PRODUCT_LABELS && facts.visible === 6, `${label}: banner has no Authorize Code item (${facts.codeLinks}) and exactly six product links, all on screen (${facts.productLinks}, visible ${facts.visible}: ${facts.labels})`);
+  return facts;
 }
 // Script inventory: every script on the page, by origin. The app ships first-party
 // chunks only; anything else (a preview-deployment toolbar, an injected helper) is
@@ -181,12 +266,38 @@ async function scriptInventory(page, label) {
   const scripts = await page.evaluate(() => [...document.scripts].map((script) => script.src ? `${new URL(script.src).host}${new URL(script.src).pathname.slice(0, 48)}` : `inline(${(script.textContent ?? "").replace(/\s+/g, " ").slice(0, 48)})`));
   const external = scripts.filter((entry) => !entry.startsWith("inline(") && !entry.startsWith(new URL(page.url()).host));
   note(`scripts ${label}: ${scripts.length} total, ${external.length} third-party${external.length ? ` -> ${external.join(", ")}` : ""}; navigator.storage=${await page.evaluate(() => typeof navigator.storage)}`);
+  return external;
 }
 async function bannerShot(page, name) {
   await page.evaluate(() => document.fonts.ready);
   const box = await page.locator("header.site-header").boundingBox();
   await page.screenshot({ path: `${out}/${name}.png`, clip: { x: 0, y: 0, width: page.viewportSize().width, height: Math.ceil(box.y + box.height + 8) } });
   note(`shot ${name}.png ${new URL(page.url()).pathname}`);
+}
+// The homepage Authorize Code form: present in every account state. With
+// toggle, the field is proven masked by default and the Show/Hide control is
+// exercised; a dummy value is typed (never submitted) to prove it reaches
+// neither the URL nor web storage, then cleared.
+async function authorizeCodeForm(page, label, { toggle = false } = {}) {
+  const heading = await page.getByRole("heading", { name: "Authorize Code" }).count();
+  const field = page.getByLabel("Code (required)");
+  const fields = await field.count();
+  const show = await page.getByRole("button", { name: "Show code" }).count();
+  check(heading === 1 && fields === 1 && show === 1, `${label}: homepage Authorize Code form present (heading ${heading}, Code field ${fields}, Show code ${show})`);
+  if (!toggle || fields !== 1) return;
+  const masked = await field.getAttribute("type");
+  await page.getByRole("button", { name: "Show code" }).click();
+  const shown = await field.getAttribute("type");
+  const hide = await page.getByRole("button", { name: "Hide code" }).count();
+  await page.getByRole("button", { name: "Hide code" }).click();
+  const hidden = await field.getAttribute("type");
+  const dummy = "REVIEW-NOT-A-CODE-0000";
+  const before = page.url();
+  await field.fill(dummy);
+  const inStorage = await page.evaluate((value) => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]).includes(value), dummy);
+  const inUrl = page.url() !== before || page.url().includes(dummy);
+  await field.fill("");
+  check(masked === "password" && shown === "text" && hide === 1 && hidden === "password" && !inUrl && !inStorage, `${label}: Code field masked by default, Show code -> ${shown}, Hide code -> ${hidden}; a typed value reaches the URL ${inUrl}, web storage ${inStorage} (never submitted)`);
 }
 // Every drawn page has ink (at least 0.05% of its pixels are dark: a sparse
 // answers page on a 320px phone still has hundreds, a blank canvas none) and
@@ -201,6 +312,16 @@ const drawnPages = (page) => page.evaluate(() => [...document.querySelectorAll("
   const fit = rect.width > 0 && rect.left >= -0.5 && rect.right <= document.documentElement.clientWidth + 0.5;
   return { ok: ink > Math.max(50, canvas.width * canvas.height * 0.0005) && fit, ink, fit };
 }));
+async function previewFacts(page, item, label) {
+  await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+  const canvases = await page.locator(".pdf-viewer-pages canvas").count();
+  const drawn = await drawnPages(page);
+  const facts = await pageFacts(page);
+  const embedded = await page.locator("iframe, object, embed").count();
+  const stored = await page.evaluate(() => localStorage.length + sessionStorage.length);
+  const leaked = /supabase|resource-files|signedUrl|token=/i.test(await page.content());
+  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every((entry) => entry.ok) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn (ink ${drawn.map((entry) => entry.ink).join("/")}, fit ${drawn.every((entry) => entry.fit)}), overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
+}
 async function openPreview(page, item, label) {
   // domcontentloaded, not networkidle: the PDF itself streams in after load, and the status line is the real readiness signal.
   // A client-side navigation that is still settling (WebKit after a Link click) can interrupt the first attempt; one retry covers it.
@@ -215,17 +336,109 @@ async function openPreview(page, item, label) {
       await page.waitForTimeout(1000);
     }
   }
-  await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
-  const canvases = await page.locator(".pdf-viewer-pages canvas").count();
-  const drawn = await drawnPages(page);
-  const facts = await pageFacts(page);
-  const embedded = await page.locator("iframe, object, embed").count();
-  const stored = await page.evaluate(() => localStorage.length + sessionStorage.length);
-  const leaked = /supabase|resource-files|signedUrl|token=/i.test(await page.content());
-  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every((entry) => entry.ok) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn (ink ${drawn.map((entry) => entry.ink).join("/")}, fit ${drawn.every((entry) => entry.fit)}), overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
+  await previewFacts(page, item, label);
+}
+// Preview selected from a quiz card: the viewer opens in the page and nothing is downloaded.
+async function previewFromCard(page, index, item, label) {
+  let downloads = 0;
+  const onDownload = () => { downloads += 1; };
+  page.on("download", onDownload);
+  await settle(page);
+  await page.locator("article").nth(index).getByRole("link", { name: "Preview" }).click();
+  await page.waitForURL((url) => url.pathname === `/resources/${item.resourceId}/preview`, { timeout: 30_000 });
+  await previewFacts(page, item, `${label} (from the card)`);
+  await page.waitForTimeout(1500);
+  page.off("download", onDownload);
+  check(downloads === 0, `${label}: selecting Preview downloads nothing (${downloads} download events)`);
+}
+// Scroll like a reader (mouse wheel) until the last page of the PDF is on screen.
+async function lastPageReachable(page) {
+  const viewport = page.viewportSize();
+  await page.mouse.move(Math.floor(viewport.width / 2), Math.floor(viewport.height / 2));
+  for (let step = 0; step < 80; step += 1) {
+    const visible = await page.evaluate(() => {
+      const canvases = document.querySelectorAll(".pdf-viewer-pages canvas");
+      const last = canvases[canvases.length - 1];
+      if (!last) return false;
+      const rect = last.getBoundingClientRect();
+      return rect.top < window.innerHeight - 40 && rect.bottom > 40;
+    });
+    if (visible) return true;
+    await page.mouse.wheel(0, 700);
+    await page.waitForTimeout(120);
+  }
+  return false;
+}
+// Download PDF from the preview page: the attachment download, the exact owner file, and the preview stays open.
+async function downloadFromPreview(page, item, label) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  // Let any wheel scrolling come to rest before clicking.
+  await page.waitForTimeout(800);
+  let download = null;
+  for (let attempt = 1; attempt <= 2 && !download; attempt += 1) {
+    try {
+      [download] = await Promise.all([page.waitForEvent("download", { timeout: 30_000 }), page.getByRole("link", { name: "Download PDF" }).click()]);
+    } catch (error) {
+      note(`  ${label}: Download PDF attempt ${attempt} produced no download event (${String(error.message).split("\n")[0].slice(0, 100)})`);
+      await page.waitForTimeout(1000);
+    }
+  }
+  if (!download) { bad(`${label}: Download PDF produced no download in two attempts`); return; }
+  const body = readFileSync(await download.path());
+  const sha = createHash("sha256").update(body).digest("hex");
+  const name = download.suggestedFilename();
+  await download.delete().catch(() => undefined);
+  check(sha === item.quiz.sha256 && body.length === item.quiz.bytes && name === item.quiz.downloadFilename && new URL(page.url()).pathname.endsWith("/preview"), `${label}: Download PDF saves ${name} (${body.length} bytes, sha256 ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}); the preview stays open`);
+}
+// Keyboard on the preview page: Back to Quiz PDFs, Details, Download PDF in order, each with a visible focus ring.
+async function previewKeyboard(page, label) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.getByRole("link", { name: "Back to Quiz PDFs" }).focus();
+  // Leave and re-enter with the keyboard so the focus ring is the keyboard one.
+  await page.keyboard.press("Shift+Tab");
+  const focused = () => page.evaluate(() => {
+    const element = document.activeElement;
+    const style = getComputedStyle(element);
+    return { text: element.textContent?.trim() ?? "", ring: (style.outlineStyle !== "none" && style.outlineWidth !== "0px") || style.boxShadow !== "none" };
+  });
+  const order = [];
+  for (let step = 0; step < 3; step += 1) { await page.keyboard.press("Tab"); order.push(await focused()); }
+  check(order.map((entry) => entry.text).join("|") === "Back to Quiz PDFs|Details|Download PDF" && order.every((entry) => entry.ring), `${label}: keyboard order on the preview page ${order.map((entry) => `${entry.text}:${entry.ring}`).join(", ")}`);
+}
+// Each banner destination, clicked at phone width: the right link, on screen,
+// a real target, and the page it reaches for this account state.
+async function productDestinations(page, state, label) {
+  for (const [index, [name, href]] of PRODUCTS.entries()) {
+    await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+    const link = page.locator(".product-nav-list a").nth(index);
+    const text = ((await link.textContent()) ?? "").replace("Current", "").trim();
+    const target = await link.getAttribute("href");
+    const box = await link.boundingBox();
+    const viewport = page.viewportSize();
+    const onScreen = Boolean(box) && box.x >= 0 && box.x + box.width <= viewport.width + 0.5 && box.y + box.height <= viewport.height && box.height >= 44;
+    const expected = state === "anonymous"
+      ? (url) => (name === "Home" ? url.host === originHost && url.pathname === "/" : url.host === originHost && url.pathname === "/access" && url.searchParams.get("next") === href)
+      : {
+        Home: (url) => url.host === originHost && url.pathname === "/",
+        "Math Games": (url) => url.host === originHost && url.pathname === "/games",
+        "Online Math Prep": (url) => (url.host === originHost ? url.pathname.startsWith("/map-prep") : url.protocol === "https:"),
+        "Homework PDFs": (url) => url.host === originHost && url.pathname === "/homework",
+        "Quiz PDFs": (url) => url.host === originHost && url.pathname === "/quizzes",
+        "Worksheet Generator": (url) => url.href.startsWith(WORKSHEET_GENERATOR_URL)
+      }[name];
+    await settle(page);
+    await link.click();
+    if (name !== "Home") await page.waitForURL((url) => expected(url) && url.pathname !== "/", { timeout: 30_000 }).catch(() => undefined);
+    await page.waitForLoadState("domcontentloaded").catch(() => undefined);
+    await page.waitForTimeout(800);
+    const landed = new URL(page.url());
+    const notFound = landed.host === originHost ? await page.getByText("This page could not be found").count() : 0;
+    check(text === name && target === href && onScreen && expected(landed) && notFound === 0, `${label}: banner "${name}" (${target}, on screen ${onScreen}) -> ${landed.host === originHost ? "" : landed.host}${landed.pathname}${landed.search}`);
+  }
 }
 
 let users = {};
+let reachedEnd = false;
 try {
   note(`review origin ${origin} (${isProduction ? "PRODUCTION project" : "staging project"}); engines ${engines.join(", ")}`);
   const health = await fetch(`${origin}/api/health`, { redirect: "manual", headers: { "user-agent": "MathNexa-Quiz-Review/1.0", ...(bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {}) } });
@@ -238,7 +451,7 @@ try {
   for (const item of deep.results) check(item.ok, `database + private storage: Grade ${item.gradeNumber} / Topic ${item.topicSortOrder}: ${item.topic} - ${item.title} ${item.problems.join(",")}${item.detail ? ` [${item.detail.downloadedBytes} bytes, pages ${item.detail.pages}, lesson assignments ${item.detail.lessonAssignments}, bucket public ${item.detail.bucketPublic}]` : ""}`);
   users = { eligible: await user("eligible"), "used-trial": await user("used-trial"), "trial-active": await user("trial-active"), subscribed: await user("subscribed") };
 
-  // 18. Anonymous: gated route, no file exposure.
+  // 18. Anonymous: gated route, no file exposure, the banner at every width, the Authorize Code form, each destination.
   {
     const { context, page } = await open("anonymous", { width: 1366, height: 900 });
     const landing = await context.request.get(`${origin}/quizzes`, { maxRedirects: 0 });
@@ -254,18 +467,42 @@ try {
       const preview = await context.request.get(`${origin}/resources/${item.resourceId}/preview`, { maxRedirects: 0 });
       const inline = await context.request.get(`${origin}/resources/${item.resourceId}/inline`, { maxRedirects: 0 });
       const inlineBody = await inline.text();
-      check(preview.status() === 307 && (preview.headers().location ?? "").endsWith("/access?next=/quizzes") && inline.status() === 401 && !inlineBody.startsWith("%PDF-") && !/supabase|signedUrl|token=/i.test(inlineBody), `anonymous preview ${item.quiz.slug} -> ${preview.status()} ${preview.headers().location ?? ""}; inline -> ${inline.status()}`);
+      check(preview.status() === 307 && (preview.headers().location ?? "").endsWith("/access?next=/quizzes") && inline.status() === 401 && inline.headers()["cache-control"] === "no-store" && !inlineBody.startsWith("%PDF-") && !/supabase|signedUrl|token=/i.test(inlineBody), `anonymous preview ${item.quiz.slug} -> ${preview.status()} ${preview.headers().location ?? ""}; inline -> ${inline.status()} (${inline.headers()["cache-control"]})`);
+    }
+    // In the browser: the preview URL lands in the access flow and shows no PDF.
+    {
+      let downloads = 0;
+      page.on("download", () => { downloads += 1; });
+      await page.goto(`${origin}/resources/${live[0].resourceId}/preview`, { waitUntil: "networkidle" });
+      const landed = new URL(page.url());
+      check(landed.pathname === "/access" && landed.searchParams.get("next") === "/quizzes" && downloads === 0 && (await page.locator(".pdf-viewer-pages canvas").count()) === 0, `anonymous browser opens a preview URL -> ${landed.pathname}${landed.search}; PDF shown: no; downloads ${downloads}`);
     }
     await page.goto(`${origin}/`, { waitUntil: "networkidle" });
     await expectNoBannerCode(page, "anonymous 1366 (home)");
     await scriptInventory(page, "anonymous 1366 (home)");
     await bannerShot(page, "21-banner-anonymous-1366");
-    check((await page.getByRole("heading", { name: "Authorize Code" }).count()) === 1 && (await page.getByLabel("Code (required)").count()) === 1 && (await page.getByRole("button", { name: "Show code" }).count()) === 1, "homepage keeps the Authorize Code form (heading, Code field, Show code)");
-    await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Quiz PDFs" }).click();
+    await authorizeCodeForm(page, "anonymous 1366");
+    await settle(page); await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Quiz PDFs" }).click();
     await page.waitForURL((u) => u.pathname === "/access", { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
     await expectNoBannerCode(page, "anonymous 1366 (/access)");
     await shot(page, "18-anonymous-1366", { fullPage: true });
+    // The anonymous banner (with its call to action) at every review width, and 200% text at 320.
+    for (const width of REVIEW_WIDTHS) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
+      await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+      const overflow = (await pageFacts(page)).overflow;
+      await expectNoBannerCode(page, `anonymous ${width} (home, overflow ${overflow}px)`);
+      check(overflow === 0, `anonymous ${width}px home: horizontal overflow ${overflow}px`);
+      if (width === 320) {
+        await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+        await page.waitForTimeout(250);
+        const zoomed = await bannerFacts(page);
+        const zoomedOverflow = (await pageFacts(page)).overflow;
+        check(zoomed.productLinks === 6 && zoomed.visible === 6 && zoomed.codeLinks === 0 && zoomedOverflow === 0, `anonymous 320px at 200% text: six products on screen (${zoomed.visible}), code items ${zoomed.codeLinks}, overflow ${zoomedOverflow}px`);
+        await bannerShot(page, "21g-banner-anonymous-320-text-200");
+      }
+    }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
     check(new URL(page.url()).pathname === "/access", `anonymous banner click lands on /access (${new URL(page.url()).pathname}${new URL(page.url()).search})`);
@@ -273,12 +510,14 @@ try {
     await page.goto(`${origin}/`, { waitUntil: "networkidle" });
     await expectNoBannerCode(page, "anonymous 390 (home)");
     await bannerShot(page, "21b-banner-anonymous-390");
+    await authorizeCodeForm(page, "anonymous 390", { toggle: true });
     const form = await page.locator("#authorized-access").evaluate((element) => { const rect = element.getBoundingClientRect(); return { y: rect.top + window.scrollY, height: rect.height }; });
     await page.screenshot({ path: `${out}/21c-homepage-authorize-code-form-390.png`, fullPage: true, clip: { x: 0, y: Math.max(0, form.y - 16), width: 390, height: form.height + 32 } });
     note("shot 21c-homepage-authorize-code-form-390.png /");
+    await productDestinations(page, "anonymous", "anonymous 390");
     await context.close();
   }
-  // Signed-in states without access, then entitled states.
+  // Signed-in states without access, then the active trial (allowed).
   for (const [state, expectedPath, marker, name] of [
     ["eligible", "/subscription", "Start your free trial", "18c-signed-in-trial-eligible-390"],
     ["used-trial", "/subscription", "Trial ended", "18d-used-trial-390"],
@@ -287,7 +526,7 @@ try {
     const { context, page } = await open(state, { width: 390, height: 844 });
     await page.waitForLoadState("networkidle");
     const url = new URL(page.url());
-    check(url.host === new URL(origin).host, `${state}: stays on the staging host (${url.host})`);
+    check(url.host === originHost, `${state}: stays on the review host (${url.host})`);
     check(url.pathname === expectedPath && (expectedPath === "/quizzes" || url.searchParams.get("next") === "/quizzes"), `${state}: sign-in with next=/quizzes -> ${url.pathname}${url.search}`);
     check((await page.locator("body").innerText()).includes(marker), `${state}: page shows "${marker}"`);
     await expectNoBannerCode(page, `${state} 390`);
@@ -299,6 +538,8 @@ try {
       check(landed.pathname === "/subscription" && landed.searchParams.get("next") === "/quizzes", `${state}: preview page -> ${landed.pathname}${landed.search}`);
       const inline = await page.request.get(`${origin}/resources/${live[0].resourceId}/inline`, { maxRedirects: 0 });
       check(inline.status() === 401 && !(await inline.text()).startsWith("%PDF-"), `${state}: inline delivery -> ${inline.status()}`);
+    } else {
+      await openPreview(page, live[1], `${state} 390 (allowed)`);
     }
     await context.close();
   }
@@ -346,13 +587,14 @@ try {
       const response = await page.request.get(`${origin}/resources/${item.resourceId}/download`);
       const body = await response.body();
       const sha = createHash("sha256").update(body).digest("hex");
-      check(response.status() === 200 && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `attachment; filename="${item.quiz.downloadFilename}"` && body.length === item.quiz.bytes && sha === item.quiz.sha256, `download ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-type"]} ${body.length} bytes sha256 ${sha.slice(0, 16)}... ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
+      check(response.status() === 200 && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `attachment; filename="${item.quiz.downloadFilename}"` && response.headers()["cache-control"] === "private, no-store, max-age=0" && body.length === item.quiz.bytes && sha === item.quiz.sha256, `download ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-type"]} ${response.headers()["content-disposition"]} ${body.length} bytes sha256 ${sha.slice(0, 16)}... ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
       if (live.indexOf(item) === 0) {
-        writeFileSync(`${out}/12-downloaded-${item.quiz.downloadFilename}`, body);
+        const copy = `${out}/12-downloaded-${item.quiz.downloadFilename}`;
+        writeFileSync(copy, body);
         try {
-          execFileSync("pdftoppm", ["-f", "1", "-l", "1", "-png", "-r", "70", "-singlefile", `${out}/12-downloaded-${item.quiz.downloadFilename}`, `${out}/12-downloaded-pdf-page-1`]);
-          execFileSync("pdftoppm", ["-f", String(item.quiz.pages), "-l", String(item.quiz.pages), "-png", "-r", "70", "-singlefile", `${out}/12-downloaded-${item.quiz.downloadFilename}`, `${out}/12b-downloaded-pdf-answers-page`]);
-          note("shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by staging)");
+          execFileSync("pdftoppm", ["-f", "1", "-l", "1", "-png", "-r", "70", "-singlefile", copy, `${out}/12-downloaded-pdf-page-1`]);
+          execFileSync("pdftoppm", ["-f", String(item.quiz.pages), "-l", String(item.quiz.pages), "-png", "-r", "70", "-singlefile", copy, `${out}/12b-downloaded-pdf-answers-page`]);
+          note("shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by the target)");
         } catch (error) { note(`  pdftoppm unavailable: ${String(error.message).split("\n")[0]}`); }
       }
     }
@@ -363,40 +605,77 @@ try {
       const response = await page.request.get(`${origin}/resources/${item.resourceId}/inline`);
       const body = await response.body();
       const sha = createHash("sha256").update(body).digest("hex");
-      check(response.status() === 200 && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `inline; filename="${item.quiz.downloadFilename}"` && response.headers()["cache-control"] === "private, no-store, max-age=0" && body.length === item.quiz.bytes && sha === item.quiz.sha256, `inline ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-disposition"]} ${response.headers()["cache-control"]} ${body.length} bytes ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
+      check(response.status() === 200 && !response.headers().location && response.headers()["content-type"] === "application/pdf" && response.headers()["content-disposition"] === `inline; filename="${item.quiz.downloadFilename}"` && response.headers()["cache-control"] === "private, no-store, max-age=0" && body.length === item.quiz.bytes && sha === item.quiz.sha256, `inline ${item.quiz.downloadFilename}: ${response.status()} ${response.headers()["content-disposition"]} ${response.headers()["cache-control"]} ${body.length} bytes ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}`);
     }
     check((await countEvents()) - beforeInline === live.length, `inline delivery evidence recorded: ${live.length} events`);
-    // 11. Details page.
-    await cards.first().getByRole("link", { name: "Details" }).click();
+    // 11. Details page for every quiz; the first one visited through the card.
+    await settle(page); await cards.first().getByRole("link", { name: "Details" }).click();
     await page.waitForURL((u) => /^\/resources\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
     check((await page.locator("h1").innerText()) === live[0].quiz.title && (await page.getByText("Included in PDF").count()) === 1, `details page: h1 "${await page.locator("h1").innerText()}"`);
-    check((await page.getByRole("link", { name: "Preview" }).getAttribute("href")) === `/resources/${live[0].resourceId}/preview`, "details page offers Preview");
     await shot(page, "11-pdf-details-1366", { fullPage: true });
-    await page.getByRole("link", { name: "Back to library" }).click();
+    for (const item of live) {
+      await page.goto(`${origin}/resources/${item.resourceId}`, { waitUntil: "networkidle" });
+      const h1 = (await page.locator("h1").textContent())?.trim() ?? "";
+      const previewHref = await page.getByRole("link", { name: "Preview" }).getAttribute("href");
+      const downloadHref = await page.getByRole("link", { name: /^Download PDF$/ }).getAttribute("href");
+      check(h1 === item.quiz.title && previewHref === `/resources/${item.resourceId}/preview` && downloadHref === `/resources/${item.resourceId}/download`, `details ${item.quiz.slug}: "${h1}" with Preview and Download PDF`);
+    }
+    await settle(page); await page.getByRole("link", { name: "Back to library" }).click();
     await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
     ok("Back to library returns to /quizzes");
-    // 22-24. Preview: from the card to the in-app viewer, every quiz, widths, then Back to Quiz PDFs.
+    // 22-24. Preview: from the card (nothing downloaded), every quiz, Download PDF, keyboard, Back to Quiz PDFs.
     await selectGrade(page);
-    await cards.first().getByRole("link", { name: "Preview" }).click();
-    await page.waitForURL((u) => /^\/resources\/[0-9a-f-]{36}\/preview$/.test(u.pathname), { timeout: 30_000 });
-    await page.getByRole("status").filter({ hasText: `${live[0].quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+    await previewFromCard(page, 0, live[0], "subscriber 1366");
     check((await page.locator("h1").innerText()) === live[0].quiz.title && (await page.getByRole("link", { name: "Back to Quiz PDFs" }).getAttribute("href")) === "/quizzes", `preview page from the card: h1 "${await page.locator("h1").innerText()}"`);
     await shot(page, "22-preview-1366-first-screen");
     await shot(page, "22b-preview-1366-full", { fullPage: true });
+    check(await lastPageReachable(page), "subscriber 1366: the last page is reachable by scrolling");
+    await downloadFromPreview(page, live[0], "subscriber 1366");
+    await previewKeyboard(page, "subscriber 1366");
     for (const [index, item] of live.entries()) await openPreview(page, item, `subscriber 1366 #${index + 1}`);
     const previewViolations = await axeSerious(page);
     check(previewViolations.length === 0, `axe 1366 preview: ${previewViolations.join(", ") || "0 serious/critical"}`);
-    await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+    await settle(page); await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
     await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
     ok("Back to Quiz PDFs returns to /quizzes");
-    for (const width of [320, 390, 768, 1920]) {
+    // 13-17: every review width: the home banner and Authorize Code form, the quiz library, a preview.
+    const previewShots = { 320: "24-preview-320", 390: "24b-preview-390", 430: "24f-preview-430", 768: "24c-preview-768", 820: "24g-preview-820-ipad", 1920: "24d-preview-1920" };
+    const libraryShots = { 320: "14-mobile-320", 375: "13b-mobile-375", 390: "13-mobile-390", 430: "13c-mobile-430", 768: "15-tablet-768", 820: "15b-tablet-820", 1180: "16b-desktop-1180", 1366: "16c-desktop-1366", 1920: "17-desktop-1920" };
+    for (const [index, width] of REVIEW_WIDTHS.entries()) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
-      await openPreview(page, live[0], `subscriber ${width}`);
-      const short = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".resource-preview-actions a")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
-      check(short === 0, `${width}px preview: short targets ${short}`);
-      await shot(page, { 320: "24-preview-320", 390: "24b-preview-390", 768: "24c-preview-768", 1920: "24d-preview-1920" }[width]);
+      await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+      const homeOverflow = (await pageFacts(page)).overflow;
+      await expectNoBannerCode(page, `subscriber ${width} (home)`);
+      check(homeOverflow === 0, `subscriber ${width}px home: horizontal overflow ${homeOverflow}px`);
+      await authorizeCodeForm(page, `subscriber ${width}`);
+      if (width === 320 || width === 820) await bannerShot(page, width === 320 ? "21e-banner-subscriber-320" : "21f-banner-subscriber-820-ipad");
+      await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+      await selectGrade(page);
+      const f = await pageFacts(page);
+      const clipped = await page.evaluate(() => [...document.querySelectorAll(".public-resource-card h2, .public-resource-path, .public-resource-actions a, .resource-kind-label")]
+        .filter((element) => { const rect = element.getBoundingClientRect(); return rect.right > document.documentElement.clientWidth + 0.5 || rect.left < -0.5 || element.scrollWidth > element.clientWidth + 1; }).length);
+      const short = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".public-resource-actions a, .resource-filter-grid select")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
+      const previews = await page.locator(".public-resource-actions a", { hasText: "Preview" }).count();
+      check(f.cards === live.length && previews === live.length && f.overflow === 0 && clipped === 0 && short === 0, `${width}px library: ${f.cards} cards, ${previews} Preview buttons, overflow ${f.overflow}px, clipped ${clipped}, short targets ${short}`);
+      await shot(page, `${libraryShots[width]}-grade-6`, { fullPage: true });
+      if (width === 320) {
+        await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+        await page.waitForTimeout(200);
+        const zoomed = await pageFacts(page);
+        check(zoomed.overflow === 0, `320px library at 200% text: overflow ${zoomed.overflow}px`);
+        await shot(page, "14b-mobile-320-text-200", { fullPage: true });
+      }
+      const item = live[index % live.length];
+      await openPreview(page, item, `subscriber ${width}`);
+      const previewBanner = await bannerFacts(page);
+      const actionsShort = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".resource-preview-actions a")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
+      const actions = (await page.locator(".resource-preview-actions a").allTextContents()).map((text) => text.trim()).join("|");
+      if (previewShots[width]) await shot(page, previewShots[width]);
+      const reachable = await lastPageReachable(page);
+      check(previewBanner.codeLinks === 0 && previewBanner.productLinks === 6 && previewBanner.visible === 6 && actions === "Back to Quiz PDFs|Details|Download PDF" && actionsShort === 0 && reachable, `${width}px preview ${item.quiz.slug}: banner six (${previewBanner.visible}) no code item (${previewBanner.codeLinks}), actions ${actions}, short targets ${actionsShort}, last page reachable ${reachable}`);
       if (width === 390) {
+        await page.evaluate(() => window.scrollTo(0, 0));
         await shot(page, "24b2-preview-390-full", { fullPage: true });
         // A full-page capture changes the emulated viewport for a moment; the viewer must settle on its pages afterwards and stay there.
         const samples = [];
@@ -404,30 +683,17 @@ try {
           await page.waitForTimeout(1000);
           samples.push(`${(await page.getByRole("status").textContent())?.trim() ?? ""}/${await page.locator(".pdf-viewer-pages canvas").count()}`);
         }
-        check(samples.slice(1).every((entry) => entry === `${live[0].quiz.pages} pages/${live[0].quiz.pages}`), `390px preview after the full-page capture settles and stays: ${samples.join(", ")}`);
+        check(samples.slice(1).every((entry) => entry === `${item.quiz.pages} pages/${item.quiz.pages}`), `390px preview after the full-page capture settles and stays: ${samples.join(", ")}`);
         const violations = await axeSerious(page);
         check(violations.length === 0, `axe 390 preview: ${violations.join(", ") || "0 serious/critical"}`);
       }
-    }
-    await page.setViewportSize({ width: 1366, height: 900 });
-    // 13-17: widths, 200% text, forced colors, axe, keyboard.
-    for (const width of REVIEW_WIDTHS) {
-      await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
-      await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
-      await selectGrade(page);
-      const f = await pageFacts(page);
-      const clipped = await page.evaluate(() => [...document.querySelectorAll(".public-resource-card h2, .public-resource-path, .public-resource-actions a, .resource-kind-label")]
-        .filter((element) => { const rect = element.getBoundingClientRect(); return rect.right > document.documentElement.clientWidth + 0.5 || rect.left < -0.5 || element.scrollWidth > element.clientWidth + 1; }).length);
-      const short = width <= 430 ? await page.evaluate(() => [...document.querySelectorAll(".public-resource-actions a, .resource-filter-grid select")].map((element) => Math.round(element.getBoundingClientRect().height)).filter((height) => height < 44).length) : 0;
-      check(f.cards === live.length && f.overflow === 0 && clipped === 0 && short === 0, `${width}px: ${f.cards} cards, overflow ${f.overflow}px, clipped ${clipped}, short targets ${short}`);
-      const name = { 320: "14-mobile-320", 375: "13b-mobile-375", 390: "13-mobile-390", 430: "13c-mobile-430", 768: "15-tablet-768", 820: "15b-tablet-820", 1180: "16b-desktop-1180", 1366: "16c-desktop-1366", 1920: "17-desktop-1920" }[width];
-      await shot(page, `${name}-grade-6`, { fullPage: true });
       if (width === 320) {
-        await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
-        await page.waitForTimeout(200);
+        await page.evaluate(() => { window.scrollTo(0, 0); document.documentElement.style.fontSize = "200%"; });
+        await page.waitForTimeout(400);
         const zoomed = await pageFacts(page);
-        check(zoomed.overflow === 0, `320px at 200% text: overflow ${zoomed.overflow}px`);
-        await shot(page, "14b-mobile-320-text-200", { fullPage: true });
+        const zoomedPages = await drawnPages(page);
+        check(zoomed.overflow === 0 && zoomedPages.length === item.quiz.pages && zoomedPages.every((entry) => entry.fit), `320px preview at 200% text: overflow ${zoomed.overflow}px, ${zoomedPages.filter((entry) => entry.fit).length}/${item.quiz.pages} pages fit`);
+        await shot(page, "24e-preview-320-text-200");
       }
     }
     await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
@@ -435,6 +701,7 @@ try {
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
     await selectGrade(page);
     check((await pageFacts(page)).cards === live.length, "forced colors: cards render");
+    await openPreview(page, live[2], "forced colors 1366");
     await page.emulateMedia({ forcedColors: "none", reducedMotion: "no-preference" });
     for (const width of [1366, 390]) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
@@ -462,14 +729,30 @@ try {
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
     await selectGrade(page);
     await shot(page, "19-subscriber-390-first-screen");
+    await productDestinations(page, "subscribed", "subscriber 390");
     await context.close();
   }
-  // WebKit: render, cards, overflow and axe (the keyboard walk is Chromium-only:
-  // the Windows WebKit test build never Tab-focuses links from a form control).
+  // WebKit (the iPhone engine): the banner and the Authorize Code form, the
+  // preview gate, then a subscriber at 390: Preview from the card (nothing
+  // downloaded), every page reachable, Download PDF, Back to Quiz PDFs, all eight.
+  // The keyboard walk is Chromium-only: the Windows WebKit test build never
+  // Tab-focuses links from a form control.
   if (engines.includes("webkit")) {
     const webkit = await playwright.webkit.launch();
     try {
-      const { context, page } = await open("subscribed", { width: 1366, height: 900 }, webkit);
+      {
+        const { context, page } = await open("anonymous", { width: 390, height: 844 }, webkit, "webkit");
+        await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+        await expectNoBannerCode(page, "webkit anonymous 390 (home)");
+        await authorizeCodeForm(page, "webkit anonymous 390", { toggle: true });
+        let downloads = 0;
+        page.on("download", () => { downloads += 1; });
+        await page.goto(`${origin}/resources/${live[0].resourceId}/preview`, { waitUntil: "networkidle" });
+        const landed = new URL(page.url());
+        check(landed.pathname === "/access" && landed.searchParams.get("next") === "/quizzes" && downloads === 0 && (await page.locator(".pdf-viewer-pages canvas").count()) === 0, `webkit anonymous opens a preview URL -> ${landed.pathname}${landed.search}; PDF shown: no; downloads ${downloads}`);
+        await context.close();
+      }
+      const { context, page } = await open("subscribed", { width: 1366, height: 900 }, webkit, "webkit");
       await page.waitForLoadState("networkidle");
       check(new URL(page.url()).pathname === "/quizzes", `webkit subscriber: sign-in with next=/quizzes -> ${new URL(page.url()).pathname}`);
       for (const width of [1366, 390]) {
@@ -479,23 +762,28 @@ try {
         check(landingViolations.length === 0, `webkit axe ${width} landing: ${landingViolations.join(", ") || "0 serious/critical"}`);
         await selectGrade(page);
         const facts = await pageFacts(page);
-        check(facts.cards === live.length && facts.overflow === 0 && !facts.lessonWording, `webkit ${width}px: ${facts.cards} cards, overflow ${facts.overflow}px, lesson wording ${facts.lessonWording}`);
+        const previews = await page.locator(".public-resource-actions a", { hasText: "Preview" }).count();
+        check(facts.cards === live.length && previews === live.length && facts.overflow === 0 && !facts.lessonWording, `webkit ${width}px: ${facts.cards} cards, ${previews} Preview buttons, overflow ${facts.overflow}px, lesson wording ${facts.lessonWording}`);
         const selectedViolations = await axeSerious(page);
         check(selectedViolations.length === 0, `webkit axe ${width} grade selected: ${selectedViolations.join(", ") || "0 serious/critical"}`);
         if (width === 390) await shot(page, "20-webkit-390-grade-6", { fullPage: true });
       }
-      // iOS Safari / WebKit at phone width: no Authorize Code in the banner, the preview page shows the PDF in place (no download), Back to Quiz PDFs works.
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`${origin}/`, { waitUntil: "networkidle" });
       await expectNoBannerCode(page, "webkit 390 (home)");
       await scriptInventory(page, "webkit 390 (home)");
       await bannerShot(page, "25-webkit-390-banner");
-      await openPreview(page, live[0], "webkit 390");
+      await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
+      await selectGrade(page);
+      await previewFromCard(page, 0, live[0], "webkit 390");
       await shot(page, "25b-webkit-390-preview");
       await shot(page, "25c-webkit-390-preview-full", { fullPage: true });
+      check(await lastPageReachable(page), "webkit 390: every page reachable by scrolling (the last page brought on screen with the scroll wheel)");
+      await shot(page, "25d-webkit-390-preview-last-page");
       const webkitPreviewViolations = await axeSerious(page);
       check(webkitPreviewViolations.length === 0, `webkit axe 390 preview: ${webkitPreviewViolations.join(", ") || "0 serious/critical"}`);
-      await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+      await downloadFromPreview(page, live[0], "webkit 390");
+      await settle(page); await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
       await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
       await page.waitForLoadState("load");
       ok("webkit: Back to Quiz PDFs returns to /quizzes");
@@ -504,27 +792,49 @@ try {
       await context.close();
     } finally { await webkit.close(); }
   }
-  check(serverErrors.length === 0, `no 5xx responses (${serverErrors.length ? serverErrors.join("; ") : "0"})`);
-  // Vercel injects its feedback toolbar (vercel.live) into PREVIEW deployments only;
-  // on the Windows WebKit test build that script rejects on navigator.storage. It is
-  // not the app's code and never exists on production (the production pages carry
-  // first-party scripts only), so its errors are recorded, not counted.
-  const toolbarErrors = consoleErrors.filter((entry) => /vercel\.live/.test(entry));
-  // On the protected preview, WebKit's fetch of a React Server Components payload
-  // (?_rsc=) can be refused by the deployment protection; Next then performs the
-  // same navigation as a full document load, which the checks above proved landed.
-  // Those messages are recorded here and not counted as application errors.
-  const rscFallbacks = consoleErrors.filter((entry) => !/vercel\.live/.test(entry) && /_rsc=|Failed to fetch RSC payload|Fetch API cannot load/.test(entry));
-  const appErrors = consoleErrors.filter((entry) => !toolbarErrors.includes(entry) && !rscFallbacks.includes(entry));
-  if (toolbarErrors.length) note(`ignored ${toolbarErrors.length} error(s) raised by the Vercel preview toolbar script (vercel.live), e.g. ${toolbarErrors[0].slice(0, 200)}`);
-  if (rscFallbacks.length) note(`ignored ${rscFallbacks.length} RSC payload fetch fallback message(s) on the protected preview (the navigations themselves landed), e.g. ${rscFallbacks[0].slice(0, 200)}`);
-  check(appErrors.length === 0, `no console/page errors from the app (${appErrors.length ? appErrors.slice(0, 5).join("; ") : "0"})`);
+  reachedEnd = true;
+} catch (error) {
+  bad(`review stopped early: ${String(error?.message ?? error).split("\n")[0].slice(0, 200)}`);
+  throw error;
 } finally {
+  summarizeErrors();
   await browser.close();
+  // Download evidence written by the review's own accounts (downloads, inline
+  // deliveries behind every preview); the account deletion below removes the
+  // identity from these rows (on delete set null), the counts stay.
+  if (created.length) {
+    const evidenceRows = await admin.from("resource_download_events").select("id", { count: "exact", head: true }).in("consumer_user_id", created);
+    note(`evidence: the review's synthetic accounts recorded ${evidenceRows.count ?? "?"} resource_download_events rows (downloads + preview inline deliveries)`);
+  }
   for (const id of created) await admin.auth.admin.deleteUser(id).catch((error) => note(`cleanup: could not delete synthetic account ${id}: ${error.message}`));
-  note(`cleanup: ${created.length} synthetic staging accounts deleted`);
-  const summary = `SUMMARY ok=${results.filter(Boolean).length} fail=${results.filter((r) => !r).length}`;
+  note(`cleanup: ${created.length} synthetic ${isProduction ? "production" : "staging"} accounts deleted`);
+  const summary = `SUMMARY ok=${results.filter(Boolean).length} fail=${results.filter((r) => !r).length}${reachedEnd ? "" : " (run did not reach the end)"}`;
   note(summary);
   writeFileSync(`${out}/NOTES.txt`, notes.join("\n"));
-  process.exitCode = results.every(Boolean) ? 0 : 1;
+  process.exitCode = reachedEnd && results.every(Boolean) ? 0 : 1;
+}
+
+// Always runs, even when a step threw, so the console evidence is never lost.
+function summarizeErrors() {
+  check(serverErrors.length === 0, `no 5xx responses (${serverErrors.length ? serverErrors.join("; ") : "0"})`);
+  // Console and page errors, classified. Only errors raised by the app fail the run:
+  //   toolbar  - raised by vercel.live, the feedback toolbar Vercel injects into
+  //              PREVIEW deployments (never present on production);
+  //   aborted  - resource loads cancelled by the review's own navigations;
+  //   rsc      - React Server Components fetches that failed; counted as preview
+  //              noise ONLY when the same run recorded an RSC request redirected
+  //              off the review host (deployment protection), else an app error;
+  //   app      - everything else.
+  const classify = (entry) => (/vercel\.live/.test(entry.text) ? "toolbar" : /net::ERR_ABORTED/.test(entry.text) ? "aborted" : /Failed to fetch RSC payload|_rsc=/.test(entry.text) ? "rsc" : "app");
+  const groups = { toolbar: [], aborted: [], rsc: [], app: [] };
+  for (const entry of consoleErrors) groups[classify(entry)].push(entry);
+  const offHostRscRedirects = [...rscEvidence.redirects].filter((entry) => !entry.endsWith(`-> ${originHost}`));
+  const rscExplained = groups.rsc.length === 0 || offHostRscRedirects.length > 0;
+  const byEngine = (entries) => ["chromium", "webkit"].map((engine) => `${engine} ${entries.filter((entry) => entry.engine === engine).length}`).join(", ");
+  note(`console/page errors: toolbar ${groups.toolbar.length} (${byEngine(groups.toolbar)}), aborted ${groups.aborted.length} (${byEngine(groups.aborted)}), rsc ${groups.rsc.length} (${byEngine(groups.rsc)}), app ${groups.app.length} (${byEngine(groups.app)})`);
+  for (const [name, entries] of Object.entries(groups)) for (const entry of entries.slice(0, name === "rsc" ? 20 : 3)) note(`  ${name} e.g. [${entry.engine} ${entry.kind} ${entry.path}] after "${entry.after}": ${entry.text.slice(0, 200)}`);
+  note(`rsc evidence: ${rscEvidence.redirects.size} redirected RSC responses (${offHostRscRedirects.length} off the review host)${rscEvidence.redirects.size ? `: ${[...rscEvidence.redirects].slice(0, 6).join("; ")}` : ""}; ${rscEvidence.failures.size} failed RSC requests${rscEvidence.failures.size ? `: ${[...rscEvidence.failures].slice(0, 6).join("; ")}` : ""}`);
+  if (groups.toolbar.length) note(`ignored ${groups.toolbar.length} error(s) raised by the Vercel preview toolbar script (vercel.live)`);
+  if (groups.rsc.length && rscExplained) note(`ignored ${groups.rsc.length} RSC fetch failure message(s): the run recorded RSC requests redirected off the review host (deployment protection)`);
+  check(groups.app.length === 0 && rscExplained, `no console/page errors from the app (app ${groups.app.length}${groups.rsc.length ? `; rsc ${groups.rsc.length} ${rscExplained ? "explained by off-host redirects" : "UNEXPLAINED"}` : ""})`);
 }

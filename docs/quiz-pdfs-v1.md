@@ -123,7 +123,10 @@ Production publication is a separate owner-gated step and is not part of this ph
 ## 6. Hotfix 2026-09-26: banner cleanup + Quiz PDF preview
 
 Branch `hotfix/remove-banner-authorize-add-quiz-preview` (from `main` d6f5549, the v1.2.13 state).
-Two focused changes, nothing else:
+In production since 2026-09-26: runtime `3cbe09d` (the clean tip, fast-forwarded into `main`),
+`mathnexa.com` = `dpl_EcP8UnyLf3uHSVAZwXLLWZkAefVv`; tag `v1.2.14` pending the owner's decision on
+one open finding (preview header reflow at 320 px with 200% text); record:
+`docs/releases/mathnexa-banner-cleanup-quiz-preview-hotfix.md`. Two focused changes, nothing else:
 
 ### 6a. Authorize Code removed from the banner
 
@@ -184,7 +187,16 @@ Two focused changes, nothing else:
   entitled inline delivery with exact bytes / inline disposition / no-store / evidence, all eight
   previews drawn page by page on Chromium and WebKit, review widths and a 390 px phone with axe,
   Back to Quiz PDFs, Homework cards without Preview, keyboard order Preview → Details → Download PDF).
-- Review harness (`scripts/review-quiz-pdfs-staging.mjs`): banner screenshots (no Authorize
-  Code) at 1366 and 390 plus the homepage form, preview screenshots at 320 / 390 / 768 / 1366 /
-  1920, WebKit 390 banner + preview, inline delivery checks, anonymous and non-subscriber preview
-  routing.
+- Review harness (`scripts/review-quiz-pdfs-staging.mjs`, staging launcher or production
+  launcher): the banner (six products, no Authorize Code item) at all nine widths and 320 px at
+  200% text, each banner destination clicked at 390 px (anonymous and subscriber), the homepage
+  Authorize Code form in every state (masked, Show/Hide, a typed value never in the URL or web
+  storage, never submitted), every card's Preview / Details / Download PDF, all eight previews drawn,
+  no download when Preview is selected, last page reachable by scrolling, Download PDF from the
+  preview (exact bytes, Chromium and WebKit), Back to Quiz PDFs, keyboard order and focus on the
+  preview page, access states, inline delivery headers and bytes, axe. Console and page errors are
+  classified (preview-toolbar / aborted / RSC / app); only app errors fail a run. On protected
+  previews it sends `x-vercel-skip-toolbar: 1`, and it waits until in-flight requests finish before
+  its own navigations (WebKit reports a Next.js prefetch cancelled by a navigation as "access
+  control checks"; Playwright's `networkidle` does not re-check once reached). The review accounts'
+  download-evidence rows are counted in the notes before the accounts are deleted.

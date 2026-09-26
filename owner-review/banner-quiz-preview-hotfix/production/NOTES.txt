@@ -1,36 +1,36 @@
-review origin https://mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app (staging project); engines chromium, webkit
+review origin https://mathnexa.com (PRODUCTION project); engines chromium, webkit
 ok   health 200 {"status":"ready","environment":"production-platform","build":"3cbe09d1685259cedc0f8dcf17f3ba9587aba211","searchIndexing
 ok   health build = 3cbe09d
-ok   staging publishes 8 of 8 manifest quizzes
-ok   database + private storage: Grade 6 / Topic 1: Ratios and Rates - Ratios And Rates Practice  [532861 bytes, pages 5, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 2: Understanding and Using Percent - Understanding and Using Percent  [478014 bytes, pages 4, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 3: Positive Rational Numbers - Positive Rational Numbers Practice  [1060871 bytes, pages 4, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 4: Integers and Rational Numbers - Integers And Rational Numbers  [145654 bytes, pages 3, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 5: Numeric and Algebraic Expressions - Numeric and Algebraic Expressions  [737164 bytes, pages 4, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 6: Represent and Solve Equations - Represent and Solve Equations  [609316 bytes, pages 5, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 7: Area Surface Area Volume - Area Surface Area Volume Practice  [682816 bytes, pages 5, lesson assignments 0, bucket public false]
-ok   database + private storage: Grade 6 / Topic 8: Displaying Describing Summarising Data - Displaying Describing Summarising Data  [619124 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   production publishes 8 of 8 manifest quizzes
+ok   database + private storage: Grade 6 / Topic 5: Ratios, Rates, and Unit Conversions - Ratios And Rates Practice  [532861 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 6: Percents - Understanding and Using Percent  [478014 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 1: Use Positive Rational Numbers - Positive Rational Numbers Practice  [1060871 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 2: Integers and Rational Numbers - Integers And Rational Numbers  [145654 bytes, pages 3, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 3: Numerical and Algebraic Expressions - Numeric and Algebraic Expressions  [737164 bytes, pages 4, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 4: Equations and Inequalities - Represent and Solve Equations  [609316 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 7: Area, Surface Area, and Volume - Area Surface Area Volume Practice  [682816 bytes, pages 5, lesson assignments 0, bucket public false]
+ok   database + private storage: Grade 6 / Topic 8: Statistics and Data Distributions - Displaying Describing Summarising Data  [619124 bytes, pages 5, lesson assignments 0, bucket public false]
 ok   anonymous GET /quizzes -> 307 /access?next=/quizzes
-ok   anonymous download ratios-and-rates-quiz -> 401
-ok   anonymous download understanding-and-using-percent-quiz -> 401
 ok   anonymous download positive-rational-numbers-quiz -> 401
 ok   anonymous download integers-and-rational-numbers-quiz -> 401
 ok   anonymous download numeric-and-algebraic-expressions-quiz -> 401
 ok   anonymous download represent-and-solve-equations-quiz -> 401
+ok   anonymous download ratios-and-rates-quiz -> 401
+ok   anonymous download understanding-and-using-percent-quiz -> 401
 ok   anonymous download area-surface-area-volume-quiz -> 401
 ok   anonymous download displaying-describing-summarising-data-quiz -> 401
 ok   stored copy is not a web asset -> 404
-ok   anonymous preview ratios-and-rates-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
-ok   anonymous preview understanding-and-using-percent-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview positive-rational-numbers-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview integers-and-rational-numbers-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview numeric-and-algebraic-expressions-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview represent-and-solve-equations-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
+ok   anonymous preview ratios-and-rates-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
+ok   anonymous preview understanding-and-using-percent-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview area-surface-area-volume-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous preview displaying-describing-summarising-data-quiz -> 307 /access?next=/quizzes; inline -> 401 (no-store)
 ok   anonymous browser opens a preview URL -> /access?next=/quizzes; PDF shown: no; downloads 0
 ok   anonymous 1366 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
-scripts anonymous 1366 (home): 12 total, 1 third-party -> vercel.live/_next-live/feedback/feedback.js; navigator.storage=object
+scripts anonymous 1366 (home): 11 total, 0 third-party; navigator.storage=object
 shot 21-banner-anonymous-1366.png /
 ok   anonymous 1366: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   anonymous 1366 (/access): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
@@ -68,104 +68,104 @@ ok   anonymous 390: banner "Online Math Prep" (/map-prep, on screen true) -> /ac
 ok   anonymous 390: banner "Homework PDFs" (/homework, on screen true) -> /access?next=/homework
 ok   anonymous 390: banner "Quiz PDFs" (/quizzes, on screen true) -> /access?next=/quizzes
 ok   anonymous 390: banner "Worksheet Generator" (/worksheets, on screen true) -> /access?next=/worksheets
-ok   eligible: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   eligible: stays on the review host (mathnexa.com)
 ok   eligible: sign-in with next=/quizzes -> /subscription?next=/quizzes
 ok   eligible: page shows "Start your free trial"
 ok   eligible 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 18c-signed-in-trial-eligible-390.png /subscription?next=/quizzes
 ok   eligible: preview page -> /subscription?next=/quizzes
 ok   eligible: inline delivery -> 401
-ok   used-trial: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   used-trial: stays on the review host (mathnexa.com)
 ok   used-trial: sign-in with next=/quizzes -> /subscription?next=/quizzes
 ok   used-trial: page shows "Trial ended"
 ok   used-trial 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 18d-used-trial-390.png /subscription?next=/quizzes
 ok   used-trial: preview page -> /subscription?next=/quizzes
 ok   used-trial: inline delivery -> 401
-ok   trial-active: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   trial-active: stays on the review host (mathnexa.com)
 ok   trial-active: sign-in with next=/quizzes -> /quizzes
 ok   trial-active: page shows "Quiz PDFs"
 ok   trial-active 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 19b-active-trial-390.png /quizzes
-ok   trial-active 390 (allowed): preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 9497/47937/5148/518, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   trial-active 390 (allowed): preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 8999/5423/394, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   subscriber: sign-in with next=/quizzes -> /quizzes
 shot 01-landing-1366-subscriber.png /quizzes
-ok   grade control offers exactly "Grade 6"
+ok   grade control offers exactly "grade 6"
 ok   no Topic or Lesson selector on the quiz page
 ok   Grade 6 selected: 8 cards, overflow 0px, lesson wording false, banner current "Quiz PDFs"
 shot 02-grade-6-selected-1366.png /quizzes
 ok   subscriber 1366: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 21d-banner-subscriber-1366.png /quizzes
 shot 03-all-topic-cards-1366.png
-ok   card 1: "Grade 6 / Topic 1: Ratios and Rates" - "Ratios And Rates Practice" -> /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview [Preview|Details|Download PDF]
+ok   card 1: "grade 6 / Topic 1: Use Positive Rational Numbers" - "Positive Rational Numbers Practice" -> /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview [Preview|Details|Download PDF]
 ok   card 1: Quiz PDF designation + answer key included
 shot 04-card-ratios-and-rates-1366.png
-ok   card 2: "Grade 6 / Topic 2: Understanding and Using Percent" - "Understanding and Using Percent" -> /resources/89c92f8c-35c0-452d-86fe-3d7d70164b18/preview [Preview|Details|Download PDF]
+ok   card 2: "grade 6 / Topic 2: Integers and Rational Numbers" - "Integers And Rational Numbers" -> /resources/42215d2a-8b58-43d5-8b1f-12f8ac98dc1f/preview [Preview|Details|Download PDF]
 ok   card 2: Quiz PDF designation + answer key included
 shot 05-card-percent-1366.png
-ok   card 3: "Grade 6 / Topic 3: Positive Rational Numbers" - "Positive Rational Numbers Practice" -> /resources/71dfff00-4cb8-4da7-ac67-b439fedb0f12/preview [Preview|Details|Download PDF]
+ok   card 3: "grade 6 / Topic 3: Numerical and Algebraic Expressions" - "Numeric and Algebraic Expressions" -> /resources/5b8bdc39-ff4b-4ce7-bc1f-225617a05d62/preview [Preview|Details|Download PDF]
 ok   card 3: Quiz PDF designation + answer key included
 shot 06-card-positive-rational-numbers-1366.png
-ok   card 4: "Grade 6 / Topic 4: Integers and Rational Numbers" - "Integers And Rational Numbers" -> /resources/cc805f35-c179-4091-9da8-bc0c101cc644/preview [Preview|Details|Download PDF]
+ok   card 4: "grade 6 / Topic 4: Equations and Inequalities" - "Represent and Solve Equations" -> /resources/1d80b325-ac3e-4b8b-8fe7-043f3e9c9745/preview [Preview|Details|Download PDF]
 ok   card 4: Quiz PDF designation + answer key included
 shot 07-card-integers-and-rational-numbers-1366.png
-ok   card 5: "Grade 6 / Topic 5: Numeric and Algebraic Expressions" - "Numeric and Algebraic Expressions" -> /resources/e987f749-8615-4dad-940b-7ba807e31bc9/preview [Preview|Details|Download PDF]
+ok   card 5: "grade 6 / Topic 5: Ratios, Rates, and Unit Conversions" - "Ratios And Rates Practice" -> /resources/e01a72e2-c1ea-4f81-97e2-71a4aa6b10f1/preview [Preview|Details|Download PDF]
 ok   card 5: Quiz PDF designation + answer key included
 shot 08-card-expressions-1366.png
-ok   card 6: "Grade 6 / Topic 6: Represent and Solve Equations" - "Represent and Solve Equations" -> /resources/cc357594-6851-424e-9059-1a787dfc8fcb/preview [Preview|Details|Download PDF]
+ok   card 6: "grade 6 / Topic 6: Percents" - "Understanding and Using Percent" -> /resources/3e25faa1-455b-4ac2-8e9e-c3715c471ccc/preview [Preview|Details|Download PDF]
 ok   card 6: Quiz PDF designation + answer key included
 shot 09-card-equations-1366.png
-ok   card 7: "Grade 6 / Topic 7: Area Surface Area Volume" - "Area Surface Area Volume Practice" -> /resources/abd055a2-6dbd-46b4-ac42-f3452857ec1c/preview [Preview|Details|Download PDF]
+ok   card 7: "grade 6 / Topic 7: Area, Surface Area, and Volume" - "Area Surface Area Volume Practice" -> /resources/339aa712-f619-460f-9ae5-3f864e6970df/preview [Preview|Details|Download PDF]
 ok   card 7: Quiz PDF designation + answer key included
 shot 10-card-geometry-measurement-1366.png
-ok   card 8: "Grade 6 / Topic 8: Displaying Describing Summarising Data" - "Displaying Describing Summarising Data" -> /resources/457966d0-2f5f-4785-acbd-c78e3eceae20/preview [Preview|Details|Download PDF]
+ok   card 8: "grade 6 / Topic 8: Statistics and Data Distributions" - "Displaying Describing Summarising Data" -> /resources/7654e5e9-9e4a-46b7-bc45-8049352ff3c5/preview [Preview|Details|Download PDF]
 ok   card 8: Quiz PDF designation + answer key included
 shot 11-card-data-1366.png
 shot 16-desktop-1366-first-screen.png /quizzes
-ok   download grade-6-ratios-and-rates-quiz.pdf: 200 application/pdf attachment; filename="grade-6-ratios-and-rates-quiz.pdf" 532861 bytes sha256 4dacd687c623f02c... == owner file
-shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by the target)
-ok   download grade-6-understanding-and-using-percent-quiz.pdf: 200 application/pdf attachment; filename="grade-6-understanding-and-using-percent-quiz.pdf" 478014 bytes sha256 cfdff264ec7ea864... == owner file
 ok   download grade-6-positive-rational-numbers-quiz.pdf: 200 application/pdf attachment; filename="grade-6-positive-rational-numbers-quiz.pdf" 1060871 bytes sha256 3b8e8a9b485097b5... == owner file
+shot 12-downloaded-pdf-page-1.png + 12b-downloaded-pdf-answers-page.png (rendered from the bytes served by the target)
 ok   download grade-6-integers-and-rational-numbers-quiz.pdf: 200 application/pdf attachment; filename="grade-6-integers-and-rational-numbers-quiz.pdf" 145654 bytes sha256 ec18dc452b12d4b3... == owner file
 ok   download grade-6-numeric-and-algebraic-expressions-quiz.pdf: 200 application/pdf attachment; filename="grade-6-numeric-and-algebraic-expressions-quiz.pdf" 737164 bytes sha256 3a768894911083f2... == owner file
 ok   download grade-6-represent-and-solve-equations-quiz.pdf: 200 application/pdf attachment; filename="grade-6-represent-and-solve-equations-quiz.pdf" 609316 bytes sha256 2d84ebe2629a10e9... == owner file
+ok   download grade-6-ratios-and-rates-quiz.pdf: 200 application/pdf attachment; filename="grade-6-ratios-and-rates-quiz.pdf" 532861 bytes sha256 4dacd687c623f02c... == owner file
+ok   download grade-6-understanding-and-using-percent-quiz.pdf: 200 application/pdf attachment; filename="grade-6-understanding-and-using-percent-quiz.pdf" 478014 bytes sha256 cfdff264ec7ea864... == owner file
 ok   download grade-6-area-surface-area-volume-quiz.pdf: 200 application/pdf attachment; filename="grade-6-area-surface-area-volume-quiz.pdf" 682816 bytes sha256 2da222c60876b479... == owner file
 ok   download grade-6-displaying-describing-summarising-data-quiz.pdf: 200 application/pdf attachment; filename="grade-6-displaying-describing-summarising-data-quiz.pdf" 619124 bytes sha256 a6eb70ac2c847c4c... == owner file
 ok   download evidence recorded: 8 events
-ok   inline grade-6-ratios-and-rates-quiz.pdf: 200 inline; filename="grade-6-ratios-and-rates-quiz.pdf" private, no-store, max-age=0 532861 bytes == owner file
-ok   inline grade-6-understanding-and-using-percent-quiz.pdf: 200 inline; filename="grade-6-understanding-and-using-percent-quiz.pdf" private, no-store, max-age=0 478014 bytes == owner file
 ok   inline grade-6-positive-rational-numbers-quiz.pdf: 200 inline; filename="grade-6-positive-rational-numbers-quiz.pdf" private, no-store, max-age=0 1060871 bytes == owner file
 ok   inline grade-6-integers-and-rational-numbers-quiz.pdf: 200 inline; filename="grade-6-integers-and-rational-numbers-quiz.pdf" private, no-store, max-age=0 145654 bytes == owner file
 ok   inline grade-6-numeric-and-algebraic-expressions-quiz.pdf: 200 inline; filename="grade-6-numeric-and-algebraic-expressions-quiz.pdf" private, no-store, max-age=0 737164 bytes == owner file
 ok   inline grade-6-represent-and-solve-equations-quiz.pdf: 200 inline; filename="grade-6-represent-and-solve-equations-quiz.pdf" private, no-store, max-age=0 609316 bytes == owner file
+ok   inline grade-6-ratios-and-rates-quiz.pdf: 200 inline; filename="grade-6-ratios-and-rates-quiz.pdf" private, no-store, max-age=0 532861 bytes == owner file
+ok   inline grade-6-understanding-and-using-percent-quiz.pdf: 200 inline; filename="grade-6-understanding-and-using-percent-quiz.pdf" private, no-store, max-age=0 478014 bytes == owner file
 ok   inline grade-6-area-surface-area-volume-quiz.pdf: 200 inline; filename="grade-6-area-surface-area-volume-quiz.pdf" private, no-store, max-age=0 682816 bytes == owner file
 ok   inline grade-6-displaying-describing-summarising-data-quiz.pdf: 200 inline; filename="grade-6-displaying-describing-summarising-data-quiz.pdf" private, no-store, max-age=0 619124 bytes == owner file
 ok   inline delivery evidence recorded: 8 events
-ok   details page: h1 "Ratios And Rates Practice"
-shot 11-pdf-details-1366.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb
-ok   details ratios-and-rates-quiz: "Ratios And Rates Practice" with Preview and Download PDF
-ok   details understanding-and-using-percent-quiz: "Understanding and Using Percent" with Preview and Download PDF
+ok   details page: h1 "Positive Rational Numbers Practice"
+shot 11-pdf-details-1366.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888
 ok   details positive-rational-numbers-quiz: "Positive Rational Numbers Practice" with Preview and Download PDF
 ok   details integers-and-rational-numbers-quiz: "Integers And Rational Numbers" with Preview and Download PDF
 ok   details numeric-and-algebraic-expressions-quiz: "Numeric and Algebraic Expressions" with Preview and Download PDF
 ok   details represent-and-solve-equations-quiz: "Represent and Solve Equations" with Preview and Download PDF
+ok   details ratios-and-rates-quiz: "Ratios And Rates Practice" with Preview and Download PDF
+ok   details understanding-and-using-percent-quiz: "Understanding and Using Percent" with Preview and Download PDF
 ok   details area-surface-area-volume-quiz: "Area Surface Area Volume Practice" with Preview and Download PDF
 ok   details displaying-describing-summarising-data-quiz: "Displaying Describing Summarising Data" with Preview and Download PDF
 ok   Back to library returns to /quizzes
-ok   subscriber 1366 (from the card): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 322909/79271/631316/26181/4104, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 (from the card): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 85534/154316/137499/4066, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   subscriber 1366: selecting Preview downloads nothing (0 download events)
-ok   preview page from the card: h1 "Ratios And Rates Practice"
-shot 22-preview-1366-first-screen.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
-shot 22b-preview-1366-full.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
+ok   preview page from the card: h1 "Positive Rational Numbers Practice"
+shot 22-preview-1366-first-screen.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
+shot 22b-preview-1366-full.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
 ok   subscriber 1366: the last page is reachable by scrolling
-ok   subscriber 1366: Download PDF saves grade-6-ratios-and-rates-quiz.pdf (532861 bytes, sha256 == owner file); the preview stays open
+ok   subscriber 1366: Download PDF saves grade-6-positive-rational-numbers-quiz.pdf (1060871 bytes, sha256 == owner file); the preview stays open
 ok   subscriber 1366: keyboard order on the preview page Back to Quiz PDFs:true, Details:true, Download PDF:true
-ok   subscriber 1366 #1: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 322909/79271/631316/26181/4104, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   subscriber 1366 #2: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 99652/624396/46734/5637, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   subscriber 1366 #3: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 85534/154316/137499/4066, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   subscriber 1366 #4: preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 83966/48461/4173, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   subscriber 1366 #5: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 169177/242491/9114/4316, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   subscriber 1366 #6: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 168031/206980/144650/30871/4052, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #1: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 85534/154316/137499/4066, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #2: preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 83966/48461/4173, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #3: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 169177/242491/9114/4316, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #4: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 168031/206980/144650/30871/4052, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #5: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 322909/79271/631316/26181/4104, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   subscriber 1366 #6: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 99652/624396/46734/5637, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   subscriber 1366 #7: preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 129971/135066/175989/62173/4367, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   subscriber 1366 #8: preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 51320/65798/69948/51503/4869, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   axe 1366 preview: 0 serious/critical
@@ -178,27 +178,27 @@ ok   320px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short t
 shot 14-mobile-320-grade-6.png /quizzes
 ok   320px library at 200% text: overflow 0px
 shot 14b-mobile-320-text-200.png /quizzes
-ok   subscriber 320: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 17002/5879/32802/2232/273, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24-preview-320.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
-ok   320px preview ratios-and-rates-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
-ok   320px preview at 200% text: overflow 0px, 5/5 pages fit
-shot 24e-preview-320-text-200.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
+ok   subscriber 320: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 5651/9490/8127/262, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24-preview-320.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
+ok   320px preview positive-rational-numbers-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+FAIL 320px preview at 200% text: overflow 23px, 0/4 pages fit
+shot 24e-preview-320-text-200.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
 ok   subscriber 375 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 375px home: horizontal overflow 0px
 ok   subscriber 375: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   375px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 13b-mobile-375-grade-6.png /quizzes
-ok   subscriber 375: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 8652/44203/4710/508, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   375px preview understanding-and-using-percent-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   subscriber 375: preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 8456/4944/376, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   375px preview integers-and-rational-numbers-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
 ok   subscriber 390 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 390px home: horizontal overflow 0px
 ok   subscriber 390: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   390px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 13-mobile-390-grade-6.png /quizzes
-ok   subscriber 390: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 8127/13458/11817/395, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24b-preview-390.png /resources/71dfff00-4cb8-4da7-ac67-b439fedb0f12/preview
-ok   390px preview positive-rational-numbers-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
-shot 24b2-preview-390-full.png /resources/71dfff00-4cb8-4da7-ac67-b439fedb0f12/preview
+ok   subscriber 390: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 15165/19973/1010/405, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24b-preview-390.png /resources/5b8bdc39-ff4b-4ce7-bc1f-225617a05d62/preview
+ok   390px preview numeric-and-algebraic-expressions-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+shot 24b2-preview-390-full.png /resources/5b8bdc39-ff4b-4ce7-bc1f-225617a05d62/preview
 ok   390px preview after the full-page capture settles and stays: 4 pages/4, 4 pages/4, 4 pages/4, 4 pages/4
 ok   axe 390 preview: 0 serious/critical
 ok   subscriber 430 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
@@ -206,26 +206,26 @@ ok   subscriber 430px home: horizontal overflow 0px
 ok   subscriber 430: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   430px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 13c-mobile-430-grade-6.png /quizzes
-ok   subscriber 430: preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 10781/6533/475, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24f-preview-430.png /resources/cc805f35-c179-4091-9da8-bc0c101cc644/preview
-ok   430px preview integers-and-rational-numbers-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   subscriber 430: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 17430/20169/15583/4108/459, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24f-preview-430.png /resources/1d80b325-ac3e-4b8b-8fe7-043f3e9c9745/preview
+ok   430px preview represent-and-solve-equations-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
 ok   subscriber 768 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 768px home: horizontal overflow 0px
 ok   subscriber 768: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   768px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 15-tablet-768-grade-6.png /quizzes
-ok   subscriber 768: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 52610/72985/3051/1407, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24c-preview-768.png /resources/e987f749-8615-4dad-940b-7ba807e31bc9/preview
-ok   768px preview numeric-and-algebraic-expressions-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   subscriber 768: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 96341/26410/187367/8663/1297, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24c-preview-768.png /resources/e01a72e2-c1ea-4f81-97e2-71a4aa6b10f1/preview
+ok   768px preview ratios-and-rates-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
 ok   subscriber 820 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 820px home: horizontal overflow 0px
 ok   subscriber 820: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 shot 21f-banner-subscriber-820-ipad.png /
 ok   820px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 15b-tablet-820-grade-6.png /quizzes
-ok   subscriber 820: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 58545/70557/50691/11387/1498, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24g-preview-820-ipad.png /resources/cc357594-6851-424e-9059-1a787dfc8fcb/preview
-ok   820px preview represent-and-solve-equations-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   subscriber 820: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 36715/211069/17021/2012, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24g-preview-820-ipad.png /resources/3e25faa1-455b-4ac2-8e9e-c3715c471ccc/preview
+ok   820px preview understanding-and-using-percent-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
 ok   subscriber 1180 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 1180px home: horizontal overflow 0px
 ok   subscriber 1180: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
@@ -245,11 +245,11 @@ ok   subscriber 1920px home: horizontal overflow 0px
 ok   subscriber 1920: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
 ok   1920px library: 8 cards, 8 Preview buttons, overflow 0px, clipped 0, short targets 0
 shot 17-desktop-1920-grade-6.png /quizzes
-ok   subscriber 1920: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 296937/72740/579751/23873/3707, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-shot 24d-preview-1920.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
-ok   1920px preview ratios-and-rates-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   subscriber 1920: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 78603/141471/125954/3679, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+shot 24d-preview-1920.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
+ok   1920px preview positive-rational-numbers-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
 ok   forced colors: cards render
-ok   forced colors 1366: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 85534/154316/137499/4066, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   forced colors 1366: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 169177/242491/9114/4316, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   axe 1366 landing: 0 serious/critical
 ok   axe 1366 grade selected: 0 serious/critical
 ok   axe 390 landing: 0 serious/critical
@@ -258,7 +258,7 @@ ok   keyboard: Tab reaches Preview, Details and Download PDF in order with a vis
 shot 19-subscriber-390-first-screen.png /quizzes
 ok   subscriber 390: banner "Home" (/, on screen true) -> /
 ok   subscriber 390: banner "Math Games" (/games, on screen true) -> /games
-ok   subscriber 390: banner "Online Math Prep" (/map-prep, on screen true) -> /map-prep
+ok   subscriber 390: banner "Online Math Prep" (/map-prep, on screen true) -> showme.mathnexa.com/
 ok   subscriber 390: banner "Homework PDFs" (/homework, on screen true) -> /homework
 ok   subscriber 390: banner "Quiz PDFs" (/quizzes, on screen true) -> /quizzes
 ok   subscriber 390: banner "Worksheet Generator" (/worksheets, on screen true) -> showme.mathnexa.com/worksheets
@@ -275,28 +275,29 @@ ok   webkit 390px: 8 cards, 8 Preview buttons, overflow 0px, lesson wording fals
 ok   webkit axe 390 grade selected: 0 serious/critical
 shot 20-webkit-390-grade-6.png /quizzes
 ok   webkit 390 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
-scripts webkit 390 (home): 12 total, 1 third-party -> vercel.live/_next-live/feedback/feedback.js; navigator.storage=undefined
+scripts webkit 390 (home): 11 total, 0 third-party; navigator.storage=undefined
 shot 25-webkit-390-banner.png /
-ok   webkit 390 (from the card): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 25609/8820/49746/3144/390, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390 (from the card): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 8182/13907/12105/391, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: selecting Preview downloads nothing (0 download events)
-shot 25b-webkit-390-preview.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
-shot 25c-webkit-390-preview-full.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
+shot 25b-webkit-390-preview.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
+shot 25c-webkit-390-preview-full.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
 ok   webkit 390: every page reachable by scrolling (the last page brought on screen with the scroll wheel)
-shot 25d-webkit-390-preview-last-page.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
+shot 25d-webkit-390-preview-last-page.png /resources/83d9252f-cdbe-4bb7-a7f8-77e2424ad888/preview
 ok   webkit axe 390 preview: 0 serious/critical
-ok   webkit 390: Download PDF saves grade-6-ratios-and-rates-quiz.pdf (532861 bytes, sha256 == owner file); the preview stays open
+ok   webkit 390: Download PDF saves grade-6-positive-rational-numbers-quiz.pdf (1060871 bytes, sha256 == owner file); the preview stays open
 ok   webkit: Back to Quiz PDFs returns to /quizzes
-ok   webkit 390: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 9520/48078/5635/548, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
-ok   webkit 390: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 8182/13907/12105/391, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 9369/5798/379, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 15337/20339/1082/389, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 14559/16729/13450/3683/371, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 25609/8820/49746/3144/390, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390: preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 9520/48078/5635/548, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 11194/11801/15225/5532/424, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 5220/6705/8350/6143/467, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)
 ok   no 5xx responses (0)
 console/page errors: toolbar 0 (chromium 0, webkit 0), aborted 0 (chromium 0, webkit 0), rsc 0 (chromium 0, webkit 0), app 0 (chromium 0, webkit 0)
-rsc evidence: 0 redirected RSC responses (0 off the review host); 24 failed RSC requests: chromium / net::ERR_ABORTED; chromium /quizzes net::ERR_ABORTED; chromium /games net::ERR_ABORTED; chromium /privacy net::ERR_ABORTED; chromium /homework net::ERR_ABORTED; chromium /access net::ERR_ABORTED
+rsc evidence: 0 redirected RSC responses (0 off the review host); 25 failed RSC requests: chromium /map-prep net::ERR_ABORTED; chromium /access net::ERR_ABORTED; chromium /accessibility net::ERR_ABORTED; chromium /refunds net::ERR_ABORTED; chromium /quizzes net::ERR_ABORTED; chromium /homework net::ERR_ABORTED
 ok   no console/page errors from the app (app 0)
-cleanup: 4 synthetic staging accounts deleted
-SUMMARY ok=242 fail=0
+evidence: the review's synthetic accounts recorded 52 resource_download_events rows (downloads + preview inline deliveries)
+cleanup: 4 synthetic production accounts deleted
+SUMMARY ok=241 fail=1
