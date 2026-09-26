@@ -5,7 +5,7 @@
  * longer re-checks entitlement, or a download that skips the database
  * authorization and the short-lived signed URL proxy.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -95,6 +95,30 @@ describe("Quiz PDFs protection boundary", () => {
     expect(home).toContain("<AuthorizedCodeForm");
     expect(home).toContain("id={AUTHORIZED_ACCESS_ANCHOR}");
     expect(read("components/auth/authorized-code-form.tsx")).toContain("Authorize Code");
+  });
+
+  it("the homepage code card renders for signed-out visitors only, decided on the server, never hidden with CSS", () => {
+    const home = read("components/public/teacher-first-home.tsx").split("\n").filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line)).join("\n");
+    // The whole container, form and exit panel included, sits behind the signed-out check.
+    expect(home).toMatch(/\{authState === "signed-out" \? <div id=\{AUTHORIZED_ACCESS_ANCHOR\} className="teacher-home-authorized-access">\s*\{schoolAccess \? <AuthorizedAccessActivePanel \/> : <AuthorizedCodeForm nextDestination="\/games" compact \/>\}\s*<\/div> : null\}/);
+    expect(home).not.toContain('"use client"');
+    // authState comes from the server-side session on the homepage route.
+    const page = read("app/page.tsx");
+    expect(page).toContain('access.context.status === "anonymous" || access.context.status === "unconfigured"');
+    expect(page).toContain('? "signed-out"');
+    // No stylesheet hides the card: not rendering it is the only mechanism.
+    const sheets = ["app/globals.css", ...readdirSync(resolve(app, "styles")).filter((name) => name.endsWith(".css")).map((name) => "styles/" + name)];
+    expect(sheets).toContain("styles/conversion.css");
+    for (const sheet of sheets) {
+      for (const rule of read(sheet).matchAll(/([^{}]*teacher-home-authorized-access[^{}]*)\{([^}]*)\}/g)) {
+        expect(rule[2], sheet + ": " + rule[1].trim()).not.toMatch(/display\s*:\s*none|visibility\s*:\s*hidden|content-visibility\s*:\s*hidden/);
+      }
+    }
+    // The code form itself is unchanged: same action, same masked field, no storage or URL use.
+    const form = read("components/auth/authorized-code-form.tsx");
+    expect(form).toContain("useActionState(authorizeSchoolAccessAction");
+    expect(form).toContain('name="authorizedCode"');
+    expect(form).not.toMatch(/localStorage|sessionStorage|indexedDB|searchParams|URLSearchParams/);
   });
 
   it("reads quizzes topic-scoped and never mixes in lesson-scoped Homework rows", () => {

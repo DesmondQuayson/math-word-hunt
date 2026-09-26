@@ -539,15 +539,22 @@ test("Worksheet Generator is subscription-gated: nobody reaches ShowMe without a
   await context.clearCookies();
 });
 
-test("Authorize Code lives on the homepage form only: no banner item in any account state, the form, its Code field and Show/Hide control intact, and the code never enters the URL", async ({ page, context }) => {
+async function seedEntitlement(user: User, row: Record<string, unknown>) {
+  const inserted = await admin.from("consumer_game_entitlements").insert({ user_id: user.id, ...row });
+  if (inserted.error) throw inserted.error;
+}
+
+test("Authorize Code: the homepage card is for signed-out visitors only, every signed-in account state renders no card and leaves no space, no banner item in any state, and the code never enters the URL", async ({ page, context }) => {
+  // Five account states and nine viewport widths: well past the default budget on a dev server.
+  test.setTimeout(360_000);
   const codeHeading = page.getByRole("heading", { name: "Authorize Code" });
   const codeField = page.getByLabel("Code (required)");
+  const card = page.locator("#authorized-access");
   const banner = page.getByRole("banner");
   const bannerLink = banner.getByRole("link", { name: /Authorize Code/i });
-  const expectEntry = async (label: string) => {
-    await expect(codeHeading, label).toBeVisible();
-    await expect(codeField, label).toBeVisible();
-    await expect(page.getByRole("button", { name: "Show code" }), label).toBeVisible();
+  const phoneWidths = [320, 375, 390, 430];
+  const wideWidths = [768, 820, 1180, 1366, 1920];
+  const expectBanner = async (label: string) => {
     // The banner: brand, six products, the call to action and the account menu. Nothing else.
     await expect(bannerLink, label).toHaveCount(0);
     await expect(banner.locator(".banner-code-link, a[href*='authorized-access']"), label).toHaveCount(0);
@@ -555,24 +562,71 @@ test("Authorize Code lives on the homepage form only: no banner item in any acco
     await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("link", { name: /Authorize Code/i }), label).toHaveCount(0);
     await expect(page.locator("body"), label).not.toContainText("Start learning");
   };
+  const expectEntry = async (label: string) => {
+    await expect(card, label).toHaveCount(1);
+    await expect(codeHeading, label).toBeVisible();
+    await expect(codeField, label).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show code" }), label).toBeVisible();
+    await expect(card.getByRole("button", { name: "Continue" }), label).toBeVisible();
+    await expectBanner(label);
+  };
+  // Signed in: the card is not in the document at all (not merely hidden),
+  // the hero copy ends on its actions with nothing reserved below them, and
+  // on phones the next section follows at the hero's ordinary gap.
+  const expectNoEntry = async (label: string) => {
+    await expect(page.getByRole("heading", { level: 1 }), label).toBeVisible();
+    await expect(card, label).toHaveCount(0);
+    await expect(page.locator(".teacher-home-authorized-access, .authorized-access-panel, #authorized-code, input[name='authorizedCode']"), label).toHaveCount(0);
+    await expect(codeHeading, label).toHaveCount(0);
+    await expect(codeField, label).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Show code|Hide code/ }), label).toHaveCount(0);
+    await expect(page.locator("#main-content").getByRole("button", { name: "Continue" }), label).toHaveCount(0);
+    const layout = await page.locator(".teacher-home-copy").evaluate(async (copy) => {
+      // Let the one-shot entrance animations finish (never wait on an endless one).
+      const finite = document.getAnimations().filter((animation) => {
+        const target = (animation.effect as KeyframeEffect | null)?.target;
+        return target instanceof Element && copy.contains(target) && Number.isFinite(Number(animation.effect?.getComputedTiming().endTime));
+      });
+      await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
+      const last = copy.lastElementChild;
+      const copyStyle = getComputedStyle(copy);
+      const hero = copy.parentElement as HTMLElement;
+      const heroStyle = getComputedStyle(hero);
+      const next = copy.nextElementSibling;
+      const singleColumn = heroStyle.gridTemplateColumns.trim().split(/\s+/).length === 1;
+      const copyBottom = copy.getBoundingClientRect().bottom;
+      return {
+        lastClass: last?.getAttribute("class") ?? "",
+        trailing: copyBottom - (last?.getBoundingClientRect().bottom ?? 0) - parseFloat(copyStyle.paddingBottom) - parseFloat(copyStyle.borderBottomWidth),
+        flowGap: singleColumn && next ? next.getBoundingClientRect().top - parseFloat(getComputedStyle(next).marginTop) - copyBottom - parseFloat(heroStyle.rowGap) : 0,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    expect(layout.lastClass, label).toMatch(/teacher-home-(actions|ready)/);
+    expect(Math.abs(layout.trailing), label + " trailing space in the hero copy").toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.flowGap), label + " gap before the next section").toBeLessThanOrEqual(1);
+    expect(layout.overflow, label + " horizontal overflow").toBeLessThanOrEqual(0);
+    await expectBanner(label);
+  };
 
+  // A: signed out. The card, Show/Hide, and a typed code reaches neither the URL nor web storage.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expectEntry("anonymous, 390px");
-  // Show/Hide: the field is a password field until the visitor asks to see the code, and back again.
+  await expectEntry("A anonymous, 390px");
   await expect(codeField).toHaveAttribute("type", "password");
   await page.getByRole("button", { name: "Show code" }).click();
   await expect(codeField).toHaveAttribute("type", "text");
   await page.getByRole("button", { name: "Hide code" }).click();
   await expect(codeField).toHaveAttribute("type", "password");
-  // Typing a code changes nothing in the URL or web storage.
   await codeField.fill("NOT-A-REAL-CODE-1234");
   await expect(page).toHaveURL("/");
   expect(await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]))).not.toContain("NOT-A-REAL-CODE-1234");
-  await page.setViewportSize({ width: 1366, height: 900 });
-  await page.goto("/");
-  await expectEntry("anonymous, 1366px");
-  // Other routes: still no banner item; the access and sign-in pages carry the form themselves.
+  for (const width of [...phoneWidths, ...wideWidths]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+    await page.goto("/");
+    await expectEntry("A anonymous, " + width + "px");
+  }
+  // Other routes: still no banner item; the access and sign-in pages carry the form themselves (unchanged).
   for (const path of ["/access?next=/games", "/sign-in", "/pricing"]) {
     await page.goto(path);
     await expect(bannerLink, path).toHaveCount(0);
@@ -581,33 +635,76 @@ test("Authorize Code lives on the homepage form only: no banner item in any acco
   await page.goto("/sign-in");
   await expect(codeHeading).toBeVisible();
 
-  const eligibleEmail = `${run}-code-eligible@example.test`;
-  const usedEmail = `${run}-code-used@example.test`;
+  const eligibleEmail = run + "-code-eligible@example.test";
+  const usedEmail = run + "-code-used@example.test";
+  const subscriberEmail = run + "-code-subscriber@example.test";
+  const pastDueEmail = run + "-code-past-due@example.test";
   const eligibleUser = await createConfirmedUser(eligibleEmail);
   const usedUser = await createConfirmedUser(usedEmail);
+  const subscriberUser = await createConfirmedUser(subscriberEmail);
+  const pastDueUser = await createConfirmedUser(pastDueEmail);
+  const day = 24 * 60 * 60 * 1000;
   try {
     await makeUsedTrial(usedUser);
+    await seedEntitlement(subscriberUser, { entitlement_state: "subscription-active", current_period_ends_at: new Date(Date.now() + 20 * day).toISOString() });
+    await seedEntitlement(pastDueUser, { entitlement_state: "subscription-past-due", current_period_ends_at: new Date(Date.now() - day).toISOString() });
+    await page.setViewportSize({ width: 1366, height: 900 });
+
+    // B: signed in, no subscription, trial never used - at every phone, tablet and desktop width.
     await signIn(page, eligibleEmail, "/");
     await expect(page).toHaveURL("/");
-    await expectEntry("signed in, trial eligible");
+    await expectNoEntry("B signed in, non-subscriber (trial eligible), 1366px");
+    await expect(page.getByRole("link", { name: "View access options" })).toHaveAttribute("href", "/subscription");
     await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
+    for (const width of [...phoneWidths, ...wideWidths]) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      await page.goto("/");
+      await expectNoEntry("B signed in, non-subscriber, " + width + "px");
+    }
     await context.clearCookies();
+    await page.setViewportSize({ width: 1366, height: 900 });
 
+    // E: signed in after a used trial.
     await signIn(page, usedEmail, "/");
     await expect(page).toHaveURL("/");
-    await expectEntry("signed in, used trial");
+    await expectNoEntry("E signed in, used trial");
     await expect(banner.getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
     await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
     await context.clearCookies();
+
+    // F: signed in with a payment problem (subscription past due).
+    await signIn(page, pastDueEmail, "/");
+    await expect(page).toHaveURL("/");
+    await expectNoEntry("F signed in, payment problem (past due)");
+    await context.clearCookies();
+
+    // D: active subscriber - at every phone, tablet and desktop width.
+    await signIn(page, subscriberEmail, "/");
+    await expect(page).toHaveURL("/");
+    await expectNoEntry("D active subscriber, 1366px");
+    await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
+    await expect(banner.getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
+    for (const width of [...phoneWidths, ...wideWidths]) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      await page.goto("/");
+      await expectNoEntry("D active subscriber, " + width + "px");
+    }
+    await context.clearCookies();
+    await page.setViewportSize({ width: 1366, height: 900 });
   } finally {
-    for (const user of [eligibleUser, usedUser]) await admin.auth.admin.deleteUser(user.id);
+    for (const user of [eligibleUser, usedUser, subscriberUser, pastDueUser]) await admin.auth.admin.deleteUser(user.id);
   }
 
+  // C: active trial (the server-entitled fixture).
   await signIn(page, entitledEmail, "/");
   await expect(page).toHaveURL("/");
-  await expectEntry("entitled (active trial)");
+  await expectNoEntry("C active trial");
   await expect(banner.getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
   await context.clearCookies();
+
+  // Signed out again: the card is back.
+  await page.goto("/");
+  await expectEntry("A anonymous again after sign-out");
 });
 
 test("mobile banner: all six product destinations visible at once in a two-row grid, nothing scrolls sideways, no label cut off", async ({ page }) => {

@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TeacherFirstHome } from "./teacher-first-home";
@@ -52,6 +53,12 @@ describe("teacher-first public homepage", () => {
       "Make every math lesson clearer, more engaging, and ready to teach.",
       "Authorize Code"
     ]);
+    cleanup();
+    // Signed in, the H1 is the only heading: the code card left nothing behind.
+    const signedIn = render(<TeacherFirstHome authState="signed-in" />);
+    expect([...signedIn.container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
+      "Make every math lesson clearer, more engaging, and ready to teach."
+    ]);
   });
 
   it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {
@@ -61,36 +68,65 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeTruthy();
   });
 
-  it("keeps the authorized-code entry on the homepage in every account state: same form, same place, same wording, zero clicks", () => {
-    // Owner hotfix 2026-09-25: the entry is permanent, not signed-out only.
-    // Anonymous, unconfirmed, signed in without access, and entitled visitors
-    // all see the unchanged school-code form directly under the hero actions,
-    // inside the anchored element; the banner itself carries no code item.
+  it("A: signed out, the Authorize Code card is on the homepage: heading, masked Code field, Show/Hide, Continue, next=/games, under the hero actions", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TeacherFirstHome authState="signed-out" />);
+    const anchor = container.querySelector<HTMLElement>("#authorized-access") as HTMLElement;
+    expect(anchor).toBeTruthy();
+    expect(anchor.classList.contains("teacher-home-authorized-access")).toBe(true);
+    const entry = within(anchor);
+    expect(entry.getByRole("heading", { name: "Authorize Code" })).toBeTruthy();
+    const code = entry.getByLabelText(/^Code/) as HTMLInputElement;
+    expect(code.getAttribute("type")).toBe("password");
+    expect(code.getAttribute("name")).toBe("authorizedCode");
+    expect(entry.getByRole("button", { name: "Continue" })).toBeTruthy();
+    expect(anchor.querySelector('input[name="next"]')?.getAttribute("value")).toBe("/games");
+    // Show/Hide works: the same field switches between masked and plain text.
+    await user.click(entry.getByRole("button", { name: "Show code" }));
+    expect(code.getAttribute("type")).toBe("text");
+    await user.click(entry.getByRole("button", { name: "Hide code" }));
+    expect(code.getAttribute("type")).toBe("password");
+    // Placement unchanged: directly after the hero actions, in the hero copy.
+    expect(anchor.previousElementSibling?.classList.contains("teacher-home-actions")).toBe(true);
+    expect(container.textContent).not.toContain("Start learning");
+  });
+
+  it("B-F: any authenticated session renders no Authorize Code card at all: no heading, field, eye control, Continue or container", () => {
+    // Owner hotfix 2026-09-26: the homepage code entry is for signed-out
+    // visitors only. Whether the account has access plays no part: an
+    // unconfirmed account, a signed-in account without access (never used a
+    // trial, used trial, payment problem) and an entitled account (active
+    // trial, subscriber) all get the same result. The card is not rendered,
+    // so nothing is left to hide and no space is reserved.
     for (const props of [
-      {},
       { authState: "unconfirmed" as const },
       { authState: "signed-in" as const },
+      { authState: "signed-in" as const, entitled: false },
       { authState: "signed-in" as const, entitled: true }
     ]) {
       const label = JSON.stringify(props);
       const { container } = render(<TeacherFirstHome {...props} />);
-      const anchor = container.querySelector<HTMLElement>("#authorized-access");
-      expect(anchor, label).toBeTruthy();
-      const entry = within(anchor as HTMLElement);
-      expect(entry.getByRole("heading", { name: "Authorize Code" }), label).toBeTruthy();
-      expect(entry.getByLabelText(/^Code/), label).toBeTruthy();
-      expect(entry.getByRole("button", { name: "Show code" }), label).toBeTruthy();
-      expect(entry.getByRole("button", { name: "Continue" }), label).toBeTruthy();
-      expect((anchor as HTMLElement).querySelector('input[name="next"]')?.getAttribute("value"), label).toBe("/games");
-      // Placement unchanged: directly after the hero actions, in the hero copy.
-      const before = anchor?.previousElementSibling;
-      expect(before?.classList.contains("teacher-home-actions") || before?.classList.contains("teacher-home-ready"), label).toBe(true);
+      expect(container.querySelector("#authorized-access"), label).toBeNull();
+      expect(container.querySelector(".teacher-home-authorized-access, .authorized-access-panel, .authorized-access-form, #authorized-code"), label).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Authorize Code" }), label).toBeNull();
+      expect(screen.queryByLabelText(/^Code/), label).toBeNull();
+      expect(screen.queryByRole("button", { name: /Show code|Hide code/ }), label).toBeNull();
+      expect(screen.queryByRole("button", { name: "Continue" }), label).toBeNull();
+      expect(container.textContent, label).not.toContain("Authorize Code");
+      // The hero actions (or the ready note) close the hero copy: no empty wrapper follows them.
+      const copy = container.querySelector(".teacher-home-copy") as HTMLElement;
+      const last = copy.lastElementChild;
+      expect(last?.classList.contains("teacher-home-actions") || last?.classList.contains("teacher-home-ready"), label).toBe(true);
       expect(container.textContent, label).not.toContain("Start learning");
       cleanup();
     }
     render(<TeacherFirstHome authState="signed-in" entitled />);
     expect(screen.getByText("Your MathNexa resource shelf is ready below.")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
+    cleanup();
+    render(<TeacherFirstHome authState="signed-in" />);
+    expect(screen.getByRole("link", { name: "View access options" }).getAttribute("href")).toBe("/subscription");
+    expect(screen.getByRole("link", { name: "My Account" }).getAttribute("href")).toBe("/account");
   });
 
   it("shows the exit control in that place instead of a second code prompt while an authorized code is already active", () => {

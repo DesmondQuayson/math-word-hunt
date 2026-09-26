@@ -4,14 +4,18 @@
 // Runs only through scripts/invoke-quiz-pdfs-staging.ps1 -Stage review, which
 // supplies STAGING_ORIGIN, the Vercel protection-bypass entry and the staging
 // Supabase service credential from the process-only vault. Synthetic consumer
-// accounts (fresh, used-trial, active-trial, subscriber) are created on the
-// target project, exercised through the real sign-in, and deleted at the end.
-// Secrets are never printed; the bypass value travels only in request headers.
+// accounts (fresh, used-trial, active-trial, subscriber, payment problem) are
+// created on the target project, exercised through the real sign-in, and
+// deleted at the end. Secrets are never printed; the bypass value travels only
+// in request headers.
 //
 // Coverage: the banner (six product destinations, no Authorize Code item, each
-// destination reachable), the homepage Authorize Code form (present, masked,
-// Show/Hide, a typed value never reaches the URL or web storage; never
-// submitted), every Quiz PDF card (Preview, Details, Download PDF), the protected
+// destination reachable), the homepage Authorize Code card for signed-out
+// visitors (present at every width, masked, Show/Hide, a typed value never
+// reaches the URL or web storage, and one wrong dummy code sent with Continue is
+// refused by the server's existing validation) and its absence for every
+// signed-in account state (not in the document, no space left behind), every
+// Quiz PDF card (Preview, Details, Download PDF), the protected
 // preview (server gate, inline delivery, pages drawn, last page reachable by
 // scrolling, no forced download, Download PDF and Back to Quiz PDFs), all review
 // widths, 200% text, axe, keyboard order, Chromium and WebKit. Console and page
@@ -102,6 +106,9 @@ async function user(kind) {
   if (kind === "subscribed") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "subscription-active", current_period_ends_at: new Date(now + 20 * day).toISOString() }); }
   if (kind === "trial-active") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "trial-active", trial_started_at: startsAt, trial_ends_at: trialEnds }); }
   if (kind === "used-trial") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "trial-expired", trial_started_at: startsAt, trial_ends_at: trialEnds }); }
+  // A payment problem: the subscription is past due (no billing customer, so the
+  // access check's provider re-check ends at "no customer" without calling Stripe).
+  if (kind === "past-due") { await set("consumer_accounts", { trial_redeemed_at: startsAt }, "update"); await set("consumer_game_entitlements", { user_id: id, entitlement_state: "subscription-past-due", current_period_ends_at: new Date(now - day).toISOString() }); }
   return { id, email };
 }
 
@@ -285,16 +292,23 @@ async function bannerShot(page, name) {
   await page.screenshot({ path: `${out}/${name}.png`, clip: { x: 0, y: 0, width: page.viewportSize().width, height: Math.ceil(box.y + box.height + 8) } });
   note(`shot ${name}.png ${new URL(page.url()).pathname}`);
 }
-// The homepage Authorize Code form: present in every account state. With
-// toggle, the field is proven masked by default and the Show/Hide control is
-// exercised; a dummy value is typed (never submitted) to prove it reaches
-// neither the URL nor web storage, then cleared.
-async function authorizeCodeForm(page, label, { toggle = false } = {}) {
+// The homepage Authorize Code card: present for signed-out visitors only
+// (v1.2.15). With toggle, the field is proven masked by default and the
+// Show/Hide control is exercised; a dummy value is typed to prove it reaches
+// neither the URL nor web storage. With submit, that dummy value is sent once
+// with Continue: the server's existing validation must refuse it with its
+// generic message (the target records one refused attempt, never the code),
+// the page stays on the homepage and the value appears in neither the URL nor
+// web storage.
+async function authorizeCodeForm(page, label, { toggle = false, submit = false } = {}) {
+  const card = page.locator("#authorized-access");
+  const cards = await card.count();
   const heading = await page.getByRole("heading", { name: "Authorize Code" }).count();
   const field = page.getByLabel("Code (required)");
   const fields = await field.count();
   const show = await page.getByRole("button", { name: "Show code" }).count();
-  check(heading === 1 && fields === 1 && show === 1, `${label}: homepage Authorize Code form present (heading ${heading}, Code field ${fields}, Show code ${show})`);
+  const continues = await card.getByRole("button", { name: "Continue" }).count();
+  check(cards === 1 && heading === 1 && fields === 1 && show === 1 && continues === 1, `${label}: homepage Authorize Code card present (card ${cards}, heading ${heading}, Code field ${fields}, Show code ${show}, Continue ${continues})`);
   if (!toggle || fields !== 1) return;
   const masked = await field.getAttribute("type");
   await page.getByRole("button", { name: "Show code" }).click();
@@ -307,8 +321,55 @@ async function authorizeCodeForm(page, label, { toggle = false } = {}) {
   await field.fill(dummy);
   const inStorage = await page.evaluate((value) => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]).includes(value), dummy);
   const inUrl = page.url() !== before || page.url().includes(dummy);
-  await field.fill("");
-  check(masked === "password" && shown === "text" && hide === 1 && hidden === "password" && !inUrl && !inStorage, `${label}: Code field masked by default, Show code -> ${shown}, Hide code -> ${hidden}; a typed value reaches the URL ${inUrl}, web storage ${inStorage} (never submitted)`);
+  check(masked === "password" && shown === "text" && hide === 1 && hidden === "password" && !inUrl && !inStorage, `${label}: Code field masked by default, Show code -> ${shown}, Hide code -> ${hidden}; a typed value reaches the URL ${inUrl}, web storage ${inStorage}`);
+  if (submit) {
+    await settle(page);
+    await card.getByRole("button", { name: "Continue" }).click();
+    const alert = card.locator(".error-summary");
+    await alert.waitFor({ timeout: 30_000 }).catch(() => undefined);
+    await settle(page);
+    const message = ((await alert.textContent().catch(() => "")) ?? "").replace(/\s+/g, " ").trim();
+    const after = new URL(page.url());
+    const storedAfter = await page.evaluate((value) => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]).includes(value), dummy);
+    const typeAfter = await field.getAttribute("type").catch(() => "gone");
+    check(/Code not accepted\.\s*Invalid authorized code\./.test(message) && after.pathname === "/" && after.search === "" && !page.url().includes(dummy) && !storedAfter && typeAfter === "password", `${label}: Continue sends the code to the server, which refuses a wrong code with "${message}"; page ${after.pathname}${after.search}, code in URL ${page.url().includes(dummy)}, in web storage ${storedAfter}, field ${typeAfter}`);
+  }
+  if (await field.count()) await field.fill("");
+}
+// Signed in (any account state): the homepage renders no Authorize Code card at
+// all - not in the document, not merely hidden - and leaves no space: the hero
+// copy ends on its actions, and on a single-column hero the next section follows
+// at the hero's ordinary gap. Entrance animations are allowed to finish first.
+async function noAuthorizeCodeCard(page, label) {
+  const facts = await page.evaluate(async () => {
+    const copy = document.querySelector(".teacher-home-copy");
+    const finite = document.getAnimations().filter((animation) => copy && animation.effect?.target && copy.contains(animation.effect.target) && Number.isFinite(animation.effect.getComputedTiming().endTime));
+    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
+    const last = copy?.lastElementChild ?? null;
+    const hero = copy?.parentElement ?? null;
+    const heroStyle = hero ? getComputedStyle(hero) : null;
+    const copyStyle = copy ? getComputedStyle(copy) : null;
+    const next = copy?.nextElementSibling ?? null;
+    const singleColumn = heroStyle ? heroStyle.gridTemplateColumns.trim().split(/\s+/).length === 1 : false;
+    const copyBottom = copy?.getBoundingClientRect().bottom ?? 0;
+    const main = document.querySelector("#main-content") ?? document.body;
+    return {
+      h1: document.querySelectorAll("h1").length,
+      card: document.querySelectorAll("#authorized-access, .teacher-home-authorized-access").length,
+      parts: document.querySelectorAll(".authorized-access-panel, .authorized-access-form, #authorized-code, input[name='authorizedCode']").length,
+      heading: [...document.querySelectorAll("h1, h2, h3")].filter((element) => /Authorize Code|Authorized access active/.test(element.textContent ?? "")).length,
+      eye: [...document.querySelectorAll("button")].filter((button) => /^(Show|Hide) code$/.test(button.getAttribute("aria-label") ?? "")).length,
+      continues: [...main.querySelectorAll("button")].filter((button) => (button.textContent ?? "").trim() === "Continue").length,
+      lastClass: last?.getAttribute("class") ?? "",
+      trailing: copy && last && copyStyle ? copyBottom - last.getBoundingClientRect().bottom - parseFloat(copyStyle.paddingBottom) - parseFloat(copyStyle.borderBottomWidth) : Number.NaN,
+      gap: singleColumn && next && heroStyle ? next.getBoundingClientRect().top - parseFloat(getComputedStyle(next).marginTop) - copyBottom - parseFloat(heroStyle.rowGap) : 0,
+      singleColumn,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  const trailing = Math.round(facts.trailing * 10) / 10;
+  const gap = Math.round(facts.gap * 10) / 10;
+  check(facts.h1 === 1 && facts.card === 0 && facts.parts === 0 && facts.heading === 0 && facts.eye === 0 && facts.continues === 0 && /teacher-home-(actions|ready)/.test(facts.lastClass) && Math.abs(trailing) <= 1 && Math.abs(gap) <= 1 && facts.overflow === 0, `${label}: no Authorize Code card in the document (card ${facts.card}, form parts ${facts.parts}, heading ${facts.heading}, Show/Hide ${facts.eye}, Continue ${facts.continues}); hero copy ends on "${facts.lastClass}", trailing space ${trailing}px, ${facts.singleColumn ? `next section at the hero gap (+${gap}px)` : "two-column hero"}, overflow ${facts.overflow}px`);
 }
 // Every drawn page has ink (at least 0.05% of its pixels are dark: a sparse
 // answers page on a 320px phone still has hundreds, a blank canvas none) and
@@ -516,7 +577,7 @@ try {
   check(live.length === grade6.topics.length, `${isProduction ? "production" : "staging"} publishes ${live.length} of ${grade6.topics.length} manifest quizzes`);
   const deep = await verifyQuizPublication({ client: admin, manifest, deep: true });
   for (const item of deep.results) check(item.ok, `database + private storage: Grade ${item.gradeNumber} / Topic ${item.topicSortOrder}: ${item.topic} - ${item.title} ${item.problems.join(",")}${item.detail ? ` [${item.detail.downloadedBytes} bytes, pages ${item.detail.pages}, lesson assignments ${item.detail.lessonAssignments}, bucket public ${item.detail.bucketPublic}]` : ""}`);
-  users = { eligible: await user("eligible"), "used-trial": await user("used-trial"), "trial-active": await user("trial-active"), subscribed: await user("subscribed") };
+  users = { eligible: await user("eligible"), "used-trial": await user("used-trial"), "trial-active": await user("trial-active"), subscribed: await user("subscribed"), "past-due": await user("past-due") };
 
   // 18. Anonymous: gated route, no file exposure, the banner at every width, the Authorize Code form, each destination.
   {
@@ -549,6 +610,8 @@ try {
     await scriptInventory(page, "anonymous 1366 (home)");
     await bannerShot(page, "21-banner-anonymous-1366");
     await authorizeCodeForm(page, "anonymous 1366");
+    await shot(page, "26d-home-signed-out-1366");
+    await shot(page, "26d2-home-signed-out-1366-full", { fullPage: true });
     await settle(page); await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Quiz PDFs" }).click();
     await page.waitForURL((u) => u.pathname === "/access", { timeout: 30_000 });
     await page.waitForLoadState("networkidle");
@@ -561,6 +624,7 @@ try {
       const overflow = (await pageFacts(page)).overflow;
       await expectNoBannerCode(page, `anonymous ${width} (home, overflow ${overflow}px)`);
       check(overflow === 0, `anonymous ${width}px home: horizontal overflow ${overflow}px`);
+      await authorizeCodeForm(page, `anonymous ${width}`);
       if (width === 320) {
         await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
         await page.waitForTimeout(250);
@@ -577,10 +641,12 @@ try {
     await page.goto(`${origin}/`, { waitUntil: "networkidle" });
     await expectNoBannerCode(page, "anonymous 390 (home)");
     await bannerShot(page, "21b-banner-anonymous-390");
-    await authorizeCodeForm(page, "anonymous 390", { toggle: true });
+    await authorizeCodeForm(page, "anonymous 390");
     const form = await page.locator("#authorized-access").evaluate((element) => { const rect = element.getBoundingClientRect(); return { y: rect.top + window.scrollY, height: rect.height }; });
     await page.screenshot({ path: `${out}/21c-homepage-authorize-code-form-390.png`, fullPage: true, clip: { x: 0, y: Math.max(0, form.y - 16), width: 390, height: form.height + 32 } });
     note("shot 21c-homepage-authorize-code-form-390.png /");
+    await shot(page, "26a-home-signed-out-390", { fullPage: true });
+    await authorizeCodeForm(page, "anonymous 390", { toggle: true, submit: true });
     await productDestinations(page, "anonymous", "anonymous 390");
     await context.close();
   }
@@ -588,6 +654,7 @@ try {
   for (const [state, expectedPath, marker, name] of [
     ["eligible", "/subscription", "Start your free trial", "18c-signed-in-trial-eligible-390"],
     ["used-trial", "/subscription", "Trial ended", "18d-used-trial-390"],
+    ["past-due", "/subscription", "Payment requires attention", "18e-payment-problem-390"],
     ["trial-active", "/quizzes", "Quiz PDFs", "19b-active-trial-390"]
   ]) {
     const { context, page } = await open(state, { width: 390, height: 844 });
@@ -608,6 +675,11 @@ try {
     } else {
       await openPreview(page, live[1], `${state} 390 (allowed)`);
     }
+    // Signed in: the homepage has no Authorize Code card and no space where it was.
+    await page.goto(`${origin}/`, { waitUntil: "networkidle" });
+    await noAuthorizeCodeCard(page, `${state} 390 (home)`);
+    await expectNoBannerCode(page, `${state} 390 (home)`);
+    if (state === "eligible") await shot(page, "26b2-home-signed-in-non-subscriber-390", { fullPage: true });
     await context.close();
   }
 
@@ -706,7 +778,7 @@ try {
     await settle(page); await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
     await page.waitForURL((u) => u.pathname === "/quizzes", { timeout: 30_000 });
     ok("Back to Quiz PDFs returns to /quizzes");
-    // 13-17: every review width: the home banner and Authorize Code form, the quiz library, a preview.
+    // 13-17: every review width: the home banner (no Authorize Code card when signed in), the quiz library, a preview.
     const previewShots = { 320: "24-preview-320", 390: "24b-preview-390", 430: "24f-preview-430", 768: "24c-preview-768", 820: "24g-preview-820-ipad", 1920: "24d-preview-1920" };
     const libraryShots = { 320: "14-mobile-320", 375: "13b-mobile-375", 390: "13-mobile-390", 430: "13c-mobile-430", 768: "15-tablet-768", 820: "15b-tablet-820", 1180: "16b-desktop-1180", 1366: "16c-desktop-1366", 1920: "17-desktop-1920" };
     for (const [index, width] of REVIEW_WIDTHS.entries()) {
@@ -715,7 +787,14 @@ try {
       const homeOverflow = (await pageFacts(page)).overflow;
       await expectNoBannerCode(page, `subscriber ${width} (home)`);
       check(homeOverflow === 0, `subscriber ${width}px home: horizontal overflow ${homeOverflow}px`);
-      await authorizeCodeForm(page, `subscriber ${width}`);
+      await noAuthorizeCodeCard(page, `subscriber ${width} (home)`);
+      if (width === 320) await shot(page, "26c-home-signed-in-320", { fullPage: true });
+      if (width === 390) await shot(page, "26b-home-signed-in-subscriber-390", { fullPage: true });
+      if (width === 1366) {
+        await shot(page, "26e-home-signed-in-1366");
+        await shot(page, "26e2-home-signed-in-1366-full", { fullPage: true });
+        await bannerShot(page, "26f-banner-signed-in-1366");
+      }
       if (width === 320 || width === 820) await bannerShot(page, width === 320 ? "21e-banner-subscriber-320" : "21f-banner-subscriber-820-ipad");
       await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
       await selectGrade(page);
@@ -792,7 +871,7 @@ try {
     await productDestinations(page, "subscribed", "subscriber 390");
     await context.close();
   }
-  // WebKit (the iPhone engine): the banner and the Authorize Code form, the
+  // WebKit (the iPhone engine): the banner and the signed-out Authorize Code card, the
   // preview gate, then a subscriber at 390: Preview from the card (nothing
   // downloaded), every page reachable, Download PDF, Back to Quiz PDFs, all eight.
   // The keyboard walk is Chromium-only: the Windows WebKit test build never
@@ -831,6 +910,8 @@ try {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(`${origin}/`, { waitUntil: "networkidle" });
       await expectNoBannerCode(page, "webkit 390 (home)");
+      await noAuthorizeCodeCard(page, "webkit subscriber 390 (home)");
+      await shot(page, "26g-webkit-home-signed-in-390", { fullPage: true });
       await scriptInventory(page, "webkit 390 (home)");
       await bannerShot(page, "25-webkit-390-banner");
       await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });

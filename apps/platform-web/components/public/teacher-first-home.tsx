@@ -137,13 +137,16 @@ export function TeacherFirstHome({
         <p className="teacher-home-lede">{PLATFORM_HERO_DESCRIPTION}</p>
         <p className="teacher-home-audience">{PLATFORM_HERO_AUDIENCE}</p>
         <HeroActions authState={authState} entitled={entitled} />
-        {/* The authorized-code entry is permanent on the homepage: the same
-            form, placement and wording in every account state, zero clicks
-            (the banner carries no code item: this form is the entry). A session that
-            already entered a code sees its exit control in the same place. */}
-        <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
+        {/* The authorized-code entry is for signed-out visitors only (the
+            banner carries no code item: this form is the entry). A session
+            that already entered a code sees its exit control in the same
+            place. Any authenticated account session, whatever its access,
+            gets no code card at all: the container is not rendered, so it
+            leaves no space. authState comes from the server-side session in
+            app/page.tsx, so the page never renders the card and then hides it. */}
+        {authState === "signed-out" ? <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
           {schoolAccess ? <AuthorizedAccessActivePanel /> : <AuthorizedCodeForm nextDestination="/games" compact />}
-        </div>
+        </div> : null}
       </div>
       <LearningConstellation />
     </section>

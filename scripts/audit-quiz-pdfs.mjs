@@ -55,6 +55,8 @@ const header = read("apps/platform-web/components/site-header.tsx");
 if (/AuthorizedCodeLink|banner-code-link|Authorize Code/.test(header)) problems.push("the banner must not carry an Authorize Code item");
 if (/banner-code-link|"code code code"/.test(read("apps/platform-web/styles/conversion.css"))) problems.push("the banner CSS must not keep the authorized-code row");
 if (!/<AuthorizedCodeForm/.test(read("apps/platform-web/components/public/teacher-first-home.tsx")) || !/Authorize Code/.test(read("apps/platform-web/components/auth/authorized-code-form.tsx"))) problems.push("the homepage must keep the Authorize Code form");
+// Signed-out only: the whole card is behind the server-side signed-out check (v1.2.15).
+if (!/\{authState === "signed-out" \? <div id=\{AUTHORIZED_ACCESS_ANCHOR\}/.test(read("apps/platform-web/components/public/teacher-first-home.tsx"))) problems.push("the homepage Authorize Code card must render for signed-out visitors only");
 
 const summary = summarizeQuizManifest(manifest);
 console.log(renderContentAudit(summary, verification));

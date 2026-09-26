@@ -136,7 +136,8 @@ text (branch `hotfix/quiz-preview-200pct-reflow`) to the first production runtim
   grid row and every `.banner-code-link` rule. The banner is brand | six products | call to action |
   account menu, in every account state and on every route.
 - The homepage Authorize Code form is unchanged (`components/public/teacher-first-home.tsx`, anchor
-  `AUTHORIZED_ACCESS_ANCHOR`), as are the copies on `/access`, `/sign-in` and `/sign-up`, the
+  `AUTHORIZED_ACCESS_ANCHOR`; since v1.2.15 it renders for signed-out visitors only, see section 7),
+  as are the copies on `/access`, `/sign-in` and `/sign-up`, the
   password-style Code field with Show/Hide, the server validation, the generic denial and the
   school-access session. No code is ever placed in a URL, a log, `localStorage` or `sessionStorage`.
 - Tests: `components/site-header.test.tsx` (no Authorize Code link in ten account states and ten
@@ -190,8 +191,9 @@ text (branch `hotfix/quiz-preview-200pct-reflow`) to the first production runtim
 - Review harness (`scripts/review-quiz-pdfs-staging.mjs`, staging launcher or production
   launcher): the banner (six products, no Authorize Code item) at all nine widths and 320 px at
   200% text, each banner destination clicked at 390 px (anonymous and subscriber), the homepage
-  Authorize Code form in every state (masked, Show/Hide, a typed value never in the URL or web
-  storage, never submitted), every card's Preview / Details / Download PDF, all eight previews drawn,
+  Authorize Code card for signed-out visitors at all nine widths (masked, Show/Hide, a typed value
+  never in the URL or web storage, one wrong dummy code refused by the server's existing validation)
+  and its absence for every signed-in state (section 7), every card's Preview / Details / Download PDF, all eight previews drawn,
   no download when Preview is selected, last page reachable by scrolling, Download PDF from the
   preview (exact bytes, Chromium and WebKit), Back to Quiz PDFs, keyboard order and focus on the
   preview page, access states, inline delivery headers and bytes, axe, and every quiz preview at
@@ -203,3 +205,48 @@ text (branch `hotfix/quiz-preview-200pct-reflow`) to the first production runtim
   its own navigations (WebKit reports a Next.js prefetch cancelled by a navigation as "access
   control checks"; Playwright's `networkidle` does not re-check once reached). The review accounts'
   download-evidence rows are counted in the notes before the accounts are deleted.
+
+## 7. Hotfix 2026-09-26: the homepage Authorize Code card is for signed-out visitors only (v1.2.15)
+
+Branch `hotfix/hide-authorize-code-after-signin` (from `main` ed17ed4, the v1.2.14 state). One
+rendering condition, nothing else:
+
+- `components/public/teacher-first-home.tsx` renders the whole card container
+  (`<div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">`) only when
+  `authState === "signed-out"`. Inside it nothing changed: the Authorize Code form, or the existing
+  "Authorized access active" exit panel for a visitor who already entered a code.
+- `authState` is computed on the server by the homepage route (`app/page.tsx`) from
+  `getGameAccessView()`: `anonymous` / `unconfigured` (no user session) is signed out;
+  `unconfirmed` and every account status (`active`, `suspended`, `deletion-pending`, a missing
+  account row) is an authenticated session. The decision is "an authenticated session exists", not
+  entitlement: non-subscribers, trial-eligible, active-trial, used-trial, subscriber, scheduled
+  cancellation, renewal grace and payment-problem accounts all get no card. The page is rendered on
+  the server (`force-dynamic`), so the card is never sent and then hidden: no flicker, no CSS hiding,
+  no empty space (the hero copy ends on its actions).
+- This restores the rule the homepage had before v1.2.12, which made the card permanent so the
+  banner's Authorize Code link had a target; v1.2.14 removed that link. The server action already
+  refused codes from signed-in sessions (`authorizeSchoolAccessAction` redirects any
+  non-anonymous context to its destination), so a signed-in visitor had a form that could not work.
+- Unchanged: the form component, the masked Code field and Show/Hide, server validation, the
+  generic denial, the rate limit, the school-access session and cookie, the `/access`, `/sign-in`
+  and `/sign-up` copies, the account page's code section, entitlement, billing, the banner (still six
+  products and no Authorize Code item). No code in any URL, log, `localStorage` or `sessionStorage`.
+- Tests: `components/public/home-page-authorize-code.test.tsx` (the real homepage route through
+  every session the server can report: anonymous and unconfigured show the card with a working
+  Show/Hide; an active school-code session keeps its exit panel; unconfirmed, missing account,
+  non-subscriber, no evidence, active trial, trial pending, subscriber, scheduled cancellation,
+  grace, used trial, payment problem, ended subscription, suspended and deletion-pending render no
+  card), `components/public/teacher-first-home.test.tsx` (A: signed out present with Show/Hide;
+  B-F: no container, heading, field, eye control or Continue for any signed-in state, the hero copy
+  ends on its actions), `test/security/quiz-pdfs-boundary.test.ts` and `scripts/audit-quiz-pdfs.mjs`
+  (source guards: the signed-out condition wraps the container, no stylesheet hides it, the form's
+  action and field unchanged), phase 9 flow spec (anonymous card at all nine widths; signed-in
+  non-subscriber, used trial, payment problem, subscriber and active trial with the card absent from
+  the document, no trailing space in the hero copy, the next section at the ordinary gap and no
+  horizontal overflow, the non-subscriber and subscriber at all nine widths; the card back after
+  sign-out). Each new test fails against the v1.2.14 component.
+- Review harness: the anonymous card at all nine widths plus one wrong dummy code sent with Continue
+  (the server's generic refusal, nothing in the URL or web storage); a payment-problem synthetic
+  account; no card on the homepage for the trial-eligible, used-trial, payment-problem and
+  active-trial accounts at 390 px, the subscriber at all nine widths, and the WebKit subscriber at
+  390 px; owner screenshots `26a`-`26g`.
