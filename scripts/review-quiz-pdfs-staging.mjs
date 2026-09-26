@@ -390,6 +390,55 @@ async function downloadFromPreview(page, item, label) {
   await download.delete().catch(() => undefined);
   check(sha === item.quiz.sha256 && body.length === item.quiz.bytes && name === item.quiz.downloadFilename && new URL(page.url()).pathname.endsWith("/preview"), `${label}: Download PDF saves ${name} (${body.length} bytes, sha256 ${sha === item.quiz.sha256 ? "== owner file" : "MISMATCH"}); the preview stays open`);
 }
+// Every quiz at 320 px and 390 px with 200% text (the v1.2.14 finding: the preview
+// header grid used to take the width of the title's longest word). Each preview must
+// have no horizontal overflow, the title must wrap inside the page, the actions and
+// every page must stay on screen and the last page must be reachable. The quiz with
+// the longest title word is captured at 320 px and its actions are exercised at 200%.
+const LONGEST_TITLE_SLUG = "understanding-and-using-percent-quiz";
+async function textZoomReflow(page, live, engineLabel) {
+  let maxOverflow = 0;
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const item of live) {
+      await openPreview(page, item, `${engineLabel} ${width} (normal text)`);
+      await page.evaluate(() => { window.scrollTo(0, 0); document.documentElement.style.fontSize = "200%"; });
+      // Larger text narrows the viewer a little; were it 48 px or more, the viewer would re-fit and
+      // redraw its pages, so wait until it reports all of them again.
+      await page.waitForTimeout(700);
+      await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+      for (let wait = 0; wait < 100 && (await page.locator(".pdf-viewer-pages canvas").count()) !== item.quiz.pages; wait += 1) await page.waitForTimeout(200);
+      const facts = await page.evaluate(() => {
+        const viewport = document.documentElement.clientWidth;
+        const inside = (element) => { const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.left >= -0.5 && rect.right <= viewport + 0.5; };
+        const title = document.querySelector(".resource-preview-header h1");
+        const actions = [...document.querySelectorAll(".resource-preview-actions a")];
+        return {
+          overflow: document.documentElement.scrollWidth - viewport,
+          title: Boolean(title) && inside(title) && title.scrollWidth <= title.clientWidth + 1,
+          actions: actions.length === 3 && actions.every((element) => inside(element) && element.getBoundingClientRect().height >= 44)
+        };
+      });
+      const pages = await drawnPages(page);
+      const reachable = await lastPageReachable(page);
+      maxOverflow = Math.max(maxOverflow, facts.overflow);
+      check(facts.overflow === 0 && facts.title && facts.actions && pages.length === item.quiz.pages && pages.every((entry) => entry.fit) && reachable, `${engineLabel} ${width}px + 200% text: ${item.quiz.slug}: overflow ${facts.overflow}px, title wraps inside ${facts.title}, actions on screen ${facts.actions}, ${pages.filter((entry) => entry.fit).length}/${item.quiz.pages} pages within the width, last page reachable ${reachable}`);
+      if (width === 320 && item.quiz.slug === LONGEST_TITLE_SLUG) {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await shot(page, `26-${engineLabel}-preview-320-text-200-longest-title`);
+        await shot(page, `26b-${engineLabel}-preview-320-text-200-longest-title-full`, { fullPage: true });
+        const violations = await axeSerious(page);
+        check(violations.length === 0, `${engineLabel} axe 320px + 200% text preview: ${violations.join(", ") || "0 serious/critical"}`);
+        await downloadFromPreview(page, item, `${engineLabel} 320px + 200% text`);
+        await settle(page); await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+        await page.waitForURL((url) => url.pathname === "/quizzes", { timeout: 30_000 });
+        await page.waitForLoadState("load");
+        ok(`${engineLabel} 320px + 200% text: Back to Quiz PDFs returns to /quizzes`);
+      }
+    }
+  }
+  note(`${engineLabel} 200% text: largest horizontal overflow ${maxOverflow}px across ${live.length} quizzes at 320 and 390 px`);
+}
 // Keyboard on the preview page: Back to Quiz PDFs, Details, Download PDF in order, each with a visible focus ring.
 async function previewKeyboard(page, label) {
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -687,15 +736,8 @@ try {
         const violations = await axeSerious(page);
         check(violations.length === 0, `axe 390 preview: ${violations.join(", ") || "0 serious/critical"}`);
       }
-      if (width === 320) {
-        await page.evaluate(() => { window.scrollTo(0, 0); document.documentElement.style.fontSize = "200%"; });
-        await page.waitForTimeout(400);
-        const zoomed = await pageFacts(page);
-        const zoomedPages = await drawnPages(page);
-        check(zoomed.overflow === 0 && zoomedPages.length === item.quiz.pages && zoomedPages.every((entry) => entry.fit), `320px preview at 200% text: overflow ${zoomed.overflow}px, ${zoomedPages.filter((entry) => entry.fit).length}/${item.quiz.pages} pages fit`);
-        await shot(page, "24e-preview-320-text-200");
-      }
     }
+    await textZoomReflow(page, live, "chromium");
     await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto(`${origin}/quizzes`, { waitUntil: "networkidle" });
@@ -788,6 +830,7 @@ try {
       await page.waitForLoadState("load");
       ok("webkit: Back to Quiz PDFs returns to /quizzes");
       for (const item of live.slice(1)) await openPreview(page, item, "webkit 390");
+      await textZoomReflow(page, live, "webkit");
       note("webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)");
       await context.close();
     } finally { await webkit.close(); }

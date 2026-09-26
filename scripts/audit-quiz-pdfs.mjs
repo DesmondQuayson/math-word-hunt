@@ -37,7 +37,10 @@ const wiring = [
   ["apps/platform-web/app/resources/[resourceId]/preview/page.tsx", 'requireProductAccess("/quizzes")', "the preview page must re-check entitlement on the server"],
   ["apps/platform-web/app/resources/[resourceId]/preview/page.tsx", 'resource.resourceType !== "quiz_pdf"', "the preview page is for quiz PDFs only"],
   ["apps/platform-web/components/resources/pdf-viewer.tsx", "withCredentials: true", "the viewer must fetch the PDF with the session, from the protected route"],
-  ["apps/platform-web/components/resources/public-resource-library.tsx", 'designation="Quiz PDF" preview />', "every quiz card must offer Preview"]
+  ["apps/platform-web/components/resources/public-resource-library.tsx", 'designation="Quiz PDF" preview />', "every quiz card must offer Preview"],
+  // Reflow at 320 px with 200% text (v1.2.14 finding): the preview grid may not take the width of the title's longest word.
+  ["apps/platform-web/styles/resources.css", ".resource-preview > *,.resource-preview-header > * { min-width:0; }", "the preview grid items must be allowed to shrink below their longest word"],
+  ["apps/platform-web/styles/resources.css", ".resource-preview-header h1 { overflow-wrap:anywhere; }", "a long word in the quiz title must wrap instead of widening the page"]
 ];
 for (const [path, marker, why] of wiring) if (!read(path).includes(marker)) problems.push(`${path} lacks ${JSON.stringify(marker)} - ${why}`);
 const library = read("apps/platform-web/components/resources/public-resource-library.tsx");

@@ -321,6 +321,66 @@ test("the preview stays readable at every review width, including a phone in por
   await expect(page).toHaveURL("/quizzes");
 });
 
+// Regression (v1.2.14 open finding): at 320 px with 200% text the preview header grid
+// used to take the width of the longest word in the quiz title, so 6 of the 8 previews
+// scrolled sideways (23 to 217 px). Every quiz is checked, never one short title.
+test("every quiz preview reflows at 320 px and 390 px with 200% text: no horizontal overflow, the title wraps, the actions and every page stay on screen", async ({ page }) => {
+  await signIn(page, entitledUser.email ?? "", "/quizzes");
+  await expect(page).toHaveURL("/quizzes");
+  expect(live).toHaveLength(8);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const item of live) {
+      const label = `${item.quiz.slug} at ${width} px, 200% text`;
+      await page.goto(`/resources/${item.resourceId}/preview`);
+      await expect(page.getByRole("status")).toHaveText(`${item.quiz.pages} pages`, { timeout: 60_000 });
+      await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+      // Larger text narrows the viewer a little; were it 48 px or more, the viewer would re-fit and
+      // redraw its pages, so wait until it reports all of them again.
+      await page.waitForTimeout(700);
+      await expect(page.getByRole("status")).toHaveText(`${item.quiz.pages} pages`, { timeout: 60_000 });
+      await expect(page.locator(".pdf-viewer-pages canvas")).toHaveCount(item.quiz.pages);
+      const facts = await page.evaluate(() => {
+        const viewport = document.documentElement.clientWidth;
+        const inside = (element: Element) => { const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.left >= -0.5 && rect.right <= viewport + 0.5; };
+        const title = document.querySelector(".resource-preview-header h1") as HTMLElement | null;
+        const actions = [...document.querySelectorAll(".resource-preview-actions a")];
+        return {
+          overflow: document.documentElement.scrollWidth - viewport,
+          titleInside: !!title && inside(title) && title.scrollWidth <= title.clientWidth + 1,
+          actions: actions.map((element) => (element.textContent ?? "").trim()),
+          actionsInside: actions.length === 3 && actions.every(inside),
+          pagesInside: [...document.querySelectorAll(".pdf-viewer-pages canvas")].every(inside),
+          pages: document.querySelectorAll(".pdf-viewer-pages canvas").length
+        };
+      });
+      expect(facts.overflow, `${label}: horizontal overflow`).toBe(0);
+      expect(facts.titleInside, `${label}: the title wraps inside the page`).toBe(true);
+      expect(facts.actions, `${label}: actions`).toEqual(["Back to Quiz PDFs", "Details", "Download PDF"]);
+      expect(facts.actionsInside, `${label}: every action on screen`).toBe(true);
+      expect(facts.pages, `${label}: pages`).toBe(item.quiz.pages);
+      expect(facts.pagesInside, `${label}: every page within the width`).toBe(true);
+      // The last page is reachable by scrolling down (instant: the site scrolls smoothly by default).
+      await page.evaluate(() => { const canvases = document.querySelectorAll(".pdf-viewer-pages canvas"); canvases[canvases.length - 1]?.scrollIntoView({ block: "end", behavior: "instant" }); });
+      expect(await page.evaluate(() => { const canvases = document.querySelectorAll(".pdf-viewer-pages canvas"); const rect = canvases[canvases.length - 1].getBoundingClientRect(); return rect.top < window.innerHeight && rect.bottom > 0; }), `${label}: last page reachable`).toBe(true);
+    }
+  }
+  // At 200% text the actions still work: Download PDF saves the file, Back to Quiz PDFs returns to the library.
+  await page.setViewportSize({ width: 320, height: 844 });
+  const longest = live.find((item) => item.quiz.slug === "understanding-and-using-percent-quiz") ?? live[0];
+  await page.goto(`/resources/${longest.resourceId}/preview`);
+  await expect(page.getByRole("status")).toHaveText(`${longest.quiz.pages} pages`, { timeout: 60_000 });
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+  await page.waitForTimeout(700);
+  await expect(page.getByRole("status")).toHaveText(`${longest.quiz.pages} pages`, { timeout: 60_000 });
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download PDF" }).click()]);
+  expect(download.suggestedFilename()).toBe(longest.quiz.downloadFilename);
+  await download.delete();
+  expect(await axeSeriousViolations(page), "axe preview 320 at 200% text").toEqual([]);
+  await page.getByRole("link", { name: "Back to Quiz PDFs" }).click();
+  await expect(page).toHaveURL("/quizzes");
+});
+
 test("Homework PDFs keep their lesson-by-lesson controls and their actions (the blueprint is untouched: no Preview on homework cards)", async ({ page }) => {
   await signIn(page, entitledUser.email ?? "", "/homework");
   await expect(page).toHaveURL("/homework");
