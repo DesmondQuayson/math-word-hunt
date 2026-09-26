@@ -1,0 +1,15 @@
+shot 15-anonymous-quiz-link-1366.png http://127.0.0.1:3000/access?next=/quizzes
+  15-anonymous-quiz-link-1366: landed /access?next=/quizzes; h1 "Continue to Quiz PDFs"
+shot 15b-anonymous-quiz-link-390.png http://127.0.0.1:3000/access?next=/quizzes
+  15b-anonymous-quiz-link-390: landed /access?next=/quizzes; h1 "Continue to Quiz PDFs"
+shot 15c-signed-in-trial-eligible-390.png http://127.0.0.1:3000/subscription?next=/quizzes
+  15c-signed-in-trial-eligible-390: landed /subscription?next=/quizzes; h1 "Start your free trial"
+shot 15d-used-trial-390.png http://127.0.0.1:3000/subscription?next=/quizzes
+  15d-used-trial-390: landed /subscription?next=/quizzes; h1 "$5.99 USD monthly MathNexa access"shot 15-anonymous-quiz-link-1366.png http://127.0.0.1:3000/access?next=/quizzes
+  15-anonymous-quiz-link-1366: landed /access?next=/quizzes; h1 "Continue to Quiz PDFs"
+shot 15b-anonymous-quiz-link-390.png http://127.0.0.1:3000/access?next=/quizzes
+  15b-anonymous-quiz-link-390: landed /access?next=/quizzes; h1 "Continue to Quiz PDFs"
+shot 15c-signed-in-trial-eligible-390.png http://127.0.0.1:3000/subscription?next=/quizzes
+  15c-signed-in-trial-eligible-390: landed /subscription?next=/quizzes; h1 "Start your free trial"
+shot 15d-used-trial-390.png http://127.0.0.1:3000/subscription?next=/quizzes
+  15d-used-trial-390: landed /subscription?next=/quizzes; h1 "$5.99 USD monthly MathNexa access"

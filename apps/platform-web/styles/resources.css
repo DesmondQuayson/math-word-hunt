@@ -31,3 +31,12 @@
 @media(max-width:48rem){.public-resource-groups,.resource-preview-strip{grid-template-columns:1fr}.resource-filter-grid{grid-template-columns:1fr}}
 @media(max-width:22rem){.resource-filter-panel,.public-resource-card>div,.public-resource-empty{padding:var(--space-4)}.public-resource-actions>*{width:100%;justify-content:center}}
 @media(forced-colors:active){.resource-filter-panel,.resource-filter-grid select,.public-resource-card,.public-resource-actions a,.public-resource-actions span,.public-resource-empty,.resource-preview-strip img{border-color:CanvasText;box-shadow:none}.public-resource-placeholder{background:Canvas;color:CanvasText}}
+/* Quiz PDFs: one grade control, then every topic of that grade as a card. */
+.resource-filter-grid--single { grid-template-columns:minmax(0,24rem); }
+.public-resource-topics { display:grid; gap:var(--space-6); }
+.public-resource-topics-heading { display:grid; gap:var(--space-2); }
+.public-resource-topics-heading h2 { font-size:var(--font-size-heading-2); }
+.public-resource-topics-heading p { color:var(--color-text-secondary); }
+.resource-kind-label { display:inline-flex; margin-bottom:var(--space-3); padding:var(--space-1) var(--space-2); border:var(--border-width-thin) solid var(--color-brand-primary); border-radius:var(--radius-small); color:var(--color-brand-primary); font:900 var(--font-size-caption) var(--font-utility); letter-spacing:.04em; text-transform:uppercase; }
+@media(max-width:48rem){.resource-filter-grid--single{grid-template-columns:1fr}}
+@media(forced-colors:active){.resource-kind-label{border-color:CanvasText;color:CanvasText}}

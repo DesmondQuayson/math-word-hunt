@@ -1,0 +1,15 @@
+export type PublicationState = "draft" | "validating" | "ready_for_review" | "published" | "archived";
+export type ExistingGrade = Readonly<{ id: string; gradeNumber: number; title: string; slug: string; sortOrder: number; publicationState: PublicationState; lockVersion: number }>;
+export type ExistingTopic = Readonly<{ id: string; gradeId: string; title: string; slug: string; sortOrder: number; publicationState: PublicationState; lockVersion: number }>;
+export type ExistingQuiz = Readonly<{ resourceId: string; slug: string; sortOrder: number; resourceType: string; publicationState: PublicationState; fileSha256: string | null; fileState: string | null; [key: string]: unknown }>;
+export type ManifestTopicLike = Readonly<{ sortOrder: number; title: string; slug: string; [key: string]: unknown }>;
+export type GradePlan = Readonly<{ action: "reuse" | "create" | "conflict"; existing: ExistingGrade | null; sortOrder?: number; publish?: boolean; reason?: string }>;
+export type TopicPlan<T extends ManifestTopicLike = ManifestTopicLike> = Readonly<{ manifest: T; action: "reuse" | "create"; existing: ExistingTopic | null; sortOrder: number; publish: boolean }>;
+export type QuizPlan = Readonly<{ action: "create" | "publish" | "skip" | "conflict"; existing: ExistingQuiz | null; sortOrder?: number; reason?: string }>;
+export const PUBLICATION_SEQUENCE: Readonly<Record<PublicationState, readonly PublicationState[] | null>>;
+export function normalizeTitle(value: unknown): string;
+export function matchExistingTopic(existingTopics: readonly ExistingTopic[], manifestTopic: ManifestTopicLike): ExistingTopic | null;
+export function planGrade(existingGrades: readonly ExistingGrade[], manifestGrade: Readonly<{ gradeNumber: number; slug: string; [key: string]: unknown }>): GradePlan;
+export function planTopics<T extends ManifestTopicLike>(existingTopics: readonly ExistingTopic[], manifestTopics: readonly T[]): readonly TopicPlan<T>[];
+export function planQuiz(existingQuizzes: readonly ExistingQuiz[], quiz: Readonly<{ slug: string; sha256: string; [key: string]: unknown }>): QuizPlan;
+export function publicationSteps(currentState: PublicationState): readonly PublicationState[];

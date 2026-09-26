@@ -267,10 +267,13 @@ test("server-entitled accounts reach all four selected products and validated On
   await expect(page.getByRole("combobox", { name: "Grade" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Topic" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Lesson" })).toBeVisible();
+  // Quiz PDFs are topic-by-topic: one grade control, then every topic of that
+  // grade as a card (no Topic or Lesson selector). Homework keeps all three.
   await page.goto("/quizzes");
   await expect(page.getByRole("combobox", { name: "Grade" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Topic" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Topic" })).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Lesson" })).toHaveCount(0);
+  await expect(page.getByText("Topic-by-topic math quizzes for practice, review, and assessment.")).toBeVisible();
   await page.goto("/map-prep");
   await expect(page.getByText("Online Math Prep is not configured", { exact: true })).toBeVisible();
   const beforeMissingMap = await commercialCounts();

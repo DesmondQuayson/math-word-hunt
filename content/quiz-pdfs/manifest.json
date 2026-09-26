@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "product": "quiz-pdfs",
+  "organization": "grade -> topic -> quiz",
+  "source": {
+    "collection": "Owner upload 2026-09-25: folder 'leeson Quiz/grade 6 quiz' (8 PDF files, Grade 6 only)",
+    "rule": "Every quiz PDF is stored byte-for-byte. The sha256 below must match the stored copy and the owner's original file; nothing is regenerated, rewritten or renamed inside the document."
+  },
+  "grades": [
+    {
+      "gradeNumber": 6,
+      "title": "Grade 6",
+      "slug": "grade-6",
+      "topicOrder": "The uploaded files carry no numbering of their own, so the topics follow the Missouri Grade 6 strand order already used by MathNexa Online Math Prep: ratios and proportional relationships, number sense, expressions/equations/inequalities, geometry and measurement, data and statistics.",
+      "topics": [
+        {
+          "sortOrder": 1,
+          "title": "Ratios and Rates",
+          "slug": "ratios-and-rates",
+          "titleSource": "PDF page-1 title 'Ratios And Rates Practice' without the word 'Practice'; 'And' written as 'and'.",
+          "quiz": {
+            "slug": "ratios-and-rates-quiz",
+            "title": "Ratios And Rates Practice",
+            "successCriteria": [
+              "Write and simplify ratios from given quantities",
+              "Calculate and compare unit rates in context",
+              "Solve real-world multi-step rate problems"
+            ],
+            "description": "Success criteria: Write and simplify ratios from given quantities. Calculate and compare unit rates in context. Solve real-world multi-step rate problems. Answers are included on the final page.",
+            "sourceFile": "Ratios And Rates Practice (1).pdf",
+            "file": "grade-6/grade-6-ratios-and-rates-quiz.pdf",
+            "downloadFilename": "grade-6-ratios-and-rates-quiz.pdf",
+            "bytes": 532861,
+            "sha256": "4dacd687c623f02c81293464fbf9c153a675036891aa3638985b34d98cf52349",
+            "pages": 5,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "ratios-and-rates"]
+          }
+        },
+        {
+          "sortOrder": 2,
+          "title": "Understanding and Using Percent",
+          "slug": "understanding-and-using-percent",
+          "titleSource": "PDF page-1 title 'Understanding and Using Percent' (unchanged).",
+          "quiz": {
+            "slug": "understanding-and-using-percent-quiz",
+            "title": "Understanding and Using Percent",
+            "successCriteria": [
+              "Define percent as parts per hundred.",
+              "Convert between fractions, decimals, and percents.",
+              "Calculate percentages of given quantities."
+            ],
+            "description": "Success criteria: Define percent as parts per hundred. Convert between fractions, decimals, and percents. Calculate percentages of given quantities. Answers are included on the final page.",
+            "sourceFile": "Understanding and Using Percent (1).pdf",
+            "file": "grade-6/grade-6-understanding-and-using-percent-quiz.pdf",
+            "downloadFilename": "grade-6-understanding-and-using-percent-quiz.pdf",
+            "bytes": 478014,
+            "sha256": "cfdff264ec7ea864f9d73e122a6ec080a0c30d1b8ea3faba0eb5cbb6d60bbcab",
+            "pages": 4,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "understanding-and-using-percent"]
+          }
+        },
+        {
+          "sortOrder": 3,
+          "title": "Positive Rational Numbers",
+          "slug": "positive-rational-numbers",
+          "titleSource": "PDF page-1 title 'Positive Rational Numbers Practice' without the word 'Practice'.",
+          "quiz": {
+            "slug": "positive-rational-numbers-quiz",
+            "title": "Positive Rational Numbers Practice",
+            "successCriteria": [
+              "Compare and order positive rational numbers.",
+              "Convert between fractions, decimals, and percentages.",
+              "Solve real-world problems using rational operations."
+            ],
+            "description": "Success criteria: Compare and order positive rational numbers. Convert between fractions, decimals, and percentages. Solve real-world problems using rational operations. Answers are included on the final page.",
+            "sourceFile": "Positive Rational Numbers Practice (1).pdf",
+            "file": "grade-6/grade-6-positive-rational-numbers-quiz.pdf",
+            "downloadFilename": "grade-6-positive-rational-numbers-quiz.pdf",
+            "bytes": 1060871,
+            "sha256": "3b8e8a9b485097b537ca78178337535f24bce59d0ecb65c7c6e088bf15312c7f",
+            "pages": 4,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "positive-rational-numbers"]
+          }
+        },
+        {
+          "sortOrder": 4,
+          "title": "Integers and Rational Numbers",
+          "slug": "integers-and-rational-numbers",
+          "titleSource": "PDF page-1 title 'Integers And Rational Numbers'; 'And' written as 'and'.",
+          "quiz": {
+            "slug": "integers-and-rational-numbers-quiz",
+            "title": "Integers And Rational Numbers",
+            "successCriteria": [
+              "Identify and plot integers on real-world scales",
+              "Find absolute values and opposites of numbers",
+              "Compare and order positive and negative rational numbers",
+              "Solve real-world integer and rational number problems"
+            ],
+            "description": "Success criteria: Identify and plot integers on real-world scales. Find absolute values and opposites of numbers. Compare and order positive and negative rational numbers. Solve real-world integer and rational number problems. Answers are included on the final page.",
+            "sourceFile": "Integers And Rational Numbers (1).pdf",
+            "file": "grade-6/grade-6-integers-and-rational-numbers-quiz.pdf",
+            "downloadFilename": "grade-6-integers-and-rational-numbers-quiz.pdf",
+            "bytes": 145654,
+            "sha256": "ec18dc452b12d4b379b20e2d4680aeabd80405cd8ad7d30ada0a730e6a2fbd93",
+            "pages": 3,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "integers-and-rational-numbers"]
+          }
+        },
+        {
+          "sortOrder": 5,
+          "title": "Numeric and Algebraic Expressions",
+          "slug": "numeric-and-algebraic-expressions",
+          "titleSource": "PDF page-1 title 'Numeric and Algebraic Expressions' (unchanged).",
+          "quiz": {
+            "slug": "numeric-and-algebraic-expressions-quiz",
+            "title": "Numeric and Algebraic Expressions",
+            "successCriteria": [
+              "Evaluate numerical expressions using order of operations",
+              "Identify parts of an algebraic expression",
+              "Translate verbal phrases into algebraic expressions",
+              "Evaluate algebraic expressions using substitution",
+              "Generate equivalent expressions by simplifying terms"
+            ],
+            "description": "Success criteria: Evaluate numerical expressions using order of operations. Identify parts of an algebraic expression. Translate verbal phrases into algebraic expressions. Evaluate algebraic expressions using substitution. Generate equivalent expressions by simplifying terms. Answers are included on the final page.",
+            "sourceFile": "Numeric and Algebraic Expressions (1).pdf",
+            "file": "grade-6/grade-6-numeric-and-algebraic-expressions-quiz.pdf",
+            "downloadFilename": "grade-6-numeric-and-algebraic-expressions-quiz.pdf",
+            "bytes": 737164,
+            "sha256": "3a768894911083f2b8d36c6a23fb8c27185c04a03cc1133d86bd4cf7159f6064",
+            "pages": 4,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "numeric-and-algebraic-expressions"]
+          }
+        },
+        {
+          "sortOrder": 6,
+          "title": "Represent and Solve Equations",
+          "slug": "represent-and-solve-equations",
+          "titleSource": "PDF page-1 title 'Represent and Solve Equations' (unchanged).",
+          "quiz": {
+            "slug": "represent-and-solve-equations-quiz",
+            "title": "Represent and Solve Equations",
+            "successCriteria": [
+              "Solve one-step equations using inverse operations",
+              "Write equations and inequalities from situations",
+              "Graph and interpret inequalities accurately"
+            ],
+            "description": "Success criteria: Solve one-step equations using inverse operations. Write equations and inequalities from situations. Graph and interpret inequalities accurately. Answers are included on the final page.",
+            "sourceFile": "Represent and Solve Equations (1).pdf",
+            "file": "grade-6/grade-6-represent-and-solve-equations-quiz.pdf",
+            "downloadFilename": "grade-6-represent-and-solve-equations-quiz.pdf",
+            "bytes": 609316,
+            "sha256": "2d84ebe2629a10e9cca2ad129655bb847047bc2c023d1dfb824a3b5ca6c1c37f",
+            "pages": 5,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "represent-and-solve-equations"]
+          }
+        },
+        {
+          "sortOrder": 7,
+          "title": "Area Surface Area Volume",
+          "slug": "area-surface-area-volume",
+          "titleSource": "PDF page-1 title 'Area Surface Area Volume Practice' without the word 'Practice'; punctuation not added.",
+          "quiz": {
+            "slug": "area-surface-area-volume-quiz",
+            "title": "Area Surface Area Volume Practice",
+            "successCriteria": [
+              "Calculate areas of triangles, parallelograms, and polygons.",
+              "Determine surface areas using nets and prisms.",
+              "Find volumes of rectangular prisms with fractions."
+            ],
+            "description": "Success criteria: Calculate areas of triangles, parallelograms, and polygons. Determine surface areas using nets and prisms. Find volumes of rectangular prisms with fractions. Answers are included on the final page.",
+            "sourceFile": "Area Surface Area Volume Practice (1).pdf",
+            "file": "grade-6/grade-6-area-surface-area-volume-quiz.pdf",
+            "downloadFilename": "grade-6-area-surface-area-volume-quiz.pdf",
+            "bytes": 682816,
+            "sha256": "2da222c60876b479e67477416a1097763ecb21db31cdeb4bcda52a8d561f5de8",
+            "pages": 5,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "area-surface-area-volume"]
+          }
+        },
+        {
+          "sortOrder": 8,
+          "title": "Displaying Describing Summarising Data",
+          "slug": "displaying-describing-summarising-data",
+          "titleSource": "PDF page-1 title 'Displaying Describing Summarising Data' (unchanged, including the spelling 'Summarising'); punctuation not added.",
+          "quiz": {
+            "slug": "displaying-describing-summarising-data-quiz",
+            "title": "Displaying Describing Summarising Data",
+            "successCriteria": [
+              "Interpret frequency charts, dot plots, and histograms",
+              "Calculate mean, median, mode, and range",
+              "Determine interquartile range and identify outliers"
+            ],
+            "description": "Success criteria: Interpret frequency charts, dot plots, and histograms. Calculate mean, median, mode, and range. Determine interquartile range and identify outliers. Answers are included on the final page.",
+            "sourceFile": "Displaying Describing Summarising Data (1).pdf",
+            "file": "grade-6/grade-6-displaying-describing-summarising-data-quiz.pdf",
+            "downloadFilename": "grade-6-displaying-describing-summarising-data-quiz.pdf",
+            "bytes": 619124,
+            "sha256": "a6eb70ac2c847c4ce740327d09fbd2cf05be7a82d5b25ca658c226a5b3aa1b44",
+            "pages": 5,
+            "answerKey": "included",
+            "answerKeyNote": "The final page of the same PDF is headed 'Answers'.",
+            "tags": ["grade-6", "quiz", "displaying-describing-summarising-data"]
+          }
+        }
+      ]
+    }
+  ]
+}

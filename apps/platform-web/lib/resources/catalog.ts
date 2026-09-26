@@ -30,6 +30,8 @@ export type PublicResource = Readonly<{
   previewFileIds: readonly string[];
   downloadable: boolean;
   isAnswerKey: boolean;
+  /** The answers are pages of the same PDF (the owner's own layout), so no separate key is published. */
+  answerKeyIncluded: boolean;
   answerKeyResourceId: string | null;
 }>;
 
@@ -110,6 +112,7 @@ export async function loadPublicResourceLibrary(kind: "homework" | "quizzes"): P
       previewFileIds: resourceFiles.filter((item) => item.file_role === "preview_image" || item.file_role === "thumbnail").map((item) => item.id),
       downloadable: resourceFiles.some((item) => item.file_role === (isAnswerKey ? "answer_key_pdf" : "primary_pdf")),
       isAnswerKey,
+      answerKeyIncluded: !isAnswerKey && manifest.answer_key === "included",
       answerKeyResourceId: isAnswerKey ? null : answerResource?.id ?? null
     }];
   });
