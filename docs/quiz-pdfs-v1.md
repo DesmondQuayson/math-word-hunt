@@ -123,9 +123,9 @@ Production publication is a separate owner-gated step and is not part of this ph
 ## 6. Hotfix 2026-09-26: banner cleanup + Quiz PDF preview
 
 Branch `hotfix/remove-banner-authorize-add-quiz-preview` (from `main` d6f5549, the v1.2.13 state).
-In production since 2026-09-26: runtime `3cbe09d` (the clean tip, fast-forwarded into `main`),
-`mathnexa.com` = `dpl_EcP8UnyLf3uHSVAZwXLLWZkAefVv`; tag `v1.2.14` pending the owner's decision on
-one open finding (preview header reflow at 320 px with 200% text); record:
+Released as **v1.2.14** on 2026-09-26: production runtime `a86fa50` (`mathnexa.com` =
+`dpl_6uyvVoMMuua6gpG5arrUMW3mnZVZ`), which adds the preview header reflow fix for 320 px with 200%
+text (branch `hotfix/quiz-preview-200pct-reflow`) to the first production runtime `3cbe09d`; record:
 `docs/releases/mathnexa-banner-cleanup-quiz-preview-hotfix.md`. Two focused changes, nothing else:
 
 ### 6a. Authorize Code removed from the banner
@@ -194,7 +194,10 @@ one open finding (preview header reflow at 320 px with 200% text); record:
   storage, never submitted), every card's Preview / Details / Download PDF, all eight previews drawn,
   no download when Preview is selected, last page reachable by scrolling, Download PDF from the
   preview (exact bytes, Chromium and WebKit), Back to Quiz PDFs, keyboard order and focus on the
-  preview page, access states, inline delivery headers and bytes, axe. Console and page errors are
+  preview page, access states, inline delivery headers and bytes, axe, and every quiz preview at
+  320 and 390 px with 200% text in both engines (no horizontal overflow, the title wraps, actions and
+  pages on screen, last page reachable). Any refusal a page meets on a resource route is recorded with
+  the app's stated reason. Console and page errors are
   classified (preview-toolbar / aborted / RSC / app); only app errors fail a run. On protected
   previews it sends `x-vercel-skip-toolbar: 1`, and it waits until in-flight requests finish before
   its own navigations (WebKit reports a Next.js prefetch cancelled by a navigation as "access

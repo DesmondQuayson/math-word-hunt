@@ -1,16 +1,21 @@
-# MathNexa v1.2.14 (banner cleanup + Quiz PDF preview): owner review pack
+# MathNexa v1.2.14 (banner cleanup + Quiz PDF preview, with the 200% text reflow fix): owner review pack
 
 Two captures of the same review (`scripts/review-quiz-pdfs-staging.mjs`, Chromium and WebKit,
-realistic pacing, temporary synthetic consumer accounts deleted at the end):
+realistic pacing, temporary synthetic consumer accounts deleted at the end), both of the final
+runtime `a86fa50`:
 
 | Folder | Target | Result |
 | --- | --- | --- |
-| `staging/` | clean release candidate on STAGING: `dpl_F8pHXRxYjBPXaM8n9hsJqRVeQffP` (https://mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app), build `3cbe09d` | **242 checks passed, 0 failed**, 0 console/page errors, nothing ignored |
-| `production/` | LIVE PRODUCTION `https://mathnexa.com` = `dpl_EcP8UnyLf3uHSVAZwXLLWZkAefVv`, build `3cbe09d`, after promotion on 2026-09-26 | **241 checks passed, 1 failed** (preview at 320 px with 200% text: 23 px overflow; see the release record's "Open finding"), 0 console/page errors, 0 5xx |
+| `staging/` | STAGING preview `dpl_H31WsnBjey6x9HzSAfKrA8sHLAc1` (https://mathnexa-platform-staging-bzj5u30gi-bright-path-ed-tech.vercel.app), build `a86fa50` | **311 checks passed, 0 failed**, 0 console/page errors, 0 resource-route refusals |
+| `production/` | LIVE `https://mathnexa.com` = `dpl_6uyvVoMMuua6gpG5arrUMW3mnZVZ`, build `a86fa50`, after promotion on 2026-09-26 20:26 UTC | **311 checks passed, 0 failed**, 0 console/page errors, 0 resource-route refusals, 0 5xx |
 
 `NOTES.txt` in each folder lists every check (ok/FAIL) with the measured values: banner link counts,
 card actions, inline delivery headers and sha256, pages drawn per preview, overflow, target sizes,
-axe, keyboard order, access-state routing, and the console/page error classification.
+the 200% text reflow result for every quiz at 320 and 390 px in both engines, axe, keyboard order,
+access-state routing, the console/page error classification and any refusal on a resource route.
+
+The earlier packs for runtime `3cbe09d` (staging 242/0; live 241/1, the 200% finding this release
+fixes) are in the repository history at commit `bef4d32`.
 
 ## Banner: Authorize Code removed
 
@@ -39,6 +44,7 @@ axe, keyboard order, access-state routing, and the console/page error classifica
 | File | What it shows |
 | --- | --- |
 | `22-preview-1366-first-screen.png`, `22b-preview-1366-full.png` | Preview opened from the first card: path, title, Back to Quiz PDFs · Details · Download PDF, page count, every page of the same private PDF (answers last). |
-| `24-preview-320.png`, `24b-preview-390.png`, `24f-preview-430.png`, `24c-preview-768.png`, `24g-preview-820-ipad.png`, `24d-preview-1920.png` | Preview at phone, iPad and desktop widths. |
-| `24b2-preview-390-full.png`, `24e-preview-320-text-200.png` | The whole 390 px preview page; 320 px at 200% text. |
+| `24-preview-320.png`, `24b-preview-390.png`, `24f-preview-430.png`, `24c-preview-768.png`, `24g-preview-820-ipad.png`, `24d-preview-1920.png` | Preview at phone, iPad and desktop widths (normal text). |
+| `24b2-preview-390-full.png` | The whole 390 px preview page. |
+| `26-chromium-preview-320-text-200-longest-title.png`, `26b-chromium-preview-320-text-200-longest-title-full.png`, `26-webkit-…`, `26b-webkit-…` | The quiz with the longest title word ("Understanding and Using Percent") at 320 px with 200% text, Chromium and WebKit: the title wraps inside the page, the actions stack, every page fits (the reflow fix). |
 | `25b-webkit-390-preview.png`, `25c-webkit-390-preview-full.png`, `25d-webkit-390-preview-last-page.png` | WebKit at 390 px: the PDF shows inline (nothing downloads when Preview is selected), every page, the last page reached by scrolling. Download PDF and Back to Quiz PDFs are checked in the notes. |

@@ -127,6 +127,10 @@ async function liveQuizzes() {
 
 const browser = await chromium.launch();
 const serverErrors = [];
+// Unexpected refusals on resource routes seen by the browser pages (the review's own
+// anonymous probes go through the request API and are not listed): status, route, and
+// who answered (the app's JSON carries a reason; a platform refusal does not).
+const resourceRefusals = [];
 // Every console error and page error, with the engine and the page it came from.
 const consoleErrors = [];
 // Evidence for RSC fetch failures: redirected RSC responses and failed RSC requests.
@@ -139,6 +143,13 @@ function observe(page, engine) {
     let url;
     try { url = new URL(response.url()); } catch { return; }
     if (response.status() >= 500) serverErrors.push(`${engine} ${response.status()} ${url.host === originHost ? "" : url.host}${url.pathname}`);
+    if (url.host === originHost && url.pathname.startsWith("/resources/") && response.status() >= 400 && response.status() < 500) {
+      const headers = response.headers();
+      const at = new Date().toISOString().slice(11, 19);
+      response.text()
+        .then((body) => resourceRefusals.push(`${at} ${engine} ${response.status()} ${url.pathname} type=${headers["content-type"] ?? "-"} server=${headers.server ?? "-"} body=${body.replace(/\s+/g, " ").slice(0, 140)} after "${lastStep()}"`))
+        .catch(() => resourceRefusals.push(`${at} ${engine} ${response.status()} ${url.pathname} type=${headers["content-type"] ?? "-"} (body unavailable) after "${lastStep()}"`));
+    }
     if (url.host === originHost && url.searchParams.has("_rsc") && response.status() >= 300 && response.status() < 400) {
       let target = response.headers().location ?? "";
       try { target = new URL(target, url).host; } catch { /* keep the raw value */ }
@@ -313,7 +324,14 @@ const drawnPages = (page) => page.evaluate(() => [...document.querySelectorAll("
   return { ok: ink > Math.max(50, canvas.width * canvas.height * 0.0005) && fit, ink, fit };
 }));
 async function previewFacts(page, item, label) {
-  await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+  try {
+    await page.getByRole("status").filter({ hasText: `${item.quiz.pages} pages` }).waitFor({ timeout: 90_000 });
+  } catch (error) {
+    // Record what the viewer itself says before failing: its status line and any fallback message.
+    const viewer = await page.evaluate(() => `status="${document.querySelector(".pdf-viewer-status")?.textContent ?? "-"}" alert="${document.querySelector(".pdf-viewer-fallback")?.textContent?.replace(/\s+/g, " ").slice(0, 160) ?? "-"}" url=${location.pathname}`).catch(() => "unavailable");
+    note(`  ${label}: preview ${item.quiz.slug} did not finish loading; viewer ${viewer}`);
+    throw error;
+  }
   const canvases = await page.locator(".pdf-viewer-pages canvas").count();
   const drawn = await drawnPages(page);
   const facts = await pageFacts(page);
@@ -860,6 +878,8 @@ try {
 // Always runs, even when a step threw, so the console evidence is never lost.
 function summarizeErrors() {
   check(serverErrors.length === 0, `no 5xx responses (${serverErrors.length ? serverErrors.join("; ") : "0"})`);
+  note(`resource-route refusals seen by the pages: ${resourceRefusals.length}`);
+  for (const entry of resourceRefusals) note(`  ${entry}`);
   // Console and page errors, classified. Only errors raised by the app fail the run:
   //   toolbar  - raised by vercel.live, the feedback toolbar Vercel injects into
   //              PREVIEW deployments (never present on production);

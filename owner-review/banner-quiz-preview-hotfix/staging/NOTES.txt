@@ -1,6 +1,6 @@
-review origin https://mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app (staging project); engines chromium, webkit
-ok   health 200 {"status":"ready","environment":"production-platform","build":"3cbe09d1685259cedc0f8dcf17f3ba9587aba211","searchIndexing
-ok   health build = 3cbe09d
+review origin https://mathnexa-platform-staging-bzj5u30gi-bright-path-ed-tech.vercel.app (staging project); engines chromium, webkit
+ok   health 200 {"status":"ready","environment":"production-platform","build":"a86fa5034c91a991f9486a4ceefa19535cc00487","searchIndexing
+ok   health build = a86fa50
 ok   staging publishes 8 of 8 manifest quizzes
 ok   database + private storage: Grade 6 / Topic 1: Ratios and Rates - Ratios And Rates Practice  [532861 bytes, pages 5, lesson assignments 0, bucket public false]
 ok   database + private storage: Grade 6 / Topic 2: Understanding and Using Percent - Understanding and Using Percent  [478014 bytes, pages 4, lesson assignments 0, bucket public false]
@@ -68,21 +68,21 @@ ok   anonymous 390: banner "Online Math Prep" (/map-prep, on screen true) -> /ac
 ok   anonymous 390: banner "Homework PDFs" (/homework, on screen true) -> /access?next=/homework
 ok   anonymous 390: banner "Quiz PDFs" (/quizzes, on screen true) -> /access?next=/quizzes
 ok   anonymous 390: banner "Worksheet Generator" (/worksheets, on screen true) -> /access?next=/worksheets
-ok   eligible: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   eligible: stays on the review host (mathnexa-platform-staging-bzj5u30gi-bright-path-ed-tech.vercel.app)
 ok   eligible: sign-in with next=/quizzes -> /subscription?next=/quizzes
 ok   eligible: page shows "Start your free trial"
 ok   eligible 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 18c-signed-in-trial-eligible-390.png /subscription?next=/quizzes
 ok   eligible: preview page -> /subscription?next=/quizzes
 ok   eligible: inline delivery -> 401
-ok   used-trial: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   used-trial: stays on the review host (mathnexa-platform-staging-bzj5u30gi-bright-path-ed-tech.vercel.app)
 ok   used-trial: sign-in with next=/quizzes -> /subscription?next=/quizzes
 ok   used-trial: page shows "Trial ended"
 ok   used-trial 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 shot 18d-used-trial-390.png /subscription?next=/quizzes
 ok   used-trial: preview page -> /subscription?next=/quizzes
 ok   used-trial: inline delivery -> 401
-ok   trial-active: stays on the review host (mathnexa-platform-staging-rm3npo8be-bright-path-ed-tech.vercel.app)
+ok   trial-active: stays on the review host (mathnexa-platform-staging-bzj5u30gi-bright-path-ed-tech.vercel.app)
 ok   trial-active: sign-in with next=/quizzes -> /quizzes
 ok   trial-active: page shows "Quiz PDFs"
 ok   trial-active 390: banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
@@ -181,8 +181,6 @@ shot 14b-mobile-320-text-200.png /quizzes
 ok   subscriber 320: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 17002/5879/32802/2232/273, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 shot 24-preview-320.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
 ok   320px preview ratios-and-rates-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
-ok   320px preview at 200% text: overflow 0px, 5/5 pages fit
-shot 24e-preview-320-text-200.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
 ok   subscriber 375 (home): banner has no Authorize Code item (0) and exactly six product links, all on screen (6, visible 6: Home|Math Games|Online Math Prep|Homework PDFs|Quiz PDFs|Worksheet Generator)
 ok   subscriber 375px home: horizontal overflow 0px
 ok   subscriber 375: homepage Authorize Code form present (heading 1, Code field 1, Show code 1)
@@ -248,6 +246,44 @@ shot 17-desktop-1920-grade-6.png /quizzes
 ok   subscriber 1920: preview ratios-and-rates-quiz: 5/5 pages drawn (ink 296937/72740/579751/23873/3707, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 shot 24d-preview-1920.png /resources/21303bbe-6f47-47f7-aa0d-63180654d5fb/preview
 ok   1920px preview ratios-and-rates-quiz: banner six (6) no code item (0), actions Back to Quiz PDFs|Details|Download PDF, short targets 0, last page reachable true
+ok   chromium 320 (normal text): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 17002/5879/32802/2232/273, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: ratios-and-rates-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 7179/31148/3996/377, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: understanding-and-using-percent-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+shot 26-chromium-preview-320-text-200-longest-title.png /resources/89c92f8c-35c0-452d-86fe-3d7d70164b18/preview
+shot 26b-chromium-preview-320-text-200-longest-title-full.png /resources/89c92f8c-35c0-452d-86fe-3d7d70164b18/preview
+ok   chromium axe 320px + 200% text preview: 0 serious/critical
+ok   chromium 320px + 200% text: Download PDF saves grade-6-understanding-and-using-percent-quiz.pdf (478014 bytes, sha256 == owner file); the preview stays open
+ok   chromium 320px + 200% text: Back to Quiz PDFs returns to /quizzes
+ok   chromium 320 (normal text): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 5651/9490/8127/262, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: positive-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 6675/4078/270, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: integers-and-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 3/3 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 10533/13566/754/264, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: numeric-and-algebraic-expressions-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 9754/10993/8961/2606/266, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: represent-and-solve-equations-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 7613/8119/10123/3735/291, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: area-surface-area-volume-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 320 (normal text): preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 3626/4925/5712/4105/317, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 320px + 200% text: displaying-describing-summarising-data-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 25711/8693/49352/2848/405, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: ratios-and-rates-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 9497/47937/5148/518, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: understanding-and-using-percent-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 8127/13458/11817/395, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: positive-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 8999/5423/394, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: integers-and-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 3/3 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 15165/19973/1010/405, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: numeric-and-algebraic-expressions-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 14449/16539/13076/3432/389, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: represent-and-solve-equations-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 11316/11965/15214/5546/439, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: area-surface-area-volume-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   chromium 390 (normal text): preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 5303/6483/7850/5656/471, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   chromium 390px + 200% text: displaying-describing-summarising-data-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+chromium 200% text: largest horizontal overflow 0px across 8 quizzes at 320 and 390 px
 ok   forced colors: cards render
 ok   forced colors 1366: preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 85534/154316/137499/4066, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   axe 1366 landing: 0 serious/critical
@@ -293,10 +329,50 @@ ok   webkit 390: preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn
 ok   webkit 390: preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 14559/16729/13450/3683/371, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 11194/11801/15225/5532/424, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
 ok   webkit 390: preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 5220/6705/8350/6143/467, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320 (normal text): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 16854/5800/32676/2136/280, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: ratios-and-rates-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 7107/31108/3884/359, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: understanding-and-using-percent-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+shot 26-webkit-preview-320-text-200-longest-title.png /resources/89c92f8c-35c0-452d-86fe-3d7d70164b18/preview
+shot 26b-webkit-preview-320-text-200-longest-title-full.png /resources/89c92f8c-35c0-452d-86fe-3d7d70164b18/preview
+ok   webkit axe 320px + 200% text preview: 0 serious/critical
+ok   webkit 320px + 200% text: Download PDF saves grade-6-understanding-and-using-percent-quiz.pdf (478014 bytes, sha256 == owner file); the preview stays open
+ok   webkit 320px + 200% text: Back to Quiz PDFs returns to /quizzes
+ok   webkit 320 (normal text): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 5494/9317/7994/270, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: positive-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 6521/3921/269, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: integers-and-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 3/3 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 10329/13377/728/268, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: numeric-and-algebraic-expressions-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 9663/10885/8993/2495/271, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: represent-and-solve-equations-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 7531/7929/10038/3692/311, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: area-surface-area-volume-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 320 (normal text): preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 3604/4824/5441/4006/305, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 320px + 200% text: displaying-describing-summarising-data-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview ratios-and-rates-quiz: 5/5 pages drawn (ink 25609/8820/49746/3144/390, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: ratios-and-rates-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview understanding-and-using-percent-quiz: 4/4 pages drawn (ink 9520/48078/5635/548, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: understanding-and-using-percent-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview positive-rational-numbers-quiz: 4/4 pages drawn (ink 8182/13907/12105/391, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: positive-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview integers-and-rational-numbers-quiz: 3/3 pages drawn (ink 9369/5798/379, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: integers-and-rational-numbers-quiz: overflow 0px, title wraps inside true, actions on screen true, 3/3 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview numeric-and-algebraic-expressions-quiz: 4/4 pages drawn (ink 15337/20339/1082/389, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: numeric-and-algebraic-expressions-quiz: overflow 0px, title wraps inside true, actions on screen true, 4/4 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview represent-and-solve-equations-quiz: 5/5 pages drawn (ink 14559/16729/13450/3683/371, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: represent-and-solve-equations-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview area-surface-area-volume-quiz: 5/5 pages drawn (ink 11194/11801/15225/5532/424, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: area-surface-area-volume-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+ok   webkit 390 (normal text): preview displaying-describing-summarising-data-quiz: 5/5 pages drawn (ink 5220/6705/8350/6143/467, fit true), overflow 0px, embedded 0, web storage 0, storage markers false
+ok   webkit 390px + 200% text: displaying-describing-summarising-data-quiz: overflow 0px, title wraps inside true, actions on screen true, 5/5 pages within the width, last page reachable true
+webkit 200% text: largest horizontal overflow 0px across 8 quizzes at 320 and 390 px
 webkit keyboard walk: not run (documented Windows WebKit sequential-focus policy; verified in Chromium above)
 ok   no 5xx responses (0)
+resource-route refusals seen by the pages: 0
 console/page errors: toolbar 0 (chromium 0, webkit 0), aborted 0 (chromium 0, webkit 0), rsc 0 (chromium 0, webkit 0), app 0 (chromium 0, webkit 0)
-rsc evidence: 0 redirected RSC responses (0 off the review host); 24 failed RSC requests: chromium / net::ERR_ABORTED; chromium /quizzes net::ERR_ABORTED; chromium /games net::ERR_ABORTED; chromium /privacy net::ERR_ABORTED; chromium /homework net::ERR_ABORTED; chromium /access net::ERR_ABORTED
+rsc evidence: 0 redirected RSC responses (0 off the review host); 23 failed RSC requests: chromium /games net::ERR_ABORTED; chromium /refunds net::ERR_ABORTED; chromium /quizzes net::ERR_ABORTED; chromium /map-prep net::ERR_ABORTED; chromium / net::ERR_ABORTED; chromium /sign-in net::ERR_ABORTED
 ok   no console/page errors from the app (app 0)
+evidence: the review's synthetic accounts recorded 89 resource_download_events rows (downloads + preview inline deliveries)
 cleanup: 4 synthetic staging accounts deleted
-SUMMARY ok=242 fail=0
+SUMMARY ok=311 fail=0
