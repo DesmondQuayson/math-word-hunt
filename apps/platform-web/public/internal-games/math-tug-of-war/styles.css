@@ -387,6 +387,7 @@ button:disabled { cursor: not-allowed; }
 /* Robot / opponent cards */
 .robot-card, .opponent-card { justify-content: flex-start; }
 .robot-face { display: grid; place-items: center; flex: 1; min-height: 60px; max-height: 220px; color: var(--pink-strong); }
+.team-turquoise .opponent-face { color: var(--turq-strong); }
 .robot-face .icon { width: min(60%, 180px); height: auto; aspect-ratio: 1; stroke-width: 1.4; }
 .robot-status { margin: 0; text-align: center; font-weight: 900; font-size: clamp(1.05rem, 7cqi, 1.8rem); }
 .robot-status[data-kind="pulled"] { color: var(--pink-ink); }
@@ -442,7 +443,7 @@ button:disabled { cursor: not-allowed; }
   .mode-robot .robot-card .panel-name, .mode-online .opponent-card .panel-name { font-size: 1rem; }
   .mode-robot .robot-card .panel-header, .mode-online .opponent-card .panel-header { flex-wrap: nowrap; }
   .robot-pulls, .opponent-pulls { font-size: .8rem; }
-  .mode-robot .robot-face { display: none; }
+  .mode-robot .robot-face, .mode-online .opponent-face { display: none; }
   .mode-robot .robot-card .panel-header, .mode-online .opponent-card .panel-header { flex: 1 1 55%; min-width: 0; }
   .mode-robot .robot-status { font-size: 1rem; }
   .game-instruction { display: none; }

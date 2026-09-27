@@ -846,6 +846,7 @@ function renderOnlineGame(state) {
 function opponentCard(state, team) {
   return h("section", { class: `opponent-card team-${team}`, "aria-labelledby": "opponent-name" },
     h("header", { class: "panel-header" }, teamBadge(team), h("h2", { id: "opponent-name", class: "panel-name", text: state.names[team] ?? "" })),
+    h("div", { class: "robot-face opponent-face", "aria-hidden": "true" }, icon("online")),
     h("p", { class: "connection", "data-presence": state.presence[team] }, icon("signal"), h("span", { class: "connection-text", text: presenceText(state.presence[team]) })),
     h("p", { class: "panel-pulls opponent-pulls", text: `Pulls: ${state.pulls[team]}` }));
 }

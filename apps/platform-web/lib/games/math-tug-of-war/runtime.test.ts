@@ -32,8 +32,9 @@ describe("Math Tug of War runtime delivery", () => {
     expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
     const body = await response.text();
     expect(body).toBe(renderMathTugOfWarDocument());
-    expect(body).toContain('<base href="/internal-games/math-tug-of-war/"');
-    expect(body).toContain(`src="./src/app.js?v=${MATH_TUG_OF_WAR_RUNTIME_SHA256.slice(0, 16)}"`);
+    expect(body).not.toContain("<base");
+    expect(body).toContain(`src="/internal-games/math-tug-of-war/src/app.js?v=${MATH_TUG_OF_WAR_RUNTIME_SHA256.slice(0, 16)}"`);
+    expect(body).toContain(`href="/internal-games/math-tug-of-war/styles.css?v=${MATH_TUG_OF_WAR_RUNTIME_SHA256.slice(0, 16)}"`);
     expect(body).not.toMatch(/https?:\/\//);
     expect(body).not.toContain("iframe");
     expect(body).not.toMatch(/<script(?![^>]*type="module"[^>]*src=)/);
