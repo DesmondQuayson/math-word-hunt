@@ -21,7 +21,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { cpSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -158,14 +158,35 @@ async function smoke() {
     const pull = await rpc("tug_submit_answer", { p_code: code, p_token_hash: host, p_round: 1, p_question_index: 0, p_correct: true });
     const replay = await rpc("tug_submit_answer", { p_code: code, p_token_hash: host, p_round: 1, p_question_index: 0, p_correct: true });
     const wrong = await rpc("tug_submit_answer", { p_code: code, p_token_hash: guest, p_round: 1, p_question_index: 0, p_correct: false });
+    const pinkPull = await rpc("tug_submit_answer", { p_code: code, p_token_hash: guest, p_round: 1, p_question_index: 1, p_correct: true });
+    const pinkReplay = await rpc("tug_submit_answer", { p_code: code, p_token_hash: guest, p_round: 1, p_question_index: 1, p_correct: true });
     const full = await rpc("tug_join_room", { p_code: code, p_guest_name: "Third", p_guest_token_hash: hash("third"), p_owner_hash: owner });
     const left = await rpc("tug_leave_room", { p_code: code, p_token_hash: guest });
     evidence.smoke = {
-      created: created.result, joined: joined.result, pullPosition: pull.position, replay: replay.result,
-      wrongPosition: wrong.position, full: full.result, left: left.status
+      code: /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/.test(created.code) ? "5-character" : "BAD",
+      created: created.result, joined: joined.result, playerAPullPosition: pull.position, replay: replay.result,
+      wrongPosition: wrong.position, playerBPullPosition: pinkPull.position, playerBReplay: pinkReplay.result,
+      pulls: pinkReplay.pulls, full: full.result, left: left.status
     };
     check(created.result === "created" && joined.result === "joined" && pull.position === -1 && replay.result === "stale"
-      && wrong.position === -1 && full.result === "full" && left.status === "closed", "smoke-contract-failed");
+      && wrong.position === -1 && pinkPull.position === 0 && pinkReplay.result === "stale"
+      && pinkReplay.pulls.turquoise === 1 && pinkReplay.pulls.pink === 1 && full.result === "full" && left.status === "closed", "smoke-contract-failed");
+    // Expiry: an expired waiting room cannot be joined.
+    const expiredCode = code.split("").reverse().join("");
+    const expiredHost = hash(randomBytes(32).toString("hex"));
+    try {
+      const made = await rpc("tug_create_room", { p_code: expiredCode, p_skill: "addition", p_seed: randomBytes(16).toString("hex"), p_host_name: "Smoke Expired", p_host_token_hash: expiredHost, p_owner_hash: owner });
+      check(made.result === "created", "expired-room-setup-failed");
+      const aged = await client.from("tug_rooms").update({ expires_at: new Date(Date.now() - 1_000).toISOString() }).eq("code", expiredCode).eq("host_token_hash", expiredHost);
+      check(!aged.error, "expired-room-ageing-failed");
+      const late = await rpc("tug_join_room", { p_code: expiredCode, p_guest_name: "Late", p_guest_token_hash: hash("late"), p_owner_hash: owner });
+      const hostView = await rpc("tug_room_state", { p_code: expiredCode, p_token_hash: expiredHost });
+      evidence.smoke.expiredJoin = late.result;
+      evidence.smoke.expiredStatus = hostView.status;
+      check(late.result === "expired" && hostView.status === "expired", "expired-room-contract-failed");
+    } finally {
+      await client.from("tug_rooms").delete().eq("code", expiredCode).eq("host_token_hash", expiredHost);
+    }
     const publishable = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
     if (publishable) {
       const anon = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, publishable, { auth: { persistSession: false } });
@@ -183,10 +204,171 @@ async function smoke() {
   }
 }
 
+/**
+ * Read-only: prove the pooler database (vault DB password) and the staging API
+ * (vault staging secret key) are the same project, and show the migration
+ * history format the apply stage must follow.
+ */
+async function identify() {
+  const url = connect();
+  const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
+  const sql = (query) => {
+    const result = cli(["db", "query", "--db-url", url, "-o", "json", query]);
+    check(result.ok, `query-failed:${redact(result.output).slice(-400)}`);
+    return parseRows(result.output);
+  };
+  const database = sql("select (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.game_catalog_entries)::int as catalog, (select string_agg(stable_key || ':' || status, ',' order by stable_key) from public.game_catalog_entries) as games, (select max(created_at)::text from public.game_catalog_entry_versions) as latest_catalog_version")[0];
+  const api = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const accounts = await api.from("consumer_accounts").select("user_id", { count: "exact", head: true });
+  const games = await api.from("game_catalog_entries").select("stable_key,status").order("stable_key");
+  check(!accounts.error && !games.error, "staging-api-rejected-vault-secret-key");
+  evidence.databaseFingerprint = database;
+  evidence.apiFingerprint = { accounts: accounts.count, games: games.data.map((row) => `${row.stable_key}:${row.status}`).join(",") };
+  evidence.sameProject = database.accounts === accounts.count && database.games === evidence.apiFingerprint.games;
+  check(evidence.sameProject, "pooler-database-and-staging-api-differ");
+  evidence.historyColumns = sql("select column_name, data_type from information_schema.columns where table_schema='supabase_migrations' and table_name='schema_migrations' order by ordinal_position");
+  evidence.historyTail = sql("select version, name, coalesce(array_length(statements, 1), 0) as statement_count from supabase_migrations.schema_migrations order by version desc limit 4");
+  evidence.tugObjectsPresent = sql("select (to_regclass('public.tug_rooms') is not null) as tug_rooms, exists(select 1 from public.game_catalog_entries where stable_key='math-tug-of-war') as catalog_row")[0];
+}
+
+/**
+ * Split a migration file into statements the way the Supabase CLI records
+ * them in supabase_migrations.schema_migrations.statements. The apply stage
+ * proves this against rows the CLI itself wrote before using it.
+ */
+export function splitStatements(source) {
+  const statements = [];
+  let current = "";
+  let index = 0;
+  while (index < source.length) {
+    const rest = source.slice(index);
+    const dollar = /^\$[A-Za-z_]*\$/.exec(rest);
+    if (source[index] === "-" && source[index + 1] === "-") {
+      const end = source.indexOf("\n", index);
+      const stop = end === -1 ? source.length : end + 1;
+      current += source.slice(index, stop);
+      index = stop;
+    } else if (source[index] === "/" && source[index + 1] === "*") {
+      const end = source.indexOf("*/", index + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      current += source.slice(index, stop);
+      index = stop;
+    } else if (source[index] === "'") {
+      let stop = index + 1;
+      while (stop < source.length && !(source[stop] === "'" && source[stop + 1] !== "'")) stop += source[stop] === "'" ? 2 : 1;
+      current += source.slice(index, stop + 1);
+      index = stop + 1;
+    } else if (dollar) {
+      const tag = dollar[0];
+      const end = source.indexOf(tag, index + tag.length);
+      const stop = end === -1 ? source.length : end + tag.length;
+      current += source.slice(index, stop);
+      index = stop;
+    } else if (source[index] === ";") {
+      // The CLI records each statement without its terminating semicolon.
+      statements.push(current);
+      current = "";
+      index += 1;
+    } else {
+      current += source[index];
+      index += 1;
+    }
+  }
+  if (current.trim()) statements.push(current);
+  return statements.map((statement) => statement.trim()).filter((statement) => statement.replace(/--.*$/gm, "").trim() !== "");
+}
+
+/** Owner-approved: apply ONLY 20260927100000 in one transaction and record it. */
+async function apply() {
+  const url = connect();
+  const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
+  const sql = (query) => {
+    const result = cli(["db", "query", "--db-url", url, "-o", "json", query]);
+    check(result.ok, `query-failed:${redact(result.output).slice(-400)}`);
+    return parseRows(result.output);
+  };
+  // Same-project proof (pooler database == staging API), as in identify.
+  const api = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const apiGames = await api.from("game_catalog_entries").select("stable_key,status").order("stable_key");
+  check(!apiGames.error, "staging-api-rejected-vault-secret-key");
+  const dbGames = sql("select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries")[0].games;
+  check(dbGames === apiGames.data.map((row) => `${row.stable_key}:${row.status}`).join(","), "pooler-database-and-staging-api-differ");
+
+  const remote = sql("select version from supabase_migrations.schema_migrations order by version").map((row) => String(row.version));
+  check(!remote.includes(MIGRATION), "refusing: 20260927100000 is already recorded");
+  const before = sql("select (select count(*) from public.game_catalog_entries)::int as catalog, (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.consumer_game_entitlements)::int as entitlements, (select count(*) from supabase_migrations.schema_migrations)::int as history, (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations) as history_digest")[0];
+
+  // The splitter must reproduce what the CLI recorded for earlier migrations.
+  for (const [version, file] of [["20260907130000", "20260907130000_subscription_lifecycle_reconciliation.sql"], ["20260816050000", "20260816050000_crosscalc_v2_public_release.sql"]]) {
+    // 20260816050000 was pushed from a CRLF checkout; line endings are the
+    // only allowed difference there. 20260907130000 must match byte for byte.
+    const storedRaw = sql(`select statements from supabase_migrations.schema_migrations where version='${version}'`)[0].statements;
+    const stored = version === "20260816050000" ? storedRaw.map((statement) => statement.replace(/\r\n/g, "\n")) : storedRaw;
+    const ours = splitStatements(readFileSync(resolve(`supabase/migrations/${file}`), "utf8"));
+    if (JSON.stringify(stored) !== JSON.stringify(ours)) {
+      const at = stored.findIndex((statement, position) => statement !== ours[position]);
+      const a = stored[at] ?? "";
+      const b = ours[at] ?? "";
+      let char = 0;
+      while (char < a.length && a[char] === b[char]) char += 1;
+      evidence.splitDiff = { version, statement: at, char, storedLength: a.length, oursLength: b.length,
+        stored: JSON.stringify(a.slice(Math.max(0, char - 40), char + 40)), ours: JSON.stringify(b.slice(Math.max(0, char - 40), char + 40)),
+        storedHead: JSON.stringify(a.slice(0, 60)), storedTail: JSON.stringify(a.slice(-40)), oursHead: JSON.stringify(b.slice(0, 60)), oursTail: JSON.stringify(b.slice(-40)) };
+      throw new Error(`statement-split-differs-from-cli:${version}:${stored.length}/${ours.length}`);
+    }
+  }
+  evidence.splitterMatchesCliHistory = true;
+
+  const body = readFileSync(resolve(`supabase/migrations/${MIGRATION}_math_tug_of_war.sql`), "utf8");
+  const statements = splitStatements(body);
+  check(!statements.some((statement) => statement.includes("$tugstmt$") || statement.includes("$tugapply$")), "quote-tag-collision");
+  const literal = `array[${statements.map((statement) => `$tugstmt$${statement}$tugstmt$`).join(",")}]::text[]`;
+  // `db query` runs exactly one command, so the migration runs as ONE DO
+  // statement: every recorded statement executes in order, then the history
+  // row is written. Any error aborts the whole statement (nothing persists).
+  const program = [
+    "do $tugapply$",
+    "begin",
+    ...statements.map((statement) => `  execute $tugstmt$${statement}$tugstmt$;`),
+    `  insert into supabase_migrations.schema_migrations(version, name, statements) values ('${MIGRATION}', 'math_tug_of_war', ${literal});`,
+    "end",
+    "$tugapply$"
+  ].join("\n");
+  const workRoot = mkdtempSync(join(tmpdir(), "mathnexa-tug-apply-"));
+  try {
+    const file = join(workRoot, "apply.sql");
+    writeFileSync(file, program);
+    const applied = cli(["db", "query", "--db-url", url, "--file", file]);
+    check(applied.ok, `apply-failed-rolled-back:${redact(applied.output).slice(-600)}`);
+  } finally {
+    rmSync(workRoot, { recursive: true, force: true });
+  }
+
+  const after = sql("select (select count(*) from public.game_catalog_entries)::int as catalog, (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.consumer_game_entitlements)::int as entitlements, (select count(*) from supabase_migrations.schema_migrations)::int as history, (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations where version <> '20260927100000') as history_digest")[0];
+  evidence.statementsRecorded = statements.length;
+  evidence.recorded = sql("select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='20260927100000'")[0];
+  check(evidence.recorded?.statements === statements.length, "history-row-missing-or-wrong");
+  check(after.history === before.history + 1 && after.history_digest === before.history_digest, "other-history-rows-changed");
+  check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.catalog === before.catalog + 1, "unrelated-rows-changed");
+  evidence.otherHistoryUnchanged = true;
+  evidence.ph2_07 = sql("select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='20260909010000'")[0];
+  evidence.catalog = sql("select stable_key, slug, status, version, display_order, thumbnail_reference, (select count(*) from public.game_catalog_entries g where g.stable_key='math-tug-of-war' or g.slug='math-tug-of-war')::int as identities from public.game_catalog_entries where stable_key='math-tug-of-war'")[0];
+  check(evidence.catalog?.status === "published" && evidence.catalog.identities === 1, "catalog-row-wrong");
+  evidence.otherGames = sql("select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> 'math-tug-of-war'")[0].games;
+  check(evidence.otherGames === dbGames, "existing-games-changed");
+  evidence.tables = sql("select relname, relrowsecurity, relforcerowsecurity, has_table_privilege('anon', oid, 'INSERT') as anon_insert, has_table_privilege('authenticated', oid, 'UPDATE') as authenticated_update, has_table_privilege('authenticated', oid, 'SELECT') as authenticated_select, (select count(*) from pg_policies p where p.tablename=c.relname)::int as policies from pg_class c where relname in ('tug_rooms','tug_join_failures') and relnamespace='public'::regnamespace order by relname");
+  check(evidence.tables.length === 2 && evidence.tables.every((row) => row.relrowsecurity && row.relforcerowsecurity && !row.anon_insert && !row.authenticated_update && !row.authenticated_select), "room-tables-not-locked-down");
+  evidence.indexes = sql("select indexname from pg_indexes where schemaname='public' and tablename in ('tug_rooms','tug_join_failures') order by indexname").map((row) => row.indexname);
+  evidence.functions = sql("select proname, prosecdef, has_function_privilege('anon', oid, 'EXECUTE') as anon_execute, has_function_privilege('authenticated', oid, 'EXECUTE') as authenticated_execute, has_function_privilege('service_role', oid, 'EXECUTE') as service_role_execute from pg_proc where pronamespace='public'::regnamespace and proname like 'tug!_%' escape '!' order by proname");
+  check(evidence.functions.length === 6 && evidence.functions.every((row) => row.prosecdef && !row.anon_execute && !row.authenticated_execute && row.service_role_execute), "room-functions-not-locked-down");
+}
+
 try {
-  if (stage === "migrate") await migrate();
+  if (stage === "identify") await identify();
+  else if (stage === "apply") await apply();
+  else if (stage === "migrate") await migrate();
   else if (stage === "smoke") await smoke();
-  else throw new Error("usage: --stage=migrate|smoke");
+  else throw new Error("usage: --stage=identify|apply|migrate|smoke");
   evidence.result = "PASS";
 } catch (error) {
   evidence.result = "FAIL";
