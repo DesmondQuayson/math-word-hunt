@@ -226,6 +226,8 @@ try {
       await admin.auth.admin.updateUserById(signupId, { email_confirm: true });
       await anon.page.goto(`${origin}/sign-up?next=${route}`, { waitUntil: "domcontentloaded" });
       await anon.page.getByRole("link", { name: "Already have an account?" }).click();
+      await anon.page.waitForURL((address) => address.pathname === "/sign-in" && address.searchParams.get("next") === route, { timeout: 30_000 });
+      await anon.page.getByRole("button", { name: "Sign in" }).waitFor();
       await anon.page.getByLabel("Email address").fill(signupEmail);
       await anon.page.locator('input[name="password"]').fill(password);
       await anon.page.getByRole("button", { name: "Sign in" }).click();
