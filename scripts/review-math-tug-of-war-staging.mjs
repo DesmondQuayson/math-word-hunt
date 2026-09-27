@@ -275,6 +275,33 @@ try {
   const response = await a.page.request.get(`${origin}${route}`);
   ok(response.status() === 200 && (response.headers()["content-security-policy"] ?? "").includes("connect-src 'self'"), "route 200 under the game CSP for a non-subscriber");
   await shot(a.page, "02-main-game-setup");
+  // Mode cards (v1.2.17 copy): Two Teams reads "Best Played on Smart Board"; the other cards and the
+  // Two Teams setup-screen badge ("Same Screen") are unchanged; the badge fits at every size.
+  const modeCard = (mode) => a.page.locator(`button[data-mode=${mode}]`);
+  const cardText = async (mode) => [await modeCard(mode).locator(".mode-title").textContent(), await modeCard(mode).locator(".mode-text").textContent(), await modeCard(mode).locator(".mode-badge").textContent()].join(" | ");
+  ok(await cardText("teams") === "Two Teams | Play together on one device | Best Played on Smart Board", "mode card: Two Teams | Play together on one device | Best Played on Smart Board");
+  ok(await cardText("robot") === "VS Robot | Play against the computer | One Player" && await cardText("online") === "Online Match | Play from two devices | Two Devices", "mode cards: VS Robot and Online Match unchanged");
+  ok(!(await a.page.locator(".mode-grid").textContent()).includes("Same Screen"), "mode cards: old \"Same Screen\" badge absent");
+  const badgeFits = [];
+  for (const [width, height] of [[304, 640], [320, 568], [390, 844], [768, 1024], [1366, 900], [1920, 1080]]) {
+    for (const scale of ["100%", "200%"]) {
+      await a.page.setViewportSize({ width, height });
+      const style = scale === "200%" ? await a.page.addStyleTag({ content: "html { font-size: 200% !important; }" }) : null;
+      const fit = await a.page.evaluate(() => {
+        const card = document.querySelector("button[data-mode=teams]").getBoundingClientRect();
+        const badge = document.querySelector("button[data-mode=teams] .mode-badge");
+        const box = badge.getBoundingClientRect();
+        return box.left >= card.left - 0.5 && box.right <= card.right + 0.5 && box.bottom <= card.bottom + 0.5 && badge.scrollWidth <= badge.clientWidth + 0.5 && document.documentElement.scrollWidth <= document.documentElement.clientWidth;
+      });
+      if (!fit) badgeFits.push(`${width}@${scale}`);
+      if (style) await style.evaluate((node) => node.remove());
+    }
+  }
+  await a.page.setViewportSize({ width: 1366, height: 900 });
+  ok(badgeFits.length === 0, `Two Teams badge inside its card, no clipping or overflow at 304/320/390/768/1366/1920, 100% and 200% ${badgeFits.join(" ")}`);
+  await modeCard("teams").click();
+  ok((await a.page.locator(".setup-title .mode-badge").textContent()) === "Same Screen", "Two Teams setup screen badge still \"Same Screen\"");
+  await openGame(a.page);
   const unchanged = [];
   for (const path of ["/games", "/games/number-logic/play", "/games/number-cross/play", "/games/crosscalc/play", "/play", "/map-prep", "/homework", "/quizzes", "/worksheets"]) {
     const gated = await a.page.request.get(`${origin}${path}`, { maxRedirects: 0 });
