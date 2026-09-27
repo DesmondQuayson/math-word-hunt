@@ -2,7 +2,8 @@
 
 Status: **RELEASED — v1.2.15** (owner brief "Final UI hotfix before project closeout — hide
 Authorize Code form after sign-in", 2026-09-26). Staging certified, production promoted and
-verified live.
+verified live. The automation bypass credential exposed during the release session was rotated
+afterwards (see "Security rotation").
 
 | | |
 | --- | --- |
@@ -178,10 +179,35 @@ accounts. No data or configuration changed in this release.
 3. Vercel CLI 60 prints debug output in this environment. When the webhook probe was repeated by
    hand, that output displayed the production project's "Protection Bypass for Automation" token in
    the operator's console. It is not in the repository, the pipeline logs or the evidence files.
-   Recommended owner action: regenerate that token in the Vercel project settings (Deployment
-   Protection).
+   It was rotated after the release (see "Security rotation").
 4. The live dummy-code check records one refused attempt (`AUTHORIZED_CODE_FAILED`, the code itself
    is never recorded) and uses one of the 20 attempts per 15 minutes the reviewing network gets.
+
+## Security rotation (2026-09-26, after the release)
+
+Vercel Deployment Protection automation bypass credential was rotated after release because debug
+output exposed the previous token in a local release session.
+
+- The owner regenerated the production project's "Protection Bypass for Automation" secret in the
+  Vercel project settings and revoked the previous one. No credential value, partial value or hash
+  appears in this record, the repository, the release evidence or the logs.
+- Verified without printing any credential (status codes only):
+  - the previous credential is rejected: a protected production-project deployment URL answers 302
+    to the Vercel login with it, exactly as with no credential (it answered 200 before the rotation);
+  - the new credential works through the Vercel CLI workflow the release pipeline uses (`vercel curl`
+    reads it from the project settings): `/api/health` 200, ready, build `2532244`;
+  - the staging review automation still reaches the staging preview (200). Its vault entry is the
+    staging project's own credential, a different value, so it needed no change.
+- Production unchanged: `mathnexa.com` still serves `dpl_3DUHT7Lcfy1VvGWStF9JLGnnkyyN`, build
+  `2532244`; no deployment was created and nothing was redeployed. The application never reads this
+  credential, so no refresh was needed. No production data changed.
+- Closeout checks (read-only): signed-out homepage card, banner (six products, no Authorize Code
+  item) and anonymous refusal of all 8 quiz preview / inline / download routes in Chromium and WebKit
+  (17/17, 0 console errors, 0 5xx); Homework 8 topics / 59 lessons / 167 assignments, 0 changes;
+  tags `v1.2.14` unchanged (`27f201d5` → `a86fa50`) and `v1.2.15` (`bdcc806` → `2532244`).
+- Housekeeping: the seven temporary release worktrees were removed after checking each was clean and
+  pushed; disposable scratch scripts, copies and traces were deleted. Release records and
+  owner-review evidence are unchanged.
 
 ## v1.2.15 release notes (annotated tag)
 
