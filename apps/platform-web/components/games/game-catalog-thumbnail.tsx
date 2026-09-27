@@ -17,6 +17,10 @@ const PREMIUM_THUMBNAILS = Object.freeze({
   "number-cross": Object.freeze({
     webp: "/media/games/number-cross.webp",
     avif: "/media/games/number-cross.avif"
+  }),
+  "math-tug-of-war": Object.freeze({
+    webp: "/media/games/math-tug-of-war.webp",
+    avif: "/media/games/math-tug-of-war.avif"
   })
 } satisfies Record<string, CatalogThumbnail>);
 

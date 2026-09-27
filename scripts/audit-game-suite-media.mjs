@@ -18,7 +18,8 @@ const audioPaths = [
 const thumbnails = [
   ["math-vocabulary-hunt", content.mathVocabularyHunt.assets],
   ["number-logic", content.numberLogic.assets],
-  ["number-cross", content.numberCross.assets]
+  ["number-cross", content.numberCross.assets],
+  ["math-tug-of-war", content.mathTugOfWar.assets]
 ];
 
 function bytes(path) { return readFileSync(resolve(root, path)); }
@@ -163,3 +164,18 @@ for (const [path, expected] of [
 ]) assert.equal(sha256(bytes(path)), expected, path);
 
 console.log("Game-suite media audit passed: protected sources, reviewed 1200x675 assets, authentic puzzle-state math, canonical vocabulary, local music, attribution, and runtime network boundaries are intact.");
+
+// Math Tug of War artwork: every visible question is a legal V1 integer
+// question, and the entry being typed is its correct answer.
+const tug = content.mathTugOfWar;
+const tugMinus = String.fromCharCode(0x2212);
+const tugSolve = (text) => {
+  const match = text.split(tugMinus).join("-").match(/^(-?\d+) ([+-]) \(?(-?\d+)\)?$/);
+  assert.ok(match, `Math Tug of War artwork question grammar: ${text}`);
+  const [a, b] = [Number(match[1]), Number(match[3])];
+  assert.ok(Math.abs(a) <= 12 && Math.abs(b) <= 12, `Math Tug of War operands in range: ${text}`);
+  return match[2] === "+" ? a + b : a - b;
+};
+for (const question of tug.visibleQuestions) tugSolve(question);
+assert.ok(tug.visibleQuestions.includes(tug.typedEntry.question));
+assert.equal(tugSolve(tug.typedEntry.question), tug.typedEntry.value, "Math Tug of War artwork entry is correct");

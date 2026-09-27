@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { GameCatalogThumbnail, resolveGameCatalogThumbnail } from "./game-catalog-thumbnail";
 
 describe("game catalog thumbnails", () => {
-  it("maps the three owner-supplied game artworks to same-origin optimized assets", () => {
+  it("maps the owner-supplied and captured game artworks to same-origin optimized assets", () => {
     expect(resolveGameCatalogThumbnail("math-vocabulary-hunt", "builtin:math-vocabulary-hunt")).toEqual({
       webp: "/media/games/math-vocabulary-hunt.webp",
       avif: "/media/games/math-vocabulary-hunt.avif"
@@ -16,6 +16,10 @@ describe("game catalog thumbnails", () => {
     expect(resolveGameCatalogThumbnail("number-cross", "builtin:number-cross")).toEqual({
       webp: "/media/games/number-cross.webp",
       avif: "/media/games/number-cross.avif"
+    });
+    expect(resolveGameCatalogThumbnail("math-tug-of-war", "builtin:math-tug-of-war")).toEqual({
+      webp: "/media/games/math-tug-of-war.webp",
+      avif: "/media/games/math-tug-of-war.avif"
     });
   });
 

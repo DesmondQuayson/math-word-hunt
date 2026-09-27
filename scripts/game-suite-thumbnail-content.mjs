@@ -92,6 +92,20 @@ export const GAME_SUITE_THUMBNAIL_CONTENT = Object.freeze({
       avif: Object.freeze({ bytes: 18_194, sha256: "54674951a8f3b738597e45feeda71a6b7b98454d83c5cb330bb4171e4d971067" })
     })
   }),
+  mathTugOfWar: Object.freeze({
+    sourceKind: "production UI capture (scripts/capture-math-tug-of-war-thumbnail.mjs)",
+    route: "/games/math-tug-of-war/play",
+    mode: "Two Teams",
+    skill: "Addition & Subtraction of Integers",
+    // Questions visible in the artwork, and the entry Pink is typing.
+    visibleQuestions: Object.freeze(["11 − (−3)", "−6 − (−4)"]),
+    typedEntry: Object.freeze({ question: "−6 − (−4)", value: -2 }),
+    ropePosition: -1,
+    assets: Object.freeze({
+      webp: Object.freeze({ bytes: 44_952, sha256: "0f5ab5a06ff74293bcd1a41aabf5d145c41cb25bc0f44314606797bdc7eeb363" }),
+      avif: Object.freeze({ bytes: 27_938, sha256: "83d682b2851e9a854e18f1fe330a1e61ac6d84fed54af88ea3f9058e9c28b196" })
+    })
+  }),
   crossCalc: Object.freeze({
     sourceKind: "approved real-game capture",
     webp: Object.freeze({

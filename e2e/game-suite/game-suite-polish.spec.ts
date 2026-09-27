@@ -20,7 +20,8 @@ const games = [
   { title: "Math Word Hunt", cardTitle: "Math Vocabulary Hunt", route: "/game/runtime/index.html", heading: /Math Word Hunt/i },
   { title: "Number Logic", cardTitle: "Number Logic", route: "/games/number-logic/play", heading: "Number Logic" },
   { title: "Number Cross", cardTitle: "Number Cross", route: "/games/number-cross/play", heading: /Every line has an answer/i },
-  { title: "CrossCalc", cardTitle: "CrossCalc", route: "/games/crosscalc/play", heading: "CrossCalc connected arithmetic puzzle" }
+  { title: "CrossCalc", cardTitle: "CrossCalc", route: "/games/crosscalc/play", heading: "CrossCalc connected arithmetic puzzle" },
+  { title: "Math Tug of War", cardTitle: "Math Tug of War", route: "/games/math-tug-of-war/play", heading: /Math Tug of War/ }
 ] as const;
 
 const viewports = [
@@ -110,7 +111,7 @@ test.beforeAll(async () => {
   }
 });
 
-test("the four-game shelf and same-origin runtimes stay polished across classroom viewports", async ({ page, browserName }) => {
+test("the five-game shelf and same-origin runtimes stay polished across classroom viewports", async ({ page, browserName }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   const remoteRequests: string[] = [];
@@ -137,7 +138,7 @@ test("the four-game shelf and same-origin runtimes stay polished across classroo
   await expect(page).toHaveURL(/\/access\?next=\/games$/);
   await signIn(page);
   await expect(page.getByRole("heading", { name: "Pick a challenge." })).toBeVisible();
-  await expect(page.locator(".game-card-grid article")).toHaveCount(4);
+  await expect(page.locator(".game-card-grid article")).toHaveCount(5);
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);

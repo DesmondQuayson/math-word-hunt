@@ -64,8 +64,8 @@ async function captureCatalogReview(page, path) {
   await page.goto(`${origin}/games`, { waitUntil: "domcontentloaded" });
   const cards = page.locator(".game-card-grid article");
   await cards.first().waitFor();
-  assert.equal(await cards.count(), 4, "Owner-review catalog must contain exactly four game cards.");
-  for (const title of ["Math Vocabulary Hunt", "Number Logic", "Number Cross", "CrossCalc"]) {
+  assert.equal(await cards.count(), 5, "Owner-review catalog must contain exactly five game cards.");
+  for (const title of ["Math Vocabulary Hunt", "Number Logic", "Number Cross", "CrossCalc", "Math Tug of War"]) {
     assert.equal(await page.getByRole("heading", { name: title, exact: true }).count(), 1, `Owner-review catalog card: ${title}`);
   }
   await page.evaluate(async () => { await document.fonts.ready; window.scrollTo(0, 0); });
