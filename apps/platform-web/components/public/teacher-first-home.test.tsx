@@ -44,21 +44,45 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByText(/One connected system:/).textContent).toBe("One connected system: engage, learn, practice, assess.");
   });
 
-  it("carries no Coming Soon / Praxis block on the homepage (owner V2), leaving the hero followed directly by the page end", () => {
+  it("carries no Coming Soon / Praxis block on the homepage (owner V2); the only section after the hero is Featured games (owner 2026-09-27)", () => {
     const { container } = render(<TeacherFirstHome />);
     expect(container.querySelector(".teacher-home-roadmap")).toBeNull();
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
-    // The only headings are the H1 and the authorized-code form heading: no empty section wrapper or orphan heading remains.
+    // Headings: the H1, the authorized-code form heading, then the featured games row.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
       "Make every math lesson clearer, more engaging, and ready to teach.",
-      "Authorize Code"
+      "Authorize Code",
+      "Featured games",
+      "Math Vocabulary Hunt",
+      "Math Tug of War"
     ]);
     cleanup();
-    // Signed in, the H1 is the only heading: the code card left nothing behind.
+    // Signed in, the code card leaves nothing behind.
     const signedIn = render(<TeacherFirstHome authState="signed-in" />);
     expect([...signedIn.container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
-      "Make every math lesson clearer, more engaging, and ready to teach."
+      "Make every math lesson clearer, more engaging, and ready to teach.",
+      "Featured games",
+      "Math Vocabulary Hunt",
+      "Math Tug of War"
     ]);
+  });
+
+  it("features Math Tug of War beside Math Vocabulary Hunt with a free Play for Free Now button to the game", () => {
+    for (const authState of ["signed-out", "signed-in"] as const) {
+      const { container } = render(<TeacherFirstHome authState={authState} />);
+      const cards = [...container.querySelectorAll(".home-featured-games article")];
+      expect(cards.map((card) => card.getAttribute("data-game"))).toEqual(["math-vocabulary-hunt", "math-tug-of-war"]);
+      const tug = cards[1];
+      expect(tug.querySelector("img")?.getAttribute("src")).toContain("math-tug-of-war.webp");
+      expect(tug.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Tug of War gameplay artwork/);
+      expect(tug.textContent).toContain("Solve the math. Pull the rope. Beat the other side!");
+      expect(tug.textContent).toContain("Free with a MathNexa account");
+      expect(tug.textContent).not.toMatch(/no sign-up|without an account|subscribe|trial/i);
+      const button = screen.getAllByRole("link", { name: "Play for Free Now" });
+      expect(button).toHaveLength(1);
+      expect(button[0].getAttribute("href")).toBe("/games/math-tug-of-war/play");
+      cleanup();
+    }
   });
 
   it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {

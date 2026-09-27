@@ -74,17 +74,27 @@ function legal(skill, text) {
   }
 }
 
-async function subscriber(label) {
+// kind "subscriber" = active subscription; "free" = a signed-in account with no entitlement.
+async function subscriber(label, kind = "subscriber") {
   const email = `tug-staging-${run}-${label}@example.invalid`;
   const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: "math-tug-of-war-staging-review" } });
   if (made.error || !made.data.user) throw new Error("synthetic-user-failed");
   const id = made.data.user.id;
   users.push(id);
+  if (kind === "free") return email;
   const now = Date.now();
   const account = await admin.from("consumer_accounts").update({ trial_redeemed_at: new Date(now).toISOString() }).eq("user_id", id);
   const entitlement = await admin.from("consumer_game_entitlements").insert({ user_id: id, entitlement_state: "subscription-active", current_period_ends_at: new Date(now + 20 * 86_400_000).toISOString() });
   if (account.error || entitlement.error) throw new Error("synthetic-entitlement-failed");
   return email;
+}
+
+// A clean browser with no MathNexa session (Deployment Protection passed with the bypass header only).
+async function anonymous(engine, viewport, options = {}) {
+  const context = await engine.newContext({ viewport, extraHTTPHeaders: { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" }, ...options });
+  const page = await context.newPage();
+  await page.goto(`${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  return { context, page };
 }
 
 async function session(engine, email, viewport, options = {}) {
@@ -162,27 +172,108 @@ try {
   ok(health.status === 200, `health 200 (${health.status})`);
   if (expectCommit) ok(healthText.includes(expectCommit.slice(0, 7)), `deployment serves commit ${expectCommit.slice(0, 7)}`);
 
-  const emailA = await subscriber("a");
+  // A = signed-in NON-subscriber (plays everything below), B = subscriber, C = another non-subscriber.
+  const emailA = await subscriber("a", "free");
   const emailB = await subscriber("b");
+  const emailC = await subscriber("c", "free");
 
-  // ---- Math Games card and route
+  // ---- Anonymous: homepage promotion, auth required, never pricing
+  {
+    const anon = await anonymous(browser, { width: 1366, height: 900 });
+    await anon.page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
+    const cards = anon.page.locator(".home-featured-games article");
+    await cards.first().waitFor({ timeout: 45_000 });
+    const games = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
+    const [mvhBox, tugBox] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
+    ok(games.join(",") === "math-vocabulary-hunt,math-tug-of-war" && Math.abs(mvhBox.y - tugBox.y) < 2 && tugBox.x > mvhBox.x, "homepage: Math Tug of War beside Math Vocabulary Hunt");
+    const tugCard = cards.nth(1);
+    const tugImage = tugCard.locator("img");
+    await tugImage.scrollIntoViewIfNeeded();
+    await anon.page.waitForFunction((element) => element.complete && element.naturalWidth > 0, await tugImage.elementHandle());
+    ok((await tugCard.textContent()).includes("Solve the math. Pull the rope. Beat the other side!") && (await tugCard.textContent()).includes("Free with a MathNexa account"), "homepage card: thumbnail, title, description, free with an account");
+    await shot(anon.page, "00-homepage-featured-games");
+    await tugCard.getByRole("link", { name: "Play for Free Now" }).click();
+    await anon.page.waitForURL(/\/access\?next=/, { timeout: 45_000 });
+    const accessUrl = new URL(anon.page.url());
+    ok(accessUrl.searchParams.get("next") === route && !/pricing|checkout|subscription|trial/.test(accessUrl.pathname), "logged-out Play for Free Now → sign in / create account (not pricing)");
+    ok(await anon.page.getByRole("link", { name: "Sign in" }).getAttribute("href") === `/sign-in?next=${route}` && await anon.page.getByRole("link", { name: "Create account" }).getAttribute("href") === `/sign-up?next=${route}`, "auth screen offers Sign in and Create account, both returning to the game");
+    ok((await anon.page.locator("main").textContent()).includes("Sign in or create a free MathNexa account to play."), "auth screen explains: free account, no subscription");
+    await shot(anon.page, "00b-auth-for-free-game");
+    const direct = await anon.page.request.get(`${origin}${route}`, { maxRedirects: 0 });
+    ok([302, 303, 307, 308].includes(direct.status()) && (direct.headers().location ?? "").includes(`/access?next=${route}`), `anonymous direct ${route} → authentication redirect (${direct.status()})`);
+    const anonApi = await anon.page.request.post(`${origin}/api/games/math-tug-of-war/online`, { headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-tug-of-war", "Sec-Fetch-Site": "same-origin" }, data: { action: "create", name: "Anon", skill: "addition" } });
+    ok(anonApi.status() === 401, "anonymous Online Match API refused (401)");
+
+    // Create account from the free-game path: the real sign-up form, then (no inbox on staging) the
+    // email is confirmed administratively and the account signs in through "Already have an account?".
+    await anon.page.goto(`${origin}/sign-up?next=${route}`, { waitUntil: "domcontentloaded" });
+    ok(await anon.page.getByRole("heading", { level: 1 }).textContent() === "Create a free account to play", "sign-up page for the free game (no trial or subscription wording)");
+    const signupEmail = `tug-staging-${run}-signup@example.invalid`;
+    await anon.page.getByLabel("Email address").fill(signupEmail);
+    if (await anon.page.getByLabel("Display name").count()) await anon.page.getByLabel("Display name").fill("Signup Tester");
+    await anon.page.locator('input[name="password"]').fill(password);
+    await anon.page.locator('input[name="passwordConfirmation"]').fill(password);
+    await anon.page.getByRole("button", { name: /Create/ }).click();
+    let signupId = null;
+    for (let attempt = 0; attempt < 30 && !signupId; attempt += 1) {
+      const listed = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      signupId = listed.data?.users.find((user) => user.email === signupEmail)?.id ?? null;
+      if (!signupId) await anon.page.waitForTimeout(500);
+    }
+    ok(Boolean(signupId), "Create account submitted a real MathNexa sign-up");
+    if (signupId) {
+      users.push(signupId);
+      await admin.auth.admin.updateUserById(signupId, { email_confirm: true });
+      await anon.page.goto(`${origin}/sign-up?next=${route}`, { waitUntil: "domcontentloaded" });
+      await anon.page.getByRole("link", { name: "Already have an account?" }).click();
+      await anon.page.getByLabel("Email address").fill(signupEmail);
+      await anon.page.locator('input[name="password"]').fill(password);
+      await anon.page.getByRole("button", { name: "Sign in" }).click();
+      await anon.page.getByRole("heading", { level: 1, name: /Math Tug of War/ }).waitFor({ timeout: 45_000 }).catch(() => undefined);
+      ok(new URL(anon.page.url()).pathname === route, "new account returns straight to Math Tug of War after sign-in");
+    }
+    await anon.context.close();
+  }
+
+  // ---- Signed-in non-subscriber: homepage CTA goes straight to the game; other products keep their rules
   const a = await session(browser, emailA, { width: 1366, height: 900 });
-  await a.page.goto(`${origin}/games`, { waitUntil: "domcontentloaded" });
-  const card = a.page.locator("article").filter({ has: a.page.getByRole("heading", { name: "Math Tug of War", exact: true }) });
-  ok(await card.count() === 1, "Math Games card visible (exactly one)");
-  await card.scrollIntoViewIfNeeded();
-  const image = card.getByAltText("Math Tug of War gameplay artwork");
-  await image.waitFor();
-  await a.page.waitForFunction((element) => element.complete && element.naturalWidth > 0, await image.elementHandle());
-  ok(await image.evaluate((element) => element.naturalWidth) === 1200, "thumbnail loaded (1200 px)");
-  ok((await card.textContent()).includes("Solve the math. Pull the rope. Beat the other side!"), "card description");
-  await shot(a.page, "01-math-games-card");
-  await card.getByRole("link", { name: "Play" }).click();
+  await a.page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
+  await a.page.locator(".home-featured-games").getByRole("link", { name: "Play for Free Now" }).click();
   await a.page.getByRole("heading", { level: 1, name: /Math Tug of War/ }).waitFor({ timeout: 45_000 });
-  ok(new URL(a.page.url()).pathname === route, `Play launches ${route}`);
+  ok(new URL(a.page.url()).pathname === route, "non-subscriber: Play for Free Now launches the game directly");
+  ok(await a.page.locator("body").getAttribute("data-exit-href") === "/" && !/subscribe|payment required|start trial|upgrade/i.test(await a.page.locator("body").innerText()), "non-subscriber sees no subscription prompt; in-game back goes Home");
   const response = await a.page.request.get(`${origin}${route}`);
-  ok(response.status() === 200 && (response.headers()["content-security-policy"] ?? "").includes("connect-src 'self'"), "route 200 under the game CSP");
+  ok(response.status() === 200 && (response.headers()["content-security-policy"] ?? "").includes("connect-src 'self'"), "route 200 under the game CSP for a non-subscriber");
   await shot(a.page, "02-main-game-setup");
+  const unchanged = [];
+  for (const path of ["/games", "/games/number-logic/play", "/games/number-cross/play", "/games/crosscalc/play", "/play", "/map-prep", "/homework", "/quizzes", "/worksheets"]) {
+    const gated = await a.page.request.get(`${origin}${path}`, { maxRedirects: 0 });
+    if (!([302, 303, 307, 308].includes(gated.status()) && /\/subscription\?next=/.test(gated.headers().location ?? ""))) unchanged.push(`${path}:${gated.status()}`);
+  }
+  ok(unchanged.length === 0, `non-subscriber: every other game and product still requires a subscription ${unchanged.join(" ")}`);
+
+  // ---- Subscriber: Math Games shows the free card; other cards unchanged
+  {
+    const b = await session(browser, emailB, { width: 1366, height: 900 });
+    await b.page.goto(`${origin}/games`, { waitUntil: "domcontentloaded" });
+    const card = b.page.locator("article").filter({ has: b.page.getByRole("heading", { name: "Math Tug of War", exact: true }) });
+    ok(await card.count() === 1, "Math Games card visible (exactly one)");
+    await card.scrollIntoViewIfNeeded();
+    const image = card.getByAltText("Math Tug of War gameplay artwork");
+    await image.waitFor();
+    await b.page.waitForFunction((element) => element.complete && element.naturalWidth > 0, await image.elementHandle());
+    ok(await image.evaluate((element) => element.naturalWidth) === 1200, "thumbnail loaded (1200 px)");
+    ok((await card.locator(".game-free-badge").textContent()) === "Free to play" && await card.getByRole("link", { name: "Play for Free Now" }).count() === 1, "Math Games: Free to play badge and Play for Free Now");
+    const others = b.page.locator("article").filter({ hasNot: b.page.locator(".game-free-badge") });
+    let othersPlain = await others.count() > 0;
+    for (const other of await others.all()) othersPlain = othersPlain && await other.getByRole("link", { name: "Play", exact: true }).count() === 1;
+    ok(othersPlain, "other Math Games cards unchanged (plain Play)");
+    await shot(b.page, "01-math-games-card");
+    await card.getByRole("link", { name: "Play for Free Now" }).click();
+    await b.page.getByRole("heading", { level: 1, name: /Math Tug of War/ }).waitFor({ timeout: 45_000 });
+    ok(await b.page.locator("body").getAttribute("data-exit-href") === "/games", "subscriber: game opens directly; back goes to Math Games");
+    await b.context.close();
+  }
 
   // ---- Six skills (Two Teams): shapes, ranges, pulls, keypad signs
   for (const skill of ["addition", "subtraction", "multiplication", "integers", "opposite", "absolute"]) {
@@ -320,7 +411,7 @@ try {
   await hostPhone.page.getByText("Waiting for opponent…").waitFor({ timeout: 20_000 });
   const code = (await hostPhone.page.locator(".code-letter").allTextContents()).join("");
   roomCodes.add(code);
-  ok(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/.test(code), "Online: room created with a 5-character code");
+  ok(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/.test(code), "Online (non-subscriber host vs subscriber guest): room created with a 5-character code");
   await shot(hostPhone.page, "05-online-create-game-room-code");
   await openGame(guestPhone.page);
   await guestPhone.page.click("button[data-mode=online]");
@@ -373,6 +464,48 @@ try {
   ok(leftSeen, "Online: leaving ends the match for the other phone (no fake win)");
   await hostPhone.context.close();
   await guestPhone.context.close();
+
+  // ---- Online Match between two signed-in NON-subscribers (A vs C)
+  {
+    const freeHost = await session(browser, emailA, { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+    const freeGuest = await session(browser, emailC, { width: 390, height: 844 }, { hasTouch: true, isMobile: true });
+    await openGame(freeHost.page);
+    await freeHost.page.click("button[data-mode=online]");
+    await freeHost.page.click("button[data-online=create]");
+    await freeHost.page.fill("#online-name", "Fay");
+    await freeHost.page.click(".setup-form button[type=submit]");
+    await freeHost.page.getByText("Waiting for opponent…").waitFor({ timeout: 20_000 });
+    const freeCode = (await freeHost.page.locator(".code-letter").allTextContents()).join("");
+    roomCodes.add(freeCode);
+    await openGame(freeGuest.page);
+    await freeGuest.page.click("button[data-mode=online]");
+    await freeGuest.page.click("button[data-online=join]");
+    await freeGuest.page.fill("#online-name", "Cy");
+    await freeGuest.page.fill("#room-code", freeCode);
+    await freeGuest.page.click(".setup-form button[type=submit]");
+    await panel(freeHost.page, "turquoise").waitFor({ timeout: 20_000 });
+    await panel(freeGuest.page, "pink").waitFor({ timeout: 20_000 });
+    ok(true, "Online (two non-subscribers): create and join");
+    await answer(freeHost.page, "turquoise");
+    ok(await waitPosition(freeGuest.page, -1), "Online (two non-subscribers): correct answer pulls on both phones");
+    await answer(freeGuest.page, "pink", { wrong: true });
+    await freeGuest.page.waitForTimeout(1_200);
+    ok(await position(freeHost.page) === -1, "Online (two non-subscribers): wrong answer does not pull");
+    const replay = await freeHost.page.evaluate(async (roomCode) => {
+      const seat = JSON.parse(sessionStorage.getItem("mathnexa:math-tug-of-war:online-seat") ?? "{}");
+      const reply = await fetch("/api/games/math-tug-of-war/online", { method: "POST", referrerPolicy: "same-origin", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-tug-of-war" }, body: JSON.stringify({ action: "answer", code: roomCode, token: seat.token, round: 1, questionIndex: 0, answer: "0" }) });
+      return (await reply.json()).state?.result;
+    }, freeCode);
+    ok(replay === "stale", "Online (two non-subscribers): replayed answer rejected");
+    for (let pull = 2; pull <= 7; pull += 1) {
+      await answer(freeHost.page, "turquoise");
+      await waitPosition(freeHost.page, -pull);
+    }
+    const freeWin = await freeGuest.page.getByRole("dialog").getByRole("heading", { name: "Fay WINS!" }).waitFor({ timeout: 15_000 }).then(() => true, () => false);
+    ok(freeWin && await freeHost.page.getByRole("dialog").getByRole("button", { name: "Back to Home" }).count() === 1, "Online (two non-subscribers): 7-pull win on both phones; result card goes Home");
+    await freeHost.context.close();
+    await freeGuest.context.close();
+  }
   await a.context.close();
 } finally {
   for (const code of roomCodes) await admin.from("tug_rooms").delete().eq("code", code);

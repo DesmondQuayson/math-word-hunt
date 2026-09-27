@@ -1,5 +1,4 @@
-import { hasMathNexaModuleAccess } from "@math-vocabulary-hunt/platform-core";
-
+import { canPlayGame } from "@/lib/access/server";
 import { isSameOriginAdminRequest } from "@/lib/admin/security";
 import { resolveLimiterSecret } from "@/lib/auth/rate-limit";
 import { getGameAccessView } from "@/lib/game-access/server";
@@ -24,9 +23,10 @@ export const dynamic = "force-dynamic";
 
 // Online Match API for Math Tug of War. One same-origin JSON endpoint so the
 // game document keeps `connect-src 'self'`. Every action requires the same
-// Math Games access as the game itself (all-access subscription or a school
-// access session). Outcomes are decided here and in the database, never in
-// the browser.
+// access as the game itself, decided centrally by lib/games/access-policy.ts
+// (today: any signed-in MathNexa account or a school access session; never
+// anonymous). Outcomes are decided here and in the database, never in the
+// browser.
 
 const MAX_BODY_BYTES = 2_048;
 const NO_STORE = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } as const;
@@ -61,7 +61,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return refused("unsupported-media-type", 415);
 
   const access = await getGameAccessView();
-  if (!hasMathNexaModuleAccess(access.decision, "games") || !access.principal) return refused("game-access-required", 401);
+  // Same rule as the game route (lib/games/access-policy.ts): today any
+  // signed-in account; if the game becomes paid, this follows automatically.
+  if (!canPlayGame(access, "math-tug-of-war") || !access.principal) return refused("game-access-required", 401);
 
   const text = await request.text();
   if (text.length > MAX_BODY_BYTES) return refused("payload-too-large", 413);

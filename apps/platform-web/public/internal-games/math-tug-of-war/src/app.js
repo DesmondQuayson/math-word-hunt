@@ -61,9 +61,15 @@ function setScreen(screen) {
   audio.syncMusic();
 }
 
+// Where "back" goes: Math Games for subscribers, Home for free players (set
+// by the server on <body>; only these two values are ever accepted).
+const EXIT = document.body.dataset.exitHref === "/"
+  ? Object.freeze({ href: "/", label: "Home", back: "Back to Home", aria: "Back to MathNexa Home" })
+  : Object.freeze({ href: "/games", label: "Math Games", back: "Back to Math Games", aria: "Back to MathNexa Games" });
+
 function gamesLink(extraClass = "") {
-  return h("a", { class: `games-link ${extraClass}`.trim(), href: "/games", "aria-label": "Back to MathNexa Games" },
-    icon("back"), h("span", { class: "games-link-text", text: "Math Games" }));
+  return h("a", { class: `games-link ${extraClass}`.trim(), href: EXIT.href, "aria-label": EXIT.aria },
+    icon("back"), h("span", { class: "games-link-text", text: EXIT.label }));
 }
 
 function brand() {
@@ -384,7 +390,7 @@ function actionButton(label, onClick, kind = "secondary", autofocus = false) {
 }
 
 function backToGames() {
-  window.location.assign("/games");
+  window.location.assign(EXIT.href);
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +494,7 @@ function finishLocal(match) {
     afterCelebration(scene, () => showOverlay(winnerContent(winner, [
       actionButton("Play Again", playAgainLocal, "primary", true),
       actionButton("Change Game Setup", () => (app.mode === "robot" ? renderRobotSetup() : renderTeamsSetup())),
-      actionButton("Back to Math Games", backToGames)
+      actionButton(EXIT.back, backToGames)
     ]), { labelledBy: "winner-title", className: `overlay-won won-${winner}` }));
   });
 }
@@ -1066,7 +1072,7 @@ function showOnlineWin(state) {
           forgetSeat();
           renderOnlineMenu();
         }),
-        actionButton("Back to Math Games", async () => {
+        actionButton(EXIT.back, async () => {
           await app.online?.seat?.leave();
           forgetSeat();
           backToGames();
@@ -1119,7 +1125,7 @@ function showOnlineEnd(message) {
     h("p", { class: "overlay-text", text: message }),
     h("div", { class: "overlay-actions" },
       actionButton("New Online Match", () => renderOnlineMenu(), "primary", true),
-      actionButton("Back to Math Games", backToGames))
+      actionButton(EXIT.back, backToGames))
   ], { labelledBy: "end-title", className: "overlay-end" });
   announce(message, true);
 }

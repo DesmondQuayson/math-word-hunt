@@ -17,6 +17,7 @@ import {
   newPasswordError,
   type AccountFieldErrors
 } from "@/lib/auth/field-validation";
+import { isFreeGameDestination } from "@/lib/auth/access-intent";
 import { initialAuthFormState, type AuthFormState } from "@/lib/auth/form-state";
 
 import { Button } from "../ui/button";
@@ -128,7 +129,7 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
         <Button type="submit" className="button-large" loading={pending} disabled={!configured}>{submitLabel}</Button>
         <p className="form-footnote">Next, confirm your email. Then add a payment method on Stripe&apos;s secure checkout to begin the trial.</p>
         <p className="form-switch">Already have an account? <Link href={trial.signInHref}>Sign in</Link></p>
-      </div> : <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{submitLabel}</Button><Link href="/sign-in">Already have an account?</Link></div>}
+      </div> : <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{submitLabel}</Button><Link href={isFreeGameDestination(nextDestination) ? `/sign-in?next=${nextDestination}` : "/sign-in"}>Already have an account?</Link></div>}
     </form>
     {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} /> : null}
     </>
@@ -149,7 +150,7 @@ export function SignInForm({ configured, nextDestination, signUpHref, consumerMo
       <TextField id="signin-email" name="email" type="email" autoComplete="email" inputMode="email" label="Email address" required error={errors.email} />
       <PasswordField id="signin-password" name="password" autoComplete="current-password" label="Password" required error={errors.password} />
       <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{pending ? "Signing in…" : "Sign in"}</Button><Link href="/forgot-password">Forgot password?</Link></div>
-      {signUpHref ? <p className="form-switch">New to MathNexa? <Link href={signUpHref}>Start free trial</Link></p> : null}
+      {signUpHref ? <p className="form-switch">New to MathNexa? <Link href={signUpHref}>{isFreeGameDestination(nextDestination) ? "Create a free account" : "Start free trial"}</Link></p> : null}
     </form>
   );
 }

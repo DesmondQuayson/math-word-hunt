@@ -17,7 +17,7 @@ export const ONLINE_MESSAGES = Object.freeze({
   "room-full": "That room already has two players.",
   "already-in-room": "You created that room. Share the code with your opponent.",
   "rate-limited": "Too many tries. Wait a few minutes, then try again.",
-  "game-access-required": "Your Math Games access has ended. Return to Math Games to sign in again.",
+  "game-access-required": "Your MathNexa sign-in has ended. Sign in again to keep playing.",
   "invalid-skill": "Choose a math skill.",
   unavailable: "Online Match is temporarily unavailable."
 });

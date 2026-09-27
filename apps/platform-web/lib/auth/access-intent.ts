@@ -23,18 +23,34 @@ export const PRODUCT_DESTINATIONS = [
  */
 export const POST_AUTH_DESTINATION = "/" as const;
 
+/**
+ * Games that are free for any signed-in MathNexa account
+ * (lib/games/access-policy.ts). Their play route is a server-owned return
+ * destination so "Play for Free Now" → sign in / create account → the game.
+ * It is NOT a product destination: no subscription screen ever resolves to it.
+ */
+export const FREE_GAME_DESTINATIONS = ["/games/math-tug-of-war/play"] as const;
+
 export const ACCESS_INTENT_DESTINATIONS = [
   POST_AUTH_DESTINATION,
   ...PRODUCT_DESTINATIONS,
+  ...FREE_GAME_DESTINATIONS,
   "/subscription",
   "/account"
 ] as const;
+
+export type FreeGameDestination = (typeof FREE_GAME_DESTINATIONS)[number];
 
 export type ProductDestination = (typeof PRODUCT_DESTINATIONS)[number];
 export type AccessIntentDestination = (typeof ACCESS_INTENT_DESTINATIONS)[number];
 
 const productDestinations = new Set<string>(PRODUCT_DESTINATIONS);
 const accessIntentDestinations = new Set<string>(ACCESS_INTENT_DESTINATIONS);
+const freeGameDestinations = new Set<string>(FREE_GAME_DESTINATIONS);
+
+export function isFreeGameDestination(value: string | null | undefined): value is FreeGameDestination {
+  return typeof value === "string" && freeGameDestinations.has(value);
+}
 
 export function safeProductDestination(
   value: string | null | undefined,
@@ -70,6 +86,7 @@ export function destinationLabel(destination: AccessIntentDestination): string {
     "/homework": "Homework PDFs",
     "/quizzes": "Quiz PDFs",
     "/worksheets": "Worksheet Generator",
+    "/games/math-tug-of-war/play": "Math Tug of War",
     "/subscription": "Subscription",
     "/account": "My Account"
   }[destination];

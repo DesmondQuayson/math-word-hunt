@@ -6,12 +6,18 @@ import { renderMathTugOfWarDocument } from "@/features/games/math-tug-of-war/doc
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
 
+/** Per-visitor facts a game document may use (never secrets, never identity). */
+export type InternalGameDocumentOptions = Readonly<{
+  /** The visitor may open the Math Games shelf (MathNexa all-access). */
+  mathGamesAccess?: boolean;
+}>;
+
 export type InternalGameRegistration = Readonly<{
   stableKey: string;
   route: `/games/${string}/play`;
   assetBase: `/internal-games/${string}/`;
   connectSource: "'none'" | "'self'";
-  renderDocument: () => string;
+  renderDocument: (options?: InternalGameDocumentOptions) => string;
 }>;
 
 const INTERNAL_GAMES = Object.freeze({
@@ -100,7 +106,7 @@ function internalGameHeaders(registration: Pick<InternalGameRegistration, "conne
   });
 }
 
-export function createInternalGameResponse(stableKey: string, version?: string): Response {
+export function createInternalGameResponse(stableKey: string, version?: string, options?: InternalGameDocumentOptions): Response {
   const registration = getInternalGameRegistration(stableKey);
   if (!registration) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "no-store" } });
   if (stableKey === "crosscalc" && version !== undefined && !["0.1.0", "0.2.0"].includes(version)) {
@@ -109,7 +115,7 @@ export function createInternalGameResponse(stableKey: string, version?: string):
   if (stableKey === "crosscalc" && version === "0.2.0") {
     return new Response(renderCrossCalcV2Document(), { status: 200, headers: internalGameHeaders(CROSSCALC_V2_PREVIEW) });
   }
-  return new Response(registration.renderDocument(), { status: 200, headers: internalGameHeaders(registration) });
+  return new Response(registration.renderDocument(options), { status: 200, headers: internalGameHeaders(registration) });
 }
 
 export function createCrossCalcV2PreviewResponse(isPublished: boolean | null = null): Response {

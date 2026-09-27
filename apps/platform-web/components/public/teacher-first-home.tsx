@@ -7,6 +7,7 @@ import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
+import { MATH_TUG_OF_WAR_PLAY_ROUTE } from "@/lib/games/access-policy";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
   PLATFORM_HERO_AUDIENCE,
@@ -124,6 +125,59 @@ function LearningConstellation() {
   </div>;
 }
 
+/**
+ * Featured games: Math Vocabulary Hunt beside Math Tug of War, in the same
+ * card language as the Math Games shelf. Math Tug of War is free with a
+ * MathNexa account (lib/games/access-policy.ts); its button always points at
+ * the game, and the game route itself sends a signed-out visitor through sign
+ * in / create account and back. Nothing here decides access.
+ */
+function FeaturedGames() {
+  return <section className="home-featured-games container" aria-labelledby="featured-games-title">
+    <header className="home-featured-games-header">
+      <p className="eyebrow">Play now</p>
+      <h2 id="featured-games-title">Featured games</h2>
+    </header>
+    <div className="game-card-grid">
+      <article data-game="math-vocabulary-hunt">
+        <div className="game-card-thumbnail">
+          <Image
+            src="/media/games/math-vocabulary-hunt.webp"
+            alt="Math Vocabulary Hunt gameplay artwork"
+            width={1200}
+            height={675}
+            sizes="(max-width: 48rem) 100vw, 50vw"
+          />
+        </div>
+        <div className="game-card-content">
+          <p className="game-path">Included with MathNexa access</p>
+          <h3>Math Vocabulary Hunt</h3>
+          <p>Lead a fast, collaborative vocabulary round with the preserved MathNexa classroom game.</p>
+          <LinkButton href="/play">Play</LinkButton>
+        </div>
+      </article>
+      <article data-game="math-tug-of-war">
+        <div className="game-card-thumbnail">
+          <Image
+            src="/media/games/math-tug-of-war.webp"
+            alt="Math Tug of War gameplay artwork: the Turquoise and Pink teams pulling a rope while each side answers integer questions on a keypad"
+            width={1200}
+            height={675}
+            sizes="(max-width: 48rem) 100vw, 50vw"
+          />
+        </div>
+        <div className="game-card-content">
+          <p className="game-path"><span className="game-free-badge">Free</span> with a MathNexa account</p>
+          <h3>Math Tug of War</h3>
+          <p>Solve the math. Pull the rope. Beat the other side!</p>
+          <p className="home-featured-games-detail">Solve quick math problems and pull your opponent across the line. Play against the robot, compete on one device, or challenge another player online.</p>
+          <LinkButton href={MATH_TUG_OF_WAR_PLAY_ROUTE}>Play for Free Now</LinkButton>
+        </div>
+      </article>
+    </div>
+  </section>;
+}
+
 export function TeacherFirstHome({
   authState = "signed-out",
   entitled = false,
@@ -150,6 +204,8 @@ export function TeacherFirstHome({
       </div>
       <LearningConstellation />
     </section>
+
+    <FeaturedGames />
 
     {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
   </>;

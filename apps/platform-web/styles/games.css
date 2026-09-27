@@ -17,3 +17,9 @@
 @media(max-width:22rem){.game-card-content{padding:var(--space-4)}.game-card-content .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.game-card-grid article{transition:none}.game-card-grid article:hover,.game-card-grid article:focus-within{transform:none}}
 @media(forced-colors:active){.game-card-grid article,.game-card-thumbnail,.game-tag-list li,.game-detail iframe,.admin-game-preview iframe{border-color:CanvasText;box-shadow:none}.game-card-thumbnail{background:Canvas;color:CanvasText}}
+/* Homepage featured games (Math Vocabulary Hunt beside Math Tug of War) reuse the Math Games card language. */
+.home-featured-games{display:grid;gap:var(--space-6);padding-block:0 clamp(var(--space-12),6vw,var(--space-20))}.home-featured-games-header{display:grid;gap:var(--space-2)}.home-featured-games-header h2{margin:0;font-size:clamp(1.75rem,3.6vw,2.6rem);line-height:1.05}
+.home-featured-games .game-card-content h3{margin:0;font-size:clamp(1.35rem,2.4vw,1.8rem);line-height:1.1;overflow-wrap:anywhere}.home-featured-games .game-card-content>p.home-featured-games-detail{font-size:var(--font-size-body-small,0.95rem)}
+.home-featured-games .game-card-content{grid-template-columns:minmax(0,1fr)}.home-featured-games .game-card-content .button{min-width:min(8rem,100%);max-width:100%;white-space:normal;text-align:center}
+.game-free-badge{display:inline-flex;align-items:center;margin-right:var(--space-2);padding:.15rem .6rem;border-radius:999px;background:#065f69;color:#fff;font:900 var(--font-size-caption) var(--font-utility);letter-spacing:.06em;text-transform:uppercase}
+@media(forced-colors:active){.game-free-badge{border:1px solid CanvasText;background:Canvas;color:CanvasText}}

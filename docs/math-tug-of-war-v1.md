@@ -15,7 +15,7 @@ Production is not changed by this branch.
 | Game registry | `lib/games/internal-registry.ts` (trusted internal games) + DB catalog `game_catalog_entries` (`launch_type='internal'`, trigger requires `internal_registry_key`/`internal_route`/`implementation_version`) | New key `math-tug-of-war`, route `/games/math-tug-of-war/play`, `connect-src 'self'` |
 | Math Games page | `app/games/page.tsx` renders published catalog rows in `display_order`; artwork via `components/games/game-catalog-thumbnail.tsx` | Migration publishes the card (next free display order); authentic 1200×675 capture mapped in the thumbnail component |
 | Runtime | Internal games are self-contained documents served as a raw HTML string by `app/games/[resourceId]/play/route.ts` under a strict route CSP (no framework chrome) | Vanilla ES modules in `public/internal-games/math-tug-of-war/`, document from `features/games/math-tug-of-war/document.ts` |
-| Access | `/games` segment and the play route call `requireProductAccess("/games")`: MathNexa all-access subscription **or** a school access-code session. No free tier | Inherited unchanged. The Online Match API applies the same rule (`getGameAccessView` + `hasMathNexaModuleAccess(…, "games")`) |
+| Access | `/games` segment and the play route call `requireProductAccess("/games")`: MathNexa all-access subscription **or** a school access-code session. No free tier | Inherited at first; **superseded 2026-09-27 by the owner: Math Tug of War is free for any signed-in MathNexa account** (see §4a). Every other game keeps the rule |
 | Music | One approved track, *Cosmic Candy Catchers* (Eric Matyas, CC BY 3.0), byte-identical copies per game; each game owns its audio lifecycle and a namespaced preference record | Reuses the shared `/media/audio/cosmic-candy-catchers.mp3` (no new audio file). Same lifecycle as Number Cross/Number Logic: gesture-started `play()`, loop, pause while hidden, release on `pagehide`. Preference record `mathnexa:math-tug-of-war:preferences` has Number Cross's shape |
 | Sound effects | Web Audio tones in Number Cross | Same approach (button, correct, incorrect, pull, victory), respects the Sounds toggle |
 | Fullscreen | Per game, `Permissions-Policy fullscreen=(self)` | "Classroom" button (Fullscreen API) |
@@ -122,6 +122,33 @@ authoritative pull counters.
 - Rematch: both players must press Play Again; the round increments, the rope resets and both
   question streams change (the round is part of the stream seed).
 
+## 4a. Access: free with a MathNexa account (owner decision 2026-09-27)
+
+- Policy `authenticated-free`, declared once in `apps/platform-web/lib/games/access-policy.ts`
+  (`GAME_ACCESS_POLICIES`). Only `math-tug-of-war` is listed; every other game (and any unknown
+  key) resolves to `entitled`. Reverting access = delete that one entry (and the
+  `FREE_GAME_DESTINATIONS` entry in `lib/auth/access-intent.ts`); the Math Games badge follows the
+  policy automatically, the homepage "Featured games" card in `teacher-first-home.tsx` is removed by hand.
+- Who plays: a signed-in consumer whose account is `active` with a confirmed email (no
+  subscription, trial state or payment state is consulted), or a school access-code session.
+  Anonymous visitors go to `/access?next=/games/math-tug-of-war/play` (sign in or create an
+  account, then return to the game); unconfirmed accounts to `/confirmation-required`;
+  suspended / pending deletion / missing records to `/account`. Never pricing, checkout,
+  subscription or trial. Helpers: `isSignedInFreePlayer`, `canPlayGame`,
+  `requireGamePlayAccess` in `lib/access/server.ts`.
+- The play route decides the policy from a static slug table **before** reading the catalog,
+  and 404s if the catalog row for that slug is a different game.
+- The return destination `/games/math-tug-of-war/play` is an exact entry in the server-owned
+  intent allowlist (`FREE_GAME_DESTINATIONS`); it is not a product destination.
+- Online Match API: `canPlayGame(access, "math-tug-of-war")` (401 otherwise). Server authority,
+  tokens, rate limits and RLS are unchanged.
+- `/games` (the Math Games page) stays entitled. A non-subscriber reaches the game from the
+  homepage card or the direct link; the in-game exit goes **Home** for players without Math
+  Games access and **Math Games** for those with it (`data-exit-href` on the document body).
+- Homepage: "Featured games" section — Math Vocabulary Hunt, then Math Tug of War ("Free with a
+  MathNexa account", **Play for Free Now**). Math Games page: "Free to play" badge + the same CTA.
+- Analytics: MathNexa has no existing privacy-safe analytics pipeline, so no events were added.
+
 ## 5. Verification
 
 | Gate | Command |
@@ -132,6 +159,7 @@ authoritative pull counters.
 | Database (84 assertions: grants, lifecycle, replay, impersonation, expiry, throttle, 7-net-pull wins both ways, cancellation, bounds, leaving after a win) | `supabase/tests/database/34_math_tug_of_war.test.sql` |
 | Local modes, 5 device projects (Chromium/WebKit desktop, Pixel 7, iPhone 13, iPad) incl. responsive 304–1920, 200 % text, axe, audio, reduced motion | `node scripts/run-math-tug-of-war-e2e.mjs` |
 | Two real clients through the real API and DB (sync, simultaneous answers, win, rematch, disconnect/reconnect, reload, leave, failures, security, Chromium↔WebKit) | `node scripts/run-math-tug-of-war-online-e2e.mjs` (local Supabase with the migration applied) |
+| Signed-in free access (anonymous flow, create account + email confirmation, sign in and return, access matrix, other games/products unchanged, two non-subscribers online, subscriber vs non-subscriber online, homepage 304–1920 + 200 % + axe) | `lib/games/access-policy.test.ts` and `e2e/math-tug-of-war/free-access.spec.ts` (run by the online runner) |
 | Card artwork | `node scripts/capture-math-tug-of-war-thumbnail.mjs`; pinned by `scripts/audit-game-suite-media.mjs` |
 | Staging database activation | `scripts/invoke-math-tug-of-war-staging.ps1 -Stage identify`, then (owner-approved) `-Stage apply` per migration (`$env:APPLY_MIGRATION`), then `-Stage smoke` and `-Stage review -Origin <preview>` |
 

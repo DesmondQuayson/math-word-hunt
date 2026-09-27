@@ -14,17 +14,30 @@ vi.mock("@/lib/supabase/service", () => ({ createServiceSupabaseClient: mocks.cr
 import { POST, GET } from "@/app/api/games/math-tug-of-war/online/route";
 import { hashPlayerToken, questionFor, type TugRoomRecord } from "./online";
 
-const ALLOWED = { allowed: true, capabilities: ["mathnexa_all_access"], reason: "active", nextAction: null };
+type Kind = "subscriber" | "free-account" | "anonymous" | "unconfirmed" | "suspended" | "school";
 
-function access(allowed = true) {
-  return {
-    context: { status: allowed ? "active" : "anonymous" },
-    decision: allowed
-      ? { ...ALLOWED, capabilityKeys: ["mathnexa-all-access"] }
-      : { allowed: false, reason: "authentication-required", nextAction: "sign-in" },
-    source: allowed ? "server-authoritative" : "default-deny",
-    principal: allowed ? { kind: "consumer", id: "user-1" } : null
-  };
+function account(accountStatus: "active" | "suspended", emailConfirmedAt: string | null) {
+  return { userId: "user-1", accountStatus, emailConfirmedAt, trialRedeemedAt: null, deletionRequestedAt: null, deletionCompletedAt: null, createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" };
+}
+
+function access(kind: Kind | boolean = "subscriber") {
+  const resolved: Kind = kind === true ? "subscriber" : kind === false ? "anonymous" : kind;
+  const denied = { allowed: false, reason: "subscription-required", nextAction: "subscribe", capabilityKey: null, modules: [] };
+  const entitled = { allowed: true, reason: "active", nextAction: null, capabilityKey: "mathnexa-all-access", modules: ["games"] };
+  switch (resolved) {
+    case "subscriber":
+      return { context: { status: "active", userId: "user-1", email: null, account: account("active", "2026-09-01T00:00:00Z") }, decision: entitled, source: "server-authoritative", principal: { kind: "consumer", id: "user-1" } };
+    case "free-account":
+      return { context: { status: "active", userId: "user-2", email: null, account: account("active", "2026-09-01T00:00:00Z") }, decision: denied, source: "server-authoritative", principal: { kind: "consumer", id: "user-2" } };
+    case "unconfirmed":
+      return { context: { status: "unconfirmed", userId: "user-3", email: null, account: null }, decision: denied, source: "default-deny", principal: { kind: "consumer", id: "user-3" } };
+    case "suspended":
+      return { context: { status: "suspended", userId: "user-4", email: null, account: account("suspended", "2026-09-01T00:00:00Z") }, decision: denied, source: "server-authoritative", principal: { kind: "consumer", id: "user-4" } };
+    case "school":
+      return { context: { status: "anonymous", userId: null, email: null, account: null }, decision: entitled, source: "school-access", principal: { kind: "school-access", id: "school-1" } };
+    default:
+      return { context: { status: "anonymous", userId: null, email: null, account: null }, decision: { ...denied, reason: "authentication-required", nextAction: "sign-in" }, source: "default-deny", principal: null };
+  }
 }
 
 function request(body: unknown, headers: Record<string, string> = {}) {
@@ -53,11 +66,6 @@ function room(overrides: Partial<TugRoomRecord> = {}): TugRoomRecord {
   };
 }
 
-vi.mock("@math-vocabulary-hunt/platform-core", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return { ...actual, hasMathNexaModuleAccess: (decision: { allowed: boolean }) => decision.allowed };
-});
-
 beforeEach(() => {
   mocks.getGameAccessView.mockReset().mockResolvedValue(access());
   mocks.rpc.mockReset();
@@ -74,11 +82,22 @@ describe("POST /api/games/math-tug-of-war/online", () => {
     expect(GET().status).toBe(405);
   });
 
-  it("requires the same Math Games access as the game itself", async () => {
-    mocks.getGameAccessView.mockResolvedValue(access(false));
-    const response = await POST(request({ action: "create", skill: "addition", name: "Ava" }));
-    expect(response.status).toBe(401);
+  it("requires a signed-in MathNexa account (free game): anonymous, unconfirmed and suspended are refused", async () => {
+    for (const kind of ["anonymous", "unconfirmed", "suspended"] as const) {
+      mocks.getGameAccessView.mockResolvedValue(access(kind));
+      const response = await POST(request({ action: "create", skill: "addition", name: "Ava" }));
+      expect(response.status, kind).toBe(401);
+    }
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("lets a signed-in non-subscriber, a subscriber and a school session play Online Match", async () => {
+    mocks.rpc.mockImplementation(async (_fn: string, args: Record<string, unknown>) => ({ data: room({ result: "created", status: "waiting", code: String(args.p_code), questionIndex: 0 }), error: null }));
+    for (const kind of ["free-account", "subscriber", "school"] as const) {
+      mocks.getGameAccessView.mockResolvedValue(access(kind));
+      const response = await POST(request({ action: "create", skill: "addition", name: "Ava" }));
+      expect(response.status, kind).toBe(200);
+    }
   });
 
   it("reports Online Match unavailable when the server store is not configured", async () => {

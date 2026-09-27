@@ -7,7 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e/math-tug-of-war",
-  testMatch: ["**/online.spec.ts"],
+  testMatch: ["**/online.spec.ts", "**/free-access.spec.ts"],
   timeout: 300_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

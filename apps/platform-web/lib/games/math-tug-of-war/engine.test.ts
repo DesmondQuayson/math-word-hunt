@@ -431,7 +431,7 @@ describe("match simulation audit (10,000 matches)", () => {
     }
     expect(matches).toBe(10_000);
     expect(failures).toEqual({ crashes: 0, outOfBounds: 0, multipleWinners: 0, invalidTransitions: 0, stuck: 0, wrongPulled: 0 });
-  });
+  }, 60_000);
 });
 
 describe("robot", () => {

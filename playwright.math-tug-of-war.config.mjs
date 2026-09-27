@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e/math-tug-of-war",
-  testIgnore: ["**/online.spec.ts"],
+  testIgnore: ["**/online.spec.ts", "**/free-access.spec.ts"],
   timeout: 180_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,

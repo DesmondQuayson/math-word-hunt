@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GameCatalogThumbnail } from "@/components/games/game-catalog-thumbnail";
 import { Container } from "@/components/layout/container";
 import { requireProductAccess } from "@/lib/access/server";
+import { isFreeToPlayGame } from "@/lib/games/access-policy";
 import { gamePlayHref, loadPublicGameCatalog } from "@/lib/games/catalog";
 
 export const metadata = { title: "Math Games" };
@@ -23,11 +24,11 @@ export default async function GamesPage() {
         <GameCatalogThumbnail stableKey={game.stableKey} thumbnailReference={game.thumbnailReference} title={game.title} />
       </div>
       <div className="game-card-content">
-        <p className="game-path">{game.difficulty} · {game.recommendedGradeMin && game.recommendedGradeMax ? `Grades ${game.recommendedGradeMin}–${game.recommendedGradeMax}` : "Flexible classroom use"}</p>
+        <p className="game-path">{isFreeToPlayGame(game.stableKey) ? <><span className="game-free-badge">Free to play</span>{" "}</> : null}{game.difficulty} · {game.recommendedGradeMin && game.recommendedGradeMax ? `Grades ${game.recommendedGradeMin}–${game.recommendedGradeMax}` : "Flexible classroom use"}</p>
         <h2>{game.title}</h2>
         <p>{game.description}</p>
         {game.skills.length ? <ul className="game-tag-list" aria-label="Skills">{game.skills.map((skill) => <li key={skill}>{skill}</li>)}</ul> : null}
-        <Link className="button button-primary" href={gamePlayHref(game)}>Play</Link>
+        <Link className="button button-primary" href={gamePlayHref(game)}>{isFreeToPlayGame(game.stableKey) ? "Play for Free Now" : "Play"}</Link>
       </div>
     </article>)}</div> : catalog.state === "ready" ? <div className="public-resource-empty"><strong>No games have been published yet</strong><p>Your subscription is active. Published games will appear here without another Checkout.</p></div> : <div className="public-resource-empty" role="status"><strong>Games are temporarily unavailable</strong><p>Your subscription remains active. Refresh this page, or contact support if the catalog does not return.</p><Link className="button button-secondary" href="/games">Refresh</Link></div>}
   </Container>;

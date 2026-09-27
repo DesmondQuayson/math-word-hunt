@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import {
   destinationLabel,
+  isFreeGameDestination,
   safeAccessIntentDestination
 } from "@/lib/auth/access-intent";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
@@ -28,19 +29,27 @@ export default async function AccessIntentPage({
   const context = await resolveConsumerContext();
   const signedIn = context.status !== "anonymous" && context.status !== "unconfigured";
   const schoolSession = signedIn ? null : await resolveSchoolAccessSession();
+  // A free game (lib/games/access-policy.ts) needs an account, not a
+  // subscription: say so, and never point at subscription or checkout.
+  const freeGame = isFreeGameDestination(destination);
 
   return <Container className="page-stack access-intent-page" width="compact">
     <PageHeader
-      eyebrow="Your MathNexa path"
+      eyebrow={freeGame ? "Free with a MathNexa account" : "Your MathNexa path"}
       title={`Continue to ${destinationLabel(destination)}`}
-      description={signedIn
-        ? "Continue with your MathNexa account."
-        : "Create an account or sign in. After confirmation, MathNexa will return you to the resource you selected."}
+      description={freeGame
+        ? signedIn ? "You are signed in. Math Tug of War is free with your MathNexa account." : "Sign in or create a free MathNexa account to play. No subscription is needed, and you will come straight back to the game."
+        : signedIn
+          ? "Continue with your MathNexa account."
+          : "Create an account or sign in. After confirmation, MathNexa will return you to the resource you selected."}
     />
     <div className="access-intent-actions" aria-label="Account choices">
       {schoolSession ? <>
         <LinkButton href={destination}>Continue</LinkButton>
         <LinkButton href="/account" variant="secondary">Access status</LinkButton>
+      </> : signedIn && freeGame ? <>
+        <LinkButton href={destination}>Play for Free Now</LinkButton>
+        <LinkButton href="/account" variant="secondary">Account</LinkButton>
       </> : signedIn ? <>
         <LinkButton href="/account">Account</LinkButton>
         <LinkButton href="/subscription" variant="secondary">Subscription</LinkButton>
@@ -56,7 +65,7 @@ export default async function AccessIntentPage({
       ? <form action={signOutAction}><button className="button button-secondary" type="submit">Sign out</button></form>
       : null}
     {!signedIn && !schoolSession
-      ? <p className="truth-note">Account and subscription details appear only after you sign in.</p>
+      ? <p className="truth-note">{freeGame ? "Free with a MathNexa account. Creating an account does not start a subscription or a trial." : "Account and subscription details appear only after you sign in."}</p>
       : null}
     <Notice label="Selected destination" tone="information">
       <strong>{destinationLabel(destination)}</strong>

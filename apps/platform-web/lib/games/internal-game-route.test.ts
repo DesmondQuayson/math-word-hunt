@@ -2,16 +2,23 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { MATHNEXA_ALL_ACCESS } from "@math-vocabulary-hunt/platform-core";
+
 import type { InternalGameLaunchRecord } from "@/lib/games/catalog";
+
+// Views as requireProductAccess / requireGamePlayAccess return them.
+const ENTITLED_VIEW = { decision: { allowed: true, capabilityKey: MATHNEXA_ALL_ACCESS, modules: ["games", "map_prep", "homework", "quizzes"] } };
+const FREE_ACCOUNT_VIEW = { decision: { allowed: false, capabilityKey: null, modules: [] } };
 
 const mocks = vi.hoisted(() => ({
   inspectAdminAccess: vi.fn(),
   loadExternalGameLaunchRecord: vi.fn(),
   loadInternalGameLaunchRecord: vi.fn(),
-  requireProductAccess: vi.fn()
+  requireProductAccess: vi.fn(),
+  requireGamePlayAccess: vi.fn()
 }));
 
-vi.mock("@/lib/access/server", () => ({ requireProductAccess: mocks.requireProductAccess }));
+vi.mock("@/lib/access/server", () => ({ requireProductAccess: mocks.requireProductAccess, requireGamePlayAccess: mocks.requireGamePlayAccess }));
 vi.mock("@/lib/admin/session", () => ({ inspectAdminAccess: mocks.inspectAdminAccess }));
 vi.mock("@/lib/games/catalog", () => ({
   loadExternalGameLaunchRecord: mocks.loadExternalGameLaunchRecord,
@@ -73,7 +80,8 @@ function crosscalc(status: InternalGameLaunchRecord["status"], version = "0.1.0"
 describe("native internal game authorization routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireProductAccess.mockResolvedValue(undefined);
+    mocks.requireProductAccess.mockResolvedValue(ENTITLED_VIEW);
+    mocks.requireGamePlayAccess.mockResolvedValue(FREE_ACCOUNT_VIEW);
     mocks.inspectAdminAccess.mockResolvedValue({ state: "authorized", admin: { id: "admin-id" } });
     mocks.loadExternalGameLaunchRecord.mockResolvedValue(null);
     mocks.loadInternalGameLaunchRecord.mockResolvedValue(null);
@@ -85,6 +93,46 @@ describe("native internal game authorization routes", () => {
       params: Promise.resolve({ resourceId: "number-cross" })
     })).rejects.toThrow("access-denied");
     expect(mocks.loadInternalGameLaunchRecord).not.toHaveBeenCalled();
+  });
+
+  it("Math Tug of War (authenticated-free) is gated by the signed-in account rule, not the subscription rule", async () => {
+    mocks.loadInternalGameLaunchRecord.mockResolvedValue({ ...numberCross("published", "math-tug-of-war"), slug: "math-tug-of-war", version: "1.0.0" });
+    const response = await playerPlay(new Request("https://mathnexa.com/games/math-tug-of-war/play"), {
+      params: Promise.resolve({ resourceId: "math-tug-of-war" })
+    });
+    expect(mocks.requireGamePlayAccess).toHaveBeenCalledWith("math-tug-of-war");
+    expect(mocks.requireProductAccess).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    // A free player without the Math Games subscription is sent Home, never to a subscription screen.
+    expect(await response.text()).toContain('data-exit-href="/"');
+
+    mocks.requireGamePlayAccess.mockResolvedValue(ENTITLED_VIEW);
+    const subscriber = await playerPlay(new Request("https://mathnexa.com/games/math-tug-of-war/play"), {
+      params: Promise.resolve({ resourceId: "math-tug-of-war" })
+    });
+    expect(await subscriber.text()).toContain('data-exit-href="/games"');
+  });
+
+  it("authentication for the free game happens before any catalog read, and a slug cannot borrow the free rule", async () => {
+    mocks.requireGamePlayAccess.mockRejectedValue(new Error("sign-in-required"));
+    await expect(playerPlay(new Request("https://mathnexa.com/games/math-tug-of-war/play"), {
+      params: Promise.resolve({ resourceId: "math-tug-of-war" })
+    })).rejects.toThrow("sign-in-required");
+    expect(mocks.loadInternalGameLaunchRecord).not.toHaveBeenCalled();
+    // The free slug serving a different game is concealed.
+    mocks.requireGamePlayAccess.mockResolvedValue(FREE_ACCOUNT_VIEW);
+    mocks.loadInternalGameLaunchRecord.mockResolvedValue(numberCross("published"));
+    const spoof = await playerPlay(new Request("https://mathnexa.com/games/math-tug-of-war/play"), {
+      params: Promise.resolve({ resourceId: "math-tug-of-war" })
+    });
+    expect(spoof.status).toBe(404);
+    // Every other game still goes through the Math Games entitlement rule.
+    for (const slug of ["number-cross", "number-logic", "crosscalc"]) {
+      mocks.requireProductAccess.mockClear();
+      mocks.loadInternalGameLaunchRecord.mockResolvedValue(null);
+      await playerPlay(new Request(`https://mathnexa.com/games/${slug}/play`), { params: Promise.resolve({ resourceId: slug }) });
+      expect(mocks.requireProductAccess).toHaveBeenCalledWith("/games");
+    }
   });
 
   it("conceals Draft, Archived, unregistered, and spoofed-preview player requests", async () => {
