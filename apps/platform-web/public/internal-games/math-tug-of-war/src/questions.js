@@ -103,6 +103,26 @@ function unary(skill, value) {
   });
 }
 
+/**
+ * Absolute Value, family B: a negative sign OUTSIDE the bars, e.g. −|−8| = −8.
+ * The absolute value itself is never negative; its opposite can be.
+ */
+function negativeAbsolute(value) {
+  return Object.freeze({
+    skill: "absolute",
+    key: `absolute:negative:${value}`,
+    kind: "expression",
+    operands: Object.freeze([value]),
+    operator: "negative-absolute",
+    text: `${MINUS}|${formatInteger(value)}|`,
+    spoken: `the opposite of the absolute value of ${spokenInteger(value)}`,
+    answer: normalizeZero(-Math.abs(value))
+  });
+}
+
+/** Share of Absolute Value questions that use the negative-outside form. */
+export const NEGATIVE_ABSOLUTE_SHARE = 0.4;
+
 function drawCandidate(skill, random) {
   const { whole, integer } = RANGES;
   switch (skill) {
@@ -128,8 +148,11 @@ function drawCandidate(skill, random) {
       }
     }
     case "opposite":
-    case "absolute":
       return unary(skill, random.int(integer.min, integer.max));
+    case "absolute": {
+      const value = random.int(integer.min, integer.max);
+      return random.next() < NEGATIVE_ABSOLUTE_SHARE ? negativeAbsolute(value) : unary(skill, value);
+    }
     default:
       throw new RangeError(`Unknown Math Tug of War skill: ${String(skill)}`);
   }
@@ -222,7 +245,17 @@ export function validateQuestion(question) {
       break;
     case "absolute":
       if (question.operands.length !== 1 || !inRange(a, integer)) problems.push("out-of-range");
-      if (question.answer !== Math.abs(a) || question.answer < 0) problems.push("answer-mismatch");
+      if (question.operator === "absolute") {
+        // Family A: |x| is never negative.
+        if (question.answer !== Math.abs(a) || question.answer < 0) problems.push("answer-mismatch");
+        if (question.text !== `|${formatInteger(a)}|`) problems.push("malformed");
+      } else if (question.operator === "negative-absolute") {
+        // Family B: -|x| is never positive; the sign sits outside the bars.
+        if (question.answer !== (a === 0 ? 0 : -Math.abs(a)) || question.answer > 0) problems.push("answer-mismatch");
+        if (question.text !== `${MINUS}|${formatInteger(a)}|`) problems.push("malformed");
+      } else {
+        problems.push("unknown-operator");
+      }
       break;
     default:
       problems.push("unknown-skill");

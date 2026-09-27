@@ -29,6 +29,11 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const MIGRATION = "20260927100000";
+// Migrations the owner-approved apply stage may apply (one per run, in order).
+const APPLICABLE = Object.freeze({
+  "20260927100000": { name: "math_tug_of_war", requires: null, catalogDelta: 1 },
+  "20260928100000": { name: "math_tug_of_war_seven_pulls", requires: "20260927100000", catalogDelta: 0 }
+});
 const POOLER_HOSTS = ["aws-0-us-east-2.pooler.supabase.com", "aws-1-us-east-2.pooler.supabase.com"];
 const supabaseCli = resolve("node_modules/supabase/dist/supabase.js");
 const stage = (process.argv.find((argument) => argument.startsWith("--stage=")) ?? "").slice("--stage=".length);
@@ -295,7 +300,12 @@ async function apply() {
   check(dbGames === apiGames.data.map((row) => `${row.stable_key}:${row.status}`).join(","), "pooler-database-and-staging-api-differ");
 
   const remote = sql("select version from supabase_migrations.schema_migrations order by version").map((row) => String(row.version));
-  check(!remote.includes(MIGRATION), "refusing: 20260927100000 is already recorded");
+  const target = process.env.APPLY_MIGRATION || MIGRATION;
+  const plan = APPLICABLE[target];
+  check(plan, `refusing: ${target} is not an applicable Math Tug of War migration`);
+  evidence.migration = `${target}_${plan.name}`;
+  check(!remote.includes(target), `refusing: ${target} is already recorded`);
+  check(!plan.requires || remote.includes(plan.requires), `refusing: ${plan.requires} must be applied first`);
   const before = sql("select (select count(*) from public.game_catalog_entries)::int as catalog, (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.consumer_game_entitlements)::int as entitlements, (select count(*) from supabase_migrations.schema_migrations)::int as history, (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations) as history_digest")[0];
 
   // The splitter must reproduce what the CLI recorded for earlier migrations.
@@ -319,7 +329,7 @@ async function apply() {
   }
   evidence.splitterMatchesCliHistory = true;
 
-  const body = readFileSync(resolve(`supabase/migrations/${MIGRATION}_math_tug_of_war.sql`), "utf8");
+  const body = readFileSync(resolve(`supabase/migrations/${target}_${plan.name}.sql`), "utf8");
   const statements = splitStatements(body);
   check(!statements.some((statement) => statement.includes("$tugstmt$") || statement.includes("$tugapply$")), "quote-tag-collision");
   const literal = `array[${statements.map((statement) => `$tugstmt$${statement}$tugstmt$`).join(",")}]::text[]`;
@@ -330,7 +340,7 @@ async function apply() {
     "do $tugapply$",
     "begin",
     ...statements.map((statement) => `  execute $tugstmt$${statement}$tugstmt$;`),
-    `  insert into supabase_migrations.schema_migrations(version, name, statements) values ('${MIGRATION}', 'math_tug_of_war', ${literal});`,
+    `  insert into supabase_migrations.schema_migrations(version, name, statements) values ('${target}', '${plan.name}', ${literal});`,
     "end",
     "$tugapply$"
   ].join("\n");
@@ -344,12 +354,12 @@ async function apply() {
     rmSync(workRoot, { recursive: true, force: true });
   }
 
-  const after = sql("select (select count(*) from public.game_catalog_entries)::int as catalog, (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.consumer_game_entitlements)::int as entitlements, (select count(*) from supabase_migrations.schema_migrations)::int as history, (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations where version <> '20260927100000') as history_digest")[0];
+  const after = sql(`select (select count(*) from public.game_catalog_entries)::int as catalog, (select count(*) from public.consumer_accounts)::int as accounts, (select count(*) from public.consumer_game_entitlements)::int as entitlements, (select count(*) from supabase_migrations.schema_migrations)::int as history, (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations where version <> '${target}') as history_digest`)[0];
   evidence.statementsRecorded = statements.length;
-  evidence.recorded = sql("select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='20260927100000'")[0];
+  evidence.recorded = sql(`select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='${target}'`)[0];
   check(evidence.recorded?.statements === statements.length, "history-row-missing-or-wrong");
   check(after.history === before.history + 1 && after.history_digest === before.history_digest, "other-history-rows-changed");
-  check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.catalog === before.catalog + 1, "unrelated-rows-changed");
+  check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.catalog === before.catalog + plan.catalogDelta, "unrelated-rows-changed");
   evidence.otherHistoryUnchanged = true;
   evidence.ph2_07 = sql("select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='20260909010000'")[0];
   evidence.catalog = sql("select stable_key, slug, status, version, display_order, thumbnail_reference, (select count(*) from public.game_catalog_entries g where g.stable_key='math-tug-of-war' or g.slug='math-tug-of-war')::int as identities from public.game_catalog_entries where stable_key='math-tug-of-war'")[0];
@@ -361,6 +371,17 @@ async function apply() {
   evidence.indexes = sql("select indexname from pg_indexes where schemaname='public' and tablename in ('tug_rooms','tug_join_failures') order by indexname").map((row) => row.indexname);
   evidence.functions = sql("select proname, prosecdef, has_function_privilege('anon', oid, 'EXECUTE') as anon_execute, has_function_privilege('authenticated', oid, 'EXECUTE') as authenticated_execute, has_function_privilege('service_role', oid, 'EXECUTE') as service_role_execute from pg_proc where pronamespace='public'::regnamespace and proname like 'tug!_%' escape '!' order by proname");
   check(evidence.functions.length === 6 && evidence.functions.every((row) => row.prosecdef && !row.anon_execute && !row.authenticated_execute && row.service_role_execute), "room-functions-not-locked-down");
+  if (target === "20260928100000") {
+    evidence.constraints = sql("select conname, pg_get_constraintdef(oid) as definition from pg_constraint where conrelid='public.tug_rooms'::regclass and conname in ('tug_rooms_position_check','tug_rooms_winner_state_check','tug_rooms_check') order by conname");
+    const position = evidence.constraints.find((row) => row.conname === "tug_rooms_position_check")?.definition ?? "";
+    check(/-7/.test(position) && /<= 7/.test(position), "position-bound-not-seven");
+    check(evidence.constraints.some((row) => row.conname === "tug_rooms_winner_state_check"), "winner-state-rule-missing");
+    check(!evidence.constraints.some((row) => row.conname === "tug_rooms_check"), "old-winner-rule-still-present");
+    const submit = sql("select pg_get_functiondef('public.tug_submit_answer(text,text,integer,integer,boolean)'::regprocedure) as body")[0].body;
+    // plpgsql bodies are stored verbatim, so the source text is checked directly.
+    evidence.submitUsesSeven = submit.includes("greatest(-7, least(7,") && submit.includes("next_position<=-7") && !submit.includes("least(5,");
+    check(evidence.submitUsesSeven, "submit-function-not-seven");
+  }
 }
 
 try {

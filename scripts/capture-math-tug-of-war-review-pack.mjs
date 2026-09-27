@@ -22,6 +22,8 @@ function solve(text) {
   const plain = text.split(MINUS).join("-").split(TIMES).join("*").trim();
   const opposite = /^What is the opposite of (-?\d+)\?$/.exec(plain);
   if (opposite) return Number(opposite[1]) === 0 ? 0 : -Number(opposite[1]);
+  const negativeAbsolute = /^-\|(-?\d+)\|$/.exec(plain);
+  if (negativeAbsolute) return Number(negativeAbsolute[1]) === 0 ? 0 : -Math.abs(Number(negativeAbsolute[1]));
   const absolute = /^\|(-?\d+)\|$/.exec(plain);
   if (absolute) return Math.abs(Number(absolute[1]));
   const binary = /^(-?\d+) ([+*-]) \(?(-?\d+)\)?$/.exec(plain);
@@ -119,7 +121,7 @@ try {
     await page.waitForTimeout(260);
     await shot(page, "09-pink-successful-pull");
     await settle(page, 900);
-    for (let pull = 0; pull < 4; pull += 1) { await correct(page, "turquoise"); await page.waitForTimeout(700); }
+    for (let pull = 0; pull < 6; pull += 1) { await correct(page, "turquoise"); await page.waitForTimeout(700); }
     await settle(page);
     await shot(page, "11-near-turquoise-victory");
     await correct(page, "turquoise");
@@ -127,7 +129,7 @@ try {
     await page.waitForTimeout(1200);
     await shot(page, "13-turquoise-victory");
     await page.getByRole("button", { name: "Play Again" }).click();
-    for (let pull = 0; pull < 4; pull += 1) { await correct(page, "pink"); await page.waitForTimeout(700); }
+    for (let pull = 0; pull < 6; pull += 1) { await correct(page, "pink"); await page.waitForTimeout(700); }
     await settle(page);
     await shot(page, "12-near-pink-victory");
     await correct(page, "pink");

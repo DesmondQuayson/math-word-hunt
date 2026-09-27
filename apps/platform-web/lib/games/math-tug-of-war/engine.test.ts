@@ -6,6 +6,7 @@ import {
   SKILL_IDS,
   SKILLS,
   createQuestionStream,
+  drawQuestion,
   formatInteger,
   questionAt,
   validateQuestion,
@@ -24,6 +25,9 @@ import {
 } from "@/public/internal-games/math-tug-of-war/src/tug.js";
 
 const QUESTIONS_PER_SKILL = 10_000;
+// First 500 question keys per skill (seed "regression-fingerprint"), FNV-1a,
+// recorded from commit 6cd6b73 before the Absolute Value two-family update.
+const PRE_ABSOLUTE_UPDATE_FINGERPRINTS = { addition: 4092709767, subtraction: 1166828622, multiplication: 1220614789, integers: 1438703121, opposite: 1316557321 };
 
 describe("Math Tug of War skills", () => {
   it("offers exactly the six V1 skills in display order", () => {
@@ -79,7 +83,8 @@ describe("question generator audit (10,000 per skill)", () => {
     expect(sorted(audit.get("opposite")!.operands)).toEqual(range(-12, 12));
     expect(sorted(audit.get("absolute")!.operands)).toEqual(range(-12, 12));
     expect(Math.min(...audit.get("subtraction")!.answers)).toBe(0);
-    expect(Math.min(...audit.get("absolute")!.answers)).toBe(0);
+    expect(Math.min(...audit.get("absolute")!.answers)).toBe(-12);
+    expect(Math.max(...audit.get("absolute")!.answers)).toBe(12);
     expect(Math.min(...audit.get("integers")!.answers)).toBeLessThan(0);
     expect(audit.get("integers")!.answers.has(0)).toBe(true);
   });
@@ -89,7 +94,7 @@ describe("question generator audit (10,000 per skill)", () => {
     expect(audit.get("multiplication")!.keys.size).toBe(144);
     expect(audit.get("subtraction")!.keys.size).toBe(78);
     expect(audit.get("opposite")!.keys.size).toBe(25);
-    expect(audit.get("absolute")!.keys.size).toBe(25);
+    expect(audit.get("absolute")!.keys.size).toBe(50);
     expect(audit.get("integers")!.keys.size).toBeGreaterThan(900);
   });
 
@@ -124,9 +129,76 @@ describe("question generator audit (10,000 per skill)", () => {
 
   it("words opposite and absolute value questions unambiguously", () => {
     expect(questionAt("opposite", "x", 0).text).toMatch(/^What is the opposite of (−?\d+|0)\?$/u);
-    expect(questionAt("absolute", "x", 0).text).toMatch(/^\|(−?\d+)\|$/u);
+    expect(questionAt("absolute", "x", 0).text).toMatch(/^−?\|(−?\d+)\|$/u);
     expect(formatInteger(-0)).toBe("0");
     expect(formatInteger(-7)).toBe(`${MINUS}7`);
+  });
+
+  it("Absolute Value: 10,000 questions mixing |x| and −|x| with only valid answers", () => {
+    const counts = { standard: 0, negativeOutside: 0, negativeAnswers: 0, negativeZero: 0, mismatches: 0, outOfRange: 0, malformed: 0 };
+    const standardText = new RegExp(`^\\|(${MINUS}?)(\\d{1,2})\\|$`);
+    const negativeText = new RegExp(`^${MINUS}\\|(${MINUS}?)(\\d{1,2})\\|$`);
+    for (let seed = 0; seed < 20; seed += 1) {
+      const stream = createQuestionStream("absolute", `absolute-families-${seed}`);
+      for (let index = 0; index < 500; index += 1) {
+        const question = stream.next();
+        const [value] = question.operands;
+        if (Object.is(question.answer, -0)) counts.negativeZero += 1;
+        if (!Number.isInteger(value) || value < -12 || value > 12) counts.outOfRange += 1;
+        if (question.operator === "absolute") {
+          counts.standard += 1;
+          const match = standardText.exec(question.text);
+          if (!match || Number(match[2]) !== Math.abs(value)) counts.malformed += 1;
+          if (question.answer !== Math.abs(value) || question.answer < 0) counts.mismatches += 1;
+        } else if (question.operator === "negative-absolute") {
+          counts.negativeOutside += 1;
+          const match = negativeText.exec(question.text);
+          if (!match || Number(match[2]) !== Math.abs(value)) counts.malformed += 1;
+          const expected = value === 0 ? 0 : -Math.abs(value);
+          if (question.answer !== expected || question.answer > 0) counts.mismatches += 1;
+        } else {
+          counts.malformed += 1;
+        }
+        if (question.answer < 0) counts.negativeAnswers += 1;
+      }
+    }
+    expect(counts.standard + counts.negativeOutside).toBe(10_000);
+    expect(counts.negativeOutside / 10_000).toBeGreaterThan(0.35);
+    expect(counts.negativeOutside / 10_000).toBeLessThan(0.45);
+    expect(counts.negativeAnswers).toBeGreaterThan(3_000);
+    expect({ negativeZero: counts.negativeZero, mismatches: counts.mismatches, outOfRange: counts.outOfRange, malformed: counts.malformed })
+      .toEqual({ negativeZero: 0, mismatches: 0, outOfRange: 0, malformed: 0 });
+    // The mathematically wrong form "|x| = negative" can never appear.
+    console.info(`Absolute Value audit: standard ${counts.standard}, negative-outside ${counts.negativeOutside}`);
+  });
+
+  it("−|0| is exactly 0 (never negative zero) and the signed keypad enters −8, −5, −12", () => {
+    const random = { next: () => 0, int: () => 0, pick: <T,>(list: readonly T[]) => list[0] };
+    const question = drawQuestion("absolute", random);
+    expect(question.text).toBe(`${MINUS}|0|`);
+    expect(Object.is(question.answer, -0)).toBe(false);
+    expect(question.answer).toBe(0);
+    for (const value of [-8, -5, -12]) {
+      let buffer = "";
+      for (const key of ["-", ...String(-value)]) buffer = applyKey(buffer, key, { signed: true });
+      expect(parseAnswer(buffer)).toEqual({ ok: true, value });
+    }
+    for (const malformed of ["--8", "++8", "+-8", "8-", "-+"]) expect(parseAnswer(malformed).ok).toBe(false);
+  });
+
+  it("the other five skills generate exactly the same questions as before this change", () => {
+    // Fingerprints of the first 500 questions per skill for a fixed seed,
+    // recorded from the version before the Absolute Value update.
+    const fingerprint = (skill: TugSkillId) => {
+      const stream = createQuestionStream(skill, "regression-fingerprint");
+      let hash = 0x811c9dc5;
+      for (let index = 0; index < 500; index += 1) {
+        for (const character of stream.next().key) hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
+      }
+      return hash;
+    };
+    expect(Object.fromEntries((["addition", "subtraction", "multiplication", "integers", "opposite"] as const).map(skill => [skill, fingerprint(skill)])))
+      .toEqual(PRE_ABSOLUTE_UPDATE_FINGERPRINTS);
   });
 
   it("reproduces the same sequence from the same seed", () => {
@@ -195,18 +267,54 @@ describe("tug model", () => {
     tug = applyPull(tug, "pink");
     tug = applyPull(tug, "pink");
     expect(tug.position).toBe(1);
-    for (let index = 0; index < 4; index += 1) tug = applyPull(tug, "pink");
+    for (let index = 0; index < 6; index += 1) tug = applyPull(tug, "pink");
     expect(tug.position).toBe(TUG_LIMIT);
     expect(tug.winner).toBe("pink");
     expect(applyPull(tug, "turquoise")).toBe(tug);
   });
 
-  it("describes position in words, never the raw number", () => {
+  it("needs exactly 7 NET pulls: 6 is not a win, the 7th is, in both directions", () => {
+    expect(TUG_LIMIT).toBe(7);
+    for (const [team, sign] of [["turquoise", -1], ["pink", 1]] as const) {
+      let tug = createTugState();
+      for (let pull = 1; pull <= 6; pull += 1) {
+        tug = applyPull(tug, team);
+        expect(tug.position).toBe(sign * pull);
+        expect(tug.winner).toBeNull();
+      }
+      tug = applyPull(tug, team);
+      expect(tug.position).toBe(sign * 7);
+      expect(tug.winner).toBe(team);
+    }
+  });
+
+  it("opposing pulls cancel progress: victory is net rope position, not total answers", () => {
+    let tug = createTugState();
+    for (let pull = 0; pull < 5; pull += 1) tug = applyPull(tug, "turquoise");
+    tug = applyPull(tug, "pink");
+    tug = applyPull(tug, "pink");
+    expect(tug.position).toBe(-3);
+    // Seven Turquoise answers in total so far are NOT a win.
+    tug = applyPull(tug, "turquoise");
+    tug = applyPull(tug, "turquoise");
+    expect(tug.pulls.turquoise).toBe(7);
+    expect(tug.winner).toBeNull();
+    expect(tug.position).toBe(-5);
+    tug = applyPull(tug, "turquoise");
+    tug = applyPull(tug, "turquoise");
+    expect(tug.winner).toBe("turquoise");
+    expect(tug.pulls).toEqual({ turquoise: 9, pink: 2 });
+  });
+
+  it("describes the rope in plain language, never the raw number", () => {
     const names = { turquoise: "Sharks", pink: "Comets" };
-    expect(describePosition(0, names)).toBe("The rope is centered.");
-    expect(describePosition(-2, names)).toBe("Sharks leads by 2 pulls, 3 pulls from victory.");
-    expect(describePosition(4, names)).toBe("Comets leads by 4 pulls, 1 pull from victory.");
-    expect(describePosition(-5, names)).toBe("Sharks pulled the rope across the line.");
+    expect(describePosition(0, names)).toBe("The match is even.");
+    expect(describePosition(-2, names)).toBe("Sharks is pulling ahead.");
+    expect(describePosition(4, names)).toBe("Comets is close to winning.");
+    expect(describePosition(-5, names)).toBe("Sharks is close to winning.");
+    expect(describePosition(6, names)).toBe("Comets needs one more pull to win.");
+    expect(describePosition(-7, names)).toBe("Sharks pulled the rope across the line.");
+    for (let position = -7; position <= 7; position += 1) expect(describePosition(position, names)).not.toMatch(/\d/);
   });
 
   it("sanitizes names", () => {
@@ -272,7 +380,7 @@ describe("match simulation audit (10,000 matches)", () => {
   it("never crashes, leaves bounds, double-wins, transitions illegally or gets stuck", () => {
     const failures = { crashes: 0, outOfBounds: 0, multipleWinners: 0, invalidTransitions: 0, stuck: 0, wrongPulled: 0 };
     let matches = 0;
-    const edgeStarts = [0, 1, 2, 3, 4];
+    const edgeStarts = [0, 1, 2, 3, 4, 5, 6];
     for (let run = 0; run < 10_000; run += 1) {
       const skill = SKILL_IDS[run % SKILL_IDS.length];
       const random = createRandom(`sim-${run}`);
@@ -340,7 +448,7 @@ describe("robot", () => {
       expect(plan.delayMs).toBeGreaterThanOrEqual(ROBOT_TUNING.minDelayMs);
       expect(plan.correct).toBe(plan.answer === question.answer);
       if (plan.correct) correct += 1;
-      else if (skill !== "integers" && skill !== "opposite") expect(plan.answer).toBeGreaterThanOrEqual(0);
+      else if (skill !== "integers" && skill !== "opposite" && question.answer >= 0 && question.operator !== "negative-absolute") expect(plan.answer).toBeGreaterThanOrEqual(0);
     }
     const rate = correct / total;
     expect(rate).toBeGreaterThan(0.75);

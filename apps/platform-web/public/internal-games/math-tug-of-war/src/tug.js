@@ -11,7 +11,8 @@ import { createQuestionStream, isSkillId } from "./questions.js";
 import { parseAnswer } from "./answer.js";
 import { freshSeed, hashSeed } from "./random.js";
 
-export const TUG_LIMIT = 5;
+/** Net pulls from the centre needed to win (owner decision: 7). */
+export const TUG_LIMIT = 7;
 export const TEAMS = Object.freeze(["turquoise", "pink"]);
 export const TEAM_DIRECTION = Object.freeze({ turquoise: -1, pink: 1 });
 export const DEFAULT_TEAM_NAMES = Object.freeze({ turquoise: "Team 1", pink: "Team 2" });
@@ -70,16 +71,17 @@ export function progressFor(tug, team) {
 }
 
 /**
- * Plain-language rope description for screen readers, never the raw number.
+ * Plain-language rope description for screen readers. Never the raw position.
  */
 export function describePosition(position, names) {
-  if (position === 0) return "The rope is centered.";
+  if (position === 0) return "The match is even.";
   const leader = position < 0 ? "turquoise" : "pink";
-  const steps = Math.abs(position);
-  const remaining = TUG_LIMIT - steps;
-  if (remaining <= 0) return `${names[leader]} pulled the rope across the line.`;
-  const lead = `${names[leader]} leads by ${steps} ${steps === 1 ? "pull" : "pulls"}`;
-  return `${lead}, ${remaining} ${remaining === 1 ? "pull" : "pulls"} from victory.`;
+  const remaining = TUG_LIMIT - Math.abs(position);
+  const name = names[leader];
+  if (remaining <= 0) return `${name} pulled the rope across the line.`;
+  if (remaining === 1) return `${name} needs one more pull to win.`;
+  if (remaining <= 3) return `${name} is close to winning.`;
+  return `${name} is pulling ahead.`;
 }
 
 /**

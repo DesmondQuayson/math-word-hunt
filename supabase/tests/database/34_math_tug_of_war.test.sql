@@ -76,12 +76,19 @@ select is(public.tug_submit_answer('TW7K2',:host_token,1,1,true)->>'result','opp
 select is(public.tug_room_state('TW7K2',:host_token)->'presence'->>'pink','disconnected','the opponent shows as disconnected');
 select is(public.tug_room_state('TW7K2',:guest_token)->'presence'->>'pink','connected','a returning player reconnects with the same token');
 
--- Victory
-update public.tug_rooms set position=-4 where code='TW7K2';
-select is(public.tug_submit_answer('TW7K2',:host_token,1,1,true)->>'winner','turquoise','reaching the line wins');
+-- Victory needs 7 NET pulls; opposing pulls cancel progress.
+select is((select string_agg(public.tug_submit_answer('TW7K2',:host_token,1,i,true)->>'position', ',' order by i) from generate_series(1,5) i),
+  '0,-1,-2,-3,-4', 'five Turquoise pulls move the rope five steps (from +1)');
+select is((select string_agg(public.tug_submit_answer('TW7K2',:guest_token,1,i,true)->>'position', ',' order by i) from generate_series(3,4) i),
+  '-3,-2', 'two Pink pulls bring it back toward the centre');
+select is((select string_agg(public.tug_submit_answer('TW7K2',:host_token,1,i,true)->>'position', ',' order by i) from generate_series(6,9) i),
+  '-3,-4,-5,-6', 'Turquoise pulls on toward the line');
+select is(public.tug_room_state('TW7K2',:host_token)->>'status','playing','six net pulls (9 Turquoise answers against 3 Pink) is not a win');
+select ok(public.tug_room_state('TW7K2',:host_token)->>'winner' is null,'no winner at six net pulls');
+select is(public.tug_submit_answer('TW7K2',:host_token,1,10,true)->>'winner','turquoise','the 7th net pull wins');
 select is(public.tug_room_state('TW7K2',:host_token)->>'status','won','the match is won');
-select is(public.tug_submit_answer('TW7K2',:guest_token,1,3,true)->>'result','not-playing','nobody pulls after the win');
-select is(public.tug_room_state('TW7K2',:host_token)->>'position','-5','the rope stays at the line');
+select is(public.tug_submit_answer('TW7K2',:guest_token,1,5,true)->>'result','not-playing','nobody pulls after the win');
+select is(public.tug_room_state('TW7K2',:host_token)->>'position','-7','the rope stays at the line');
 
 -- Rematch needs both players
 select is(public.tug_request_rematch('TW7K2',:host_token,1)->>'result','rematch-requested','one player asks for a rematch');
@@ -93,6 +100,13 @@ select results_eq(
   'the rematch resets the rope and questions but keeps the room'
 );
 select is(public.tug_request_rematch('TW7K2',:guest_token,1)->>'result','stale','an old rematch request cannot reset round two');
+
+-- Pink wins round two at +7, not before.
+select is((select string_agg(public.tug_submit_answer('TW7K2',:guest_token,2,i,true)->>'position', ',' order by i) from generate_series(0,5) i),
+  '1,2,3,4,5,6', 'six Pink pulls do not win');
+select is(public.tug_room_state('TW7K2',:guest_token)->>'status','playing','still playing at six');
+select is(public.tug_submit_answer('TW7K2',:guest_token,2,6,true)->>'winner','pink','Pink wins on the 7th net pull');
+select is(public.tug_room_state('TW7K2',:host_token)->>'position','7','the rope stops at the Pink line');
 
 -- Leaving and expiry
 select is(public.tug_leave_room('TW7K2',:guest_token)->>'status','closed','a player can leave');
@@ -112,7 +126,8 @@ select is(public.tug_join_room('ZZZZ9','X',:third_token,:owner_c)->>'result','no
 select is(public.tug_join_room('ZZZZ8','X',:third_token,:owner_c)->>'result','rate-limited','repeated guessing is throttled');
 
 -- Constraints hold against direct writes, too
-select throws_ok($$update public.tug_rooms set position=9 where code='EXP22'$$, '23514', null, 'the rope can never leave its bounds');
+select throws_ok($$update public.tug_rooms set position=8 where code='EXP22'$$, '23514', null, 'the rope can never leave its -7..+7 bounds');
+select lives_ok($$update public.tug_rooms set position=-7 where code='EXP22'$$, 'the Turquoise line itself is a legal position');
 
 select * from finish();
 rollback;

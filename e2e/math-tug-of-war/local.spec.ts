@@ -24,7 +24,7 @@ const QUESTION_SHAPES: Record<Skill, RegExp> = {
   multiplication: /^(\d{1,2}) × (\d{1,2})$/u,
   integers: new RegExp(`^${MINUS}?\\d{1,2} [+${MINUS}] (\\(${MINUS}\\d{1,2}\\)|\\d{1,2})$`),
   opposite: new RegExp(`^What is the opposite of ${MINUS}?\\d{1,2}\\?$`),
-  absolute: new RegExp(`^\\|${MINUS}?\\d{1,2}\\|$`)
+  absolute: new RegExp(`^${MINUS}?\\|${MINUS}?\\d{1,2}\\|$`)
 };
 
 const isDesktop = (projectName: string) => projectName.includes("desktop");
@@ -91,7 +91,9 @@ test.describe("Math Tug of War — local modes", () => {
         const text = await questionText(page, "turquoise");
         expect(text).toMatch(QUESTION_SHAPES[skill]);
         const value = solve(text);
-        if (skill === "subtraction" || skill === "absolute" || skill === "addition" || skill === "multiplication") expect(value).toBeGreaterThanOrEqual(0);
+        if (skill === "subtraction" || skill === "addition" || skill === "multiplication") expect(value).toBeGreaterThanOrEqual(0);
+        if (skill === "absolute" && text.startsWith("|")) expect(value).toBeGreaterThanOrEqual(0);
+        if (skill === "absolute" && text.startsWith(MINUS)) expect(value).toBeLessThanOrEqual(0);
         await waitForUnlocked(page, "turquoise");
         await answer(page, "turquoise", { wrong: true });
         await expect(panel(page, "turquoise")).toHaveAttribute("data-result", "incorrect");
@@ -211,7 +213,7 @@ test.describe("Math Tug of War — local modes", () => {
 
   test("Turquoise victory: the rope crosses the line, winner shown, Play Again resets and keeps names", async ({ page }) => {
     await startLocal(page, "teams", "multiplication", { turquoise: "Sharks", pink: "Comets" });
-    for (let pull = 1; pull <= 5; pull += 1) {
+    for (let pull = 1; pull <= 7; pull += 1) {
       await waitForUnlocked(page, "turquoise");
       await answer(page, "turquoise");
       await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", String(-pull));
@@ -233,19 +235,19 @@ test.describe("Math Tug of War — local modes", () => {
 
   test("Pink victory, then Change Game Setup keeps names and skill; Back to Math Games leaves", async ({ page }) => {
     await startLocal(page, "teams", "absolute", { turquoise: "Sharks", pink: "Comets" });
-    for (let pull = 1; pull <= 5; pull += 1) {
+    for (let pull = 1; pull <= 7; pull += 1) {
       await waitForUnlocked(page, "pink");
       await answer(page, "pink");
     }
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Comets WINS!" })).toBeVisible({ timeout: 8_000 });
-    expect(await ropePosition(page)).toBe(5);
+    expect(await ropePosition(page)).toBe(7);
     await dialog.getByRole("button", { name: "Change Game Setup" }).click();
     await expect(page.locator("#team-1-name")).toHaveValue("Sharks");
     await expect(page.locator("#team-2-name")).toHaveValue("Comets");
     await expect(page.locator("#skill-absolute")).toBeChecked();
     await page.getByRole("button", { name: "Start Game" }).click();
-    for (let pull = 1; pull <= 5; pull += 1) {
+    for (let pull = 1; pull <= 7; pull += 1) {
       await waitForUnlocked(page, "pink");
       await answer(page, "pink");
     }
@@ -260,7 +262,7 @@ test.describe("Math Tug of War — local modes", () => {
     await answer(page, "turquoise");
     await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", "-1");
     await expect(page.locator(".scene-status")).toHaveText("Sharks pulled!");
-    await expect(page.locator(".tug-scene-svg title")).toHaveText(/Sharks leads by 1 pull/);
+    await expect(page.locator(".tug-scene-svg title")).toHaveText(/Sharks is pulling ahead\./);
     const moving = await page.evaluate(() => document.getAnimations().filter(animation => animation.playState === "running").length);
     expect(moving).toBe(0);
     await context.close();

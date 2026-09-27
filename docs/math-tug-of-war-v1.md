@@ -31,13 +31,21 @@ Production is not changed by this branch.
   Multiplication (1–12 × 1–12), Addition & Subtraction of Integers (two operands in −12…12,
   one `+`/`−`, always involving a negative number or a negative answer; negative second
   operands are parenthesised: `5 + (−3)`), Opposite of Integers ("What is the opposite of −7?"),
-  Absolute Value (`|−8| = ?`). True minus sign (U+2212) everywhere; never negative zero.
+  Absolute Value in two families (owner update 2026-09-27): about 60 % standard `|−8| = ?`
+  (answer 0…12) and about 40 % negative-outside `−|−8| = ?` (answer −12…0; `−|0| = 0`).
+  An absolute value is never shown as negative; only the sign outside the bars makes the
+  answer negative. True minus sign (U+2212) everywhere; never negative zero.
 - **Question streams** (`src/questions.js`): seeded (mulberry32), one stream per team, a
   six-question recent-repeat guard. `questionAt(skill, seed, index)` replays a stream — the
   Online Match server uses it so the browser never needs the answer.
-- **Tug model** (`src/tug.js`): position −5…+5 from 0; Turquoise (left) −1, Pink (right) +1;
-  ±5 wins. Wrong answers never move the rope; the team simply gets its next question. The
-  raw number is never shown; screen readers get "Sharks leads by 2 pulls, 3 pulls from victory."
+- **Tug model** (`src/tug.js`): position −7…+7 from 0 (owner update 2026-09-27: 7 NET pulls
+  to win); Turquoise (left) −1, Pink (right) +1; ±7 wins. Opposing pulls cancel progress.
+  Wrong answers never move the rope; the team simply gets its next question. The raw number
+  is never shown; screen readers hear "The match is even.", "Sharks is pulling ahead.",
+  "Comets is close to winning.", "Sharks needs one more pull to win."
+- **Scene geometry for 7 pulls**: 38 units per pull (was 40), teams packed closer, a wider
+  field, and a camera that follows part of the tug (0.3 full-field, 0.65 zoomed) so all six
+  competitors stay in frame at ±7 and every pull still moves visibly.
 - **Robot** (`src/robot.js`): one robot, no difficulty. `ROBOT_TUNING` holds every constant
   (per-skill thinking time 3.0–4.6 s ± 35 %, minimum 1.8 s, 80 % accuracy, +0.6 s after a
   miss). It answers its own question through the same submit path as a person and only
@@ -121,15 +129,17 @@ authoritative pull counters.
 | Engine, generator audit (6 × 10,000), 10,000 match simulations, robot | `npm run test --workspace @math-vocabulary-hunt/platform-web -- lib/games/math-tug-of-war` |
 | Online server authority + API route | same (`online.test.ts`, `online-route.test.ts`) |
 | Runtime delivery (hash-versioned entry URLs, CSP, no raw-HTML sinks) | same (`runtime.test.ts`); refresh the hash with `node scripts/math-tug-of-war-runtime-hash.mjs --write` |
-| Database (74 assertions: grants, lifecycle, replay, impersonation, expiry, throttle, bounds) | `supabase/tests/database/34_math_tug_of_war.test.sql` |
+| Database (84 assertions: grants, lifecycle, replay, impersonation, expiry, throttle, 7-net-pull wins both ways, cancellation, bounds, leaving after a win) | `supabase/tests/database/34_math_tug_of_war.test.sql` |
 | Local modes, 5 device projects (Chromium/WebKit desktop, Pixel 7, iPhone 13, iPad) incl. responsive 304–1920, 200 % text, axe, audio, reduced motion | `node scripts/run-math-tug-of-war-e2e.mjs` |
 | Two real clients through the real API and DB (sync, simultaneous answers, win, rematch, disconnect/reconnect, reload, leave, failures, security, Chromium↔WebKit) | `node scripts/run-math-tug-of-war-online-e2e.mjs` (local Supabase with the migration applied) |
 | Card artwork | `node scripts/capture-math-tug-of-war-thumbnail.mjs`; pinned by `scripts/audit-game-suite-media.mjs` |
-| Staging database activation | `scripts/invoke-math-tug-of-war-staging.ps1 -Stage migrate` then `-Stage smoke` |
+| Staging database activation | `scripts/invoke-math-tug-of-war-staging.ps1 -Stage identify`, then (owner-approved) `-Stage apply` per migration (`$env:APPLY_MIGRATION`), then `-Stage smoke` and `-Stage review -Origin <preview>` |
 
 ## 6. Release notes for the owner (not done on this branch)
 
-- Production requires the migration `20260927100000_math_tug_of_war.sql` on the production
+- Production requires BOTH migrations, in order: `20260927100000_math_tug_of_war.sql` and
+  `20260928100000_math_tug_of_war_seven_pulls.sql` (7-pull bound and the fix that lets a won
+  room be closed so the other player learns their opponent left). Apply them on the production
   database **and** a deployment of this branch. The migration publishes the card; an internal
   key that is not registered in the deployed build is dropped from the catalog, so applying the
   migration before the deployment cannot show a broken card.

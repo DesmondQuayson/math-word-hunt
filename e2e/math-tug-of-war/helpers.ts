@@ -17,6 +17,8 @@ export function solve(text: string): number {
   const plain = text.split(MINUS).join("-").split(TIMES).join("*").trim();
   const opposite = /^What is the opposite of (-?\d+)\?$/.exec(plain);
   if (opposite) return Number(opposite[1]) === 0 ? 0 : -Number(opposite[1]);
+  const negativeAbsolute = /^-\|(-?\d+)\|$/.exec(plain);
+  if (negativeAbsolute) return Number(negativeAbsolute[1]) === 0 ? 0 : -Math.abs(Number(negativeAbsolute[1]));
   const absolute = /^\|(-?\d+)\|$/.exec(plain);
   if (absolute) return Math.abs(Number(absolute[1]));
   const binary = /^(-?\d+) ([+*-]) (\((-\d+)\)|(\d+))$/.exec(plain);

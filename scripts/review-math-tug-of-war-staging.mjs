@@ -47,6 +47,8 @@ function parse(text) {
   const plain = text.split(MINUS).join("-").split(TIMES).join("*").trim();
   let match = /^What is the opposite of (-?\d+)\?$/.exec(plain);
   if (match) return { kind: "opposite", operands: [Number(match[1])], answer: Number(match[1]) === 0 ? 0 : -Number(match[1]) };
+  match = /^-\|(-?\d+)\|$/.exec(plain);
+  if (match) return { kind: "negative-absolute", operands: [Number(match[1])], answer: Number(match[1]) === 0 ? 0 : -Math.abs(Number(match[1])) };
   match = /^\|(-?\d+)\|$/.exec(plain);
   if (match) return { kind: "absolute", operands: [Number(match[1])], answer: Math.abs(Number(match[1])) };
   match = /^(-?\d+) ([+*-]) (\((-\d+)\)|(\d+))$/.exec(plain);
@@ -67,7 +69,7 @@ function legal(skill, text) {
     case "multiplication": return q.kind === "*" && inRange([a, b], 1, 12);
     case "integers": return (q.kind === "+" || q.kind === "-") && inRange([a, b], -12, 12) && (a < 0 || b < 0 || q.answer < 0) && (b >= 0 || text.includes(`(${MINUS}`));
     case "opposite": return q.kind === "opposite" && inRange([a], -12, 12);
-    case "absolute": return q.kind === "absolute" && inRange([a], -12, 12) && q.answer >= 0;
+    case "absolute": return (q.kind === "absolute" && inRange([a], -12, 12) && q.answer >= 0) || (q.kind === "negative-absolute" && inRange([a], -12, 12) && q.answer <= 0);
     default: return false;
   }
 }
@@ -240,10 +242,13 @@ try {
   ok(await position(a.page) === 1, "Two Teams: Pink pull");
   await a.page.waitForTimeout(250);
   await shot(a.page, "09-pink-successful-pull");
-  for (let pull = 0; pull < 6; pull += 1) await answer(a.page, "turquoise");
+  // From +1 Turquoise needs 8 correct answers to reach 7 net pulls.
+  for (let pull = 0; pull < 7; pull += 1) await answer(a.page, "turquoise");
+  ok(await a.page.getByRole("dialog").count() === 0 && await settledAt(a.page, -6), "Two Teams: six net pulls is not yet a win");
+  await answer(a.page, "turquoise");
   const dialog = a.page.getByRole("dialog");
   await dialog.getByRole("heading", { name: "Sharks WINS!" }).waitFor({ timeout: 10_000 });
-  ok(await position(a.page) === -5, "Two Teams: Turquoise victory at the line");
+  ok(await position(a.page) === -7, "Two Teams: Turquoise wins on the 7th net pull");
   await a.page.waitForTimeout(600);
   await shot(a.page, "13-turquoise-victory");
   await dialog.getByRole("button", { name: "Play Again" }).click();
@@ -272,7 +277,7 @@ try {
       ok(await position(phone.page) >= 0, "VS Robot: wrong answer does not pull");
       await phone.page.locator(".robot-status").filter({ hasText: /Pulled!|Missed one/ }).waitFor({ timeout: 15_000 });
       ok(true, "VS Robot: robot thinks, then answers");
-      for (let pull = 0; pull < 12 && !(await phone.page.getByRole("dialog").count()); pull += 1) await answer(phone.page, "turquoise").catch(() => undefined);
+      for (let pull = 0; pull < 20 && !(await phone.page.getByRole("dialog").count()); pull += 1) await answer(phone.page, "turquoise").catch(() => undefined);
       await phone.page.getByRole("dialog").getByRole("heading", { name: /WINS!/ }).waitFor({ timeout: 15_000 });
       ok(true, "VS Robot: victory");
       await shot(phone.page, "22-phone-vs-robot");
@@ -352,7 +357,7 @@ try {
   await guestPhone.context.setOffline(false);
   const back = await hostPhone.page.locator('.opponent-card .connection[data-presence="connected"]').waitFor({ timeout: 25_000 }).then(() => true, () => false);
   ok(back, "Online: reconnect restores the match");
-  for (let pull = 1; pull <= 5; pull += 1) {
+  for (let pull = 1; pull <= 7; pull += 1) {
     await answer(hostPhone.page, "turquoise");
     await waitPosition(hostPhone.page, -pull);
   }

@@ -5,7 +5,7 @@
 import { h, clear, icon } from "./dom.js";
 import { normalizeKey } from "./answer.js";
 import { SKILLS, formatInteger, getSkill } from "./questions.js";
-import { DEFAULT_TEAM_NAMES, NAME_MAX_LENGTH, createLocalMatch, describePosition, otherTeam, sanitizeName } from "./tug.js";
+import { DEFAULT_TEAM_NAMES, NAME_MAX_LENGTH, TUG_LIMIT, createLocalMatch, describePosition, otherTeam, sanitizeName } from "./tug.js";
 import { ROBOT_TUNING, planRobotAnswer, robotEntry } from "./robot.js";
 import { createScene, prefersReducedMotion } from "./scene.js";
 import { TEAM_LABEL, createPanel, teamBadge } from "./panel.js";
@@ -937,7 +937,7 @@ function applyOnlineState(state, previous, extra) {
   if (newPulls.length) {
     let position = app.scene.position;
     newPulls.forEach((team, index) => {
-      position = index === newPulls.length - 1 ? state.position : Math.max(-5, Math.min(5, position + (team === "turquoise" ? -1 : 1)));
+      position = index === newPulls.length - 1 ? state.position : Math.max(-TUG_LIMIT, Math.min(TUG_LIMIT, position + (team === "turquoise" ? -1 : 1)));
       app.scene.pull(team, position);
     });
     online.lastPulls = { ...state.pulls };

@@ -154,8 +154,8 @@ test("two clients: create, join, synchronized pulls, simultaneous answers, win, 
   const record = await admin.from("tug_rooms").select("position,host_pulls,guest_pulls,host_question_index,guest_question_index").eq("code", code).eq("status", "playing").single();
   expect(record.data).toMatchObject({ position: 0, host_pulls: 2, guest_pulls: 2, host_question_index: 2, guest_question_index: 3 });
 
-  // Win: Ava pulls five times.
-  for (let pull = 1; pull <= 5; pull += 1) {
+  // Win: Ava needs 7 net pulls from the centre.
+  for (let pull = 1; pull <= 7; pull += 1) {
     await answerOnline(a.page, "turquoise");
     await position(a.page, -pull);
   }

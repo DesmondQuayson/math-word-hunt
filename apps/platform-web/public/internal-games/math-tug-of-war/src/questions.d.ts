@@ -7,7 +7,7 @@ export type TugQuestion = Readonly<{
   key: string;
   kind: "expression" | "sentence";
   operands: readonly number[];
-  operator: "+" | "-" | "*" | "opposite" | "absolute";
+  operator: "+" | "-" | "*" | "opposite" | "absolute" | "negative-absolute";
   text: string;
   spoken: string;
   answer: number;
@@ -20,6 +20,7 @@ export const SKILLS: readonly TugSkill[];
 export const SKILL_IDS: readonly TugSkillId[];
 export const RANGES: Readonly<{ whole: Readonly<{ min: number; max: number }>; integer: Readonly<{ min: number; max: number }> }>;
 export const RECENT_HISTORY: number;
+export const NEGATIVE_ABSOLUTE_SHARE: number;
 
 export function getSkill(skillId: string): TugSkill | null;
 export function isSkillId(value: unknown): value is TugSkillId;

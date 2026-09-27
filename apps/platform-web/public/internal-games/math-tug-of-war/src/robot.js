@@ -41,11 +41,13 @@ export function planRobotAnswer(question, random, tuning = ROBOT_TUNING) {
 
 /** A believable wrong answer (off by one or two, or a sign slip). */
 export function plausibleMistake(question, random) {
-  const signedSkill = question.skill === "integers" || question.skill === "opposite";
+  // Sign slips: integer work, opposites, and forgetting the sign outside −|x|.
+  const signedSkill = question.skill === "integers" || question.skill === "opposite" || question.operator === "negative-absolute";
   if (signedSkill && question.answer !== 0 && random() < 0.5) return -question.answer;
   const offset = random() < 0.5 ? 1 : 2;
   let wrong = question.answer + (random() < 0.5 ? -offset : offset);
-  const nonNegative = question.skill !== "integers" && question.skill !== "opposite";
+  // Whole-number skills and |x| never have negative answers; keep slips plausible.
+  const nonNegative = question.answer >= 0 && question.skill !== "integers" && question.skill !== "opposite" && question.operator !== "negative-absolute";
   if (nonNegative && wrong < 0) wrong = question.answer + offset;
   if (wrong === question.answer) wrong += 1;
   return wrong === 0 ? 0 : wrong;

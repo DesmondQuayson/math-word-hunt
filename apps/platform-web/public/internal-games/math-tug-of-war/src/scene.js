@@ -6,12 +6,15 @@
 import { s } from "./dom.js";
 import { TUG_LIMIT } from "./tug.js";
 
-const STEP = 40; // world units per pull; 5 pulls = the ribbon reaches a victory line
+const STEP = 38; // world units per pull; TUG_LIMIT (7) pulls = the ribbon reaches a victory line
 const GROUND_Y = 330;
 const ROPE_Y = 222;
 const CENTER_X = 500;
-const FRONT_OFFSET = 100;
-const SPACING = 75;
+const FRONT_OFFSET = 88;
+const SPACING = 56;
+// Rope ends just behind the back puller on each side.
+const ROPE_START = CENTER_X - (FRONT_OFFSET + 2 * SPACING + 35);
+const ROPE_END = CENTER_X + (FRONT_OFFSET + 2 * SPACING + 35);
 const DEFAULT_ASPECT = 1000 / 310;
 const MIN_ASPECT = 740 / 420;
 const SKIN = ["#8d5a3b", "#f1c9a5", "#c58c62"];
@@ -116,25 +119,25 @@ function victoryLine(team) {
 
 function backdrop() {
   const stripes = [];
-  for (let x = -40; x < 1040; x += 80) stripes.push(s("rect", { x, y: 300, width: 40, height: 120, fill: "#ffffff", opacity: 0.07 }));
+  for (let x = -440; x < 1440; x += 80) stripes.push(s("rect", { x, y: 300, width: 40, height: 120, fill: "#ffffff", opacity: 0.07 }));
   const seats = [];
   for (let row = 0; row < 4; row += 1) {
-    seats.push(s("rect", { x: 0, y: 150 + row * 26, width: 1000, height: 18, rx: 4, fill: row % 2 ? "#cfe3f6" : "#dbeafa" }));
+    seats.push(s("rect", { x: -400, y: 150 + row * 26, width: 1800, height: 18, rx: 4, fill: row % 2 ? "#cfe3f6" : "#dbeafa" }));
   }
   const crowd = [];
-  for (let index = 0; index < 34; index += 1) {
-    const x = 18 + index * 29.5 + (index % 3) * 4;
-    const y = 162 + (index % 4) * 26;
+  for (let index = -14; index < 48; index += 1) {
+    const x = 18 + index * 29.5 + (((index % 3) + 3) % 3) * 4;
+    const y = 162 + (((index % 4) + 4) % 4) * 26;
     const color = index % 2 ? "#9fd9e0" : "#f7b4d2";
     crowd.push(s("circle", { cx: x, cy: y - 6, r: 6.5, fill: color, opacity: 0.8 }));
   }
   return s("g", { class: "backdrop", "aria-hidden": "true" },
-    s("rect", { x: 0, y: 0, width: 1000, height: 300, fill: "url(#tug-sky)" }),
+    s("rect", { x: -400, y: 0, width: 1800, height: 300, fill: "url(#tug-sky)" }),
     s("g", { opacity: 0.8 }, seats),
     s("g", {}, crowd),
-    s("rect", { x: 0, y: 238, width: 1000, height: 62, fill: "#e9f3fc" }),
-    s("rect", { x: 0, y: 296, width: 1000, height: 6, fill: "#3c8f45" }),
-    s("rect", { x: 0, y: 300, width: 1000, height: 120, fill: "url(#tug-grass)" }),
+    s("rect", { x: -400, y: 238, width: 1800, height: 62, fill: "#e9f3fc" }),
+    s("rect", { x: -400, y: 296, width: 1800, height: 6, fill: "#3c8f45" }),
+    s("rect", { x: -400, y: 300, width: 1800, height: 120, fill: "url(#tug-grass)" }),
     s("g", {}, stripes),
     s("path", { d: `M${CENTER_X},300 L${CENTER_X},420`, stroke: "#ffffff", "stroke-width": 6 }),
     s("circle", { cx: CENTER_X, cy: 306, r: 6, fill: "#ffffff" })
@@ -142,16 +145,16 @@ function backdrop() {
 }
 
 function rope() {
-  const slack = `M215,${ROPE_Y} Q500,${ROPE_Y + 16} 785,${ROPE_Y}`;
-  const taut = `M215,${ROPE_Y} L785,${ROPE_Y}`;
+  const slack = `M${ROPE_START},${ROPE_Y} Q500,${ROPE_Y + 16} ${ROPE_END},${ROPE_Y}`;
+  const taut = `M${ROPE_START},${ROPE_Y} L${ROPE_END},${ROPE_Y}`;
   const strand = (d, cls) => s("g", { class: cls },
     s("path", { d, fill: "none", stroke: "#9c7443", "stroke-width": 11, "stroke-linecap": "round" }),
     s("path", { d, fill: "none", stroke: "#d6ae72", "stroke-width": 7, "stroke-linecap": "round" }),
     s("path", { d, fill: "none", stroke: "#a67c47", "stroke-width": 7, "stroke-dasharray": "3 7", "stroke-linecap": "butt" })
   );
   return s("g", { class: "rope" },
-    s("path", { d: `M215,${ROPE_Y} Q188,${ROPE_Y + 12} 194,${ROPE_Y + 76}`, fill: "none", stroke: "#b58b54", "stroke-width": 9, "stroke-linecap": "round" }),
-    s("path", { d: `M785,${ROPE_Y} Q812,${ROPE_Y + 12} 806,${ROPE_Y + 76}`, fill: "none", stroke: "#b58b54", "stroke-width": 9, "stroke-linecap": "round" }),
+    s("path", { d: `M${ROPE_START},${ROPE_Y} Q${ROPE_START - 27},${ROPE_Y + 12} ${ROPE_START - 21},${ROPE_Y + 76}`, fill: "none", stroke: "#b58b54", "stroke-width": 9, "stroke-linecap": "round" }),
+    s("path", { d: `M${ROPE_END},${ROPE_Y} Q${ROPE_END + 27},${ROPE_Y + 12} ${ROPE_END + 21},${ROPE_Y + 76}`, fill: "none", stroke: "#b58b54", "stroke-width": 9, "stroke-linecap": "round" }),
     strand(slack, "rope-slack"),
     strand(taut, "rope-taut")
   );
@@ -365,7 +368,8 @@ export function createScene() {
     const x = 500 - width / 2;
     svg.setAttribute("viewBox", `${x.toFixed(1)} ${(420 - height).toFixed(1)} ${width.toFixed(1)} ${height.toFixed(1)}`);
     svg.style.aspectRatio = `${width.toFixed(1)} / ${height.toFixed(1)}`;
-    panFactor = width < 990 ? 0.5 : 0;
+    // Full-field framing follows gently; zoomed framing follows more.
+    panFactor = width < 990 ? 0.65 : 0.3;
     place(position);
   }
 
