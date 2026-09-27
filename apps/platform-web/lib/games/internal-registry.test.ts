@@ -11,8 +11,8 @@ import {
 } from "./internal-registry";
 
 describe("trusted internal game registry", () => {
-  it("registers the source-owned CrossCalc, Number Cross, and Number Logic keys and routes only", () => {
-    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic"]);
+  it("registers the source-owned CrossCalc, Number Cross, Number Logic and Math Tug of War keys and routes only", () => {
+    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic", "math-tug-of-war"]);
     expect(getInternalGameRegistration("crosscalc")).toMatchObject({
       stableKey: "crosscalc",
       route: "/games/crosscalc/play",

@@ -13,6 +13,8 @@
  *   /games/crosscalc/play     CrossCalc (live catalog version 0.2.0)
  *   /games/number-cross/play  Number Cross
  *   /games/number-logic/play  Number Logic
+ *   /games/math-tug-of-war/play  Math Tug of War (local modes; Online Match
+ *                             reports itself unavailable: no API here)
  *   /games                    a stub landing page so "Back to Games" resolves
  *   everything else           apps/platform-web/public (internal-games,
  *                             game-suite runtime assets, media)
@@ -64,7 +66,8 @@ export const GAME_ROUTES = Object.freeze({
   "math-vocabulary-hunt": "/game/runtime/index.html",
   "crosscalc": "/games/crosscalc/play",
   "number-cross": "/games/number-cross/play",
-  "number-logic": "/games/number-logic/play"
+  "number-logic": "/games/number-logic/play",
+  "math-tug-of-war": "/games/math-tug-of-war/play"
 });
 
 const CONTENT_TYPES = {
@@ -82,11 +85,12 @@ const CONTENT_TYPES = {
 
 async function loadDocuments() {
   const load = (relative) => import(pathToFileURL(join(root, "apps", "platform-web", relative)).href);
-  const [{ enhanceCanonicalGameHtml }, crosscalc, numberCross, numberLogic] = await Promise.all([
+  const [{ enhanceCanonicalGameHtml }, crosscalc, numberCross, numberLogic, tugOfWar] = await Promise.all([
     load("lib/game-access/canonical-runtime-enhancements.ts"),
     load("features/games/crosscalc-v2/document.ts"),
     load("features/games/number-cross/document.ts"),
-    load("features/games/number-logic/document.ts")
+    load("features/games/number-logic/document.ts"),
+    load("features/games/math-tug-of-war/document.ts")
   ]);
   return {
     mvh: enhanceCanonicalGameHtml(readFileSync(join(root, "docs", "index.html"))),
@@ -94,7 +98,8 @@ async function loadDocuments() {
     internal: {
       [GAME_ROUTES.crosscalc]: { html: crosscalc.renderCrossCalcV2Document(), connectSource: "'self'" },
       [GAME_ROUTES["number-cross"]]: { html: numberCross.renderNumberCrossDocument(), connectSource: "'none'" },
-      [GAME_ROUTES["number-logic"]]: { html: numberLogic.renderNumberLogicDocument(), connectSource: "'self'" }
+      [GAME_ROUTES["number-logic"]]: { html: numberLogic.renderNumberLogicDocument(), connectSource: "'self'" },
+      [GAME_ROUTES["math-tug-of-war"]]: { html: tugOfWar.renderMathTugOfWarDocument(), connectSource: "'self'" }
     }
   };
 }

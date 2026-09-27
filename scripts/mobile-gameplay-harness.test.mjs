@@ -20,7 +20,7 @@ test("the harness serves internal games under the registry's exact directives an
     const source = directive.startsWith("connect-src") ? "connect-src ${registration.connectSource}" : directive;
     assert.ok(registry.includes(`"${source}"`) || registry.includes(`\`${source}\``), `registry lacks ${directive}`);
   }
-  for (const [key, connect] of [["crosscalc", "'self'"], ["number-cross", "'none'"], ["number-logic", "'self'"]]) {
+  for (const [key, connect] of [["crosscalc", "'self'"], ["number-cross", "'none'"], ["number-logic", "'self'"], ["math-tug-of-war", "'self'"]]) {
     const entry = registry.slice(registry.indexOf(`"${key}": Object.freeze({`));
     assert.match(entry.slice(0, 400), new RegExp(`connectSource: "${connect}"`), key);
   }
@@ -36,7 +36,7 @@ test("every game document is served with its CSP, and the public game assets res
       assert.match(response.headers.get("content-security-policy") ?? "", /default-src 'none'/, key);
       assert.match(await response.text(), /<html lang="en">/, key);
     }
-    for (const asset of ["/game-suite/canonical-runtime.css", "/internal-games/crosscalc-v2/integration.css", "/internal-games/crosscalc-v2/runtime-layout.js", "/internal-games/number-cross/integration.css", "/internal-games/number-logic/integration.css"]) {
+    for (const asset of ["/game-suite/canonical-runtime.css", "/internal-games/crosscalc-v2/integration.css", "/internal-games/crosscalc-v2/runtime-layout.js", "/internal-games/number-cross/integration.css", "/internal-games/number-logic/integration.css", "/internal-games/math-tug-of-war/styles.css", "/internal-games/math-tug-of-war/src/app.js", "/media/audio/cosmic-candy-catchers.mp3"]) {
       assert.equal((await fetch(`http://127.0.0.1:${port}${asset}`)).status, 200, asset);
     }
     assert.equal((await fetch(`http://127.0.0.1:${port}/../package.json`)).status, 404);

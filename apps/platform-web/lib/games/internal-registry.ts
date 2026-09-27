@@ -2,6 +2,7 @@ import "server-only";
 
 import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
 import { renderCrossCalcV2Document, renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
+import { renderMathTugOfWarDocument } from "@/features/games/math-tug-of-war/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
 
@@ -34,6 +35,14 @@ const INTERNAL_GAMES = Object.freeze({
     assetBase: "/internal-games/number-logic/",
     connectSource: "'self'",
     renderDocument: renderNumberLogicDocument
+  }),
+  // Online Match talks to the same-origin /api/games/math-tug-of-war/online.
+  "math-tug-of-war": Object.freeze({
+    stableKey: "math-tug-of-war",
+    route: "/games/math-tug-of-war/play",
+    assetBase: "/internal-games/math-tug-of-war/",
+    connectSource: "'self'",
+    renderDocument: renderMathTugOfWarDocument
   })
 } satisfies Record<string, InternalGameRegistration>);
 
