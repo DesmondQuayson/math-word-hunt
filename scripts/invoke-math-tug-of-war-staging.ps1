@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'apply', 'migrate', 'smoke', 'review', 'share-check')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'apply', 'migrate', 'smoke', 'review', 'share-check', 'owner-account')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
@@ -32,6 +32,7 @@ $stagingNames = switch ($Stage) {
   'smoke' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'share-check' { @('SUPABASE_SECRET_KEY') }
+  'owner-account' { @('SUPABASE_SECRET_KEY') }
   default { @('SUPABASE_DB_PASSWORD', 'SUPABASE_SECRET_KEY') }
 }
 try {
@@ -46,6 +47,10 @@ try {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) { throw "The staging entry $name is not in the vault." }
   }
   Set-Location $repositoryRoot
+  if ($Stage -eq 'owner-account') {
+    & node scripts/staging-owner-review-account.mjs
+    exit $LASTEXITCODE
+  }
   if ($Stage -eq 'share-check') {
     $env:SHARE_URL = $Origin
     & node scripts/verify-math-tug-of-war-share-link.mjs
