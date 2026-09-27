@@ -1,3 +1,7 @@
+-- MANUAL RECOVERY DOCUMENT — NOT AN EXECUTABLE MIGRATION.
+-- It lives in docs/releases/ so no tool applies it; an operator runs a step
+-- by hand only if the owner decides a database repair is needed.
+--
 -- Rollback / repair for 20260927100000_math_tug_of_war.sql and
 -- 20260928100000_math_tug_of_war_seven_pulls.sql (Math Tug of War V1).
 --
