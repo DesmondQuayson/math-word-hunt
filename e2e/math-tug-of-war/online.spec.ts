@@ -337,3 +337,41 @@ test("WebKit interoperability: a Chromium host and a WebKit guest share one matc
   }
   await a.context.close();
 });
+
+// Owner review pack only (TUG_REVIEW_PACK_DIR=...): the Math Games card and the
+// Online Match screens as two phones see them.
+test("review pack: Math Games card, lobby, ready and phone Online Match", async ({ browser }) => {
+  const dir = process.env.TUG_REVIEW_PACK_DIR;
+  test.skip(!dir, "set TUG_REVIEW_PACK_DIR to capture the owner review pack");
+  const shot = (page: Page, name: string) => page.screenshot({ path: `${dir}/${name}.png` });
+  const a = await signedIn(browser, emails.a);
+  await a.page.setViewportSize({ width: 1366, height: 900 });
+  await a.page.goto("/games");
+  const card = a.page.locator("article").filter({ has: a.page.getByRole("heading", { name: "Math Tug of War", exact: true }) });
+  await card.scrollIntoViewIfNeeded();
+  await expect(card.getByAltText("Math Tug of War gameplay artwork")).toBeVisible();
+  // Hide the local next dev indicator; it is not part of the product.
+  await a.page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  await a.page.waitForTimeout(600);
+  await shot(a.page, "01-math-games-card");
+  await card.getByRole("link", { name: "Play" }).click();
+  await expect(a.page.getByRole("heading", { level: 1, name: /Math Tug of War/ })).toBeVisible({ timeout: 60_000 });
+  await a.page.setViewportSize({ width: 390, height: 844 });
+  const code = await createRoom(a.page, "Ava", "integers");
+  await shot(a.page, "05-online-create-game-room-code");
+  const b = await signedIn(browser, emails.b);
+  await b.page.setViewportSize({ width: 390, height: 844 });
+  await joinRoom(b.page, "Bo", code);
+  await expect(b.page.getByRole("heading", { name: "Both players ready" })).toBeVisible();
+  await shot(b.page, "06-online-join-game-ready");
+  await inGame(a.page, "turquoise");
+  await inGame(b.page, "pink");
+  await answerOnline(a.page, "turquoise");
+  await position(b.page, -1);
+  await b.page.waitForTimeout(900);
+  await shot(b.page, "23-phone-online-match-pink");
+  await shot(a.page, "23b-phone-online-match-turquoise");
+  await b.page.getByRole("button", { name: "Exit to game setup" }).click();
+  await a.context.close();
+  await b.context.close();
+});
