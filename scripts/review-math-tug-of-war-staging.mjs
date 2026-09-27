@@ -17,17 +17,29 @@ import { chromium, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
-const origin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
-if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
-const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
-if (!/^[A-Za-z0-9_-]{20,}$/.test(bypass)) throw new Error("missing protection-bypass entry");
-const secretKey = (process.env.SUPABASE_SECRET_KEY ?? "").trim();
-if (secretKey.length < 20) throw new Error("missing staging secret key");
+// REVIEW_TARGET=production (scripts/invoke-math-tug-of-war-production.ps1 -Stage review)
+// reviews the live apex: no protection bypass, the production project, and an
+// explicit opt-in for temporary synthetic consumer accounts (deleted at the end).
+const isProduction = process.env.REVIEW_TARGET === "production";
+const origin = ((isProduction ? process.env.REVIEW_ORIGIN : process.env.STAGING_ORIGIN) ?? "").trim().replace(/\/$/, "");
+if (isProduction) {
+  if (origin !== "https://mathnexa.com") throw new Error("REVIEW_ORIGIN must be https://mathnexa.com for a production review");
+  if (process.env.REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION !== "yes") throw new Error("production review creates temporary synthetic accounts; the production launcher must opt in explicitly");
+} else if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
+const bypass = isProduction ? "" : (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
+if (!isProduction && !/^[A-Za-z0-9_-]{20,}$/.test(bypass)) throw new Error("missing protection-bypass entry");
+const projectRef = isProduction ? (process.env.SUPABASE_PRODUCTION_PROJECT_REF ?? "").trim().toLowerCase() : STAGING_PROJECT_REF;
+if (!/^[a-z]{20}$/.test(projectRef) || (isProduction && projectRef === STAGING_PROJECT_REF)) throw new Error("project ref unavailable or wrong for this target");
+const secretKey = ((isProduction ? process.env.SUPABASE_PRODUCTION_SECRET_KEY : process.env.SUPABASE_SECRET_KEY) ?? "").trim();
+if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const out = resolve(process.env.REVIEW_OUT ?? "owner-review/math-tug-of-war-v1/staging");
 mkdirSync(out, { recursive: true });
+const bypassHeaders = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
+const landing = bypass ? `${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true` : `${origin}/`;
+const accountPrefix = isProduction ? "tug-release-review" : "tug-staging";
 
-const admin = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+const admin = createClient(`https://${projectRef}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 const run = randomBytes(3).toString("hex");
 const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const MINUS = String.fromCharCode(0x2212);
@@ -35,8 +47,9 @@ const TIMES = String.fromCharCode(0xd7);
 const route = "/games/math-tug-of-war/play";
 const users = [];
 const roomCodes = new Set();
+const reviewStartedAt = new Date(Date.now() - 60_000).toISOString();
 const results = [];
-const redact = (text) => String(text).split(bypass).join("[hidden]");
+const redact = (text) => (bypass ? String(text).split(bypass).join("[hidden]") : String(text));
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   console.log(`${condition ? "ok  " : "FAIL"} ${redact(message)}`);
@@ -76,8 +89,8 @@ function legal(skill, text) {
 
 // kind "subscriber" = active subscription; "free" = a signed-in account with no entitlement.
 async function subscriber(label, kind = "subscriber") {
-  const email = `tug-staging-${run}-${label}@example.invalid`;
-  const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: "math-tug-of-war-staging-review" } });
+  const email = `${accountPrefix}-${run}-${label}@example.invalid`;
+  const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: isProduction ? "math-tug-of-war-production-release-review" : "math-tug-of-war-staging-review" } });
   if (made.error || !made.data.user) throw new Error("synthetic-user-failed");
   const id = made.data.user.id;
   users.push(id);
@@ -91,21 +104,21 @@ async function subscriber(label, kind = "subscriber") {
 
 // A clean browser with no MathNexa session (Deployment Protection passed with the bypass header only).
 async function anonymous(engine, viewport, options = {}) {
-  const context = await engine.newContext({ viewport, extraHTTPHeaders: { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" }, ...options });
+  const context = await engine.newContext({ viewport, extraHTTPHeaders: bypassHeaders, ...options });
   const page = await context.newPage();
-  await page.goto(`${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  await page.goto(landing, { waitUntil: "domcontentloaded" });
   return { context, page };
 }
 
 async function session(engine, email, viewport, options = {}) {
   const context = await engine.newContext({
     viewport,
-    extraHTTPHeaders: { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" },
+    extraHTTPHeaders: bypassHeaders,
     ...options
   });
   const page = await context.newPage();
   page.on("pageerror", (error) => console.log(`pageerror ${redact(error.message)}`));
-  await page.goto(`${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  await page.goto(landing, { waitUntil: "domcontentloaded" });
   await page.goto(`${origin}/sign-in?next=${encodeURIComponent("/games")}`, { waitUntil: "domcontentloaded" });
   await page.getByLabel("Email address").fill(email);
   await page.locator('input[name="password"]').fill(password);
@@ -167,7 +180,7 @@ const shot = (page, name) => page.screenshot({ path: resolve(out, `${name}.png`)
 const browser = await chromium.launch();
 const safari = await webkit.launch();
 try {
-  const health = await fetch(`${origin}/api/health`, { headers: { "x-vercel-protection-bypass": bypass } });
+  const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders });
   const healthText = await health.text();
   ok(health.status === 200, `health 200 (${health.status})`);
   if (expectCommit) ok(healthText.includes(expectCommit.slice(0, 7)), `deployment serves commit ${expectCommit.slice(0, 7)}`);
@@ -208,19 +221,28 @@ try {
     // email is confirmed administratively and the account signs in through "Already have an account?".
     await anon.page.goto(`${origin}/sign-up?next=${route}`, { waitUntil: "domcontentloaded" });
     ok(await anon.page.getByRole("heading", { level: 1 }).textContent() === "Create a free account to play", "sign-up page for the free game (no trial or subscription wording)");
-    const signupEmail = `tug-staging-${run}-signup@example.invalid`;
+    const signupEmail = `${accountPrefix}-${run}-signup@example.invalid`;
     await anon.page.getByLabel("Email address").fill(signupEmail);
     if (await anon.page.getByLabel("Display name").count()) await anon.page.getByLabel("Display name").fill("Signup Tester");
     await anon.page.locator('input[name="password"]').fill(password);
     await anon.page.locator('input[name="passwordConfirmation"]').fill(password);
-    await anon.page.getByRole("button", { name: /Create/ }).click();
+    ok(!/trial|subscri|\$5\.99|card/i.test(await anon.page.locator("main form").first().textContent()), "sign-up form for the free game asks for no card, trial or subscription");
     let signupId = null;
-    for (let attempt = 0; attempt < 30 && !signupId; attempt += 1) {
-      const listed = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      signupId = listed.data?.users.find((user) => user.email === signupEmail)?.id ?? null;
-      if (!signupId) await anon.page.waitForTimeout(500);
+    if (isProduction) {
+      // Production test policy: no confirmation email to a synthetic address. The account is
+      // created administratively (unconfirmed, as the form would), confirmed, then signs in below.
+      const made = await admin.auth.admin.createUser({ email: signupEmail, password, email_confirm: false, user_metadata: { synthetic_run_id: run, purpose: "math-tug-of-war-production-release-review" } });
+      signupId = made.data?.user?.id ?? null;
+      ok(Boolean(signupId), "Create account: synthetic production account created (form filled, not submitted: no email to a synthetic address)");
+    } else {
+      await anon.page.getByRole("button", { name: /Create/ }).click();
+      for (let attempt = 0; attempt < 30 && !signupId; attempt += 1) {
+        const listed = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+        signupId = listed.data?.users.find((user) => user.email === signupEmail)?.id ?? null;
+        if (!signupId) await anon.page.waitForTimeout(500);
+      }
+      ok(Boolean(signupId), "Create account submitted a real MathNexa sign-up");
     }
-    ok(Boolean(signupId), "Create account submitted a real MathNexa sign-up");
     if (signupId) {
       users.push(signupId);
       await admin.auth.admin.updateUserById(signupId, { email_confirm: true });
@@ -233,6 +255,12 @@ try {
       await anon.page.getByRole("button", { name: "Sign in" }).click();
       await anon.page.getByRole("heading", { level: 1, name: /Math Tug of War/ }).waitFor({ timeout: 45_000 }).catch(() => undefined);
       ok(new URL(anon.page.url()).pathname === route, "new account returns straight to Math Tug of War after sign-in");
+      const [entitlementRows, subscriptionRows, accountRow] = await Promise.all([
+        admin.from("consumer_game_entitlements").select("user_id", { count: "exact", head: true }).eq("user_id", signupId),
+        admin.from("billing_subscriptions").select("owner_consumer_id", { count: "exact", head: true }).eq("owner_consumer_id", signupId),
+        admin.from("consumer_accounts").select("trial_redeemed_at").eq("user_id", signupId).maybeSingle()
+      ]);
+      ok(entitlementRows.count === 0 && subscriptionRows.count === 0 && Boolean(accountRow.data) && accountRow.data.trial_redeemed_at === null, "new free account: no trial started, no subscription, no entitlement row");
     }
     await anon.context.close();
   }
@@ -510,7 +538,7 @@ try {
   }
   await a.context.close();
 } finally {
-  for (const code of roomCodes) await admin.from("tug_rooms").delete().eq("code", code);
+  for (const code of roomCodes) await admin.from("tug_rooms").delete().eq("code", code).gte("created_at", reviewStartedAt);
   for (const id of users) await admin.auth.admin.deleteUser(id);
   await browser.close();
   await safari.close();

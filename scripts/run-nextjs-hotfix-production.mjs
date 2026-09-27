@@ -33,9 +33,11 @@ const PRODUCTION_VERCEL_HOST = "mathnexa-platform-production.vercel.app";
 const SCOPE = "bright-path-ed-tech";
 const FORBIDDEN_PROJECTS = ["mathnexa-platform-staging", "showme-map-prep-production", "showme-map-prep-staging", "mathnexa-production"];
 /** The staging-certified runtime; the branch tip may only differ from it in docs and scripts. */
-const CERTIFIED_RUNTIME_COMMIT = "13d307d";
+// Later releases reuse this pipeline: RELEASE_* overrides name the certified
+// runtime, the expected rollback deployment and the deployment purpose.
+const CERTIFIED_RUNTIME_COMMIT = process.env.RELEASE_CERTIFIED_RUNTIME?.trim() || "13d307d";
 /** The deployment that must be serving the apex when this pipeline starts, and the rollback target. */
-const EXPECTED_ROLLBACK_DEPLOYMENT = "dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c";
+const EXPECTED_ROLLBACK_DEPLOYMENT = process.env.RELEASE_ROLLBACK_DEPLOYMENT?.trim() || "dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c";
 const EXPECTED_NEXT_VERSION = "16.3.4";
 const BACKEND_USER_AGENT = "MathNexa-Hotfix-Certification/1.0";
 
@@ -163,7 +165,7 @@ async function deployPreview() {
   // changed, and the value is the same non-secret commit already in --meta.
   const output = vercel(["deploy", ".", "--project", PRODUCTION_VERCEL_PROJECT, "--scope", SCOPE, "--yes", "--prod", "--skip-domain",
     "--env", `MVH_SOURCE_REVISION=${commit}`,
-    "--meta", `certifiedRuntime=${runtime.certified}`, "--meta", `candidateCommit=${commit}`, "--meta", `candidateTree=${tree}`, "--meta", "purpose=nextjs-16.3.4-security-hotfix"]);
+    "--meta", `certifiedRuntime=${runtime.certified}`, "--meta", `candidateCommit=${commit}`, "--meta", `candidateTree=${tree}`, "--meta", `purpose=${process.env.RELEASE_PURPOSE?.trim() || "nextjs-16.3.4-security-hotfix"}`]);
   const urls = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/g) ?? [];
   const url = urls.filter((candidate) => new RegExp(`^https://${PRODUCTION_VERCEL_PROJECT}-[a-z0-9]+-${SCOPE}\\.vercel\\.app$`).test(candidate)).pop() ?? null;
   check(url, `deployment-url-missing:${redact(output).slice(-500)}`);
@@ -293,6 +295,10 @@ async function probeLive() {
   results.fixtureRoute = await probe(`${PRODUCTION_ORIGIN}/api/internal/billing/fixture`, { ...post, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
   results.gameRuntime = await probe(`${PRODUCTION_ORIGIN}/game/runtime/index.html`);
   results.forgedAccess = await probe(`${PRODUCTION_ORIGIN}/play?access=active&trialEndsAt=2099-01-01`);
+  // Math Tug of War (v1.2.16): free with a MathNexa account, never anonymous.
+  results.tugRoute = await probe(`${PRODUCTION_ORIGIN}/games/math-tug-of-war/play`);
+  results.tugApi = await probe(`${PRODUCTION_ORIGIN}/api/games/math-tug-of-war/online`, { method: "POST", headers: { "content-type": "application/json", "x-mathnexa-game": "math-tug-of-war", "sec-fetch-site": "same-origin", origin: PRODUCTION_ORIGIN }, body: JSON.stringify({ action: "create", name: "Probe", skill: "addition" }) });
+  results.otherGameRoute = await probe(`${PRODUCTION_ORIGIN}/games/number-logic/play`);
   const accept = { headers: { accept: "image/avif,image/webp,image/*,*/*;q=0.8" } };
   results.images = {
     brandMark: await probe(`${PRODUCTION_ORIGIN}/brand/mathnexa-mark.png`, accept),
@@ -301,6 +307,7 @@ async function probeLive() {
     thumbnailWebp: await probe(`${PRODUCTION_ORIGIN}/media/games/number-cross.webp`, accept),
     vocabularyWebp: await probe(`${PRODUCTION_ORIGIN}/media/games/math-vocabulary-hunt.webp`, accept),
     crosscalcSvg: await probe(`${PRODUCTION_ORIGIN}/media/games/crosscalc.svg`, accept),
+    tugWebp: await probe(`${PRODUCTION_ORIGIN}/media/games/math-tug-of-war.webp`, accept),
     optimizerIcon: await probe(`${PRODUCTION_ORIGIN}/_next/image?url=%2Ficon.png&w=64&q=75`, accept),
     optimizerBrand: await probe(`${PRODUCTION_ORIGIN}/_next/image?url=%2Fbrand%2Fmathnexa-mark.png&w=128&q=75`, accept),
     optimizerThumbnailWebp: await probe(`${PRODUCTION_ORIGIN}/_next/image?url=%2Fmedia%2Fgames%2Fnumber-cross.webp&w=384&q=75`, accept),
@@ -327,6 +334,9 @@ async function probeLive() {
     schedulerFailsClosed: [401, 503].includes(results.scheduler.status),
     fixtureAbsent: results.fixtureRoute.status === 404,
     gameRuntimeDenied: results.gameRuntime.status !== 200,
+    tugRequiresSignIn: [302, 303, 307].includes(results.tugRoute.status) && /\/access\?next=\/games\/math-tug-of-war\/play$/.test(results.tugRoute.location ?? "") && !/pricing|checkout|subscription|trial/.test(results.tugRoute.location ?? ""),
+    tugApiRefusesAnonymous: results.tugApi.status === 401,
+    otherGameStillProtected: accessRedirect(results.otherGameRoute) && !/math-tug-of-war/.test(results.otherGameRoute.location ?? ""),
     forgedAccessDenied: !/\/game\/runtime/.test(results.forgedAccess.location ?? "") && results.forgedAccess.status !== 200,
     securityHeaders: securityHeadersIntact(results.home.security),
     images: Object.entries(results.images).filter(([key]) => !/Remote|Traversal/.test(key)).every(([, r]) => r.status === 200 && /^image\//.test(r.contentType ?? "")),
