@@ -138,7 +138,7 @@ function renderHome() {
   setScreen("home");
   const modes = [
     { mode: "robot", title: "VS Robot", text: "Play against the computer", badge: "One Player", iconName: "robot", accent: "turquoise" },
-    { mode: "teams", title: "Two Teams", text: "Play together on one device", badge: "Same Screen", iconName: "teams", accent: "split" },
+    { mode: "teams", title: "Two Teams", text: "Play together on one device", badge: "Best Played on Smart Board", iconName: "teams", accent: "split" },
     { mode: "online", title: "Online Match", text: "Play from two devices", badge: "Two Devices", iconName: "online", accent: "pink" }
   ];
   const cards = modes.map(entry => {

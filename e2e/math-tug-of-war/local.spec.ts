@@ -37,6 +37,15 @@ test.describe("Math Tug of War — local modes", () => {
     await expect(page.locator("button[data-mode=robot]")).toContainText("Play against the computer");
     await expect(page.locator("button[data-mode=robot]")).toContainText("One Player");
     await expect(page.locator("button[data-mode=teams]")).toContainText("Play together on one device");
+    const teams = page.locator("button[data-mode=teams]");
+    await expect(teams.locator(".mode-title")).toHaveText("Two Teams");
+    await expect(teams.locator(".mode-text")).toHaveText("Play together on one device");
+    await expect(teams.locator(".mode-badge")).toHaveText("Best Played on Smart Board");
+    const [card, badge] = [await teams.boundingBox(), await teams.locator(".mode-badge").boundingBox()];
+    expect(badge!.x).toBeGreaterThanOrEqual(card!.x);
+    expect(badge!.x + badge!.width).toBeLessThanOrEqual(card!.x + card!.width);
+    expect(badge!.y + badge!.height).toBeLessThanOrEqual(card!.y + card!.height);
+    expect(await teams.locator(".mode-badge").evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
     await expect(page.locator("button[data-mode=online]")).toContainText("Play from two devices");
     await expect(page.getByText("Answer correctly to pull the other team across the line.")).toBeVisible();
     await expect(page.getByText("Solve the math. Pull the rope. Beat the other side!")).toBeVisible();
