@@ -149,6 +149,8 @@ button:disabled { cursor: not-allowed; }
   background: #eef2f8; color: var(--ink); font-size: .78rem; font-weight: 800; letter-spacing: .02em; vertical-align: middle;
 }
 .setup-title .mode-badge { margin-left: 10px; }
+/* A longer mode-card badge wraps into balanced lines instead of leaving one word behind. */
+.mode-card .mode-badge { max-width: 100%; text-wrap: balance; }
 
 .setup-eyebrow { margin: 0; font-size: .8rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
 .setup-title { margin: 4px 0 2px; font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.1; letter-spacing: -.02em; overflow-wrap: anywhere; }
