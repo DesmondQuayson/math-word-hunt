@@ -409,6 +409,14 @@ button:disabled { cursor: not-allowed; }
   background: #fff; border-radius: 28px; padding: clamp(20px, 4vw, 36px);
   text-align: center; box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .6);
 }
+/* The result card sits low with a light scrim so the victory pose, the rope
+   across the line and the confetti stay visible above it. */
+.overlay-won { place-items: end center; background: linear-gradient(to top, rgba(16, 36, 62, .5), rgba(16, 36, 62, .12) 55%, transparent); }
+.overlay-won .overlay-card { width: min(620px, 100%); padding: clamp(16px, 3vw, 28px); }
+@media (min-width: 700px) {
+  .overlay-won .overlay-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .overlay-won .overlay-actions .primary-button, .overlay-won .overlay-actions .secondary-button { padding-inline: 12px; }
+}
 .winner-badge { display: flex; justify-content: center; }
 .winner-title { margin: 10px 0 6px; font-size: clamp(2rem, 7vw, 3.4rem); line-height: 1.05; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .winner-turquoise.winner-title { color: var(--turq-ink); }

@@ -479,17 +479,25 @@ function finishLocal(match) {
   const winner = match.tug.winner;
   app.robot?.stop();
   for (const panel of Object.values(app.panels)) panel.setEnabled(false);
-  app.scene.settled().then(() => {
-    if (app.match?.snapshot().status !== "won") return;
-    app.scene.celebrate(winner);
+  const scene = app.scene;
+  scene.settled().then(() => {
+    if (app.scene !== scene || app.match?.snapshot().status !== "won") return;
+    scene.celebrate(winner);
     audio.victory();
     announce(`${app.names[winner]} wins!`, true);
-    showOverlay(winnerContent(winner, [
+    afterCelebration(scene, () => showOverlay(winnerContent(winner, [
       actionButton("Play Again", playAgainLocal, "primary", true),
       actionButton("Change Game Setup", () => (app.mode === "robot" ? renderRobotSetup() : renderTeamsSetup())),
       actionButton("Back to Math Games", backToGames)
-    ]), { labelledBy: "winner-title", className: `overlay-won won-${winner}` });
+    ]), { labelledBy: "winner-title", className: `overlay-won won-${winner}` }));
   });
+}
+
+/** Let the victory pose and confetti play before the result card arrives. */
+function afterCelebration(scene, show) {
+  setTimeout(() => {
+    if (app.scene === scene && app.screen === "game") show();
+  }, prefersReducedMotion() ? 250 : 1300);
 }
 
 function playAgainLocal() {
@@ -1030,15 +1038,19 @@ function showOnlineWin(state) {
     updateRematchText(state);
     return;
   }
+  // Polls keep arriving while the celebration plays: celebrate once per round.
+  if (app.online.celebratedRound === state.round) return;
+  app.online.celebratedRound = state.round;
   const winner = state.winner;
+  const scene = app.scene;
   app.panels[state.team]?.setEnabled(false);
-  app.scene.settled().then(() => {
-    if (app.online?.seat?.state?.status !== "won") return;
-    app.scene.celebrate(winner);
+  scene.settled().then(() => {
+    if (app.scene !== scene || app.online?.seat?.state?.status !== "won") return;
+    scene.celebrate(winner);
     audio.victory();
     announce(`${app.names[winner]} wins!`, true);
     const rematchText = h("p", { class: "rematch-status", role: "status" });
-    showOverlay([
+    afterCelebration(scene, () => showOverlay([
       ...winnerContent(winner, [
         actionButton("Play Again", async button => {
           button.disabled = true;
@@ -1061,8 +1073,7 @@ function showOnlineWin(state) {
         })
       ]),
       rematchText
-    ], { labelledBy: "winner-title", className: `overlay-won won-${winner}` });
-    updateRematchText(app.online?.seat?.state);
+    ], { labelledBy: "winner-title", className: `overlay-won won-${winner}` }) && updateRematchText(app.online?.seat?.state));
   });
 }
 

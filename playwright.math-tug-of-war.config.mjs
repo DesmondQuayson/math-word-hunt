@@ -13,7 +13,7 @@ export default defineConfig({
   timeout: 180_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
-  workers: 4,
+  workers: 2,
   reporter: "list",
   use: {
     baseURL: process.env.MATH_TUG_OF_WAR_URL ?? "http://127.0.0.1:4197",

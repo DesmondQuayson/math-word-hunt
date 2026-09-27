@@ -204,13 +204,18 @@ export function createScene() {
       s("stop", { offset: "0", "stop-color": "#6cc35e" }),
       s("stop", { offset: "1", "stop-color": "#3f9a47" }))
   ),
-  backdrop(),
-  victoryLine("turquoise"),
-  victoryLine("pink"),
-  world,
+  s("g", { class: "camera" },
+    backdrop(),
+    victoryLine("turquoise"),
+    victoryLine("pink"),
+    world),
   confettiLayer());
+  const camera = svg.querySelector(".camera");
 
   let position = 0;
+  // When the frame is zoomed in (classroom boards), the camera follows half of
+  // the tug so the winning team never slides out of view.
+  let panFactor = 0;
   let queue = Promise.resolve();
   let pending = 0;
   const animations = new Set();
@@ -234,6 +239,7 @@ export function createScene() {
 
   const place = value => {
     world.style.transform = `translate(${value * STEP}px, 0px)`;
+    camera.style.transform = `translate(${-value * STEP * panFactor}px, 0px)`;
     svg.dataset.position = String(value);
   };
 
@@ -302,6 +308,12 @@ export function createScene() {
       { transform: `translate(${overshoot}px, 0px)`, offset: 0.72 },
       { transform: `translate(${to}px, 0px)` }
     ], { duration, easing: "cubic-bezier(.3,.1,.3,1)" });
+    if (panFactor > 0) {
+      animate(camera, [
+        { transform: `translate(${-from * panFactor}px, 0px)` },
+        { transform: `translate(${-to * panFactor}px, 0px)` }
+      ], { duration, easing: "cubic-bezier(.3,.1,.3,1)" });
+    }
     const settle = moving ? moving.finished.catch(() => undefined) : Promise.resolve();
     return settle.then(() => setTaut(false));
   }
@@ -353,6 +365,8 @@ export function createScene() {
     const x = 500 - width / 2;
     svg.setAttribute("viewBox", `${x.toFixed(1)} ${(420 - height).toFixed(1)} ${width.toFixed(1)} ${height.toFixed(1)}`);
     svg.style.aspectRatio = `${width.toFixed(1)} / ${height.toFixed(1)}`;
+    panFactor = width < 990 ? 0.5 : 0;
+    place(position);
   }
 
   return Object.freeze({
