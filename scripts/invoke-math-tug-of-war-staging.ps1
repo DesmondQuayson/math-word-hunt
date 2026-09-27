@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'apply', 'migrate', 'smoke', 'review', 'share-check', 'owner-account')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'apply', 'verify', 'migrate', 'smoke', 'review', 'share-check', 'owner-account')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')

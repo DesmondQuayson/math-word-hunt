@@ -298,8 +298,17 @@ async function apply() {
   check(!apiGames.error, "staging-api-rejected-vault-secret-key");
   const dbGames = sql("select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries")[0].games;
   check(dbGames === apiGames.data.map((row) => `${row.stable_key}:${row.status}`).join(","), "pooler-database-and-staging-api-differ");
+  // Games other than Math Tug of War must be identical before and after.
+  const dbGamesOther = sql("select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> 'math-tug-of-war'")[0].games;
 
   const remote = sql("select version from supabase_migrations.schema_migrations order by version").map((row) => String(row.version));
+  if (stage === "verify") {
+    const target = process.env.APPLY_MIGRATION || MIGRATION;
+    check(remote.includes(target), `${target} is not recorded`);
+    evidence.recorded = sql(`select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='${target}'`)[0];
+    verifyApplied(sql, target, null);
+    return;
+  }
   const target = process.env.APPLY_MIGRATION || MIGRATION;
   const plan = APPLICABLE[target];
   check(plan, `refusing: ${target} is not an applicable Math Tug of War migration`);
@@ -361,11 +370,16 @@ async function apply() {
   check(after.history === before.history + 1 && after.history_digest === before.history_digest, "other-history-rows-changed");
   check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.catalog === before.catalog + plan.catalogDelta, "unrelated-rows-changed");
   evidence.otherHistoryUnchanged = true;
+  verifyApplied(sql, target, dbGamesOther);
+}
+
+/** Post-apply database checks (also runnable alone as --stage=verify). */
+function verifyApplied(sql, target, expectedOtherGames) {
   evidence.ph2_07 = sql("select version, name, array_length(statements,1) as statements from supabase_migrations.schema_migrations where version='20260909010000'")[0];
   evidence.catalog = sql("select stable_key, slug, status, version, display_order, thumbnail_reference, (select count(*) from public.game_catalog_entries g where g.stable_key='math-tug-of-war' or g.slug='math-tug-of-war')::int as identities from public.game_catalog_entries where stable_key='math-tug-of-war'")[0];
   check(evidence.catalog?.status === "published" && evidence.catalog.identities === 1, "catalog-row-wrong");
   evidence.otherGames = sql("select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> 'math-tug-of-war'")[0].games;
-  check(evidence.otherGames === dbGames, "existing-games-changed");
+  if (expectedOtherGames !== null) check(evidence.otherGames === expectedOtherGames, "existing-games-changed");
   evidence.tables = sql("select relname, relrowsecurity, relforcerowsecurity, has_table_privilege('anon', oid, 'INSERT') as anon_insert, has_table_privilege('authenticated', oid, 'UPDATE') as authenticated_update, has_table_privilege('authenticated', oid, 'SELECT') as authenticated_select, (select count(*) from pg_policies p where p.tablename=c.relname)::int as policies from pg_class c where relname in ('tug_rooms','tug_join_failures') and relnamespace='public'::regnamespace order by relname");
   check(evidence.tables.length === 2 && evidence.tables.every((row) => row.relrowsecurity && row.relforcerowsecurity && !row.anon_insert && !row.authenticated_update && !row.authenticated_select), "room-tables-not-locked-down");
   evidence.indexes = sql("select indexname from pg_indexes where schemaname='public' and tablename in ('tug_rooms','tug_join_failures') order by indexname").map((row) => row.indexname);
@@ -386,10 +400,10 @@ async function apply() {
 
 try {
   if (stage === "identify") await identify();
-  else if (stage === "apply") await apply();
+  else if (stage === "apply" || stage === "verify") await apply();
   else if (stage === "migrate") await migrate();
   else if (stage === "smoke") await smoke();
-  else throw new Error("usage: --stage=identify|apply|migrate|smoke");
+  else throw new Error("usage: --stage=identify|apply|verify|migrate|smoke");
   evidence.result = "PASS";
 } catch (error) {
   evidence.result = "FAIL";
