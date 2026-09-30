@@ -60,7 +60,7 @@ export async function loadAdminAccounts(): Promise<AdminAccountsSnapshot> {
     client.from("admin_users").select("user_id").is("revoked_at", null),
     client.from("consumer_accounts").select("user_id,account_status,email_confirmed_at,trial_redeemed_at,deletion_requested_at,created_at"),
     client.from("consumer_game_entitlements").select("user_id,entitlement_state,trial_ends_at,current_period_ends_at,grace_ends_at"),
-    client.from("billing_subscriptions").select("owner_consumer_id,stripe_subscription_id,subscription_status,current_period_end,cancel_at_period_end,trial_end,ended_at,last_synchronized_at,last_synchronization_source,updated_at").not("owner_consumer_id", "is", null).order("updated_at", { ascending: false }),
+    client.from("billing_subscriptions").select("owner_consumer_id,subscription_status,current_period_end,cancel_at_period_end,trial_end,ended_at,last_synchronized_at,last_synchronization_source,updated_at").not("owner_consumer_id", "is", null).order("updated_at", { ascending: false }),
     client.from("consumer_commercial_acceptances").select("owner_user_id,terms_version,privacy_version,cancellation_policy_version,refund_policy_version,accepted_at").order("accepted_at", { ascending: false }),
     client.from("consumer_account_deletion_requests").select("owner_user_id,request_status,requested_at").order("requested_at", { ascending: false }),
     client.from("admin_user_support_notes").select("id,target_user_id,note,created_at").order("created_at", { ascending: false }).limit(500),
