@@ -31,13 +31,19 @@ Operations that need a fresh step-up:
 - account: suspend, restore, revoke sessions, emergency revoke, grant or remove complimentary access, submit or deny a refund review, open the Stripe customer or cancellation portal;
 - operations: the checkout and admin emergency switches, the analytics retention job.
 
-When the last verification is older than 5 minutes, the confirmation form
-shows an **Authenticator code** field. The code is verified by Supabase Auth
-(`challengeAndVerify`) against the administrator's own enrolled TOTP factor,
-shares the MFA rate limit (5 attempts per 5 minutes, then a 15-minute block),
-and on success is recorded as `step_up_at` (`admin.step-up.success`). Failures
-are audited as `admin.step-up.failure` with a reason, never the code. The
-session is not restarted and its absolute limit does not move.
+When the last verification is older than 4 minutes (the 5-minute window with
+a 1-minute safety margin, so the database's own check cannot lapse halfway
+through a multi-step operation), the confirmation form shows an
+**Authenticator code** field. The code is verified by Supabase Auth
+(`challengeAndVerify`) against the administrator's own enrolled TOTP factor
+(the factor is looked up on the server, never taken from the form) and on
+success is recorded as `step_up_at` (`admin.step-up.success`). Attempts are
+limited to 5 per 5 minutes (then a 15-minute block) both per administrator
+and network address and per admin session regardless of address; these
+limits are separate from the sign-in MFA limit, so failed step-ups never
+lock the owner out of signing in. Failures are audited as
+`admin.step-up.failure` with a reason, never the code. The session is not
+restarted and its absolute limit does not move.
 
 Ordinary operations (for example Sync with Stripe, resend confirmation,
 support notes, content publishing) need only a valid session.
@@ -60,8 +66,17 @@ support notes, content publishing) need only a valid session.
 development), `SameSite=Lax`, `Path=/admin`, `Expires` = the absolute session
 end. Lax (was Strict) keeps the session when an admin link is opened from
 another site; cross-site POSTs still carry no cookie, and every mutation also
-needs the session-bound token and a same-origin `Origin`. Admin GET routes
-are read-only.
+needs the session-bound token and a same-origin `Origin`. Admin GET routes do
+not change account, billing or content data (they render pages, exports,
+file and thumbnail downloads, and short-lived preview tickets). Because Lax
+lets another site open an admin page for a signed-in owner:
+
+- only the administrator's own requests (`Sec-Fetch-Site` of `same-origin`
+  or `none`) count as idle activity, so a page opened from another site never
+  keeps a session alive;
+- one-shot result banners are shown only after a same-origin navigation (our
+  own post-then-redirect), so a link cannot put its own text into the admin
+  workspace.
 
 ## Expiry experience
 

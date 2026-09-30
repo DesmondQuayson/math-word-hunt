@@ -16,6 +16,12 @@ export const ADMIN_SESSION_MAX_MINUTES = 120;
 export const ADMIN_SESSION_IDLE_MINUTES = 60;
 export const ADMIN_ACTIVITY_WRITE_INTERVAL_SECONDS = 60;
 export const ADMIN_STEP_UP_FRESH_MINUTES = 5;
+/**
+ * The application asks for a new code once less than this much of the step-up
+ * window is left, so the database's own 5-minute check cannot expire halfway
+ * through a multi-step operation.
+ */
+export const ADMIN_STEP_UP_SAFETY_SECONDS = 60;
 export const ADMIN_SESSION_WARNING_MINUTES = 10;
 
 /**
@@ -74,6 +80,21 @@ export function isAdminStepUpFresh(session: AdminSessionClock, now: Date): boole
   return Number.isFinite(stepUp) && now.getTime() - stepUp < ADMIN_STEP_UP_FRESH_MINUTES * MINUTE && stepUp <= now.getTime() + 30_000;
 }
 
+/** Whether a sensitive operation must ask for a new code now (fresh, with the safety margin to spare). */
+export function adminStepUpNeeded(session: AdminSessionClock, now: Date): boolean {
+  return !isAdminStepUpFresh(session, new Date(now.getTime() + ADMIN_STEP_UP_SAFETY_SECONDS * 1000));
+}
+
+/**
+ * Whether a request is the administrator's own navigation or form (same-origin,
+ * or typed/bookmarked) rather than something another site started. Only those
+ * count as activity and only those may show one-shot result banners. Browsers
+ * that send no Sec-Fetch-Site header are treated as same-origin.
+ */
+export function isAdminFirstPartyRequest(fetchSite: string | null): boolean {
+  return fetchSite === null || fetchSite === "same-origin" || fetchSite === "none";
+}
+
 /**
  * Admin pages a signed-out administrator may be returned to after signing in
  * again. Anything else (another site, a protocol-relative URL, an API route,
@@ -81,6 +102,7 @@ export function isAdminStepUpFresh(session: AdminSessionClock, now: Date): boole
  */
 const RETURNABLE_ADMIN_PATH = /^\/admin(?:\/resources\/[0-9a-f-]{36}|\/games\/[0-9a-f-]{36}\/preview|\/map-prep)?$/;
 const PLACEHOLDER_ORIGIN = "https://admin-return.invalid";
+const RETURNABLE_ADMIN_PARAMETERS = ["section", "from", "to", "grade", "topic", "lesson", "query", "kind"] as const;
 
 export function safeAdminNextPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0 || value.length > 512) return null;
@@ -92,8 +114,13 @@ export function safeAdminNextPath(value: unknown): string | null {
   let parsed: URL;
   try { parsed = new URL(value, PLACEHOLDER_ORIGIN); } catch { return null; }
   if (parsed.origin !== PLACEHOLDER_ORIGIN || !RETURNABLE_ADMIN_PATH.test(parsed.pathname)) return null;
-  parsed.searchParams.delete("csrf");
-  const search = parsed.searchParams.toString();
+  // Keep only what identifies the page; one-shot result flags are dropped.
+  const kept = new URLSearchParams();
+  for (const key of RETURNABLE_ADMIN_PARAMETERS) {
+    const value = parsed.searchParams.get(key);
+    if (value) kept.set(key, value);
+  }
+  const search = kept.toString();
   if (search.length > 400) return null;
   return search ? `${parsed.pathname}?${search}` : parsed.pathname;
 }

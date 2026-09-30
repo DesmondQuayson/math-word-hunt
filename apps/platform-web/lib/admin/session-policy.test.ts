@@ -5,6 +5,8 @@ import {
   ADMIN_SESSION_MAX_MINUTES,
   ADMIN_STEP_UP_FRESH_MINUTES,
   adminSessionDeadline,
+  adminStepUpNeeded,
+  isAdminFirstPartyRequest,
   isAdminSessionIdle,
   isAdminStepUpFresh,
   safeAdminNextPath,
@@ -53,6 +55,20 @@ describe("Phase 2B admin session policy", () => {
     expect(isAdminStepUpFresh({ ...clock, step_up_at: "not a date" }, new Date("2026-09-30T10:01:00.000Z"))).toBe(false);
   });
 
+  it("asks for a new code a minute before the database window closes", () => {
+    expect(adminStepUpNeeded(clock, new Date("2026-09-30T10:03:59.000Z"))).toBe(false);
+    expect(adminStepUpNeeded(clock, new Date("2026-09-30T10:04:00.000Z")), "less than a minute of the window left").toBe(true);
+    expect(adminStepUpNeeded(clock, new Date("2026-09-30T10:30:00.000Z"))).toBe(true);
+  });
+
+  it("counts only the administrator's own requests as activity", () => {
+    expect(isAdminFirstPartyRequest("same-origin")).toBe(true);
+    expect(isAdminFirstPartyRequest("none")).toBe(true);
+    expect(isAdminFirstPartyRequest(null)).toBe(true);
+    expect(isAdminFirstPartyRequest("cross-site")).toBe(false);
+    expect(isAdminFirstPartyRequest("same-site")).toBe(false);
+  });
+
   it("requires step-up for the dangerous account operations but not the safe ones", () => {
     for (const operation of ["suspend", "restore", "revoke-sessions", "emergency-revoke", "grant-complimentary", "remove-complimentary", "deny-refund-review", "submit-refund-review", "open-portal", "cancel-at-period-end"]) {
       expect(STEP_UP_ACCOUNT_OPERATIONS.has(operation), operation).toBe(true);
@@ -71,8 +87,10 @@ describe("Phase 2B return destination after signing in again", () => {
     expect(safeAdminNextPath("/admin/map-prep")).toBe("/admin/map-prep");
   });
 
-  it("drops one-shot flags and fragments", () => {
+  it("keeps only the parameters that identify the page", () => {
     expect(safeAdminNextPath("/admin?section=users&csrf=invalid#top")).toBe("/admin?section=users");
+    expect(safeAdminNextPath("/admin?section=users&account=emergency-revoke-succeeded")).toBe("/admin?section=users");
+    expect(safeAdminNextPath("/admin?section=analytics&from=2026-09-01&to=2026-09-30&ops=flag-updated")).toBe("/admin?section=analytics&from=2026-09-01&to=2026-09-30");
   });
 
   it("rejects other sites, protocol-relative and scheme URLs", () => {

@@ -5,6 +5,10 @@
 -- reads last_activity_at/step_up_at and calls the new functions, so it fails
 -- closed (admin unavailable) against a rolled-back database.
 --
+-- RUN AS ONE TRANSACTION so a failure part-way cannot leave a half-restored
+-- schema: `psql --single-transaction -f admin_two_hour_session.sql`, or wrap
+-- the whole file in BEGIN; ... COMMIT; in the SQL editor.
+--
 -- Effects:
 -- - live sessions longer than the old 30-minute ceiling are ended ('expired'),
 --   so every admin signs in again under the restored policy;

@@ -264,6 +264,32 @@ test("the Super Admin session lasts 2 hours, ends after 60 idle minutes, and pro
     expect(blocked.headers().location).toContain("/admin/sign-in?expired=1&next=%2Fadmin%3Fsection%3Dusers");
   });
 
+  await test.step("another site can neither keep the session alive nor put text into the workspace", async () => {
+    await signInWithPassword(page);
+    await expect(page).toHaveURL(/\/admin\/mfa$/);
+    await nextTotpWindow();
+    await page.getByLabel("Six-digit authenticator code").fill(totp(secret));
+    await page.getByRole("button", { name: "Verify and open admin" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    reshapeLiveSession("started_at = now() - interval '10 minutes', step_up_at = now() - interval '10 minutes', expires_at = now() + interval '110 minutes', last_activity_at = now() - interval '5 minutes'");
+    const before = await liveSession();
+    const crossSite = await page.request.get(`${ORIGIN}/admin?section=users&account=call-support-now`, { headers: { "Sec-Fetch-Site": "cross-site" } });
+    expect(crossSite.status()).toBe(200);
+    expect(await crossSite.text()).not.toContain("call support now");
+    expect((await liveSession()).last_activity_at, "a cross-site request is not activity").toBe(before.last_activity_at);
+    const sameOrigin = await page.request.get(`${ORIGIN}/admin?section=users&account=note-added`, { headers: { "Sec-Fetch-Site": "same-origin" } });
+    expect(await sameOrigin.text()).toContain("note added");
+    expect(Date.now() - Date.parse((await liveSession()).last_activity_at), "the administrator's own request is activity").toBeLessThan(60_000);
+  });
+
+  await test.step("signing out after the browser dropped the admin cookie still ends the sign-in", async () => {
+    await page.goto("/admin");
+    await page.context().clearCookies({ name: "mvh-admin-session" });
+    await page.getByRole("button", { name: "End admin session" }).click();
+    await expect(page).toHaveURL(/\/admin\/sign-in\?signedOut=1$/);
+    expect((await page.context().cookies()).some((cookie) => cookie.name.startsWith("sb-") && cookie.value), "the Supabase sign-in is gone").toBe(false);
+  });
+
   await test.step("an untrusted destination is never used after signing in", async () => {
     for (const next of ["https://evil.example/", "//evil.example/admin", "/account", "/admin/users/action"]) {
       await page.goto(`/admin/sign-in?expired=1&next=${encodeURIComponent(next)}`);

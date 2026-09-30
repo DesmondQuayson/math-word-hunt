@@ -7,7 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getAdminSecurityConfig } from "./config";
 import { createAdminRepository } from "./repository";
 import { createAdminRateSubjectHash, getAdminClientContext } from "./security";
-import { isAdminStepUpFresh } from "./session-policy";
+import { adminStepUpNeeded } from "./session-policy";
 import type { AdminSessionRecord, AdminUserRecord } from "./types";
 
 export { STEP_UP_ACCOUNT_OPERATIONS, STEP_UP_FEATURE_FLAGS } from "./session-policy";
@@ -21,7 +21,11 @@ export type AdminStepUpOutcome = "fresh" | "verified" | "required" | "failed" | 
  * - required: it is not, and no code was submitted, so the form asks for one;
  * - verified: the submitted code was verified by Supabase Auth against the
  *   administrator's own enrolled factor and recorded as step_up_at.
- * Attempts share the MFA rate limit. Codes are never logged or stored.
+ * Attempts are limited twice: per administrator and network address, and per
+ * admin session regardless of address (so a stolen session cannot spread
+ * guesses across many addresses). Both are kept apart from the sign-in MFA
+ * limit, so failed step-ups never lock the owner out of signing in. Codes are
+ * never logged or stored.
  */
 export async function ensureAdminStepUp(input: Readonly<{
   admin: AdminUserRecord;
@@ -29,7 +33,7 @@ export async function ensureAdminStepUp(input: Readonly<{
   code: string;
   now?: Date;
 }>): Promise<AdminStepUpOutcome> {
-  if (isAdminStepUpFresh(input.session, input.now ?? new Date())) return "fresh";
+  if (!adminStepUpNeeded(input.session, input.now ?? new Date())) return "fresh";
   const code = input.code.trim();
   if (!code) return "required";
 
@@ -44,10 +48,13 @@ export async function ensureAdminStepUp(input: Readonly<{
     } catch { /* the failure itself is still returned */ }
   };
 
-  const rateHash = createAdminRateSubjectHash("mfa", input.admin.id, context, config);
+  const addressHash = createAdminRateSubjectHash("mfa", `step-up:${input.admin.id}`, context, config);
+  const sessionHash = createAdminRateSubjectHash("mfa", `step-up-session:${input.session.id}`, { ip: null, userAgent: null }, config);
   let allowed: boolean;
   try {
-    allowed = await repository.consumeRateLimit("mfa", rateHash, config.mfaMaxAttempts, config.rateWindowSeconds, config.rateBlockSeconds);
+    const byAddress = await repository.consumeRateLimit("mfa", addressHash, config.mfaMaxAttempts, config.rateWindowSeconds, config.rateBlockSeconds);
+    const bySession = await repository.consumeRateLimit("mfa", sessionHash, config.mfaMaxAttempts, config.rateWindowSeconds, config.rateBlockSeconds);
+    allowed = byAddress && bySession;
   } catch {
     return "unavailable";
   }
@@ -77,6 +84,9 @@ export async function ensureAdminStepUp(input: Readonly<{
   } catch {
     return "unavailable";
   }
-  try { await repository.clearRateLimit("mfa", rateHash); } catch { /* the window expires on its own */ }
+  try {
+    await repository.clearRateLimit("mfa", addressHash);
+    await repository.clearRateLimit("mfa", sessionHash);
+  } catch { /* the windows expire on their own */ }
   return "verified";
 }

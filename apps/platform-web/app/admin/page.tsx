@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { adminSignOutAction } from "./actions";
@@ -23,7 +24,7 @@ import { loadAdminAnalyticsOperations } from "@/lib/admin/analytics-operations";
 import { loadAdminTaxonomy } from "@/lib/admin/taxonomy";
 import { createAdminSessionCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
-import { adminSessionDeadline, isAdminStepUpFresh } from "@/lib/admin/session-policy";
+import { adminSessionDeadline, adminStepUpNeeded } from "@/lib/admin/session-policy";
 
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
 export const dynamic = "force-dynamic";
@@ -41,9 +42,18 @@ function currentAdminPath(params: AdminSearchParams): string {
   return search ? `/admin?${search}` : "/admin";
 }
 
+const RESULT_PARAMETERS = ["csrf", "upload", "publish", "package", "cms", "media", "account", "ops", "taxonomy", "map"] as const;
+
 export default async function AdminPage({ searchParams }: { searchParams: Promise<AdminSearchParams> }) {
   const access = await inspectAdminAccess();
-  const params = await searchParams;
+  const requested = await searchParams;
+  // One-shot result banners come from our own post-then-redirect, which is a
+  // same-origin navigation. A link from another site (the session cookie is
+  // SameSite=Lax) cannot put its own text into the admin workspace.
+  const fetchSite = (await headers()).get("sec-fetch-site");
+  const params: AdminSearchParams = fetchSite === null || fetchSite === "same-origin"
+    ? requested
+    : Object.fromEntries(Object.entries(requested).filter(([key]) => !(RESULT_PARAMETERS as readonly string[]).includes(key)));
   if (access.state !== "authorized") {
     // An administrator whose session ran out signs in again and comes back here;
     // everyone else sees the same concealing 404 as before.
@@ -60,7 +70,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     idleExpiresAt: new Date(deadline.idleExpiresAt).toISOString(),
     serverNow: now.toISOString()
   };
-  const stepUpRequired = !isAdminStepUpFresh(access.session, now);
+  const stepUpRequired = adminStepUpNeeded(access.session, now);
   const allowedSection = isAdminSectionKey(params.section) ? params.section : "dashboard";
   const snapshot = await loadAdminDashboard();
   const libraryKind = allowedSection === "homework" ? "homework" : allowedSection === "quizzes" ? "quizzes" : null;

@@ -206,7 +206,9 @@ export async function adminSignOutAction(formData: FormData): Promise<void> {
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
   if (preliminary.state === "unauthenticated" || preliminary.state === "unavailable") notFound();
-  if (!await validateAdminSignOutCsrf(formData, preliminary.repository)) redirect("/admin?csrf=invalid");
+  // After the 2-hour limit the browser has dropped the admin cookie; signing out
+  // must still end the Supabase sign-in on this device ("no-session").
+  if (await validateAdminSignOutCsrf(formData, preliminary.repository) === "invalid") redirect("/admin?csrf=invalid");
   await endCurrentAdminSession(preliminary.repository, preliminary.context);
   await preliminary.supabase.auth.signOut({ scope: "local" });
   redirect("/admin/sign-in?signedOut=1");
