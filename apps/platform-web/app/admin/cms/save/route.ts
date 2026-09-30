@@ -1,11 +1,12 @@
 import { parseStructuredCmsDraft,isLegalCmsKey } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess,validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 function value(form:FormData,name:string){return String(form.get(name)??"").trim()}
 function redirectResult(request:Request,result:string){const url=new URL("/admin",process.env.MVH_APPLICATION_ORIGIN??request.url);url.searchParams.set("section","cms");url.searchParams.set("cms",result);return NextResponse.redirect(url,303)}
-export async function POST(request:Request){const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});const form=await request.formData();if(!await validateAdminMutationCsrf(form))return redirectResult(request,"csrf-denied");
+export async function POST(request:Request){const access=await inspectAdminAccess();if(access.state!=="authorized")return adminAccessDeniedResponse(request, access);const form=await request.formData();if(!await validateAdminMutationCsrf(form, access.session))return redirectResult(request,"csrf-denied");
   let blocks:unknown;try{blocks=JSON.parse(value(form,"blocks"))}catch{return redirectResult(request,"invalid-structured-content")}
   const draft=parseStructuredCmsDraft({key:value(form,"key"),title:value(form,"title"),description:value(form,"description"),seoTitle:value(form,"seoTitle"),seoDescription:value(form,"seoDescription"),socialTitle:value(form,"socialTitle"),socialDescription:value(form,"socialDescription"),blocks});
   if(!draft)return redirectResult(request,"invalid-structured-content");const client=createServiceSupabaseClient();if(!client)return redirectResult(request,"failed-closed");

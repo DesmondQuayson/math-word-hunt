@@ -1,6 +1,7 @@
 import { normalizeContentTags, parseContentSlug } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
 
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -13,11 +14,11 @@ function redirectBack(request: Request, resourceId: string, kind: string, result
 
 export async function POST(request: Request) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const form = await request.formData();
   const resourceId = String(form.get("resourceId") ?? "");
   const kind = String(form.get("kind") ?? "");
-  if (!await validateAdminMutationCsrf(form)) return redirectBack(request, resourceId, kind, "csrf-denied");
+  if (!await validateAdminMutationCsrf(form, access.session)) return redirectBack(request, resourceId, kind, "csrf-denied");
   const lockVersion = Number(form.get("lockVersion"));
   const assignmentLockVersion = Number(form.get("assignmentLockVersion"));
   const sortOrder = Number(form.get("sortOrder"));

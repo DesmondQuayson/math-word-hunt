@@ -40,7 +40,7 @@ const environment = {
   MVH_BUILD_ID: "phase8a-local-security",
   MVH_ADMIN_ENABLED: "true",
   MVH_ADMIN_CSRF_SECRET: "phase8a-local-browser-only-secret-value",
-  MVH_ADMIN_SESSION_MINUTES: "15",
+  MVH_ADMIN_SESSION_MINUTES: "120",
   BILLING_ENABLED: "false",
   BILLING_CHECKOUT_ENABLED: "false",
   BILLING_PORTAL_ENABLED: "false",
@@ -65,7 +65,7 @@ let exitCode = 1;
 try {
   await waitFor("http://127.0.0.1:3000/admin/sign-in");
   const tests = spawn(process.execPath,
-    [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.phase8a.config.mjs"],
+    [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.phase8a.config.mjs", ...process.argv.slice(2)],
     { env: { ...environment, SUPABASE_TEST_URL: status.API_URL, SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY }, stdio: "inherit" });
   [exitCode] = await once(tests, "exit");
 } finally {

@@ -7,12 +7,18 @@ import type { AdminDashboardSnapshot } from "@/lib/admin/dashboard";
 import { formatAdminDateTime, formatAdminNumber } from "@/lib/admin/format";
 import { ADMIN_SECTIONS } from "@/lib/admin/navigation";
 
+import { AdminSessionClock, AdminSessionNotice, useAdminSessionCountdown, type AdminSessionTiming } from "./admin-session-status";
+
 type AdminCommandCenterProps = Readonly<{
   snapshot: AdminDashboardSnapshot;
   activeSection: string;
   csrfToken: string;
   signOutAction: (formData: FormData) => void | Promise<void>;
   moduleContent?: ReactNode;
+  /** Server-computed session deadlines for the informational countdown. */
+  session?: AdminSessionTiming;
+  /** The validated admin page to return to after signing in again. */
+  returnPath?: string;
 }>;
 
 function sectionHref(key: string): string {
@@ -23,7 +29,9 @@ function readableAction(value: string): string {
   return value.replace(/^admin\./, "").replaceAll(".", " / ").replaceAll("-", " ");
 }
 
-export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOutAction, moduleContent }: AdminCommandCenterProps) {
+export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOutAction, moduleContent, session, returnPath }: AdminCommandCenterProps) {
+  const countdown = useAdminSessionCountdown(session, csrfToken);
+  const signInHref = `/admin/sign-in?${new URLSearchParams({ expired: "1", next: returnPath ?? "/admin" }).toString()}`;
   const [query, setQuery] = useState("");
   const [online, setOnline] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -70,14 +78,18 @@ export function AdminCommandCenter({ snapshot, activeSection, csrfToken, signOut
         </ul>
         {filtered.length === 0 ? <p className="admin-nav-empty" role="status">No admin areas match “{query}”.</p> : null}
       </nav>
-      <div className="admin-owner-seal"><span aria-hidden="true">AAL2</span><div><strong>Owner verified</strong><small>Short server session</small></div></div>
+      <div className="admin-owner-seal"><span aria-hidden="true">AAL2</span><div><strong>Owner verified</strong><small>Bounded server session</small></div></div>
     </aside>
 
     <div className="admin-workspace">
       <header className="admin-topbar">
         <div><p className="admin-kicker">Super Admin / {selected[1]}</p><p className="admin-session-note">Server-authorized · MFA complete · owner only</p></div>
-        <form action={signOutAction}><input type="hidden" name="csrfToken" value={csrfToken} /><button className="admin-signout" type="submit">End admin session</button></form>
+        <div className="admin-topbar-actions">
+          <AdminSessionClock countdown={countdown} />
+          <form action={signOutAction}><input type="hidden" name="csrfToken" value={csrfToken} /><button className="admin-signout" type="submit">End admin session</button></form>
+        </div>
       </header>
+      <AdminSessionNotice countdown={countdown} signInHref={signInHref} />
       {!online ? <div className="admin-state-banner" role="alert"><strong>You are offline.</strong> Server operations are unavailable; no changes will be attempted.</div> : null}
       {snapshot.state === "unavailable" ? <div className="admin-state-banner admin-state-danger" role="alert"><strong>Live admin data is unavailable.</strong> The dashboard failed closed and displays no estimated values.</div> : null}
 

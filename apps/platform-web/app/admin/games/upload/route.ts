@@ -2,13 +2,14 @@ import{createHash,randomUUID}from"node:crypto";
 import{compareGamePackageVersions,normalizeContentTags,parseContentSlug}from"@math-vocabulary-hunt/platform-core";
 import{NextResponse}from"next/server";
 import{inspectGameArchive,normalizeGamePackageFilename}from"@/lib/admin/game-package-import";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import{inspectAdminAccess,validateAdminMutationCsrf}from"@/lib/admin/session";
 import{createServiceSupabaseClient}from"@/lib/supabase/service";
 export const runtime="nodejs";
 const redirectResult=(request:Request,result:string)=>{const url=new URL("/admin",process.env.MVH_APPLICATION_ORIGIN??request.url);url.searchParams.set("section","games");url.searchParams.set("package",result);return NextResponse.redirect(url,303)};
 const value=(form:FormData,name:string)=>String(form.get(name)??"").trim();
 export async function POST(request:Request){
-  const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});const form=await request.formData();if(!await validateAdminMutationCsrf(form))return redirectResult(request,"csrf-denied");
+  const access=await inspectAdminAccess();if(access.state!=="authorized")return adminAccessDeniedResponse(request, access);const form=await request.formData();if(!await validateAdminMutationCsrf(form, access.session))return redirectResult(request,"csrf-denied");
   const title=value(form,"title"),slug=parseContentSlug(value(form,"slug")),description=value(form,"description"),displayOrder=Number(value(form,"displayOrder"));
   const difficulty=value(form,"difficulty"),gradeMin=value(form,"recommendedGradeMin")?Number(value(form,"recommendedGradeMin")):null,gradeMax=value(form,"recommendedGradeMax")?Number(value(form,"recommendedGradeMax")):null;
   const tags=normalizeContentTags(value(form,"tags").split(",").filter(Boolean)),skills=normalizeContentTags(value(form,"skills").split(",").filter(Boolean)),topics=normalizeContentTags(value(form,"topics").split(",").filter(Boolean)),upload=form.get("gamePackage");

@@ -23,7 +23,7 @@ All values are server-only. Nothing may use a `NEXT_PUBLIC_` alias.
 | `MVH_ADMIN_ENABLED` | Single kill switch. Only exact `true` exposes the admin flow; every other value hard-disables it. |
 | `MVH_ADMIN_CSRF_SECRET` | 32–256 printable characters from the environment's managed secret store. Required when enabled; missing/malformed fails closed. |
 | `MVH_APPLICATION_ORIGIN` | Exact canonical origin used for same-origin validation and cookie security. HTTPS is required except for non-production loopback development. |
-| `MVH_ADMIN_SESSION_MINUTES` | Optional integer from 5 through 30. Default is 15; invalid values return to 15. |
+| `MVH_ADMIN_SESSION_MINUTES` | Absolute admin session lifetime: an integer from 5 through 120. Default is 15; invalid or out-of-range values return to 15. Production sets 120. The database refuses anything longer than 2 hours regardless, and every session also ends after 60 minutes without admin activity. See [admin-session-policy.md](admin-session-policy.md). |
 | `MVH_ADMIN_REVOCATION_APPROVAL` | Emergency CLI hosted guard. Exact `owner-approved` plus the exact project ref is required for hosted execution. It does not enable the UI. |
 
 Local Supabase enables Storage and TOTP in `supabase/config.toml`. No real environment value belongs in Git.

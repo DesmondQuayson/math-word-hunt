@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { storeResourceFile } from "@/lib/admin/resource-file-storage";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -13,10 +14,10 @@ function back(request: Request, kind: string, result: string) {
 
 export async function POST(request: Request) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const form = await request.formData();
   const kind = String(form.get("kind") ?? "");
-  if (!await validateAdminMutationCsrf(form)) return back(request, kind, "csrf-denied");
+  if (!await validateAdminMutationCsrf(form, access.session)) return back(request, kind, "csrf-denied");
   const resourceId = String(form.get("resourceId") ?? "");
   const fileId = String(form.get("fileId") ?? "");
   const upload = form.get("replacement");

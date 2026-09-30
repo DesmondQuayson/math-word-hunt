@@ -400,3 +400,27 @@ body:has(.admin-command-center) > main {
 .admin-audit-table th { color: var(--admin-signal); font: 800 var(--font-size-caption) var(--font-utility); text-transform: uppercase; }
 @media(max-width:58rem){.admin-popular-grid,.admin-provider-grid,.admin-flag-grid{grid-template-columns:1fr}.admin-ops-summary dl{grid-template-columns:1fr}.admin-popular-grid>.admin-section-heading{grid-column:auto}}
 @media(forced-colors:active){.admin-range-form,.admin-popular-grid article,.admin-provider-grid article,.admin-flag-grid article,.admin-ops-summary,.admin-range-form input,.admin-flag-grid input,.admin-flag-grid textarea,.admin-ops-summary textarea{background:Canvas;color:CanvasText;border-color:CanvasText}}
+
+/* Super Admin session (Phase 2B): countdown, expiry notices, step-up code, pending submissions. */
+.admin-topbar-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-3); }
+.admin-session-clock { display: inline-flex; align-items: baseline; gap: var(--space-2); min-height: var(--size-target-min); margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--admin-line); background: var(--admin-panel); color: var(--admin-ink); font-size: var(--font-size-label); white-space: nowrap; }
+.admin-session-clock-label { color: var(--admin-muted); font-size: var(--font-size-caption); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.admin-session-clock strong { font-variant-numeric: tabular-nums; }
+.admin-session-clock[data-phase="warning"] { border-color: #ffd75d; }
+.admin-session-clock[data-phase="ended"] { border-color: #ff8f8f; }
+.admin-session-warning { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) clamp(var(--space-4),4vw,var(--space-10)); border-bottom: 2px solid #ffd75d; background: #4c3700; color: white; }
+.admin-session-warning p { max-width: 72ch; margin: 0; overflow-wrap: anywhere; }
+.admin-session-ended { border-bottom-color: #ff8f8f; background: #5c2020; }
+.admin-step-up { display: grid; gap: var(--space-2); padding: var(--space-3); border-left: 4px solid #ffd75d; background: rgb(255 215 93 / 7%); font-weight: 800; }
+.admin-step-up input { width: min(12rem,100%); min-height: var(--size-target-min); padding: var(--space-3); border: 1px solid var(--admin-line); background: #071c2a; color: var(--admin-ink); font: inherit; font-variant-numeric: tabular-nums; letter-spacing: .2em; }
+.admin-step-up small { color: var(--admin-muted); font-weight: 500; }
+.admin-danger-action:disabled { cursor: progress; opacity: .6; }
+form[aria-busy="true"] button[type="submit"] { cursor: progress; }
+@media (max-width: 48rem) {
+  .admin-topbar-actions { width: 100%; justify-content: flex-start; }
+  .admin-session-clock { width: 100%; justify-content: space-between; }
+}
+@media (forced-colors: active) {
+  .admin-session-clock,.admin-session-warning,.admin-step-up,.admin-step-up input { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .admin-session-clock[data-phase="warning"],.admin-session-clock[data-phase="ended"] { border-color: Highlight; }
+}

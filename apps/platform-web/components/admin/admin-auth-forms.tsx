@@ -23,11 +23,12 @@ function AdminFormMessage({ state }: { state: AdminAuthFormState }) {
   </div>;
 }
 
-export function AdminSignInForm({ csrfToken }: { csrfToken: string }) {
+export function AdminSignInForm({ csrfToken, next }: { csrfToken: string; next?: string | null }) {
   const [state, action, pending] = useActionState(adminSignInAction, initialAdminAuthFormState);
   return <form className="prototype-form" action={action} noValidate>
     <AdminFormMessage state={state} />
     <input type="hidden" name="csrfToken" value={csrfToken} />
+    {next ? <input type="hidden" name="next" value={next} /> : null}
     <TextField id="admin-email" name="email" type="email" autoComplete="username" label="Owner email address" required />
     <PasswordField id="admin-password" name="password" autoComplete="current-password" label="Password" required />
     <div className="form-actions"><Button type="submit" loading={pending}>Continue securely</Button></div>
@@ -45,12 +46,13 @@ export function AdminAccountSwitch({ csrfToken, action }: { csrfToken: string; a
   </section>;
 }
 
-function AdminVerifyForm({ csrfToken, factorId }: { csrfToken: string; factorId: string }) {
+function AdminVerifyForm({ csrfToken, factorId, next }: { csrfToken: string; factorId: string; next?: string | null }) {
   const [state, action, pending] = useActionState(adminVerifyMfaAction, initialAdminAuthFormState);
   return <form className="prototype-form" action={action} noValidate>
     <AdminFormMessage state={state} />
     <input type="hidden" name="csrfToken" value={csrfToken} />
     <input type="hidden" name="factorId" value={factorId} />
+    {next ? <input type="hidden" name="next" value={next} /> : null}
     <TextField
       id="admin-totp-code"
       name="code"
@@ -68,7 +70,7 @@ function AdminVerifyForm({ csrfToken, factorId }: { csrfToken: string; factorId:
   </form>;
 }
 
-export function AdminMfaFlow({ csrfToken, verifiedFactorId }: { csrfToken: string; verifiedFactorId?: string }) {
+export function AdminMfaFlow({ csrfToken, verifiedFactorId, next }: { csrfToken: string; verifiedFactorId?: string; next?: string | null }) {
   const [enrollment, enrollAction, enrolling] = useActionState(adminEnrollMfaAction, initialAdminAuthFormState);
   const factorId = enrollment.status === "enrollment" ? enrollment.factorId : verifiedFactorId;
   const qrPayload = enrollment.qrCode?.slice((enrollment.qrCode.indexOf(",") ?? -1) + 1).trim();
@@ -91,6 +93,6 @@ export function AdminMfaFlow({ csrfToken, verifiedFactorId }: { csrfToken: strin
       <p className="form-field-note">This setup key is shown only for enrollment. Do not save it in logs, messages, or screenshots.</p>
     </section> : null}
 
-    {factorId ? <AdminVerifyForm csrfToken={csrfToken} factorId={factorId} /> : null}
+    {factorId ? <AdminVerifyForm csrfToken={csrfToken} factorId={factorId} next={next} /> : null}
   </div>;
 }

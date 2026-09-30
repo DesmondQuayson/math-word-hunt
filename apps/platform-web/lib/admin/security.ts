@@ -4,11 +4,29 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import { isIP } from "node:net";
 
 import type { AdminSecurityConfig } from "./config";
-import type { AdminAccessDecision, AdminClientContext, AdminSessionRecord, AdminUserRecord } from "./types";
+import { ADMIN_SESSION_MAX_MINUTES, isAdminSessionIdle } from "./session-policy";
+import type { AdminAccessDecision, AdminClientContext, AdminReauthReason, AdminSessionRecord, AdminUserRecord } from "./types";
 
+/**
+ * Two CSRF token kinds, both HMAC-signed with the server-only admin secret:
+ *
+ * - v1 (pre-session): the sign-in, MFA and account-switch forms, which run
+ *   before an admin session exists. Valid for 10 minutes.
+ * - v2 (session-bound): every form inside the Super Admin shell. The signature
+ *   covers the admin session id, so a token is useless for any other session,
+ *   and it is accepted only while that session is valid (every protected route
+ *   authorizes the session before checking the token). Its age is bounded by
+ *   the longest possible session, so a form left open never expires before the
+ *   session does.
+ *
+ * Both are checked together with an exact same-origin Origin header.
+ */
 const CSRF_VERSION = "v1";
 const CSRF_MAX_AGE_SECONDS = 10 * 60;
+const CSRF_SESSION_VERSION = "v2";
+const CSRF_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_MAX_MINUTES * 60 + 60;
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function constantTimeEqual(candidate: string, expected: string): boolean {
   const candidateBytes = Buffer.from(candidate, "utf8");
@@ -40,6 +58,38 @@ export function verifyAdminCsrfToken(token: string, config: AdminSecurityConfig,
   return constantTimeEqual(match[4], expected);
 }
 
+function sessionCsrfSignature(config: AdminSecurityConfig, sessionId: string, issuedAt: string, nonce: string): string {
+  return createHmac("sha256", config.csrfSecret)
+    .update(`${CSRF_SESSION_VERSION}.${sessionId}.${issuedAt}.${nonce}`)
+    .digest("base64url");
+}
+
+export function createAdminSessionCsrfToken(
+  config: AdminSecurityConfig,
+  sessionId: string,
+  now = new Date(),
+  nonce = randomBytes(18).toString("base64url")
+): string {
+  if (!SESSION_ID_PATTERN.test(sessionId)) throw new Error("Admin session id required for a session-bound CSRF token.");
+  const issuedAt = String(Math.floor(now.getTime() / 1000));
+  return `${CSRF_SESSION_VERSION}.${issuedAt}.${nonce}.${sessionCsrfSignature(config, sessionId, issuedAt, nonce)}`;
+}
+
+export function verifyAdminSessionCsrfToken(
+  token: string,
+  config: AdminSecurityConfig,
+  sessionId: string,
+  now = new Date()
+): boolean {
+  if (!SESSION_ID_PATTERN.test(sessionId)) return false;
+  const match = /^v2\.(\d{10})\.([A-Za-z0-9_-]{24})\.([A-Za-z0-9_-]{43})$/.exec(token);
+  if (!match) return false;
+  const issuedAt = Number(match[1]);
+  const nowSeconds = Math.floor(now.getTime() / 1000);
+  if (!Number.isSafeInteger(issuedAt) || issuedAt > nowSeconds + 30 || nowSeconds - issuedAt > CSRF_SESSION_MAX_AGE_SECONDS) return false;
+  return constantTimeEqual(match[3], sessionCsrfSignature(config, sessionId, match[1], match[2]));
+}
+
 export function isSameOriginAdminRequest(headers: Headers, configuredOrigin?: string): boolean {
   const originValue = headers.get("origin");
   if (!originValue) return false;
@@ -58,6 +108,24 @@ export function isSameOriginAdminRequest(headers: Headers, configuredOrigin?: st
     } catch { return false; }
   }
   return true;
+}
+
+/**
+ * The admin session cookie. SameSite=Lax (was Strict) so that opening an admin
+ * link from another site (an email, a bookmark manager) keeps the session;
+ * cross-site POSTs still carry no cookie, and every mutation also requires a
+ * session-bound CSRF token and a same-origin Origin header. HttpOnly, scoped to
+ * /admin, Secure outside local development, and it expires with the absolute
+ * session lifetime. It carries only an opaque random token, never a role.
+ */
+export function adminSessionCookieOptions(config: AdminSecurityConfig, expiresAt: Date) {
+  return {
+    httpOnly: true,
+    secure: config.secureCookie,
+    sameSite: "lax" as const,
+    path: "/admin",
+    expires: expiresAt
+  };
 }
 
 export function createAdminSessionToken(): string {
@@ -95,6 +163,15 @@ export function getAdminClientContext(headers: Headers): AdminClientContext {
   return Object.freeze({ ip: candidate, userAgent: userAgent ? userAgent.slice(0, 512) : null });
 }
 
+function reauth(reason: AdminReauthReason, recoverable: boolean): AdminAccessDecision {
+  return { state: "reauth-required", reason, recoverable };
+}
+
+/** A session that ran out on its own (not signed out, not revoked) can be recovered by signing in again. */
+function endedByTime(session: AdminSessionRecord): boolean {
+  return session.end_reason === "expired" || session.end_reason === "idle-expired";
+}
+
 export function decideAdminAccess(input: Readonly<{
   featureEnabled: boolean;
   infrastructureAvailable: boolean;
@@ -111,11 +188,44 @@ export function decideAdminAccess(input: Readonly<{
   if (!input.authenticated || !input.emailVerified) return { state: "unauthenticated" };
   if (!input.admin || input.admin.revoked_at !== null) return { state: "non-admin" };
   if (!input.admin.mfa_enrolled || input.assuranceLevel !== "aal2") return { state: "mfa-required" };
-  if (!input.sessionTokenValid || !input.session || input.session.admin_user_id !== input.admin.id ||
-      input.session.revoked_at !== null || input.session.ended_at !== null || input.session.assurance_level !== "aal2") {
-    return { state: "reauth-required" };
+  // From here the caller is a verified, active, AAL2 administrator.
+  const session = input.session;
+  if (!input.sessionTokenValid || !session) return reauth("missing", true);
+  if (session.admin_user_id !== input.admin.id) return reauth("mismatch", false);
+  if (session.revoked_at !== null || session.end_reason === "emergency-revocation") return reauth("revoked", false);
+  if (session.ended_at !== null) return reauth("ended", endedByTime(session));
+  if (session.assurance_level !== "aal2") return reauth("ended", false);
+  const now = input.now ?? new Date();
+  const expiresAt = Date.parse(session.expires_at);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime()) return reauth("expired", true);
+  if (isAdminSessionIdle(session, now)) return reauth("idle", true);
+  return { state: "authorized", admin: input.admin, session };
+}
+
+/**
+ * The caller has no Supabase session but still presents an admin session
+ * cookie. Only a well-formed token that maps to a session of a still-active
+ * administrator, which ran out on its own or is otherwise untouched, earns the
+ * sign-in redirect; a signed-out or revoked session, an unknown token, or a
+ * revoked administrator stays concealed as unauthenticated.
+ */
+export function decideCookieOnlyAccess(input: Readonly<{
+  admin: AdminUserRecord | null;
+  session: AdminSessionRecord | null;
+  now?: Date;
+}>): AdminAccessDecision {
+  const { admin, session } = input;
+  if (!session || !admin || admin.id !== session.admin_user_id || admin.revoked_at !== null || !admin.mfa_enrolled) {
+    return { state: "unauthenticated" };
   }
-  const expiresAt = Date.parse(input.session.expires_at);
-  if (!Number.isFinite(expiresAt) || expiresAt <= (input.now ?? new Date()).getTime()) return { state: "reauth-required" };
-  return { state: "authorized", admin: input.admin, session: input.session };
+  if (session.revoked_at !== null || session.end_reason === "emergency-revocation" || session.end_reason === "signed-out") {
+    return { state: "unauthenticated" };
+  }
+  if (session.ended_at !== null) return reauth("ended", true);
+  const now = input.now ?? new Date();
+  const expiresAt = Date.parse(session.expires_at);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime()) return reauth("expired", true);
+  if (isAdminSessionIdle(session, now)) return reauth("idle", true);
+  // The admin session is still live but the Supabase sign-in is gone.
+  return reauth("missing", true);
 }

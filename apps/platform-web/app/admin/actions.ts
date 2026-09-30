@@ -15,8 +15,10 @@ import {
   endCurrentAdminSession,
   inspectPendingMfaAdmin,
   inspectPreMfaAdmin,
-  validateAdminMutationCsrf
+  validateAdminSignOutCsrf,
+  validatePreSessionCsrf
 } from "@/lib/admin/session";
+import { safeAdminNextPath } from "@/lib/admin/session-policy";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const unavailable: AdminAuthFormState = {
@@ -48,7 +50,7 @@ export async function adminSignInAction(
   const password = String(formData.get("password") ?? "");
   const rateHash = createAdminRateSubjectHash("login", validEmail(email) ? email : "invalid", context, config);
 
-  if (!await validateAdminMutationCsrf(formData)) {
+  if (!await validatePreSessionCsrf(formData)) {
     await repository.recordAudit({ adminUserId: null, action: "admin.login.failure", metadata: { reason: "csrf" }, context });
     return { status: "error", message: "The sign-in request expired. Reload this page and try again." };
   }
@@ -88,14 +90,16 @@ export async function adminSignInAction(
     await supabase.auth.signOut({ scope: "local" });
     return unavailable;
   }
-  redirect("/admin/mfa");
+  // The admin page to return to after MFA, re-validated at every hop.
+  const next = safeAdminNextPath(field(formData, "next"));
+  redirect(next ? `/admin/mfa?next=${encodeURIComponent(next)}` : "/admin/mfa");
 }
 
 export async function adminSwitchAccountAction(formData: FormData): Promise<void> {
   if (!isAdminFeatureEnabled()) notFound();
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state !== "non-admin") notFound();
-  if (!await validateAdminMutationCsrf(formData)) redirect("/admin/sign-in?expired=1");
+  if (!await validatePreSessionCsrf(formData)) redirect("/admin/sign-in?expired=1");
   const supabase = await createServerSupabaseClient();
   if (!supabase) redirect("/admin/sign-in?unavailable=1");
   await clearPendingAdminMfaChallenge();
@@ -110,7 +114,7 @@ export async function adminEnrollMfaAction(
   const preliminary = await inspectPendingMfaAdmin();
   if (preliminary.state === "unavailable") return unavailable;
   if (preliminary.state !== "ready") notFound();
-  if (!await validateAdminMutationCsrf(formData)) {
+  if (!await validatePreSessionCsrf(formData)) {
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "csrf" }, context: preliminary.context
     });
@@ -153,7 +157,7 @@ export async function adminVerifyMfaAction(
   const preliminary = await inspectPendingMfaAdmin();
   if (preliminary.state === "unavailable") return unavailable;
   if (preliminary.state !== "ready") notFound();
-  if (!await validateAdminMutationCsrf(formData)) {
+  if (!await validatePreSessionCsrf(formData)) {
     await preliminary.repository.recordAudit({
       adminUserId: preliminary.admin.id, action: "admin.mfa.failure", metadata: { reason: "csrf" }, context: preliminary.context
     });
@@ -195,14 +199,14 @@ export async function adminVerifyMfaAction(
   if (!await consumePendingAdminMfaChallenge(preliminary)) return unavailable;
   await createBoundAdminSession(preliminary.admin.id, preliminary.repository, preliminary.context);
   await preliminary.repository.clearRateLimit("mfa", rateHash);
-  redirect("/admin");
+  redirect(safeAdminNextPath(field(formData, "next")) ?? "/admin");
 }
 
 export async function adminSignOutAction(formData: FormData): Promise<void> {
   const preliminary = await inspectPreMfaAdmin();
   if (preliminary.state === "disabled" || preliminary.state === "non-admin") notFound();
   if (preliminary.state === "unauthenticated" || preliminary.state === "unavailable") notFound();
-  if (!await validateAdminMutationCsrf(formData)) redirect("/admin?csrf=invalid");
+  if (!await validateAdminSignOutCsrf(formData, preliminary.repository)) redirect("/admin?csrf=invalid");
   await endCurrentAdminSession(preliminary.repository, preliminary.context);
   await preliminary.supabase.auth.signOut({ scope: "local" });
   redirect("/admin/sign-in?signedOut=1");

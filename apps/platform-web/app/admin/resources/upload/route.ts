@@ -1,6 +1,7 @@
 import { normalizeContentTags,parseContentSlug } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
 
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess,validateAdminMutationCsrf } from "@/lib/admin/session";
 import { storeResourceFile } from "@/lib/admin/resource-file-storage";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
@@ -17,8 +18,8 @@ async function createResource(input:Readonly<{client:ServiceClient;adminId:strin
   if(created.error||typeof created.data!=="string")throw new Error("Resource draft creation failed.");return created.data;
 }
 export async function POST(request:Request){
-  const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});const form=await request.formData();const kind=value(form,"kind");
-  if(!await validateAdminMutationCsrf(form))return safeRedirect(request,kind,"csrf-denied");
+  const access=await inspectAdminAccess();if(access.state!=="authorized")return adminAccessDeniedResponse(request, access);const form=await request.formData();const kind=value(form,"kind");
+  if(!await validateAdminMutationCsrf(form, access.session))return safeRedirect(request,kind,"csrf-denied");
   if(kind!=="homework"&&kind!=="quizzes")return safeRedirect(request,kind,"invalid-input");
   const scopeId=value(form,kind==="homework"?"lessonId":"topicId"),title=value(form,"title"),description=value(form,"description"),slug=parseContentSlug(value(form,"slug")),sortOrder=integer(form,"sortOrder",1,32766),minutes=integer(form,"minutes",1,240),difficulty=value(form,"difficulty"),tags=normalizeContentTags(value(form,"tags").split(",").filter(Boolean)),primary=file(form,"primaryPdf");
   if(!/^[0-9a-f-]{36}$/i.test(scopeId)||!slug||!sortOrder||!minutes||!["core","support","challenge"].includes(difficulty)||!tags||!primary||title.length<1||title.length>160||description.length>4000)return safeRedirect(request,kind,"invalid-input");

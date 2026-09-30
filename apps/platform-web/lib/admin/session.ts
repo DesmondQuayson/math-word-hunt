@@ -8,14 +8,18 @@ import { inspectAdminEmergencyFlag } from "@/lib/operations/server";
 import { getAdminSecurityConfig, isAdminFeatureEnabled } from "./config";
 import { createAdminRepository, type AdminRepository } from "./repository";
 import {
+  adminSessionCookieOptions,
   createAdminSessionToken,
   decideAdminAccess,
+  decideCookieOnlyAccess,
   getAdminClientContext,
   hashAdminSessionToken,
   isSameOriginAdminRequest,
-  verifyAdminCsrfToken
+  verifyAdminCsrfToken,
+  verifyAdminSessionCsrfToken
 } from "./security";
-import type { AdminAccessDecision, AdminClientContext, AdminUserRecord } from "./types";
+import { shouldRecordAdminActivity } from "./session-policy";
+import type { AdminAccessDecision, AdminClientContext, AdminSessionRecord, AdminUserRecord } from "./types";
 
 export const ADMIN_SESSION_COOKIE = "mvh-admin-session";
 export const ADMIN_MFA_CHALLENGE_COOKIE = "mvh-admin-mfa-pending";
@@ -68,6 +72,14 @@ export async function inspectPreMfaAdmin(): Promise<PreMfaAdminContext> {
   };
 }
 
+/**
+ * The server-side authority for every protected Super Admin request. Checks,
+ * in order: the kill switch, the emergency flag, the Supabase user and email
+ * confirmation, admin membership and revocation, MFA enrollment and AAL2, and
+ * the admin session (token, owner, revocation, end, absolute expiry, idle
+ * expiry). A session found expired or idle is ended server-side with that
+ * reason. An authorized request refreshes the idle window at most once a minute.
+ */
 export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessDecision> {
   const featureEnabled = isAdminFeatureEnabled();
   if (!featureEnabled) return { state: "disabled" };
@@ -79,18 +91,24 @@ export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessD
   const repository = createAdminRepository();
   if (!config || !supabase || !repository) return { state: "unavailable" };
 
+  const rawToken = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? "";
+  const tokenHash = hashAdminSessionToken(rawToken);
   const userResult = await supabase.auth.getUser();
   const user = userResult.data.user;
   if (userResult.error || !user) {
-    return decideAdminAccess({ featureEnabled, infrastructureAvailable: true, authenticated: false,
-      emailVerified: false, assuranceLevel: null, admin: null, session: null, sessionTokenValid: false, now });
+    if (!tokenHash) return { state: "unauthenticated" };
+    try {
+      const session = await repository.findSessionByHash(tokenHash);
+      const admin = session ? await repository.findAdminById(session.admin_user_id) : null;
+      return decideCookieOnlyAccess({ admin, session, now });
+    } catch {
+      return { state: "unauthenticated" };
+    }
   }
 
   let admin: AdminUserRecord | null = null;
-  let session: Awaited<ReturnType<AdminRepository["findSessionByHash"]>> = null;
+  let session: AdminSessionRecord | null = null;
   const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const rawToken = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? "";
-  const tokenHash = hashAdminSessionToken(rawToken);
   try {
     admin = await repository.findAdminByUserId(user.id);
     if (tokenHash) session = await repository.findSessionByHash(tokenHash);
@@ -98,15 +116,7 @@ export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessD
     return { state: "unavailable" };
   }
 
-  if (tokenHash && session && session.ended_at === null && session.revoked_at === null &&
-      Date.parse(session.expires_at) <= now.getTime()) {
-    try {
-      await repository.endSession(tokenHash, "expired", getAdminClientContext(await headers()));
-      session = { ...session, ended_at: now.toISOString(), end_reason: "expired" };
-    } catch { return { state: "unavailable" }; }
-  }
-
-  return decideAdminAccess({
+  const decision = decideAdminAccess({
     featureEnabled,
     infrastructureAvailable: true,
     authenticated: true,
@@ -117,15 +127,62 @@ export async function inspectAdminAccess(now = new Date()): Promise<AdminAccessD
     sessionTokenValid: Boolean(tokenHash),
     now
   });
+
+  if (decision.state === "reauth-required" && (decision.reason === "expired" || decision.reason === "idle") &&
+      tokenHash && session && session.ended_at === null && session.revoked_at === null) {
+    try {
+      await repository.endSession(tokenHash, decision.reason === "idle" ? "idle-expired" : "expired", getAdminClientContext(await headers()));
+    } catch {
+      // The database refuses an expired or idle session on its own; ending it
+      // here only records the end and its reason.
+    }
+  }
+
+  if (decision.state === "authorized" && tokenHash && shouldRecordAdminActivity(decision.session, now)) {
+    try {
+      if (await repository.touchSession(tokenHash)) {
+        return { ...decision, session: { ...decision.session, last_activity_at: now.toISOString() } };
+      }
+    } catch {
+      // Best effort: a missed activity write can only shorten the idle window.
+    }
+  }
+  return decision;
 }
 
-export async function validateAdminMutationCsrf(formData: FormData): Promise<boolean> {
+/** Session-bound CSRF check for every state-changing request inside the Super Admin shell. */
+export async function validateAdminMutationCsrf(formData: FormData, session: Pick<AdminSessionRecord, "id">): Promise<boolean> {
+  const config = getAdminSecurityConfig();
+  if (!config) return false;
+  const token = String(formData.get("csrfToken") ?? "");
+  const requestHeaders = await headers();
+  return isSameOriginAdminRequest(requestHeaders, config.applicationOrigin) &&
+    verifyAdminSessionCsrfToken(token, config, session.id);
+}
+
+/** CSRF check for the sign-in, MFA and account-switch forms, which run before an admin session exists. */
+export async function validatePreSessionCsrf(formData: FormData): Promise<boolean> {
   const config = getAdminSecurityConfig();
   if (!config) return false;
   const token = String(formData.get("csrfToken") ?? "");
   const requestHeaders = await headers();
   return isSameOriginAdminRequest(requestHeaders, config.applicationOrigin) &&
     verifyAdminCsrfToken(token, config);
+}
+
+/**
+ * Sign-out carries the token bound to the session in this browser's cookie,
+ * so it still works after that session has expired or gone idle.
+ */
+export async function validateAdminSignOutCsrf(formData: FormData, repository: AdminRepository): Promise<boolean> {
+  const config = getAdminSecurityConfig();
+  if (!config) return false;
+  const tokenHash = hashAdminSessionToken((await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? "");
+  if (!tokenHash) return false;
+  let session: AdminSessionRecord | null;
+  try { session = await repository.findSessionByHash(tokenHash); } catch { return false; }
+  if (!session) return false;
+  return validateAdminMutationCsrf(formData, session);
 }
 
 export async function createPendingAdminMfaChallenge(
@@ -200,13 +257,7 @@ export async function createBoundAdminSession(
   if (!tokenHash) throw new Error("Admin session token generation failed.");
   const expiresAt = new Date(Date.now() + config.sessionMinutes * 60_000);
   await repository.startSession(adminUserId, tokenHash, expiresAt, context);
-  (await cookies()).set(ADMIN_SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: config.secureCookie,
-    sameSite: "strict",
-    path: "/admin",
-    expires: expiresAt
-  });
+  (await cookies()).set(ADMIN_SESSION_COOKIE, token, adminSessionCookieOptions(config, expiresAt));
 }
 
 export async function endCurrentAdminSession(
@@ -220,13 +271,7 @@ export async function endCurrentAdminSession(
   const rawToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value ?? "";
   const tokenHash = hashAdminSessionToken(rawToken);
   if (tokenHash) await repository.endSession(tokenHash, reason, context);
-  cookieStore.set(ADMIN_SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure: config.secureCookie,
-    sameSite: "strict",
-    path: "/admin",
-    maxAge: 0
-  });
+  cookieStore.set(ADMIN_SESSION_COOKIE, "", { ...adminSessionCookieOptions(config, new Date(0)), expires: undefined, maxAge: 0 });
   cookieStore.set(ADMIN_MFA_CHALLENGE_COOKIE, "", {
     httpOnly: true,
     secure: config.secureCookie,

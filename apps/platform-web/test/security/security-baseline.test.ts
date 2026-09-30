@@ -245,7 +245,9 @@ describe("admin authorization decisions", () => {
     revoked_at: null,
     ended_at: null,
     assurance_level: "aal2",
-    expires_at: new Date(Date.now() + 600_000).toISOString()
+    expires_at: new Date(Date.now() + 600_000).toISOString(),
+    last_activity_at: new Date().toISOString(),
+    step_up_at: new Date().toISOString()
   } as never;
   const authorized = {
     featureEnabled: true,
@@ -275,7 +277,9 @@ describe("admin authorization decisions", () => {
       ["session of another admin", { session: { ...(session as object), admin_user_id: "admin-2" } }, "reauth-required"],
       ["revoked session", { session: { ...(session as object), revoked_at: "2026-01-01T00:00:00Z" } }, "reauth-required"],
       ["aal1 session", { session: { ...(session as object), assurance_level: "aal1" } }, "reauth-required"],
-      ["expired session", { session: { ...(session as object), expires_at: new Date(Date.now() - 1000).toISOString() } }, "reauth-required"]
+      ["expired session", { session: { ...(session as object), expires_at: new Date(Date.now() - 1000).toISOString() } }, "reauth-required"],
+      ["idle session", { session: { ...(session as object), last_activity_at: new Date(Date.now() - 61 * 60_000).toISOString() } }, "reauth-required"],
+      ["session without recorded activity", { session: { ...(session as object), last_activity_at: "not a date" } }, "reauth-required"]
     ];
     for (const [label, patch, expected] of downgrades) {
       expect(decideAdminAccess({ ...authorized, ...patch } as never).state, label).toBe(expected);

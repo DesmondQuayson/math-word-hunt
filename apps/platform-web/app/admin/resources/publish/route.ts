@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -10,9 +11,9 @@ function redirectTo(request: Request, kind: string, publish: string) {
 
 export async function POST(request: Request) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found",{status:404});
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const form = await request.formData(); const kind = String(form.get("kind") ?? "");
-  if (!await validateAdminMutationCsrf(form)) return redirectTo(request,kind,"csrf-denied");
+  if (!await validateAdminMutationCsrf(form, access.session)) return redirectTo(request,kind,"csrf-denied");
   const resourceId = String(form.get("resourceId") ?? ""); const versionNumber=Number(form.get("versionNumber")); let lockVersion=Number(form.get("lockVersion"));
   if (!/^[0-9a-f-]{36}$/i.test(resourceId) || !Number.isSafeInteger(versionNumber) || !Number.isSafeInteger(lockVersion)) return redirectTo(request,kind,"invalid-input");
   const client=createServiceSupabaseClient(); if(!client) return redirectTo(request,kind,"unavailable");

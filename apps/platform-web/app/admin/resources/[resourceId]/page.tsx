@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
+import { adminSignInPath } from "@/lib/admin/access-response";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
 import { loadAdminResourceDetail } from "@/lib/admin/resource-library";
-import { createAdminCsrfToken } from "@/lib/admin/security";
+import { createAdminSessionCsrfToken } from "@/lib/admin/security";
 import { inspectAdminAccess } from "@/lib/admin/session";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +17,13 @@ export default async function AdminResourcePage({ params, searchParams }: Readon
   searchParams: Promise<{ kind?: string; result?: string }>;
 }>) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") notFound();
+  const { resourceId } = await params;
+  if (access.state !== "authorized") {
+    if (access.state === "reauth-required" && access.recoverable) redirect(adminSignInPath(`/admin/resources/${resourceId}`));
+    notFound();
+  }
   const config = getAdminSecurityConfig();
   if (!config) notFound();
-  const { resourceId } = await params;
   const detail = await loadAdminResourceDetail(resourceId);
   if (!detail) notFound();
   const query = await searchParams;
@@ -44,7 +48,7 @@ export default async function AdminResourcePage({ params, searchParams }: Readon
     <section className="admin-detail-panel" aria-labelledby="edit-resource-heading">
       <div className="admin-section-heading"><div><p className="admin-eyebrow">Draft editor</p><h2 id="edit-resource-heading">Resource metadata</h2></div><span>v{resource.versionNumber}</span></div>
       <form action="/admin/resources/revise" method="post" className="admin-resource-form">
-        <input type="hidden" name="csrfToken" value={createAdminCsrfToken(config)} />
+        <input type="hidden" name="csrfToken" value={createAdminSessionCsrfToken(config, access.session.id)} />
         <input type="hidden" name="resourceId" value={resource.id} /><input type="hidden" name="kind" value={detail.kind} />
         <input type="hidden" name="lockVersion" value={resource.lockVersion} /><input type="hidden" name="assignmentLockVersion" value={resource.assignmentLockVersion} />
         <input type="hidden" name="thumbnailPath" value={resource.thumbnailPath ?? ""} />

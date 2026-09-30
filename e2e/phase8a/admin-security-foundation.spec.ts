@@ -146,7 +146,7 @@ test("owner requires TOTP, receives a short server session, and is denied immedi
   const activeSession = await adminClient.from("admin_sessions")
     .select("expires_at,started_at,ended_at,revoked_at").eq("admin_user_id", adminUserId).single();
   if (activeSession.error) throw activeSession.error;
-  expect(Date.parse(activeSession.data.expires_at) - Date.parse(activeSession.data.started_at)).toBeLessThanOrEqual(15 * 60_000 + 1_000);
+  expect(Date.parse(activeSession.data.expires_at) - Date.parse(activeSession.data.started_at)).toBeLessThanOrEqual(120 * 60_000 + 1_000);
   expect(activeSession.data).toMatchObject({ ended_at: null, revoked_at: null });
 
   const sessionCookie = (await page.context().cookies()).find((cookie) => cookie.name === "mvh-admin-session");

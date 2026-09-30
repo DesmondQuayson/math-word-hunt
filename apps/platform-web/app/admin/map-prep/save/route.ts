@@ -2,14 +2,15 @@ import { parseMapPrepDestination } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
 
 import { checkAdminExternalDestination } from "@/lib/admin/external-destination-health";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 function back(request:Request,result:string){const target=new URL("/admin",process.env.MVH_APPLICATION_ORIGIN??request.url);target.searchParams.set("section","map-prep");target.searchParams.set("map",result);return NextResponse.redirect(target,303)}
 
 export async function POST(request:Request){
-  const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});
-  const form=await request.formData();if(!await validateAdminMutationCsrf(form))return back(request,"csrf-denied");
+  const access=await inspectAdminAccess();if(access.state!=="authorized")return adminAccessDeniedResponse(request, access);
+  const form=await request.formData();if(!await validateAdminMutationCsrf(form, access.session))return back(request,"csrf-denied");
   const allowedHost=String(form.get("allowedHost")??"").trim().toLowerCase();const destinationUrl=String(form.get("destinationUrl")??"");const adminDestinationUrl=String(form.get("adminDestinationUrl")??"");
   const health=await checkAdminExternalDestination(destinationUrl,allowedHost);if(health.state!=="verified")return back(request,health.state==="unsafe"?"invalid-destination":"health-check-failed");
   const destination=parseMapPrepDestination({label:String(form.get("label")??""),publicDescription:String(form.get("publicDescription")??""),destinationUrl,adminDestinationUrl,enabled:form.get("enabled")==="true",openMode:"same_tab"},health.checkedAt);

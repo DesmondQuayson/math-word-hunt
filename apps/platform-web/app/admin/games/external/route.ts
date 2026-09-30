@@ -2,6 +2,7 @@ import { normalizeContentTags,parseContentSlug } from "@math-vocabulary-hunt/pla
 import { NextResponse } from "next/server";
 
 import { checkAdminExternalDestination } from "@/lib/admin/external-destination-health";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess,validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -10,8 +11,8 @@ const value=(form:FormData,name:string)=>String(form.get(name)??"").trim();
 const optionalGrade=(form:FormData,name:string)=>{const raw=value(form,name);if(!raw)return null;const parsed=Number(raw);return Number.isSafeInteger(parsed)&&parsed>=1&&parsed<=12?parsed:null};
 
 export async function POST(request:Request){
-  const access=await inspectAdminAccess();if(access.state!=="authorized")return new NextResponse("Not Found",{status:404});
-  const form=await request.formData();if(!await validateAdminMutationCsrf(form))return back(request,"csrf-denied");
+  const access=await inspectAdminAccess();if(access.state!=="authorized")return adminAccessDeniedResponse(request, access);
+  const form=await request.formData();if(!await validateAdminMutationCsrf(form, access.session))return back(request,"csrf-denied");
   const slug=parseContentSlug(value(form,"slug")),title=value(form,"title"),description=value(form,"description"),externalUrl=value(form,"externalUrl"),allowedHost=value(form,"allowedHost").toLowerCase();
   const thumbnailReference=value(form,"thumbnailReference"),difficulty=value(form,"difficulty"),displayOrder=Number(value(form,"displayOrder"));
   const gradeMin=optionalGrade(form,"recommendedGradeMin"),gradeMax=optionalGrade(form,"recommendedGradeMax");

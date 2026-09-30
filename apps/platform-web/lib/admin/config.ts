@@ -1,5 +1,7 @@
 import "server-only";
 
+import { ADMIN_SESSION_DEFAULT_MINUTES, ADMIN_SESSION_MAX_MINUTES, ADMIN_SESSION_MIN_MINUTES } from "./session-policy";
+
 export type AdminEnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 export type AdminSecurityConfig = Readonly<{
@@ -46,7 +48,11 @@ export function getAdminSecurityConfig(source: AdminEnvironmentSource = process.
     csrfSecret,
     applicationOrigin: applicationOrigin.origin,
     secureCookie: applicationOrigin.protocol === "https:",
-    sessionMinutes: boundedInteger(source.MVH_ADMIN_SESSION_MINUTES, 15, 5, 30),
+    // Absolute admin session lifetime in minutes. Production sets 120. Unset or
+    // out-of-range values fall back to the conservative default, and the
+    // database refuses anything longer than 2 hours regardless.
+    sessionMinutes: boundedInteger(source.MVH_ADMIN_SESSION_MINUTES, ADMIN_SESSION_DEFAULT_MINUTES,
+      ADMIN_SESSION_MIN_MINUTES, ADMIN_SESSION_MAX_MINUTES),
     loginMaxAttempts: 5,
     mfaMaxAttempts: 5,
     rateWindowSeconds: 300,

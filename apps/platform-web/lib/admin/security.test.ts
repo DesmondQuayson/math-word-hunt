@@ -42,6 +42,8 @@ const session: AdminSessionRecord = {
   assurance_level: "aal2",
   started_at: "2026-08-02T12:00:00.000Z",
   expires_at: "2026-08-02T12:15:00.000Z",
+  last_activity_at: "2026-08-02T12:00:00.000Z",
+  step_up_at: "2026-08-02T12:00:00.000Z",
   ended_at: null,
   revoked_at: null,
   end_reason: null
@@ -80,10 +82,18 @@ describe("Phase 8A admin security primitives", () => {
     process.env.MVH_ADMIN_ENABLED = "true";
     process.env.MVH_ADMIN_CSRF_SECRET = config.csrfSecret;
     process.env.MVH_APPLICATION_ORIGIN = config.applicationOrigin;
+    process.env.MVH_ADMIN_SESSION_MINUTES = "120";
+    expect(getAdminSecurityConfig()?.sessionMinutes, "the production 2-hour target is accepted").toBe(120);
     process.env.MVH_ADMIN_SESSION_MINUTES = "90";
+    expect(getAdminSecurityConfig()?.sessionMinutes).toBe(90);
+    process.env.MVH_ADMIN_SESSION_MINUTES = "121";
+    expect(getAdminSecurityConfig()?.sessionMinutes, "longer than 2 hours falls back to the default").toBe(15);
+    process.env.MVH_ADMIN_SESSION_MINUTES = "4";
     expect(getAdminSecurityConfig()?.sessionMinutes).toBe(15);
     process.env.MVH_ADMIN_SESSION_MINUTES = "5";
     expect(getAdminSecurityConfig()?.sessionMinutes).toBe(5);
+    process.env.MVH_ADMIN_SESSION_MINUTES = "two hours";
+    expect(getAdminSecurityConfig()?.sessionMinutes).toBe(15);
   });
 
   it("fails closed on missing or insecure non-local application origins", () => {

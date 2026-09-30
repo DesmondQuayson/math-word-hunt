@@ -23,12 +23,39 @@ export class AdminRepository {
     return result.data as AdminUserRecord | null;
   }
 
+  async findAdminById(adminUserId: string): Promise<AdminUserRecord | null> {
+    const result = await this.client.from("admin_users")
+      .select("id,user_id,role,mfa_enrolled,created_at,revoked_at")
+      .eq("id", adminUserId).maybeSingle();
+    if (result.error) throw new Error("Admin identity lookup failed.");
+    return result.data as AdminUserRecord | null;
+  }
+
   async findSessionByHash(tokenHash: string): Promise<AdminSessionRecord | null> {
     const result = await this.client.from("admin_sessions")
-      .select("id,admin_user_id,token_hash,assurance_level,started_at,expires_at,ended_at,revoked_at,end_reason")
+      .select("id,admin_user_id,token_hash,assurance_level,started_at,expires_at,last_activity_at,step_up_at,ended_at,revoked_at,end_reason")
       .eq("token_hash", tokenHash).maybeSingle();
     if (result.error) throw new Error("Admin session lookup failed.");
     return result.data as AdminSessionRecord | null;
+  }
+
+  /** Refreshes the idle window of a live session. The database writes at most once a minute. */
+  async touchSession(tokenHash: string): Promise<boolean> {
+    const result = await this.client.rpc("touch_admin_session", { p_token_hash: tokenHash });
+    if (result.error || typeof result.data !== "boolean") throw new Error("Admin session activity update failed.");
+    return result.data;
+  }
+
+  /** Records a TOTP step-up the caller has just verified for this live session. */
+  async recordStepUp(adminUserId: string, sessionId: string, context: AdminClientContext): Promise<string> {
+    const result = await this.client.rpc("record_admin_step_up", {
+      p_admin_user_id: adminUserId,
+      p_admin_session_id: sessionId,
+      p_ip: context.ip,
+      p_user_agent: context.userAgent
+    });
+    if (result.error || typeof result.data !== "string") throw new Error("Admin step-up could not be recorded.");
+    return result.data;
   }
 
   async startMfaChallenge(adminUserId: string, tokenHash: string, expiresAt: Date, context: AdminClientContext): Promise<void> {
@@ -114,7 +141,7 @@ export class AdminRepository {
     return result.data;
   }
 
-  async endSession(tokenHash: string, reason: "signed-out" | "expired", context: AdminClientContext): Promise<void> {
+  async endSession(tokenHash: string, reason: "signed-out" | "expired" | "idle-expired", context: AdminClientContext): Promise<void> {
     const result = await this.client.rpc("end_admin_session", {
       p_token_hash: tokenHash,
       p_reason: reason,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess } from "@/lib/admin/session";
 import { loadExternalGameLaunchRecord, loadInternalGameLaunchRecord } from "@/lib/games/catalog";
 import {
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, { params }: { params: Promise<{ catalogId: string }> }) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const catalogId = (await params).catalogId;
   const internalGame = await loadInternalGameLaunchRecord(catalogId);
   if (internalGame) {

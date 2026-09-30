@@ -4,7 +4,9 @@ import { parseAdminAccountAction } from "@math-vocabulary-hunt/platform-core";
 
 import { createAdminPortalForTarget, syncConsumerBillingForTarget } from "@/lib/admin/account-operations";
 import { getAdminSecurityConfig } from "@/lib/admin/config";
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
+import { ensureAdminStepUp, STEP_UP_ACCOUNT_OPERATIONS } from "@/lib/admin/step-up";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { recordAggregateSignal } from "@/lib/operations/server";
 
@@ -16,9 +18,19 @@ function back(request: Request, result: string) {
 function fields(form: FormData): Record<string, unknown> {
   return Object.fromEntries(["operation", "targetUserId", "idempotencyKey", "reason", "durationDays", "refundRequestId"].map((key) => [key, String(form.get(key) ?? "")]));
 }
+/** A repeated request for an operation that already exists is reported, never run again. */
+const DUPLICATE_RESULT: Readonly<Record<string, string>> = {
+  prepared: "already-in-progress",
+  succeeded: "already-completed",
+  failed: "already-failed",
+  manual_review: "already-in-review"
+};
 function errorCode(value: unknown) {
-  const message = value instanceof Error ? value.message.toLowerCase() : "operation-failed";
-  if (message.includes("reauthentication")) return "reauth-required";
+  const message = value instanceof Error ? value.message.toLowerCase()
+    : typeof value === "object" && value !== null && "message" in value ? String((value as { message: unknown }).message).toLowerCase()
+      : "operation-failed";
+  if (message.includes("fresh owner reauthentication")) return "step-up-required";
+  if (message.includes("reauthentication") || message.includes("active owner session")) return "reauth-required";
   if (message.includes("eligible")) return "not-eligible";
   if (message.includes("portal")) return "portal-unavailable";
   if (message.includes("billing-sync")) return "billing-sync-unavailable";
@@ -27,20 +39,31 @@ function errorCode(value: unknown) {
 
 export async function POST(request: Request) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const form = await request.formData();
-  if (!await validateAdminMutationCsrf(form)) return back(request, "csrf-denied");
+  if (!await validateAdminMutationCsrf(form, access.session)) return back(request, "csrf-denied");
   const input = parseAdminAccountAction(fields(form));
   const client = createServiceSupabaseClient();
   if (!input || !client) return back(request, "invalid-input");
 
-  const prepared = await client.rpc("prepare_admin_account_operation", {
+  if (STEP_UP_ACCOUNT_OPERATIONS.has(input.operation)) {
+    const stepUp = await ensureAdminStepUp({ admin: access.admin, session: access.session, code: String(form.get("stepUpCode") ?? "") });
+    if (stepUp !== "fresh" && stepUp !== "verified") return back(request, `step-up-${stepUp}`);
+  }
+
+  const begun = await client.rpc("begin_admin_account_operation", {
     p_admin_user_id: access.admin.id, p_admin_session_id: access.session.id,
     p_target_user_id: input.targetUserId, p_operation: input.operation,
     p_idempotency_key: input.idempotencyKey, p_reason: input.reason
   });
-  if (prepared.error || typeof prepared.data !== "string") return back(request, errorCode(prepared.error));
-  const operationId = prepared.data;
+  const started = Array.isArray(begun.data) ? begun.data[0] as { operation_id?: unknown; created?: unknown; operation_state?: unknown } | undefined : undefined;
+  if (begun.error || !started || typeof started.operation_id !== "string") return back(request, errorCode(begun.error));
+  // Only the request that created the operation may run it. A double click,
+  // a browser retry or a replayed form finds the existing operation: the
+  // database has audited the suppressed duplicate, and nothing runs again,
+  // so no billing or account side effect can happen twice.
+  if (started.created !== true) return back(request, DUPLICATE_RESULT[String(started.operation_state)] ?? "already-in-progress");
+  const operationId = started.operation_id;
   const finish = async (outcome: "succeeded" | "failed" | "manual_review", code: string | null) =>
     client.rpc("finish_admin_account_operation", {
       p_admin_user_id: access.admin.id, p_admin_session_id: access.session.id,

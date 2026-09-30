@@ -1,6 +1,7 @@
 import { parseContentSlug } from "@math-vocabulary-hunt/platform-core";
 import { NextResponse } from "next/server";
 
+import { adminAccessDeniedResponse } from "@/lib/admin/access-response";
 import { inspectAdminAccess, validateAdminMutationCsrf } from "@/lib/admin/session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -13,10 +14,10 @@ function back(request: Request, section: string, result: string) {
 
 export async function POST(request: Request) {
   const access = await inspectAdminAccess();
-  if (access.state !== "authorized") return new NextResponse("Not Found", { status: 404 });
+  if (access.state !== "authorized") return adminAccessDeniedResponse(request, access);
   const form = await request.formData();
   const section = String(form.get("section") ?? "");
-  if (!await validateAdminMutationCsrf(form)) return back(request, section, "csrf-denied");
+  if (!await validateAdminMutationCsrf(form, access.session)) return back(request, section, "csrf-denied");
   const kind = String(form.get("kind") ?? "");
   const title = String(form.get("title") ?? "").trim();
   const slug = parseContentSlug(String(form.get("slug") ?? ""));

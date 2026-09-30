@@ -1,15 +1,29 @@
 import Link from "next/link";
 
 import type { AdminAnalyticsOperationsSnapshot } from "@/lib/admin/analytics-operations";
+import { STEP_UP_FEATURE_FLAGS } from "@/lib/admin/session-policy";
 
-type Props = Readonly<{ snapshot: AdminAnalyticsOperationsSnapshot; csrfToken: string; section: "analytics" | "settings" | "audit-log"; result?: string }>;
+import { AdminGuardedForm } from "./admin-guarded-form";
+
+type Props = Readonly<{ snapshot: AdminAnalyticsOperationsSnapshot; csrfToken: string; section: "analytics" | "settings" | "audit-log"; result?: string; stepUpRequired?: boolean }>;
 const format = (value: number | null) => value === null ? "Unavailable" : value.toLocaleString();
 const bytes = (value: number | null) => value === null ? "Unavailable" : new Intl.NumberFormat("en-US", { style: "unit", unit: "megabyte", maximumFractionDigits: 1 }).format(value / 1_048_576);
+const RESULT_MESSAGES: Readonly<Record<string, string>> = {
+  "step-up-required": "Enter a current authenticator code to confirm this control. Nothing was changed.",
+  "step-up-failed": "The authenticator code was not accepted. Nothing was changed.",
+  "step-up-rate-limited": "Too many verification attempts. Wait before trying again. Nothing was changed.",
+  "step-up-unavailable": "Verification is unavailable right now. Nothing was changed."
+};
 
-export function AdminAnalyticsOperations({ snapshot, csrfToken, section, result }: Props) {
+export function AdminAnalyticsOperations({ snapshot, csrfToken, section, result, stepUpRequired = false }: Props) {
   if (section === "analytics") return <Analytics snapshot={snapshot} />;
   if (section === "audit-log") return <Audit snapshot={snapshot} />;
-  return <Operations snapshot={snapshot} csrfToken={csrfToken} result={result} />;
+  return <Operations snapshot={snapshot} csrfToken={csrfToken} result={result} stepUpRequired={stepUpRequired} />;
+}
+
+/** The authenticator-code field for a control that needs a fresh step-up. */
+function StepUpField({ id }: Readonly<{ id: string }>) {
+  return <div className="admin-step-up"><label htmlFor={id}>Authenticator code</label><input id={id} name="stepUpCode" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required aria-describedby={`${id}-hint`}/><small id={`${id}-hint`}>This control needs a fresh verification. Enter the current 6-digit code from your authenticator app.</small></div>;
 }
 
 function RangeForm({ snapshot }: Readonly<{ snapshot: AdminAnalyticsOperationsSnapshot }>) {
@@ -43,10 +57,10 @@ function ProviderGrid({ snapshot }: Readonly<{ snapshot: AdminAnalyticsOperation
   </div></section>;
 }
 
-function Operations({ snapshot, csrfToken, result }: Readonly<{ snapshot: AdminAnalyticsOperationsSnapshot; csrfToken: string; result?: string }>) {
+function Operations({ snapshot, csrfToken, result, stepUpRequired }: Readonly<{ snapshot: AdminAnalyticsOperationsSnapshot; csrfToken: string; result?: string; stepUpRequired: boolean }>) {
   return <div className="admin-ops-page">
-    <header><p className="admin-eyebrow">Owner operations</p><h1>System health and controls</h1><p>Feature flags are server-owned, version-checked, MFA-bound, and written to the immutable audit ledger. Emergency changes require a fresh admin session.</p></header>
-    {result ? <div className="admin-state-banner" role="status">Operation result: {result.replaceAll("-", " ")}.</div> : null}
+    <header><p className="admin-eyebrow">Owner operations</p><h1>System health and controls</h1><p>Feature flags are server-owned, version-checked, MFA-bound, and written to the immutable audit ledger. Emergency controls and retention ask for a current authenticator code when your last verification is more than a few minutes old.</p></header>
+    {result ? <div className={`admin-state-banner ${result.startsWith("step-up-") ? "admin-state-danger" : ""}`} role="status">{RESULT_MESSAGES[result] ?? `Operation result: ${result.replaceAll("-", " ")}.`}</div> : null}
     <section className="admin-ops-summary" aria-labelledby="system-version"><h2 id="system-version">Build and database</h2><dl>
       <div><dt>Build</dt><dd>{snapshot.build.id}</dd></div><div><dt>Environment</dt><dd>{snapshot.build.environment}</dd></div>
       <div><dt>Applied migrations</dt><dd>{format(snapshot.build.migrationCount)}</dd></div><div><dt>Latest migration</dt><dd>{snapshot.build.latestMigration ?? "Unavailable"}</dd></div>
@@ -57,17 +71,18 @@ function Operations({ snapshot, csrfToken, result }: Readonly<{ snapshot: AdminA
     <section aria-labelledby="server-flags"><div className="admin-section-heading"><div><p className="admin-eyebrow">Audited controls</p><h2 id="server-flags">Server feature flags</h2></div></div><div className="admin-flag-grid">
       {snapshot.flags.map((flag) => <article key={flag.key}><header><div><h3>{flag.key.replaceAll("-", " ")}</h3><p>Version {flag.version} · updated {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(flag.updatedAt))}</p></div><span data-tone={flag.enabled ? "attention" : "healthy"}>{flag.enabled ? "enabled" : "disabled"}</span></header>
         {flag.message ? <p>{flag.message}</p> : null}
-        <form method="post" action="/admin/operations/flag"><input type="hidden" name="csrfToken" value={csrfToken}/><input type="hidden" name="flag" value={flag.key}/><input type="hidden" name="enabled" value={String(!flag.enabled)}/><input type="hidden" name="expectedVersion" value={flag.version}/>
+        <AdminGuardedForm action="/admin/operations/flag" submitLabel={`${flag.enabled ? "Disable" : "Enable"} ${flag.key.replaceAll("-", " ")}`} submitClassName={flag.key === "admin-emergency-disabled" && !flag.enabled ? "admin-danger-action" : "admin-secondary-action"}>
+          <input type="hidden" name="csrfToken" value={csrfToken}/><input type="hidden" name="flag" value={flag.key}/><input type="hidden" name="enabled" value={String(!flag.enabled)}/><input type="hidden" name="expectedVersion" value={flag.version}/>
           {(flag.key === "maintenance-mode" || flag.key === "announcement-published") && !flag.enabled ? <label>Public-safe message<input name="message" required maxLength={280}/></label> : <input type="hidden" name="message" value=""/>}
           <label>Required reason<textarea name="reason" required minLength={3} maxLength={500}/></label>
           {flag.key.includes("emergency") ? <label className="admin-confirm-check"><input type="checkbox" name="confirm" value={flag.key} required/>I confirm this emergency owner action.</label> : null}
-          <button className={flag.key === "admin-emergency-disabled" && !flag.enabled ? "admin-danger-action" : "admin-secondary-action"} type="submit">{flag.enabled ? "Disable" : "Enable"} {flag.key.replaceAll("-", " ")}</button>
-        </form>
+          {stepUpRequired && STEP_UP_FEATURE_FLAGS.has(flag.key) ? <StepUpField id={`step-up-${flag.key}`} /> : null}
+        </AdminGuardedForm>
       </article>)}
     </div></section>
     <section className="admin-ops-summary" aria-labelledby="retention-jobs"><h2 id="retention-jobs">Retention and recovery</h2><p>Aggregate event signals are retained for 400 days. Immutable admin audit and feature history are excluded from deletion.</p>
       <p>Last run: {snapshot.retention ? `${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(snapshot.retention.completedAt))} · ${snapshot.retention.deletedCount} expired events` : "No retention run recorded"}</p>
-      <form method="post" action="/admin/operations/retention"><input type="hidden" name="csrfToken" value={csrfToken}/><label>Required reason<textarea name="reason" required minLength={3} maxLength={500}/></label><label className="admin-confirm-check"><input type="checkbox" name="confirm" value="retention" required/>I confirm this deletes only aggregate signals older than 400 days.</label><button className="admin-secondary-action" type="submit">Run bounded retention</button></form>
+      <AdminGuardedForm action="/admin/operations/retention" submitLabel="Run bounded retention" submitClassName="admin-secondary-action"><input type="hidden" name="csrfToken" value={csrfToken}/><label>Required reason<textarea name="reason" required minLength={3} maxLength={500}/></label><label className="admin-confirm-check"><input type="checkbox" name="confirm" value="retention" required/>I confirm this deletes only aggregate signals older than 400 days.</label>{stepUpRequired ? <StepUpField id="step-up-retention" /> : null}</AdminGuardedForm>
       <div className="admin-operation-links"><Link href="/admin?section=cms">Publish announcement content</Link><Link href="/admin?section=users">Revoke consumer sessions</Link><Link href="/admin?section=audit-log">Open immutable audit viewer</Link></div>
     </section>
   </div>;

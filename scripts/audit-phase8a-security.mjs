@@ -21,11 +21,59 @@ requireAll("apps/platform-web/lib/admin/session.ts", [
   "supabase.auth.getUser()", "getAuthenticatorAssuranceLevel", "findAdminByUserId", "findSessionByHash"
 ]);
 requireAll("apps/platform-web/app/admin/actions.ts", [
-  "validateAdminMutationCsrf", "consumeRateLimit", "challengeAndVerify", "admin.login.failure", "admin.mfa.failure"
+  "validatePreSessionCsrf", "validateAdminSignOutCsrf", "safeAdminNextPath", "consumeRateLimit", "challengeAndVerify",
+  "admin.login.failure", "admin.mfa.failure"
 ]);
 requireAll("apps/platform-web/app/admin/page.tsx", [
-  'dynamic = "force-dynamic"', 'access.state !== "authorized"', "notFound()"
+  'dynamic = "force-dynamic"', 'access.state !== "authorized"', "notFound()", "access.recoverable", "createAdminSessionCsrfToken"
 ]);
+
+// Phase 2B: 2-hour absolute / 60-minute idle admin session, step-up, session-bound CSRF, Lax cookie.
+requireAll("supabase/migrations/20260930100000_admin_two_hour_session.sql", [
+  "admin_sessions_absolute_lifetime_check", "interval '2 hours'", "interval '60 minutes'", "interval '5 minutes'",
+  "public.touch_admin_session", "public.record_admin_step_up", "public.begin_admin_account_operation",
+  "admin.step-up.success", "admin.account.operation.duplicate-suppressed", "'idle-expired'"
+]);
+requireAll("apps/platform-web/lib/admin/security.ts", [
+  "verifyAdminSessionCsrfToken", 'sameSite: "lax" as const', 'path: "/admin"', "httpOnly: true", "isAdminSessionIdle"
+]);
+requireAll("apps/platform-web/lib/admin/session.ts", ["adminSessionCookieOptions", "touchSession", "idle-expired", "verifyAdminSessionCsrfToken"]);
+requireAll("apps/platform-web/lib/admin/step-up.ts", ["challengeAndVerify", "consumeRateLimit", "recordStepUp", "admin.step-up.failure"]);
+{
+  const routeRoot = resolve(root, "apps/platform-web/app/admin");
+  const pending = [routeRoot];
+  while (pending.length) {
+    const current = pending.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const path = resolve(current, entry.name);
+      if (entry.isDirectory()) { pending.push(path); continue; }
+      if (entry.name !== "route.ts") continue;
+      const source = readFileSync(path, "utf8");
+      if (!source.includes("inspectAdminAccess")) continue;
+      // The JSON "Stay signed in" endpoint answers 401/404 itself; every other route uses the shared response.
+      const jsonActivityEndpoint = path.replaceAll("\\", "/").endsWith("/app/admin/session/activity/route.ts");
+      if (!jsonActivityEndpoint && !source.includes("adminAccessDeniedResponse")) throw new Error(`${path} must answer unauthorized requests through adminAccessDeniedResponse.`);
+      if (/export async function POST/.test(source) && !/validateAdminMutationCsrf\(\w+,\s*\w+\.session\)/.test(source)) {
+        throw new Error(`${path} must validate a session-bound CSRF token.`);
+      }
+      if (/validateAdminMutationCsrf\(\w+\)/.test(source)) throw new Error(`${path} validates CSRF without binding it to the admin session.`);
+    }
+  }
+}
+for (const directory of ["apps/platform-web/components/admin", "apps/platform-web/lib/admin", "apps/platform-web/app/admin"]) {
+  const pending = [resolve(root, directory)];
+  while (pending.length) {
+    const current = pending.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const path = resolve(current, entry.name);
+      if (entry.isDirectory()) { pending.push(path); continue; }
+      const source = readFileSync(path, "utf8");
+      for (const forbidden of ["localStorage", "sessionStorage", "document.cookie"]) {
+        if (source.includes(forbidden)) throw new Error(`${path} must not keep admin state in ${forbidden}.`);
+      }
+    }
+  }
+}
 requireAll("apps/platform-web/proxy.ts", [
   'pathname.startsWith("/admin/")', 'response.headers.set("Cache-Control", "no-store")',
   'response.headers.set("X-Robots-Tag", "noindex, nofollow")'
