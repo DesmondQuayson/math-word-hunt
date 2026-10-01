@@ -98,12 +98,19 @@ test("an authenticated non-admin receives a genuine not-found response", async (
     await expect(page.getByRole("heading", { name: "Sign in to MathNexa Admin" })).toBeVisible();
     await expect(page.getByText("You are currently signed in to MathNexa without Admin access.")).toBeVisible();
     await expect(page.getByText(ownerEmail)).toHaveCount(0);
+    // Concealment: a denied admin route must be indistinguishable from any
+    // address that does not exist, so compare it with the site's own 404 page
+    // rather than hard-coding that page's copy.
+    const missing = await page.goto("/phase8a-concealment-control-page");
+    expect(missing?.status()).toBe(404);
+    const notFoundHeading = (await page.getByRole("heading", { level: 1 }).innerText()).trim();
+    expect(notFoundHeading).not.toBe("");
     for (const path of ["/admin", "/admin/mfa"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
       expect(response?.headers()["cache-control"], path).toMatch(/^(?:no-store|no-cache, must-revalidate)$/);
       expect(response?.headers()["x-robots-tag"], path).toBe("noindex, nofollow");
-      await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 }), path).toHaveText(notFoundHeading);
       await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toHaveCount(0);
     }
     await page.goto("/admin/sign-in");
