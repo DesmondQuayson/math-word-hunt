@@ -122,3 +122,30 @@ the rollback file: it ends live sessions longer than 30 minutes, restores the
 30-minute ceiling and three end reasons as `NOT VALID` (evidence rows are
 kept), restores the previous functions, and drops the new ones and the two
 columns. The migration can be re-applied afterwards.
+
+### Legacy `prepare_admin_account_operation` (kept on purpose)
+
+The current runtime (v1.2.19 onwards) never calls
+`public.prepare_admin_account_operation`; it uses
+`begin_admin_account_operation`, which adds the `created` flag and duplicate
+suppression. The legacy function stays, unchanged and executable by
+`service_role` only, because **v1.2.17 (`dpl_14A8uM4MBvkPZhvXQLSdHADxzdBD`,
+build `b6337c8`) is still an accepted rollback runtime** and its
+`/admin/users/action` route prepares every account operation through it.
+Revoking it now would make that rollback fail closed on every account
+operation.
+
+Retire it only when v1.2.17 is no longer an accepted rollback, in its own
+small migration: revoke `EXECUTE` from `service_role` (do not drop the
+function — the historical rollback files recreate or drop it). That migration
+must also:
+
+- update `supabase/tests/database/22_phase8g_users_subscriptions.test.sql`,
+  which expects `service_role` to execute it in its privilege matrix and, under
+  `set local role service_role`, calls it directly to drive the suspend,
+  restore and grant flows — move those calls to
+  `begin_admin_account_operation`;
+- review the direct calls in `35_admin_sync_billing_operation.test.sql`;
+- retire the v1.2.18 staging contract in `scripts/run-admin-sync-billing-staging.mjs`,
+  which calls it, and mark the v1.2.7 runners that inspect its definition
+  (`run-subscription-lifecycle-*.mjs`) as historical.
