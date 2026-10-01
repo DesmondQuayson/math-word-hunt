@@ -545,9 +545,23 @@ async function previewKeyboard(page, label) {
   for (let step = 0; step < 3; step += 1) { await page.keyboard.press("Tab"); order.push(await focused()); }
   check(order.map((entry) => entry.text).join("|") === "Back to Quiz PDFs|Details|Download PDF" && order.every((entry) => entry.ring), `${label}: keyboard order on the preview page ${order.map((entry) => `${entry.text}:${entry.ring}`).join(", ")}`);
 }
+// The site's own 404 heading, read from an address that cannot exist. The
+// destination check compares against it instead of hard-coded copy: it used
+// to look for Next.js's default "This page could not be found", which the site
+// has not rendered since 997e08b, so the check could never fail. An API request
+// (same cookies and headers, no console noise) fetches the server-rendered page.
+async function siteNotFoundHeading(page, label) {
+  const response = await page.request.get(`${origin}/quiz-review-missing-${Date.now()}`, { maxRedirects: 0 });
+  const match = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(await response.text());
+  const heading = (match?.[1] ?? "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, "\"").trim();
+  check(response.status() === 404 && heading !== "", `${label}: the site's 404 page is recognisable (status ${response.status()}, heading "${heading}")`);
+  return heading;
+}
 // Each banner destination, clicked at phone width: the right link, on screen,
-// a real target, and the page it reaches for this account state.
+// a real target, and the page it reaches for this account state (never the
+// site's 404 page, including a 404 rendered with status 200).
 async function productDestinations(page, state, label) {
+  const notFoundHeading = await siteNotFoundHeading(page, label);
   for (const [index, [name, href]] of PRODUCTS.entries()) {
     await page.goto(`${origin}/`, { waitUntil: "networkidle" });
     const link = page.locator(".product-nav-list a").nth(index);
@@ -572,8 +586,9 @@ async function productDestinations(page, state, label) {
     await page.waitForLoadState("domcontentloaded").catch(() => undefined);
     await page.waitForTimeout(800);
     const landed = new URL(page.url());
-    const notFound = landed.host === originHost ? await page.getByText("This page could not be found").count() : 0;
-    check(text === name && target === href && onScreen && expected(landed) && notFound === 0, `${label}: banner "${name}" (${target}, on screen ${onScreen}) -> ${landed.host === originHost ? "" : landed.host}${landed.pathname}${landed.search}`);
+    const notFound = landed.host === originHost && notFoundHeading !== "" &&
+      (await page.locator("h1").allTextContents()).some((heading) => heading.trim() === notFoundHeading);
+    check(text === name && target === href && onScreen && expected(landed) && !notFound, `${label}: banner "${name}" (${target}, on screen ${onScreen}) -> ${landed.host === originHost ? "" : landed.host}${landed.pathname}${landed.search}${notFound ? " [site 404 page]" : ""}`);
   }
 }
 
