@@ -38,7 +38,7 @@ const FORBIDDEN_PROJECTS = ["mathnexa-platform-staging", "showme-map-prep-produc
 const CERTIFIED_RUNTIME_COMMIT = process.env.RELEASE_CERTIFIED_RUNTIME?.trim() || "13d307d";
 /** The deployment that must be serving the apex when this pipeline starts, and the rollback target. */
 const EXPECTED_ROLLBACK_DEPLOYMENT = process.env.RELEASE_ROLLBACK_DEPLOYMENT?.trim() || "dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c";
-const EXPECTED_NEXT_VERSION = "16.3.4";
+const EXPECTED_NEXT_VERSION = "16.3.8";
 const BACKEND_USER_AGENT = "MathNexa-Hotfix-Certification/1.0";
 
 const args = new Map(process.argv.slice(2).map((arg) => { const [key, value = "true"] = arg.split("=", 2); return [key, value]; }));

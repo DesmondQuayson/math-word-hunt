@@ -78,7 +78,7 @@ async function deploy() {
   evidence.commit = run("git", ["rev-parse", "HEAD"]);
   evidence.tree = run("git", ["rev-parse", "HEAD^{tree}"]);
   evidence.nextVersion = JSON.parse(run("node", ["-e", "process.stdout.write(JSON.stringify(require('./node_modules/next/package.json').version))"]));
-  check(evidence.nextVersion === "16.3.4", `unexpected-next-version:${evidence.nextVersion}`);
+  check(evidence.nextVersion === "16.3.8", `unexpected-next-version:${evidence.nextVersion}`);
   step("deploy");
   const output = vercel(
     // MVH_SOURCE_REVISION stamps this deployment with the revision it was built
