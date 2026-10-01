@@ -36,6 +36,7 @@ worth the remediation risk), **DEFERRED** (worth doing, scheduled),
 | ON-12 | LOW | Throttle and staging-denial events defeated de-duplication | Verification |
 | ON-13 | LOW | Credential-shape redaction had no standing test coverage | Verification |
 | CSP-01 | LOW | Under `next dev` the platform headers replaced the internal game documents' and game-package assets' own headers (`base-uri 'none'` blocked the games' `<base href>`), so the local internal-game and package-delivery e2e checks failed; hosted unaffected (`internal-game-csp-parity.md`) | `v1.2.20` |
+| PKG-01 | MED | Package-game sub-assets 404 in Chrome/Edge since `bd85de2`: the sandboxed (opaque-origin) frame sends no SameSite=Lax cookie on sub-resources and assets were authorized by the cookie session only; fail-closed, no exposure. Now ticket-authenticated with a per-asset server re-check of the ticket principal (`package-game-asset-tickets.md`) | `v1.2.20` |
 
 ---
 
@@ -82,6 +83,27 @@ secrets and privileged logic in every phase. Routing every asset through the
 proxy would add a Supabase round trip per request for no gain. Its *extension* —
 rendered application documents leaking through the same matcher — was a different
 question and was fixed as PH2-04.
+
+### PKG-02 — Gated staging refuses Chromium package sub-assets — LOW
+
+The staging gate exempts ticketed package assets only at `/games/<UUID>/runtime/assets/…`
+(`lib/staging-access/server.ts`), but the launch redirects to `/games/<slug>/runtime/assets/…`.
+Chromium sends no SameSite=Lax staging cookie from the sandboxed frame, so on a *gated* staging
+alias package CSS/JS are refused by the gate. Production has no gate and branch previews are
+ungated, so the product is unaffected.
+
+**Accepted (pre-existing, staging-only).** Review package games on an ungated preview. Fixing
+it means widening the 7D gate exemption or redirecting by resource UUID: an owner decision.
+
+### PKG-03 — A package sub-asset URL is a 300-second bearer credential — INFO
+
+Without cookies, a ticketed asset URL serves one package's assets for one principal for at
+most 300 s, and only while that principal still passes the server re-check. Signing out does
+not end an issued ticket early; suspension, entitlement changes, deletion, school-access
+removal and school secret rotation take effect on the next request. It cannot launch a game.
+
+**Accepted.** This is what lets the opaque-origin sandbox stay cookie-less (requirement C of
+`package-game-asset-tickets.md`); the window is the existing 300-second ticket lifetime.
 
 ### CSP-02 — Local runtimes serve configured headers over route headers — INFO
 

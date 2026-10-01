@@ -22,7 +22,7 @@ export default async function GameDetail({ params }: { params: Promise<{ resourc
     redirect(registration.route);
   }
   const ticket = access.decision.allowed && access.principal
-    ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.principal.id })
+    ? createGameAssetTicket({ audience: "subscriber", packageId: game.launch.packageId, principalId: access.principal.id, principalKind: access.principal.kind, sessionEndsAt: access.decision.accessEndsAt })
     : null;
   // Gameplay is the hero: compact chrome above the frame, supporting notes
   // below it, and an always-visible way back at the top.
