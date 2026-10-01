@@ -783,6 +783,15 @@ test("teacher-first homepage matches mobile, desktop, and smartboard visual base
     await page.setViewportSize(viewport);
     await page.goto("/");
     await page.evaluate(() => document.fonts.ready);
+    // The homepage gained Featured games in 4afa073; name it so a future layout change fails clearly, and
+    // load its lazily loaded card art before the full-page capture so the baseline is deterministic.
+    const featured = page.getByRole("region", { name: "Featured games" });
+    await expect(featured.getByRole("heading", { name: "Featured games", level: 2 })).toBeVisible();
+    for (const image of await featured.locator("img").all()) {
+      await image.scrollIntoViewIfNeeded();
+      await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expect(page).toHaveScreenshot(`teacher-first-home-${name}.png`, {
       animations: "disabled",
       fullPage: true,
