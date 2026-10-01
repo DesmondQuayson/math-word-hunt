@@ -91,7 +91,13 @@ test("case-insensitive trimmed input creates one persistent all-access session",
 
 test("unsafe next is rejected and account UI contains no fake identity or billing", async ({ page }) => {
   await enterAuthorizedAccess(page, "https://attacker.example");
-  await expect(page).toHaveURL(/\/account$/);
+  // An unowned next is never followed: the action falls back to the post-authentication
+  // destination, Home on this origin (b13ce5e moved that fallback from /account to /).
+  await expect(page).toHaveURL("/");
+  // The school-session account view renders only for a valid session (otherwise /account
+  // redirects to /access?next=/account), so reaching it proves the session was created.
+  await page.goto("/account");
+  await expect(page).toHaveURL("/account");
   await expect(page.getByText("Access provided through an authorized school code.")).toBeVisible();
   await expect(page.locator("#main-content").getByRole("button", { name: "Exit authorized access" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Authorized access active" })).toBeVisible();
@@ -100,10 +106,22 @@ test("unsafe next is rejected and account UI contains no fake identity or billin
   await expect(page.locator('input[type="email"], a[href="/subscriber-management"]')).toHaveCount(0);
 });
 
+test("the authorize action itself refuses an unowned next, even when the form is tampered with", async ({ page }) => {
+  await page.goto("/access?next=/games");
+  const form = page.locator("form", { has: page.getByLabel("Code (required)") });
+  await form.getByLabel("Code (required)").fill(authorizedCode);
+  // The page already sanitises ?next; rewrite the submitted value so only the server action can refuse it.
+  await form.locator('input[type="hidden"][name="next"]').evaluate((input) => { (input as HTMLInputElement).value = "https://attacker.example/collect"; });
+  await form.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL("/");
+});
+
 test("school access never exposes Checkout and exits without a separate code-entry route", async ({ page, context }) => {
   await enterAuthorizedAccess(page, "/subscription");
   await expect(page).toHaveURL(/\/subscription$/);
-  await expect(page.getByText("No subscription is required for this session")).toBeVisible();
+  // Next's route announcer (role=alert) repeats the h1 after the action's navigation; match the heading itself.
+  await expect(page.getByRole("heading", { level: 1, name: "No subscription is required for this session", exact: true })).toBeVisible();
+  await expect(page.locator("form.consent-form")).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText(/Stripe-hosted Checkout|Manage or cancel in Stripe/);
   await page.goto("/account");
   await page.getByRole("button", { name: "Exit authorized access" }).last().click();

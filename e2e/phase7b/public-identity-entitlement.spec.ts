@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+
+import { enhanceCanonicalGameHtml } from "../../apps/platform-web/lib/game-access/canonical-runtime-enhancements";
 
 const url = process.env.SUPABASE_TEST_URL ?? "";
 const publicKey = process.env.SUPABASE_TEST_PUBLISHABLE_KEY ?? "";
@@ -20,7 +24,8 @@ async function signIn(page: Page) {
   await page.getByLabel("Email address").fill(email);
   await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  // b13ce5e: a completed sign-in lands on Home (POST_AUTH_DESTINATION), not the account page.
+  await expect(page).toHaveURL("/");
 }
 
 test.beforeAll(async () => {
@@ -86,7 +91,8 @@ test("signup collects only account credentials and rejects forged profile data",
   await page.getByLabel("Email address").fill(forgedEmail);
   await page.locator("#signup-password").fill(password);
   await page.locator("#signup-password-confirmation").fill(password);
-  await page.locator("form").evaluate((form) => {
+  // /sign-up also renders the Authorize Code form (7d02b7e); forge fields into the account form itself.
+  await page.locator("form").filter({ has: page.locator("#signup-password") }).evaluate((form) => {
     for (const [name, value] of [["displayName", "Forged Teacher"], ["organization", "Forged School"], ["progress", "100"]]) {
       const input = document.createElement("input");
       input.type = "hidden";
@@ -129,7 +135,9 @@ test("general account signup requires confirmation and recovery stays generic", 
   await page.getByLabel("Email address").fill(`${run}-unknown@example.test`);
   await page.getByRole("button", { name: "Send recovery message" }).click();
   await expect(page.getByText(/^If that account exists,/)).toBeVisible();
-  await expect(page.getByText(/teacher|pilot/i)).toHaveCount(0);
+  // Page-wide audience check; only the site footer's positioning line (48ec054) may name teachers.
+  await expect(page.getByText(/teacher|pilot/i).filter({ hasNotText: "Teacher-led math resources in one platform." })).toHaveCount(0);
+  await expect(page.getByText(/If that teacher account exists/i)).toHaveCount(0);
 });
 
 test("consumer provisioning ignores forged educational metadata", async () => {
@@ -178,7 +186,11 @@ test("server denies forged browser entitlement and shows checkout-required state
   await signIn(page);
   await page.goto("/game-access?entitlement=active&trialEndsAt=2099-01-01");
   await expect(page.locator("strong").filter({ hasText: "Subscription setup required" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continue to protected game gateway" })).toHaveCount(0);
+  // 4728e34 renamed the launch link to "Play now"; it renders only when access is allowed.
+  await expect(page.getByRole("link", { name: "Play now", exact: true })).toHaveCount(0);
+  const denied = await page.request.get("/game/runtime/index.html");
+  expect(denied.status()).toBe(401);
+  expect(await denied.json()).toMatchObject({ error: "game-access-denied", reason: "checkout-required" });
   await page.goto("/subscription");
   await expect(page.getByText(/Checkout is not active/)).toBeVisible();
   await page.goto("/account");
@@ -208,7 +220,8 @@ test("server-authenticated exact 24-hour trial unlocks only protected canonical 
 
   await signIn(page);
   await page.goto("/play?access=active");
-  await expect(page).toHaveURL("/game/runtime/index.html");
+  // 04dda34: the launch URL always carries the runtime generation stamp.
+  await expect(page).toHaveURL(/\/game\/runtime\/index\.html\?launch=[0-9a-f]{7,40}$/);
   await expect(page.locator("body")).not.toContainText(/Protected Game Gateway|Game access verified|Launch authorized|Launch MathNexa game/i);
 
   const index = await page.request.get("/game/runtime/index.html");
@@ -217,7 +230,10 @@ test("server-authenticated exact 24-hour trial unlocks only protected canonical 
   expect(vocab.status()).toBe(200);
   expect(index.headers()["cache-control"]).toContain("private, no-store");
   expect(vocab.headers()["cache-control"]).toContain("private, no-store");
-  expect(createHash("sha256").update(await index.body()).digest("hex")).toBe("7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5");
+  // e7be71e: the route serves the pinned canonical document plus the reviewed enhancements, byte for byte.
+  const canonicalIndex = readFileSync(resolve("docs/index.html"));
+  expect(createHash("sha256").update(canonicalIndex).digest("hex")).toBe("7f00ed6789a2faf23b90e96c3dfdee0167aced87beb08dabf10b89c3e72c9fc5");
+  expect(Buffer.compare(await index.body(), enhanceCanonicalGameHtml(canonicalIndex))).toBe(0);
   expect(createHash("sha256").update(await vocab.body()).digest("hex")).toBe("caeb8fbb590fffd8cbc169f88f174a38c26de2d16a7e1b0c1cf5e83ac9f01c46");
   expect((await page.request.get("/game/runtime/index-v6-backup.html")).status()).toBe(404);
 });
@@ -242,4 +258,6 @@ test("consumer identity and access states retain accessible interaction", async 
   await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.goto("/game-access");
   await expect(page.locator("[aria-live]")).toHaveCount(1);
+  // That live region is Next's route announcer; the app's own status must be announced too.
+  await expect(page.getByRole("status", { name: "Game-access status" })).toHaveCount(1);
 });
