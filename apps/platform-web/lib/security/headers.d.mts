@@ -8,10 +8,15 @@
  */
 export type SecurityHeader = Readonly<{ key: string; value: string }>;
 
+/** `developmentServer` is true only for `next dev` (Next's PHASE_DEVELOPMENT_SERVER). */
+export type SecurityHeaderOptions = Readonly<{ developmentServer?: boolean }>;
+
 export declare function buildContentSecurityPolicy(
-  source?: Readonly<Record<string, string | undefined>>
+  source?: Readonly<Record<string, string | undefined>>,
+  options?: SecurityHeaderOptions
 ): string;
 
 export declare function buildSecurityHeaders(
-  source?: Readonly<Record<string, string | undefined>>
+  source?: Readonly<Record<string, string | undefined>>,
+  options?: SecurityHeaderOptions
 ): SecurityHeader[];

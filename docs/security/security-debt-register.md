@@ -35,6 +35,7 @@ worth the remediation risk), **DEFERRED** (worth doing, scheduled),
 | ON-11 | MED | Consumer and school limiters accepted any string as the client address | Verification |
 | ON-12 | LOW | Throttle and staging-denial events defeated de-duplication | Verification |
 | ON-13 | LOW | Credential-shape redaction had no standing test coverage | Verification |
+| CSP-01 | LOW | Under `next dev` the platform headers replaced the internal game documents' and game-package assets' own headers (`base-uri 'none'` blocked the games' `<base href>`), so the local internal-game and package-delivery e2e checks failed; hosted unaffected (`internal-game-csp-parity.md`) | `v1.2.20` |
 
 ---
 
@@ -81,6 +82,21 @@ secrets and privileged logic in every phase. Routing every asset through the
 proxy would add a Supabase round trip per request for no gain. Its *extension* —
 rendered application documents leaking through the same matcher — was a different
 question and was fixed as PH2-04.
+
+### CSP-02 — Local runtimes serve configured headers over route headers — INFO
+
+Under `next dev` / `next start` a header set by `next.config.mjs` wins over the
+same header from a route response (Next.js 16 `send-response.js`); on Vercel
+the route's wins. CSP-01 makes `next dev` leave the internal game documents
+and the game-package assets to their own headers. Every other route with its
+own stricter headers (`/game/runtime`, resource downloads and previews, media)
+is still served the looser platform values locally, and a local `next start`
+(which serves the production build's rules) also serves the game documents
+the platform CSP.
+
+**Accepted.** Local-only and looser, never stricter; production and staging
+serve each route's own headers. Rule for future work: never rely on a route
+header overriding a configured one under `next dev` / `next start`.
 
 ### ON-07 — `unrs-resolver` executes a postinstall script — INFO
 
