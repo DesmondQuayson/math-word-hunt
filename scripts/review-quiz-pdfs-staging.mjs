@@ -6,8 +6,10 @@
 // Supabase service credential from the process-only vault. Synthetic consumer
 // accounts (fresh, used-trial, active-trial, subscriber, payment problem) are
 // created on the target project, exercised through the real sign-in, and
-// deleted at the end. Secrets are never printed; the bypass value travels only
-// in request headers.
+// deleted at the end. Secrets are never printed. The bypass value travels only
+// in request headers, only to the review origin itself (see
+// scripts/vercel-protection-bypass.mjs): never in a URL, never to another host,
+// never on a redirect to another origin.
 //
 // Coverage: the banner (six product destinations, no Authorize Code item, each
 // destination reachable), the homepage Authorize Code card for signed-out
@@ -35,6 +37,7 @@ const { chromium } = playwright;
 
 import { applyQuizTopicMap, loadQuizManifest, loadQuizTopicMap } from "./quiz-pdfs/manifest.mjs";
 import { verifyQuizPublication } from "./quiz-pdfs/publish.mjs";
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const require = createRequire(import.meta.url);
@@ -52,6 +55,7 @@ const origin = (process.env.REVIEW_ORIGIN?.trim() || process.env.STAGING_ORIGIN?
 if (!ORIGIN_ALLOWLIST.test(origin)) throw new Error("REVIEW_ORIGIN must be a MathNexa staging/production deployment or the apex");
 const originHost = new URL(origin).host;
 const bypassSecret = /^[A-Za-z0-9_-]{20,}$/.test(process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() ?? "") ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET.trim() : null;
+const bypass = createProtectionBypass({ origin, secret: bypassSecret });
 const supabaseUrl = required("SUPABASE_URL", /^https:\/\//);
 const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
 // Any hosted project other than staging is production for this harness.
@@ -83,7 +87,7 @@ const WORKSHEET_GENERATOR_URL = "https://showme.mathnexa.com/worksheets";
 let gradeTitle = "Grade 6";
 const notes = [];
 const results = [];
-const note = (message) => { notes.push(message); console.log(message); };
+const note = (message) => { const safe = bypass.redact(message); notes.push(safe); console.log(safe); };
 const ok = (message) => { results.push(1); note(`ok   ${message}`); };
 const bad = (message) => { results.push(0); note(`FAIL ${message}`); };
 const check = (condition, message) => (condition ? ok : bad)(message);
@@ -203,9 +207,13 @@ async function settle(page, quietMs = 600, timeoutMs = 15_000) {
   }
 }
 async function open(state, viewport, engine = browser, engineName = "chromium") {
-  // On a protected preview: the bypass entry, and x-vercel-skip-toolbar so the
-  // Vercel feedback toolbar (preview-only, never on production) stays inactive.
-  const context = await engine.newContext({ viewport, bypassCSP: true, ...(bypassSecret ? { extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret, "x-vercel-skip-toolbar": "1" } } : {}) });
+  // On a protected preview: the bypass entry and x-vercel-skip-toolbar (so the
+  // preview-only Vercel feedback toolbar stays inactive), added only to requests
+  // for the review origin itself. The first navigation also sets Vercel's
+  // host-only bypass cookie, which carries same-host redirects, client-side
+  // fetches and the context's API requests.
+  const context = await engine.newContext({ viewport, bypassCSP: true });
+  await bypass.install(context);
   const page = await context.newPage();
   trackRequests(page);
   const goto = page.goto.bind(page);
@@ -217,15 +225,11 @@ async function open(state, viewport, engine = browser, engineName = "chromium") 
       // A remote preview can keep the network busy past the 30 s budget; retry
       // once on the plain load event (recorded). Content checks follow anyway.
       if (!/Timeout \d+ms exceeded/.test(String(error.message))) throw error;
-      note(`  navigation to ${String(url).replace(/x-vercel-protection-bypass=[^&]+/, "x-vercel-protection-bypass=[hidden]").replace(origin, "")} timed out waiting for ${options?.waitUntil ?? "load"}; retried once on load`);
+      note(`  navigation to ${String(url).replace(origin, "")} timed out waiting for ${options?.waitUntil ?? "load"}; retried once on load`);
       return goto(url, { ...options, waitUntil: "load", timeout: 60_000 });
     }
   };
   observe(page, engineName);
-  if (bypassSecret) {
-    // Set the bypass cookie once so client-side fetches pass as well, then leave the bootstrap URL behind.
-    await page.goto(`${origin}/?x-vercel-protection-bypass=${bypassSecret}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
-  }
   await page.goto(`${origin}/`, { waitUntil: "networkidle" });
   if (state !== "anonymous") {
     await page.goto(`${origin}/sign-in?next=/quizzes`);
@@ -596,7 +600,7 @@ let users = {};
 let reachedEnd = false;
 try {
   note(`review origin ${origin} (${isProduction ? "PRODUCTION project" : "staging project"}); engines ${engines.join(", ")}`);
-  const health = await fetch(`${origin}/api/health`, { redirect: "manual", headers: { "user-agent": "MathNexa-Quiz-Review/1.0", ...(bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {}) } });
+  const health = await fetch(`${origin}/api/health`, { redirect: "manual", headers: { "user-agent": "MathNexa-Quiz-Review/1.0", ...bypass.headersFor(`${origin}/api/health`) } });
   const healthBody = await health.text();
   check(health.status === 200 && /"status":"ready"/.test(healthBody), `health ${health.status} ${healthBody.slice(0, 120)}`);
   if (expectedBuild) check(healthBody.includes(`"build":"${expectedBuild}"`), `health build = ${expectedBuild.slice(0, 7)}`);
@@ -964,7 +968,8 @@ try {
   reachedEnd = true;
 } catch (error) {
   bad(`review stopped early: ${String(error?.message ?? error).split("\n")[0].slice(0, 200)}`);
-  throw error;
+  // Rethrown with the bypass value removed, should any error ever quote it.
+  throw new Error(bypass.redact(String(error?.stack ?? error)));
 } finally {
   summarizeErrors();
   await browser.close();
