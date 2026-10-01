@@ -31,6 +31,9 @@ for (const key of ["API_URL", "PUBLISHABLE_KEY", "SECRET_KEY"]) {
   if (typeof status[key] !== "string" || status[key].length < 10) throw new Error(`Local Supabase status is missing ${key}.`);
 }
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(status.API_URL)) throw new Error("Math Tug of War online verification is local-only.");
+// The sign-up test reads its confirmation email from the stack's own local mail capture.
+const mailUrl = status.MAILPIT_URL ?? status.INBUCKET_URL;
+if (typeof mailUrl !== "string" || !/^http:\/\/127\.0\.0\.1:\d+$/.test(mailUrl)) throw new Error("Local Supabase status is missing its local mail capture URL.");
 
 const admin = createClient(status.API_URL, status.SECRET_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 await waitForLocalSupabaseAuth(admin);
@@ -123,7 +126,7 @@ try {
     resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.math-tug-of-war-online.config.mjs",
     ...process.argv.slice(2)
   ], {
-    env: { ...environment, MATH_TUG_OF_WAR_ONLINE_URL: origin, SUPABASE_TEST_URL: status.API_URL, SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY },
+    env: { ...environment, MATH_TUG_OF_WAR_ONLINE_URL: origin, SUPABASE_TEST_URL: status.API_URL, SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY, MAIL_TEST_URL: mailUrl },
     stdio: "inherit"
   });
   [exitCode] = await once(tests, "exit");

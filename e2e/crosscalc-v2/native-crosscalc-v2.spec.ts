@@ -267,8 +267,25 @@ test("V2 is public for entitled subscribers while preview and entitlement bounda
   expect(anonymousV2?.status()).toBe(404);
 
   await signIn(page, unentitledEmail, "/games");
+  // Wait for the sign-in to finish (a later navigation would abort it): a signed-in account
+  // without Math Games access is sent to the subscription review, never to the shelf.
+  await expect(page).toHaveURL("/subscription?next=/games");
   await expect(page.getByRole("heading", { name: "CrossCalc", exact: true })).toHaveCount(0);
   expect((await page.goto("/games/crosscalc/v2/preview"))?.status()).toBe(404);
+
+  // Preserved from the retired V1 Draft suite (e2e/crosscalc): a Draft CrossCalc is invisible to an
+  // ENTITLED subscriber and its play route is concealed. A reset local database holds the Draft row
+  // (supabase/tests/database/32); the Chromium project publishes it below, so WebKit sees it published.
+  const fixture = await admin.from("game_catalog_entries").select("status").eq("stable_key", "crosscalc").single();
+  if (fixture.error) throw fixture.error;
+  if (browserName === "chromium") expect(fixture.data.status, "the run starts from the reset Draft CrossCalc row").toBe("draft");
+  if (fixture.data.status === "draft") {
+    await context.clearCookies();
+    await signIn(page, subscriberEmail, "/games");
+    await expect(page).toHaveURL("/games");
+    await expect(page.getByRole("heading", { name: "CrossCalc", exact: true })).toHaveCount(0);
+    expect((await page.goto("/games/crosscalc/play"))?.status()).toBe(404);
+  }
 
   await context.clearCookies();
   await page.goto("/admin/sign-in");

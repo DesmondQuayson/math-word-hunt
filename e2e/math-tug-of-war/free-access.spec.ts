@@ -11,7 +11,8 @@ import { GAME_ROUTE, keysFor, panel, questionText, solve, tapKeys, waitForUnlock
 
 const url = process.env.SUPABASE_TEST_URL ?? "";
 const secretKey = process.env.SUPABASE_TEST_SECRET_KEY ?? "";
-const mailUrl = process.env.MAIL_TEST_URL ?? "http://127.0.0.1:56324";
+// The local mail capture of the running Supabase stack; the online runner passes it from `supabase status`.
+const mailUrl = process.env.MAIL_TEST_URL ?? "";
 const origin = process.env.MATH_TUG_OF_WAR_ONLINE_URL ?? "http://127.0.0.1:3000";
 const run = `tug-free-${Date.now()}`;
 const password = "SyntheticAdult42!";
@@ -46,6 +47,7 @@ async function createAccount(email: string, entitlement: "none" | "used-trial" |
 
 test.beforeAll(async () => {
   expect(url).toMatch(/^http:\/\/127\.0\.0\.1:/);
+  expect(mailUrl, "MAIL_TEST_URL (the local mail capture)").toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
   admin = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
   await createAccount(emails.free1, "none");
   await createAccount(emails.free2, "none");
