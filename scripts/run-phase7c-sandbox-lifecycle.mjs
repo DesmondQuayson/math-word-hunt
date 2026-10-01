@@ -22,7 +22,7 @@ function runSupabase(args) {
   return execFileSync(process.execPath, [supabaseCli, ...args, "--workdir", workRoot], {
     cwd: repositoryRoot,
     encoding: "utf8",
-    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "true" },
+    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
 }

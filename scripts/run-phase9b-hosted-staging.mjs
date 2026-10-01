@@ -62,7 +62,7 @@ function supabase(args) {
       ...process.env,
       SUPABASE_ACCESS_TOKEN: accessToken,
       SUPABASE_DB_PASSWORD: databasePassword,
-      SUPABASE_TELEMETRY_DISABLED: "true"
+      SUPABASE_TELEMETRY_DISABLED: "1"
     }
   });
 }

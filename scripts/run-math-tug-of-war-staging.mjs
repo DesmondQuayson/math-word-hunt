@@ -61,7 +61,7 @@ for (const name of Object.keys(process.env)) {
 function cli(commandArgs, workdir) {
   const result = spawnSync(process.execPath, [supabaseCli, ...commandArgs, ...(workdir ? ["--workdir", workdir] : []), "--yes"], {
     encoding: "utf8",
-    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "true" }
+    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" }
   });
   return { ok: result.status === 0, output: `${result.stdout ?? ""}\n${result.stderr ?? ""}` };
 }

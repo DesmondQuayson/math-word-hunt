@@ -99,7 +99,7 @@ function productionDatabaseUrl() {
 }
 function supabase(commandArgs, workdir, options = {}) {
   return run(process.execPath, [supabaseCli, ...commandArgs, "--workdir", workdir, "--yes"], {
-    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "true" }, ...options
+    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" }, ...options
   });
 }
 function withWorkdir(action) {

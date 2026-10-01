@@ -56,7 +56,7 @@ for (const name of Object.keys(process.env)) {
 
 function cli(commandArgs) {
   const result = spawnSync(process.execPath, [supabaseCli, ...commandArgs, "--yes"], {
-    encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "true" }
+    encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" }
   });
   return { ok: result.status === 0, output: `${result.stdout ?? ""}\n${result.stderr ?? ""}` };
 }

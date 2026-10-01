@@ -8,7 +8,7 @@ const cli = resolve("node_modules/supabase/dist/supabase.js");
 function supabase(args, capture = false) {
   const result = spawnSync(process.execPath, [cli, ...args], {
     encoding: "utf8",
-    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "true" },
+    env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" },
     stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit"
   });
   if (result.status !== 0) process.exit(result.status ?? 1);

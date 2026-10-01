@@ -354,7 +354,7 @@ function supabaseCommand(args) {
       ...process.env,
       SUPABASE_ACCESS_TOKEN: supabaseAccessToken,
       SUPABASE_DB_PASSWORD: databasePassword,
-      SUPABASE_TELEMETRY_DISABLED: "true"
+      SUPABASE_TELEMETRY_DISABLED: "1"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });

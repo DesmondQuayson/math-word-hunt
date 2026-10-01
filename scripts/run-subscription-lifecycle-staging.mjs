@@ -153,7 +153,7 @@ async function migrate() {
   try {
     cpSync(resolve("supabase"), join(workRoot, "supabase"), { recursive: true });
     const supabase = (commandArgs) => run(process.execPath, [supabaseCli, ...commandArgs, "--workdir", workRoot, "--yes"], {
-      env: { ...process.env, SUPABASE_ACCESS_TOKEN: accessToken, SUPABASE_DB_PASSWORD: databasePassword, SUPABASE_TELEMETRY_DISABLED: "true" }
+      env: { ...process.env, SUPABASE_ACCESS_TOKEN: accessToken, SUPABASE_DB_PASSWORD: databasePassword, SUPABASE_TELEMETRY_DISABLED: "1" }
     });
     const counts = () => managementQuery(accessToken, databasePassword,
       "select (select count(*) from public.billing_customers) as customers, (select count(*) from public.billing_subscriptions) as subscriptions, (select count(*) from public.consumer_game_entitlements) as entitlements, (select count(*) from public.billing_webhook_events) as receipts, (select count(*) from public.consumer_accounts) as accounts");

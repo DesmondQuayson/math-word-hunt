@@ -83,7 +83,7 @@ function run(command, args, options = {}) {
 }
 function supabase(args) {
   return run(process.execPath, [supabaseCli, ...args, "--workdir", supabaseWork, "--yes"], {
-    env: { ...process.env, SUPABASE_ACCESS_TOKEN: accessToken, SUPABASE_DB_PASSWORD: databasePassword, SUPABASE_TELEMETRY_DISABLED: "true" }
+    env: { ...process.env, SUPABASE_ACCESS_TOKEN: accessToken, SUPABASE_DB_PASSWORD: databasePassword, SUPABASE_TELEMETRY_DISABLED: "1" }
   });
 }
 function vercel(args, input) { return run(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", vercelCli, ...args], { input }); }
