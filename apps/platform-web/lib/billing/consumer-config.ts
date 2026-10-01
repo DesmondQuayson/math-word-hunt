@@ -75,6 +75,12 @@ function legacyPriceIds(source: Source): readonly string[] {
     .map((value) => providerId(value, "price", "legacy-price-id-format"));
 }
 
+/**
+ * The fixture provider fabricates checkouts and paid subscriptions without
+ * Stripe, so it may serve only this machine: plain-http loopback origins.
+ */
+const LOCAL_FIXTURE_ORIGIN = /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d{1,5})?$/;
+
 function baseUrl(value: string, localRehearsal: boolean): string {
   try {
     const url = new URL(value);
@@ -125,6 +131,13 @@ export function parseConsumerBillingConfiguration(source: Source): ConsumerBilli
     source.MVH_SUBSCRIBER_MANAGEMENT_ORIGIN?.trim() || applicationBaseUrl,
     localRehearsal
   );
+  // Fixture billing must never reach staging, production or a preview, even
+  // when the rehearsal flag is set there by mistake: both origins must be http
+  // loopback and the process must not be a Vercel runtime. Fails closed.
+  if (provider === "fixture" && (!LOCAL_FIXTURE_ORIGIN.test(applicationBaseUrl) ||
+    !LOCAL_FIXTURE_ORIGIN.test(subscriberManagementBaseUrl) || source.VERCEL?.trim() || source.VERCEL_ENV?.trim())) {
+    throw new ConsumerBillingConfigurationError("fixture-local-only");
+  }
   const commercialActivation = stripeMode === "live" ? "live" : "rehearsal";
   const supportEmail = getSupportEmail(source);
   if (stripeMode === "live") {

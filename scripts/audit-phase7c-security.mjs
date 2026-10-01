@@ -110,6 +110,8 @@ requireOrder(configPath, parser, [
   /if \(provider === "fixture" && \(!localRehearsal \|\| stripeMode !== "test"\)\) \{\s*throw new ConsumerBillingConfigurationError\("fixture-local-only"\);/,
   'if (!new RegExp(`^pk_${stripeMode}_[A-Za-z0-9]{8,}$`).test(publishableKey)) throw new ConsumerBillingConfigurationError("publishable-key-mode-or-format");',
   'if (!new RegExp(`^sk_${stripeMode}_[A-Za-z0-9]{8,}$`).test(secretKey)) throw new ConsumerBillingConfigurationError("secret-key-mode-or-format");',
+  // The fixture provider serves only plain-http loopback origins and never a Vercel runtime.
+  /if \(provider === "fixture" && \(!LOCAL_FIXTURE_ORIGIN\.test\(applicationBaseUrl\) \|\|\s*!LOCAL_FIXTURE_ORIGIN\.test\(subscriberManagementBaseUrl\) \|\| source\.VERCEL\?\.trim\(\) \|\| source\.VERCEL_ENV\?\.trim\(\)\)\) \{\s*throw new ConsumerBillingConfigurationError\("fixture-local-only"\);/,
   /if \(stripeMode === "live"\) \{\s*if \(source\.MVH_COMMERCIAL_ACTIVATION !== "live" \|\| source\.BILLING_LIVE_ACTIVATION !== "owner-approved"\) \{\s*throw new ConsumerBillingConfigurationError\("live-commercial-activation-not-approved"\);/,
   // Every live production prerequisite, each one sufficient to refuse.
   new RegExp(`if \\(${[
@@ -129,6 +131,9 @@ requireOrder(configPath, parser, [
   /\} else if \(source\.MVH_COMMERCIAL_ACTIVATION === "live" \|\| source\.BILLING_LIVE_ACTIVATION === "owner-approved"\) \{\s*throw new ConsumerBillingConfigurationError\("test-mode-live-activation-conflict"\);/,
   "return Object.freeze({"
 ]);
+if (!code(configPath).includes(String.raw`const LOCAL_FIXTURE_ORIGIN = /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d{1,5})?$/;`)) {
+  throw new Error(`${configPath} is missing Phase 7C safeguard: the loopback-only fixture origin rule`);
+}
 if ((parser.match(/\breturn\b/g) ?? []).length !== 1) {
   throw new Error(`${configPath}: parseConsumerBillingConfiguration must have exactly one return, after every mode and activation gate.`);
 }

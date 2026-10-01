@@ -113,6 +113,39 @@ describe("MathNexa Stripe Sandbox configuration", () => {
   });
 });
 
+describe("fixture billing is confined to this machine", () => {
+  it.each([
+    ["127.0.0.1 with a port", { BILLING_APP_BASE_URL: "http://127.0.0.1:3000" }],
+    ["localhost with a port", { BILLING_APP_BASE_URL: "http://localhost:3181" }],
+    ["a loopback subscriber-management origin", { BILLING_APP_BASE_URL: "http://127.0.0.1:3000", MVH_SUBSCRIBER_MANAGEMENT_ORIGIN: "http://127.0.0.1:3000" }]
+  ])("keeps the local rehearsal working on %s", (_label, override) => {
+    expect(parseConsumerBillingConfiguration({ ...valid, ...override })).toMatchObject({ provider: "fixture", stripeMode: "test" });
+  });
+
+  it.each([
+    ["the staging origin", { BILLING_APP_BASE_URL: "https://mathnexa-platform-staging.vercel.app" }, /fixture-local-only/],
+    ["the production origin", { BILLING_APP_BASE_URL: "https://mathnexa.com" }, /fixture-local-only/],
+    ["https loopback", { BILLING_APP_BASE_URL: "https://127.0.0.1:3000" }, /fixture-local-only/],
+    // Plain-http non-loopback origins are already refused by the base-URL rule.
+    ["a LAN address", { BILLING_APP_BASE_URL: "http://192.168.1.20:3000" }, /unsafe-application-base-url/],
+    ["a loopback lookalike host", { BILLING_APP_BASE_URL: "http://127.0.0.1.nip.io:3000" }, /unsafe-application-base-url/],
+    ["a staging subscriber-management origin", { MVH_SUBSCRIBER_MANAGEMENT_ORIGIN: "https://mathnexa-platform-staging.vercel.app" }, /fixture-local-only/],
+    ["a Vercel runtime", { VERCEL: "1" }, /fixture-local-only/],
+    ["a Vercel preview", { VERCEL_ENV: "preview" }, /fixture-local-only/]
+  ])("fails closed on %s", (_label, override, error) => {
+    expect(() => parseConsumerBillingConfiguration({ ...valid, ...override })).toThrow(error);
+  });
+
+  it("leaves the real Stripe provider unaffected by the fixture guard", () => {
+    const stagingStripe = { ...valid, BILLING_PROVIDER: "stripe", BILLING_APP_BASE_URL: "https://mathnexa-platform-staging.vercel.app", VERCEL: "1", VERCEL_ENV: "preview" };
+    expect(parseConsumerBillingConfiguration(stagingStripe)).toMatchObject({
+      provider: "stripe",
+      stripeMode: "test",
+      applicationBaseUrl: "https://mathnexa-platform-staging.vercel.app"
+    });
+  });
+});
+
 describe("legacy price support", () => {
   it("accepts the current price alone by default", () => {
     expect(parseConsumerBillingConfiguration(valid).acceptedPriceIds).toEqual(["price_mathnexa123"]);
