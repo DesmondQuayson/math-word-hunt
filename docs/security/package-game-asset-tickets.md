@@ -47,7 +47,7 @@ School sessions are stateless signed cookies with no server record. Their ticket
 | `e2e/phase8e/public-game-delivery.spec.ts`, Chromium **and** WebKit | HTML, CSS and JS load in the script-only sandbox (Chromium sub-resources proven cookie-less; frame origin `null`); unauthenticated and unentitled refused; expired, wrong-lifetime, future-dated, forged and wrong-audience refused; principal mismatch refused with and without a session; package mismatch refused; entitlement expiry and account suspension after minting refused within the 300 s window; school access loads cookie-less and is bound to its session and key |
 | `e2e/phase8e/admin-game-package.spec.ts` | Admin preview stays a script-only sandbox with ticket-only 300 s admin-preview assets; wrong audience, lifetime, expiry, package and MAC are refused |
 | Negative control | With the pre-fix `ticket.ts`, `page.tsx` and `runtime/route.ts`, the new spec fails in Chromium and passes the entitled load in WebKit, which reproduces the defect |
-| `scripts/audit-phase8e-security.mjs` | Pins every property above, with boundary-exact lifetime pins that also close the earlier `+3000` / `!==3000` substring gap; the audit mutation harness catches every one of its 52 8E cases |
+| `scripts/audit-phase8e-security.mjs` | Pins every property above, with boundary-exact lifetime pins that also close the earlier `+3000` / `!==3000` substring gap; the audit mutation harness catches every one of its 59 8E cases |
 
 ## 5. Not changed, and known limits
 
