@@ -6,7 +6,9 @@
 // Real Chromium and WebKit pages load subresources and fetches from the foreign
 // host, follow a same-host redirect and an off-origin redirect, and make API
 // requests; the secret and the bypass cookie must never reach the foreign host,
-// no URL may contain the secret, and the protected pages must still load.
+// no URL may contain the secret, and the protected pages must still load -
+// through the host-only cookie alone, with no header added to any browser
+// request (no request interception, no context-wide header).
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -152,15 +154,50 @@ for (const engineName of ["chromium", "webkit"]) {
       assert.equal(withSecret[0].url, "/api/health", "only to the redirect-free bootstrap request");
       assert.equal(withSecret[0].headers[SET_BYPASS_COOKIE_HEADER], "true");
       assert.ok(seen.trusted.filter((r) => r.url === "/api/health").length >= 2, "the cookie is verified with a second, secret-free request");
-      assert.ok(seen.trusted.filter((r) => r.url === "/").every((r) => r.headers[SKIP_TOOLBAR_HEADER] === "1"), "pages on the review origin get the toolbar opt-out");
-      // The non-secret toolbar opt-out is the only added header that can reach another host, and only
-      // because the browser replays route-added headers on a redirect hop (the off-origin redirect here).
-      for (const request of seen.foreign) {
-        if (SKIP_TOOLBAR_HEADER in request.headers) assert.equal(request.url, "/landing", `unexpected toolbar header on ${request.url}`);
+      // The protected page is reached through the host-only cookie alone.
+      const pages = seen.trusted.filter((r) => r.url === "/");
+      assert.ok(pages.length >= 1, "the protected page was requested");
+      for (const request of pages) {
+        assert.ok((request.headers.cookie ?? "").split(/;\s*/).includes(`_vercel_jwt=${cookieToken}`), "the page request carries the bypass cookie");
+        assert.ok(!(PROTECTION_BYPASS_HEADER in request.headers), "the page request carries no bypass header");
+      }
+      // Nothing is added to browser traffic: the only request with any added header is the bootstrap.
+      const withAddedHeader = [...seen.trusted, ...seen.foreign].filter((r) => SKIP_TOOLBAR_HEADER in r.headers || SET_BYPASS_COOKIE_HEADER in r.headers || PROTECTION_BYPASS_HEADER in r.headers);
+      assert.deepEqual(withAddedHeader, withSecret, "no browser request is re-routed or given an extra header");
+      // The off-origin redirect target got nothing: no secret, no bypass cookie, no added header.
+      const landing = seen.foreign.filter((r) => r.url === "/landing");
+      assert.ok(landing.length >= 2, "both off-origin redirects (page and API) reached the other host");
+      for (const request of landing) {
+        assert.ok(!JSON.stringify(request).includes(secret) && !JSON.stringify(request).includes(cookieToken), "the redirect target received neither the secret nor the cookie");
       }
     });
   });
 }
+
+describe("the cookie is what opens the review origin", () => {
+  it("refuses a context that did not install the bypass", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const response = await page.goto(`${trustedOrigin}/`);
+      assert.equal(response.status(), 401, "without the cookie the protected deployment refuses the page");
+    } finally {
+      await browser.close();
+    }
+  });
+});
+
+describe("the module never touches browser traffic", () => {
+  const source = readFileSync(new URL("./vercel-protection-bypass.mjs", import.meta.url), "utf8");
+  const code = source.split("\n").filter((line) => !line.trim().startsWith("//") && !line.trim().startsWith("*")).join("\n");
+  it("installs no request interception and no context-wide header", () => {
+    assert.ok(!/\.route\(/.test(code), "no context.route() / page.route()");
+    assert.ok(!/extraHTTPHeaders|setExtraHTTPHeaders/.test(code), "no context-wide headers");
+    assert.ok(!/\.goto\(/.test(code), "no navigation (a URL could carry the secret)");
+    assert.ok(/maxRedirects: 0/.test(code), "the bootstrap request never follows a redirect");
+  });
+});
 
 describe("a refused bypass fails loudly", () => {
   it("throws when the deployment refuses the secret", async () => {

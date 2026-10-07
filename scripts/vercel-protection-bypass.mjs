@@ -9,8 +9,12 @@
 //    request afterwards is carried by that cookie, which is host-only, so no
 //    other host ever receives the secret or the cookie;
 //  - redact() removes the value from anything that is logged or reported.
-// The only header added to browser requests is the non-secret
-// x-vercel-skip-toolbar, and only for the trusted origin.
+// Nothing is added to browser requests: no context-wide header and no request
+// interception. An earlier version re-continued every review-origin request
+// through context.route() to add the non-secret x-vercel-skip-toolbar header;
+// it did not keep Vercel's preview toolbar out, and on the protected preview
+// Chromium's in-flight requests then stalled for 4-23 s (2026-10-07 Tug
+// staging review), so the browser now relies on the bypass cookie alone.
 export const PROTECTION_BYPASS_HEADER = "x-vercel-protection-bypass";
 export const SET_BYPASS_COOKIE_HEADER = "x-vercel-set-bypass-cookie";
 export const SKIP_TOOLBAR_HEADER = "x-vercel-skip-toolbar";
@@ -42,7 +46,7 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
     /**
      * Gives a browser context access to the protected deployment: one
      * redirect-free API request obtains Vercel's host-only bypass cookie for
-     * the context, and same-origin browser requests get the toolbar opt-out.
+     * the context; every later request rides on that cookie, unmodified.
      */
     async install(context) {
       if (!value) return;
@@ -64,9 +68,6 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
           ? `protection bypass cookie was not accepted by Vercel for the review origin (${verified.status()})`
           : `the review origin answered ${verified.status()} for ${bootstrapPath} behind the bypass (an app-level gate in front of this deployment?)`);
       }
-      await context.route((url) => isTrusted(url.href), (route) => route.continue({
-        headers: { ...route.request().headers(), [SKIP_TOOLBAR_HEADER]: "1" }
-      }));
     },
     /** The text with every occurrence of the secret replaced. */
     redact(text) {
