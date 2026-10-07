@@ -89,73 +89,86 @@ describe("Stripe Sandbox consumer provider", () => {
     await expect(provider.retrieveSetupCheckout("cs_test_123456")).rejects.toMatchObject({ category: "invalid-resource" });
   });
 
-  it("creates the monthly subscription server-side with the exact supplied trial end", async () => {
-    const trialEndsAt = "2026-08-01T16:05:06.000Z";
-    const requestedTrialEnd = Math.floor(Date.parse(trialEndsAt) / 1000);
-    const authoritativeTrialStart = requestedTrialEnd - 86_398;
-    const create = vi.fn(async (parameters: Record<string, unknown>) => ({
+  // Stripe stamps trial_start when it creates the subscription, a second or two
+  // after the checkout event the activation answers (production, 2026-09-28).
+  function trialStripe(shape: (created: number) => { trial_start: number; trial_end: number }) {
+    const createdAt = Math.floor(Date.parse("2026-08-01T16:05:08.000Z") / 1000);
+    const subscription = (parameters: Record<string, unknown>, trial: { trial_start: number; trial_end: number } | null) => ({
       id: "sub_test_123456",
-      customer: parameters.customer,
+      customer: parameters.customer ?? "cus_test_123456",
       livemode: false,
-      status: "trialing",
-      items: {
-        data: [{
-          quantity: 1,
-          price: {
-            id: "price_test_123456",
-            product: "prod_test_123456",
-            active: true,
-            livemode: false,
-            currency: "usd",
-            unit_amount: 599,
-            recurring: { interval: "month", interval_count: 1, usage_type: "licensed" }
-          }
-        }]
-      },
-      current_period_start: authoritativeTrialStart,
-      current_period_end: requestedTrialEnd,
+      status: trial ? "trialing" : "active",
+      items: { data: [{ quantity: 1, price: { id: "price_test_123456", product: "prod_test_123456", active: true, livemode: false, currency: "usd", unit_amount: 599, recurring: { interval: "month", interval_count: 1, usage_type: "licensed" } } }] },
+      current_period_start: trial?.trial_start ?? createdAt,
+      current_period_end: trial?.trial_end ?? createdAt + 30 * 86_400,
       cancel_at_period_end: false,
       canceled_at: null,
-      trial_start: authoritativeTrialStart,
-      trial_end: requestedTrialEnd,
+      trial_start: trial?.trial_start ?? null,
+      trial_end: trial?.trial_end ?? null,
       managed_payments: null,
-      metadata: parameters.metadata
-    }));
-    const update = vi.fn(async (_reference: string, parameters: Record<string, unknown>) => ({
-      ...(await create({
-        customer: "cus_test_123456",
-        metadata: {
-          mathnexa_account_id: "90000000-0000-0000-0000-000000000001",
-          mathnexa_plan: "mathnexa-monthly"
-        }
-      })),
-      current_period_end: parameters.trial_end,
-      trial_end: parameters.trial_end
-    }));
-    const provider = new ConsumerStripeBillingProvider({
-      subscriptions: { create, update }
-    } as never);
-    const subscription = await provider.createSubscription({
-      userId: "90000000-0000-0000-0000-000000000001",
-      customerId: "cus_test_123456",
-      paymentMethodId: "pm_test_123456",
-      priceId: "price_test_123456",
-      trialEndsAt,
-      idempotencyKey: "mvh-consumer-subscription-key"
+      metadata: parameters.metadata ?? { mathnexa_account_id: "90000000-0000-0000-0000-000000000001", mathnexa_plan: "mathnexa-monthly" }
     });
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+    const create = vi.fn(async (parameters: Record<string, unknown>) => subscription(parameters, parameters.trial_period_days || parameters.trial_end ? shape(createdAt) : null));
+    const update = vi.fn(async (_reference: string, parameters: Record<string, unknown>) => {
+      const trial = shape(createdAt);
+      return subscription({}, { trial_start: trial.trial_start, trial_end: parameters.trial_end as number });
+    });
+    return { createdAt, create, update, provider: new ConsumerStripeBillingProvider({ subscriptions: { create, update } } as never) };
+  }
+  const request = (trialEndsAt: string | null) => ({
+    userId: "90000000-0000-0000-0000-000000000001",
+    customerId: "cus_test_123456",
+    paymentMethodId: "pm_test_123456",
+    priceId: "price_test_123456",
+    trialEndsAt,
+    idempotencyKey: "mvh-consumer-subscription-key"
+  });
+  // The activation computes this from the checkout event, two seconds before Stripe creates the subscription.
+  const checkoutTrialEnd = "2026-08-02T16:05:06.000Z";
+
+  it("requests the trial as a duration, so the created subscription already has Stripe's exact 24-hour shape", async () => {
+    const stripe = trialStripe((created) => ({ trial_start: created, trial_end: created + 86_400 }));
+    const subscription = await stripe.provider.createSubscription(request(checkoutTrialEnd));
+    const parameters = stripe.create.mock.calls[0]![0] as Record<string, unknown>;
+    expect(parameters).toMatchObject({
       customer: "cus_test_123456",
       default_payment_method: "pm_test_123456",
       items: [{ price: "price_test_123456", quantity: 1 }],
       collection_method: "charge_automatically",
-      trial_end: requestedTrialEnd
-    }), { idempotencyKey: "mvh-consumer-subscription-key" });
-    expect(update).toHaveBeenCalledWith("sub_test_123456", {
-      trial_end: authoritativeTrialStart + 86_400,
+      trial_period_days: 1,
+      trial_settings: { end_behavior: { missing_payment_method: "cancel" } }
+    });
+    // An end instant computed from the checkout time is exactly what made the
+    // created event 24 h minus two seconds; it must never be sent again.
+    expect(parameters).not.toHaveProperty("trial_end");
+    expect(stripe.create.mock.calls[0]![1]).toEqual({ idempotencyKey: "mvh-consumer-subscription-key" });
+    expect(stripe.update).not.toHaveBeenCalled();
+    expect(subscription.trialStart).toBe(new Date(stripe.createdAt * 1000).toISOString());
+    expect(Date.parse(subscription.trialEnd!) - Date.parse(subscription.trialStart!)).toBe(86_400_000);
+    // Two seconds later than the checkout-based end, and that is correct: Stripe's clock is authoritative.
+    expect(Date.parse(subscription.trialEnd!) - Date.parse(checkoutTrialEnd)).toBe(2_000);
+  });
+
+  it("corrects any other shape from Stripe's own trial_start instead of accepting it", async () => {
+    const stripe = trialStripe((created) => ({ trial_start: created, trial_end: created + 86_399 }));
+    const subscription = await stripe.provider.createSubscription(request(checkoutTrialEnd));
+    expect(stripe.update).toHaveBeenCalledWith("sub_test_123456", {
+      trial_end: stripe.createdAt + 86_400,
       trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
       proration_behavior: "none"
     }, { idempotencyKey: "mvh-consumer-subscription-key:exact-trial-end" });
     expect(Date.parse(subscription.trialEnd!) - Date.parse(subscription.trialStart!)).toBe(86_400_000);
+  });
+
+  it("asks for no trial when the account has already used it", async () => {
+    const stripe = trialStripe((created) => ({ trial_start: created, trial_end: created + 86_400 }));
+    const subscription = await stripe.provider.createSubscription(request(null));
+    const parameters = stripe.create.mock.calls[0]![0] as Record<string, unknown>;
+    expect(parameters).not.toHaveProperty("trial_period_days");
+    expect(parameters).not.toHaveProperty("trial_end");
+    expect(parameters).not.toHaveProperty("trial_settings");
+    expect(stripe.update).not.toHaveBeenCalled();
+    expect(subscription.trialStart).toBeNull();
   });
 
   it("lists subscriptions without an unsupported five-level expansion", async () => {

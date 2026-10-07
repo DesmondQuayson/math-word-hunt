@@ -125,10 +125,11 @@ export class ConsumerFixtureBillingProvider implements ConsumerBillingProvider {
 
   async createSubscription(input: Parameters<ConsumerBillingProvider["createSubscription"]>[0]) {
     const id = `sub_fixture${suffix(input.idempotencyKey)}`;
-    const trialEnd = input.trialEndsAt;
-    const now = trialEnd
-      ? new Date(Date.parse(trialEnd) - 24 * 60 * 60 * 1000)
-      : new Date();
+    // Like Stripe with trial_period_days: the trial starts when the
+    // subscription is created (whole seconds) and ends exactly one day later,
+    // whatever end the caller computed from its own clock.
+    const now = new Date(Math.floor(Date.now() / 1000) * 1000);
+    const trialEnd = input.trialEndsAt ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString() : null;
     const periodEnd = trialEnd ?? new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth() + 1,

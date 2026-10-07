@@ -315,6 +315,60 @@ select throws_ok(
 select throws_ok(
   $$select public.mark_consumer_billing_reconciliation_attempt('a0000000-0000-0000-0000-000000000032', 'test', 0)$$,
   '42501', null, 'a browser session cannot touch the reconciliation throttle');
+-- ---------------------------------------------------------------------------
+-- Trial shape at creation (production, 2026-09-28). A trial requested from
+-- Stripe as a duration arrives in customer.subscription.created with Stripe's
+-- own exact 24-hour shape and is projected at once. An end computed from the
+-- checkout clock (24 h minus two seconds, what every new trial used to get)
+-- is still refused for review, as is any other shape; the exact correction
+-- that follows is projected. Validation is not loosened.
+-- ---------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data) values
+  ('a0000000-0000-0000-0000-000000000033', 'authenticated', 'authenticated', 'lifecycle-c@example.invalid', crypt('ConsumerPass123', gen_salt('bf')), now(), '{}'),
+  ('a0000000-0000-0000-0000-000000000034', 'authenticated', 'authenticated', 'lifecycle-d@example.invalid', crypt('ConsumerPass123', gen_salt('bf')), now(), '{}');
+insert into public.billing_customers (id, owner_consumer_id, stripe_environment, stripe_customer_id) values
+  ('a1000000-0000-0000-0000-000000000033', 'a0000000-0000-0000-0000-000000000033', 'test', 'cus_LifecycleC'),
+  ('a1000000-0000-0000-0000-000000000034', 'a0000000-0000-0000-0000-000000000034', 'test', 'cus_LifecycleD');
+insert into public.billing_webhook_events (id, stripe_event_id, event_type, stripe_environment, stripe_object_id, event_created_at, payload_sha256) values
+  ('b2000000-0000-0000-0000-000000000031', 'evt_LcCCreatedExact',   'customer.subscription.created', 'test', 'sub_LcC', timestamptz '2026-09-28 14:00:00+00', repeat('5', 63) || '6'),
+  ('b2000000-0000-0000-0000-000000000032', 'evt_LcDCreatedClock',   'customer.subscription.created', 'test', 'sub_LcD', timestamptz '2026-09-28 22:22:50+00', repeat('6', 63) || '7'),
+  ('b2000000-0000-0000-0000-000000000033', 'evt_LcDUpdatedExact',   'customer.subscription.updated', 'test', 'sub_LcD', timestamptz '2026-09-28 22:22:51+00', repeat('7', 63) || '8');
+set local role service_role;
+
+select ok(public.claim_billing_webhook_event('b2000000-0000-0000-0000-000000000031'), 'exact-shape created event claimed');
+select is(
+  pg_temp.sync_webhook('b2000000-0000-0000-0000-000000000031', 'customer.subscription.created', 'a0000000-0000-0000-0000-000000000033', 'cus_LifecycleC', 'sub_LcC', 'trialing',
+    timestamptz '2026-09-28 14:00:00+00', timestamptz '2026-09-29 14:00:00+00', false, null, null,
+    timestamptz '2026-09-28 14:00:00+00', timestamptz '2026-09-29 14:00:00+00', timestamptz '2026-09-28 14:00:00+00'),
+  'trial-active', 'a duration-requested trial is projected from its created event');
+select is((select processing_state from public.billing_webhook_events where id = 'b2000000-0000-0000-0000-000000000031'), 'processed', 'the created event is processed, not sent to manual review');
+select is((select failure_class from public.billing_webhook_events where id = 'b2000000-0000-0000-0000-000000000031'), null, 'the created event carries no failure class');
+select is((select trial_ends_at from public.consumer_game_entitlements where user_id = 'a0000000-0000-0000-0000-000000000033'), timestamptz '2026-09-29 14:00:00+00', 'trial access ends exactly 24 hours after Stripe started it');
+
+select ok(public.claim_billing_webhook_event('b2000000-0000-0000-0000-000000000032'), 'checkout-clock created event claimed');
+select is(
+  pg_temp.sync_webhook('b2000000-0000-0000-0000-000000000032', 'customer.subscription.created', 'a0000000-0000-0000-0000-000000000034', 'cus_LifecycleD', 'sub_LcD', 'trialing',
+    timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:48+00', false, null, null,
+    timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:48+00', timestamptz '2026-09-28 22:22:50+00'),
+  'trial_shape_conflict', 'a trial 2 seconds short of 24 hours is still refused for review');
+select is((select processing_state || '/' || failure_class from public.billing_webhook_events where id = 'b2000000-0000-0000-0000-000000000032'), 'manual_review/trial_shape_conflict', 'the malformed created event enters manual review');
+select is((select count(*)::int from public.consumer_game_entitlements where user_id = 'a0000000-0000-0000-0000-000000000034'), 0, 'a refused trial shape grants nothing');
+select is(
+  public.synchronize_consumer_billing_subscription(
+    'reconciliation', null, null, 'a0000000-0000-0000-0000-000000000034', 'test', 'cus_LifecycleD', 'sub_LcD', 'price_LcMonthly', 'trialing',
+    timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:51+00', false, null, null, timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:51+00', null, null,
+    timestamptz '2026-09-28 22:22:50.5+00', 7, false),
+  'trial_shape_conflict', 'a trial one second longer than 24 hours is refused too');
+
+select ok(public.claim_billing_webhook_event('b2000000-0000-0000-0000-000000000033'), 'exact correction event claimed');
+select is(
+  pg_temp.sync_webhook('b2000000-0000-0000-0000-000000000033', 'customer.subscription.updated', 'a0000000-0000-0000-0000-000000000034', 'cus_LifecycleD', 'sub_LcD', 'trialing',
+    timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:50+00', false, null, null,
+    timestamptz '2026-09-28 22:22:50+00', timestamptz '2026-09-29 22:22:50+00', timestamptz '2026-09-28 22:22:51+00'),
+  'trial-active', 'the exact correction is projected');
+select is((select processing_state from public.billing_webhook_events where id = 'b2000000-0000-0000-0000-000000000033'), 'processed', 'the correction event is processed');
+
 reset role;
 
 select * from finish();

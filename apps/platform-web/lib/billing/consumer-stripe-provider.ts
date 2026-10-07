@@ -15,6 +15,9 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 const iso = (value: unknown): string | null => typeof value === "number" ? new Date(value * 1000).toISOString() : null;
 const metadata = (userId: string) => ({ mathnexa_account_id: userId, mathnexa_plan: "mathnexa-monthly" });
 const isManagedPayment = (value: unknown): boolean => record(record(value).managed_payments).enabled === true;
+/** The product sells exactly one 24-hour trial; Stripe expresses trials in whole days. */
+const MATHNEXA_TRIAL_DAYS = MATHNEXA_TRIAL_SECONDS / 86_400;
+if (!Number.isInteger(MATHNEXA_TRIAL_DAYS) || MATHNEXA_TRIAL_DAYS < 1) throw new Error("The MathNexa trial must be a whole number of days.");
 
 function requireStandardPayments(...values: unknown[]) {
   if (values.some(isManagedPayment)) throw new ConsumerBillingProviderError("invalid-resource");
@@ -142,12 +145,23 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         payment_behavior: "default_incomplete",
         payment_settings: { save_default_payment_method: "on_subscription" },
         metadata: metadata(input.userId),
+        // The trial is requested as a duration, not as an end instant. Stripe
+        // stamps trial_start when it creates the subscription, one or two
+        // seconds after the checkout event this request answers; an end
+        // computed from the checkout time therefore made every new trial
+        // 24 h minus a second or two in customer.subscription.created, which
+        // the synchronizer rightly refuses (trial_shape_conflict), until the
+        // correction below arrived as customer.subscription.updated. With a
+        // duration Stripe derives trial_end from its own trial_start, so the
+        // created event already carries the exact 24-hour shape.
         ...(input.trialEndsAt ? {
-          trial_end: Math.floor(Date.parse(input.trialEndsAt) / 1000),
+          trial_period_days: MATHNEXA_TRIAL_DAYS,
           trial_settings: { end_behavior: { missing_payment_method: "cancel" } }
         } : {})
       }, { idempotencyKey: input.idempotencyKey });
       requireStandardPayments(subscription);
+      // Defensive only: should Stripe ever answer with another shape, set the
+      // exact end from its own trial_start. Validation is never loosened.
       if (input.trialEndsAt && subscription.trial_start) {
         const exactTrialEnd = subscription.trial_start + MATHNEXA_TRIAL_SECONDS;
         if (subscription.trial_end !== exactTrialEnd) {
