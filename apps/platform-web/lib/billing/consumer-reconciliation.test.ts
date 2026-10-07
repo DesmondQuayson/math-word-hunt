@@ -156,3 +156,48 @@ describe("scheduled reconciliation sweep", () => {
     expect(Object.keys(summary).sort()).toEqual(["candidates", "checked", "manualReview", "noSubscriptions", "repaired", "synchronized", "truncated", "unavailable"]);
   });
 });
+
+describe("the scheduled sweep is read-only at Stripe", () => {
+  const READ_METHODS = new Set(["retrieveCustomer", "listCustomerSubscriptions", "retrieveInvoice"]);
+
+  it("touches only Stripe read methods and writes only the local projection", async () => {
+    const deps = harness();
+    const providerCalls: string[] = [];
+    const guardedProvider = new Proxy(deps.provider as object, {
+      get(target, property) {
+        const name = String(property);
+        if (name === "then") return undefined;
+        providerCalls.push(name);
+        if (!READ_METHODS.has(name)) throw new Error(`sweep reached provider method ${name}`);
+        return Reflect.get(target, property);
+      }
+    }) as ConsumerBillingProvider;
+    const repositoryCalls: string[] = [];
+    const guardedRepository = new Proxy(deps.repository as object, {
+      get(target, property) {
+        if (String(property) === "then") return undefined;
+        repositoryCalls.push(String(property));
+        return Reflect.get(target, property);
+      }
+    }) as SupabaseConsumerBillingRepository;
+    (deps.repository.listSubscriptionsDueForReconciliation as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { ownerUserId: USER_ID, stripeSubscriptionId: renewed.id, status: "active", currentPeriodEnd: "2026-09-01T00:00:00.000Z", lastSynchronizedAt: null }
+    ]);
+    const summary = await runConsumerReconciliationSweep({ provider: guardedProvider, repository: guardedRepository, config, limit: 50, now });
+    expect(summary).toMatchObject({ checked: 1, synchronized: 1 });
+    expect(new Set(providerCalls)).toEqual(READ_METHODS);
+    expect(new Set(repositoryCalls)).toEqual(new Set(["listSubscriptionsDueForReconciliation", "getCustomerMapping", "getSubscriptions", "synchronizeSubscription"]));
+  });
+
+  it("has no route from the sweep or the synchronizer to a provider write", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const source = (name: string) => readFileSync(resolve(__dirname, name), "utf8");
+    const reconciliation = source("consumer-reconciliation.ts");
+    expect([...reconciliation.matchAll(/provider\.(\w+)\(/g)].map((match) => match[1]).sort()).toEqual(["listCustomerSubscriptions", "retrieveCustomer", "retrieveInvoice"]);
+    expect(source("consumer-synchronizer.ts")).not.toMatch(/provider\.|stripe\./i);
+    for (const file of ["consumer-reconciliation.ts", "consumer-synchronizer.ts"]) {
+      expect(source(file), file).not.toMatch(/\b(?:create(?:Customer|Subscription|SetupCheckout|PortalSession)|refunds?\.create|subscriptions\.(?:update|cancel|del)|invoices\.pay)\b/);
+    }
+  });
+});

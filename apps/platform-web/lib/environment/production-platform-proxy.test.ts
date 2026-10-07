@@ -68,3 +68,32 @@ describe("production-platform admin request gate", () => {
     expect(previewResponse.headers.get("x-session-gate")).toBe("reached");
   });
 });
+
+describe("production-platform host normalization for the reconciliation scheduler", () => {
+  const deploymentHost = "mathnexa-platform-production-bright-path-ed-tech.vercel.app";
+  const request = (pathname: string, host = deploymentHost) =>
+    proxy(new NextRequest(`https://${host}${pathname}`, { headers: { host } }));
+
+  it("lets the scheduler's deployment-host call reach the reconciliation route instead of a 308", async () => {
+    setProductionPlatform("true");
+    process.env.MVH_APPLICATION_ORIGIN = "https://mathnexa.com";
+    // Vercel cron calls the *.vercel.app host and does not follow redirects;
+    // production answered this exact request with a 308 every day.
+    const response = await request("/api/internal/billing/reconcile");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-session-gate")).toBe("reached");
+  });
+
+  it("still sends every other internal, admin and page path on a deployment host to the apex", async () => {
+    setProductionPlatform("true");
+    process.env.MVH_APPLICATION_ORIGIN = "https://mathnexa.com";
+    for (const pathname of ["/api/internal/billing/fixture", "/api/internal/billing", "/api/internal/billing/reconcile/", "/api/internal/billing/reconcile/x", "/api/internal/staging-access/bootstrap", "/admin", "/"]) {
+      const response = await request(pathname);
+      expect(response.status, pathname).toBe(308);
+      expect(response.headers.get("location"), pathname).toBe(`https://mathnexa.com${pathname}`);
+    }
+    const www = await request("/api/internal/billing/fixture", "www.mathnexa.com");
+    expect(www.status).toBe(308);
+  });
+});
