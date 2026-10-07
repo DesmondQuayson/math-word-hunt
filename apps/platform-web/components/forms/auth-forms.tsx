@@ -131,7 +131,7 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
         <p className="form-switch">Already have an account? <Link href={trial.signInHref}>Sign in</Link></p>
       </div> : <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{submitLabel}</Button><Link href={isFreeGameDestination(nextDestination) ? `/sign-in?next=${nextDestination}` : "/sign-in"}>Already have an account?</Link></div>}
     </form>
-    {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} /> : null}
+    {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} initialCooldownSeconds={state.confirmation.cooldownSeconds} /> : null}
     </>
   );
 }

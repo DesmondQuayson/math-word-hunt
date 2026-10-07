@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import type { AuthFormState, EmailConfirmationState } from "@/lib/auth/form-state";
 import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
+import { RESEND_COOLDOWN_SECONDS, providerResendWaitSeconds, resendCooldownMessage, resendCooldownRemaining } from "@/lib/email/resend-cooldown";
 import { getAuthEmailExperience } from "@/lib/email/server";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
@@ -19,7 +20,7 @@ const confirmationEmailCookie = "mathnexa-confirmation-email";
 const confirmationNextCookie = "mathnexa-confirmation-next";
 const confirmationCooldownCookie = "mathnexa-confirmation-resend-after";
 const confirmationCookieLifetimeSeconds = 20 * 60;
-const resendCooldownSeconds = 60;
+const resendCooldownSeconds = RESEND_COOLDOWN_SECONDS;
 /**
  * Ceiling on the other-session revocation that follows a password change.
  * Generous enough that a healthy provider always finishes, short enough that an
@@ -48,7 +49,14 @@ async function rememberConfirmationRequest(email: string, destination: string) {
   const options = confirmationCookieOptions();
   cookieStore.set(confirmationEmailCookie, email, options);
   cookieStore.set(confirmationNextCookie, safeInternalRedirect(destination, POST_AUTH_DESTINATION), options);
-  cookieStore.delete(confirmationCooldownCookie);
+  // Sign-up just sent the first confirmation email, and the provider refuses
+  // another to the same address for a minute. Starting the countdown here
+  // keeps the resend button from offering a request that would be refused.
+  cookieStore.set(
+    confirmationCooldownCookie,
+    String(Math.floor(Date.now() / 1000) + resendCooldownSeconds),
+    confirmationCookieOptions(resendCooldownSeconds)
+  );
 }
 
 async function confirmationDestination(): Promise<string> {
@@ -141,7 +149,7 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   return {
     status: "success",
     message: getAuthEmailExperience(process.env, consumerMode ? "consumer" : "teacher").signUpResponse,
-    confirmation: consumerMode ? { maskedEmail: maskEmail(email) } : undefined
+    confirmation: consumerMode ? { maskedEmail: maskEmail(email), cooldownSeconds: resendCooldownSeconds } : undefined
   };
 }
 
@@ -157,15 +165,10 @@ export async function resendConfirmationAction(
 
   const cookieStore = await cookies();
   const now = Math.floor(Date.now() / 1000);
-  const retryAt = Number.parseInt(cookieStore.get(confirmationCooldownCookie)?.value ?? "0", 10);
-  if (Number.isFinite(retryAt) && retryAt > now) {
-    const remaining = retryAt - now;
-    return {
-      status: "error",
-      message: `Wait ${remaining} seconds before requesting another confirmation email.`,
-      cooldownSeconds: remaining
-    };
-  }
+  const cookieRetryAt = cookieStore.get(confirmationCooldownCookie)?.value ?? null;
+  const waiting = (remaining: number): EmailConfirmationState => ({ status: "error", message: resendCooldownMessage(remaining), cooldownSeconds: remaining });
+  const cookieRemaining = resendCooldownRemaining({ nowSeconds: now, cookieRetryAt });
+  if (cookieRemaining > 0) return waiting(cookieRemaining);
 
   const { data } = await supabase.auth.getUser();
   if (data.user?.email_confirmed_at) {
@@ -174,6 +177,13 @@ export async function resendConfirmationAction(
       message: "Email confirmed. Your MathNexa account is ready.",
       destination: await confirmationDestination()
     };
+  }
+  // The cookie is the visitor's to delete. A signed-in account also carries the
+  // provider's own send time, which a refresh or a cleared cookie cannot reset.
+  const providerRemaining = resendCooldownRemaining({ nowSeconds: now, confirmationSentAt: data.user?.confirmation_sent_at ?? null });
+  if (providerRemaining > 0) {
+    cookieStore.set(confirmationCooldownCookie, String(now + providerRemaining), confirmationCookieOptions(providerRemaining));
+    return waiting(providerRemaining);
   }
   const email = data.user?.email ?? cookieStore.get(confirmationEmailCookie)?.value;
   if (email && validEmail(email)) {
@@ -200,6 +210,15 @@ export async function resendConfirmationAction(
     options: { emailRedirectTo: `${getAppBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}` }
   });
   if (result.error) {
+    const providerWait = providerResendWaitSeconds(result.error);
+    if (providerWait !== null) {
+      // Pacing, not a delivery failure: the previous email was sent. Recorded
+      // as 'unavailable' so System Health never reads it as broken email.
+      await recordAggregateSignal({ metricKey: "email-confirmation-failure", outcome: "unavailable", source: "email" });
+      const remaining = Math.min(providerWait, resendCooldownSeconds);
+      cookieStore.set(confirmationCooldownCookie, String(now + remaining), confirmationCookieOptions(remaining));
+      return waiting(remaining);
+    }
     await recordAggregateSignal({ metricKey: "email-confirmation-failure", outcome: "failure", source: "email" });
     return { status: "error", message: "Another confirmation email could not be sent yet. Wait a moment and try again." };
   }
@@ -297,7 +316,10 @@ export async function forgotPasswordAction(_previous: AuthFormState, formData: F
   const recovery = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppBaseUrl()}/auth/callback?next=/update-password`
   });
-  await recordAggregateSignal({ metricKey: recovery.error ? "email-recovery-failure" : "email-recovery-success", outcome: recovery.error ? "failure" : "success", source: "email" });
+  // A pacing refusal (a second request inside the provider's window) is not a
+  // delivery failure; the earlier recovery email was sent.
+  const recoveryOutcome = !recovery.error ? "success" : providerResendWaitSeconds(recovery.error) !== null ? "unavailable" : "failure";
+  await recordAggregateSignal({ metricKey: recovery.error ? "email-recovery-failure" : "email-recovery-success", outcome: recoveryOutcome, source: "email" });
   return { status: "success", message: getAuthEmailExperience(process.env, isProductionPlatformMode() ? "consumer" : "teacher").recoveryResponse };
 }
 

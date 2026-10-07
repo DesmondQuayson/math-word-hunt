@@ -23,7 +23,34 @@ function ConfirmationStatus({
   </p>;
 }
 
-export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail: string }>) {
+/**
+ * The resend countdown. The button carries the per-second count; the status
+ * line changes only when the wait starts and when it ends, so a screen reader
+ * hears two calm announcements instead of sixty.
+ */
+function useResendCooldown(initialSeconds = 0) {
+  const [cooldown, setCooldown] = useState(Math.max(0, Math.floor(initialSeconds)));
+  const [announcement, setAnnouncement] = useState(cooldown > 0 ? `You can request another email in ${cooldown} seconds.` : "");
+  const waiting = cooldown > 0;
+  const previous = useRef(waiting);
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [waiting]);
+  useEffect(() => {
+    if (previous.current === waiting) return;
+    previous.current = waiting;
+    setAnnouncement(waiting ? `You can request another email in ${cooldown} seconds.` : "You can request another confirmation email now.");
+  }, [waiting, cooldown]);
+  return { cooldown, setCooldown, announcement };
+}
+
+function CooldownStatus({ id, announcement }: Readonly<{ id: string; announcement: string }>) {
+  return <p id={id} className="confirmation-cooldown-status" role="status" aria-live="polite">{announcement}</p>;
+}
+
+export function EmailConfirmationDialog({ maskedEmail, initialCooldownSeconds = 0 }: Readonly<{ maskedEmail: string; initialCooldownSeconds?: number }>) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -32,7 +59,7 @@ export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail:
     checkEmailConfirmationAction,
     initialEmailConfirmationState
   );
-  const [cooldown, setCooldown] = useState(0);
+  const { cooldown, setCooldown, announcement } = useResendCooldown(initialCooldownSeconds);
   const [resendState, resendAction, resending] = useActionState(
     async (previous: EmailConfirmationState, formData: FormData) => {
       const result = await resendConfirmationAction(previous, formData);
@@ -47,12 +74,6 @@ export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail:
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown]);
 
   useEffect(() => {
     if (checkState.status !== "success" || !checkState.destination) return;
@@ -97,10 +118,11 @@ export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail:
             <Button type="submit" loading={checking}>I&apos;ve confirmed my email</Button>
           </form>
           <form action={resendAction}>
-            <Button type="submit" variant="secondary" loading={resending} disabled={cooldown > 0}>
+            <Button type="submit" variant="secondary" loading={resending} disabled={cooldown > 0} aria-describedby="confirmation-dialog-cooldown">
               {cooldown > 0 ? `Resend available in ${cooldown}s` : "Resend confirmation email"}
             </Button>
           </form>
+          <CooldownStatus id="confirmation-dialog-cooldown" announcement={announcement} />
           <button className="confirmation-text-action" type="button" onClick={closeDialog}>Continue browsing</button>
         </div>
       </div>
@@ -113,7 +135,7 @@ export function EmailConfirmationDialog({ maskedEmail }: Readonly<{ maskedEmail:
 }
 
 export function ConfirmationReminder() {
-  const [cooldown, setCooldown] = useState(0);
+  const { cooldown, setCooldown, announcement } = useResendCooldown();
   const [resendState, resendAction, resending] = useActionState(
     async (previous: EmailConfirmationState, formData: FormData) => {
       const result = await resendConfirmationAction(previous, formData);
@@ -122,12 +144,6 @@ export function ConfirmationReminder() {
     },
     initialEmailConfirmationState
   );
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown]);
-
   return <aside className="confirmation-reminder" aria-labelledby="confirmation-reminder-title">
     <div>
       <strong id="confirmation-reminder-title">Confirm your email to unlock MathNexa access.</strong>
@@ -135,10 +151,11 @@ export function ConfirmationReminder() {
       {resendState.message ? <ConfirmationStatus status={resendState.status} message={resendState.message} /> : null}
     </div>
     <form action={resendAction}>
-      <Button type="submit" variant="secondary" loading={resending} disabled={cooldown > 0}>
+      <Button type="submit" variant="secondary" loading={resending} disabled={cooldown > 0} aria-describedby="confirmation-reminder-cooldown">
         {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend confirmation email"}
       </Button>
     </form>
+    <CooldownStatus id="confirmation-reminder-cooldown" announcement={announcement} />
     <Link href="/account">Review account</Link>
   </aside>;
 }

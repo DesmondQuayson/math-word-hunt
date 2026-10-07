@@ -116,6 +116,14 @@ test("general account signup requires confirmation and recovery stays generic", 
   const confirmationDialog = page.getByRole("dialog", { name: "Check your email" });
   await expect(confirmationDialog).toBeVisible();
   await expect(confirmationDialog.getByText(/Open the email and select “Confirm email”/)).toBeVisible();
+  // Sign-up just sent the first email and the provider refuses another for a
+  // minute, so the resend button starts counting down at once (production
+  // recorded a refused resend seven seconds after a sign-up).
+  const resend = confirmationDialog.getByRole("button", { name: /^Resend available in \d+s$/ });
+  await expect(resend).toBeDisabled();
+  await expect(resend).toHaveAttribute("aria-describedby", "confirmation-dialog-cooldown");
+  await expect(confirmationDialog.locator("#confirmation-dialog-cooldown")).toHaveText("You can request another email in 60 seconds.");
+  await expect(confirmationDialog.locator("#confirmation-dialog-cooldown")).toHaveAttribute("aria-live", "polite");
   await confirmationDialog.getByRole("button", { name: "I've confirmed my email" }).click();
   await expect(confirmationDialog.getByText("Your email has not been confirmed yet. Check your inbox and try again.")).toBeVisible();
   const users = await admin.auth.admin.listUsers();
