@@ -50,6 +50,16 @@ describe("production-platform host normalization and machine endpoints", () => {
       expect(getPlatformCanonicalRedirectUrl(`https://${host}/api/billing/webhook`, host, platform), host).toBeNull();
       expect(getPlatformCanonicalRedirectUrl(`https://${host}/api/health`, host, platform), host).toBeNull();
     }
-    expect(PLATFORM_HOST_REDIRECT_EXEMPT_PATHS).toEqual(["/api/billing/webhook", "/api/health"]);
+    expect(PLATFORM_HOST_REDIRECT_EXEMPT_PATHS).toEqual(["/api/billing/webhook", "/api/health", "/api/internal/billing/reconcile"]);
+  });
+
+  it("lets the scheduler reach the daily reconciliation on the deployment host, and nothing else under /api/internal", () => {
+    // Vercel cron calls the *.vercel.app host and does not follow redirects;
+    // production logs showed a 308 on every scheduled run until this exemption.
+    const host = "mathnexa-platform-production.vercel.app";
+    expect(getPlatformCanonicalRedirectUrl(`https://${host}/api/internal/billing/reconcile`, host, platform)).toBeNull();
+    for (const path of ["/api/internal/billing/reconcile/", "/api/internal/billing/reconcile/extra", "/api/internal/billing/fixture", "/api/internal/billing", "/api/internal/staging-access/bootstrap"]) {
+      expect(getPlatformCanonicalRedirectUrl(`https://${host}${path}`, host, platform)?.toString(), path).toBe(`https://mathnexa.com${path}`);
+    }
   });
 });

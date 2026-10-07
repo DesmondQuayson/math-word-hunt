@@ -22,10 +22,16 @@ const RESTRICTED_PROVIDER_VARIABLES = [
  * with. Stripe does not follow redirects: a 308 from a `*.vercel.app` or `www`
  * webhook URL is a failed delivery, and a failed delivery on every renewal is
  * a customer who paid and lost access. Browsers still converge on the apex.
+ *
+ * The Vercel scheduler calls the deployment's `*.vercel.app` host and does not
+ * follow redirects either: while the reconciliation path was redirected, every
+ * daily run ended at a 308 and never reached the route. The route still fails
+ * closed without the scheduler's CRON_SECRET bearer token.
  */
 export const PLATFORM_HOST_REDIRECT_EXEMPT_PATHS = [
   "/api/billing/webhook",
-  "/api/health"
+  "/api/health",
+  "/api/internal/billing/reconcile"
 ] as const;
 
 export const PRODUCTION_PUBLIC_RESTRICTED_PREFIXES = [
