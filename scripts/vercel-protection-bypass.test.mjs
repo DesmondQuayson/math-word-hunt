@@ -190,3 +190,21 @@ describe("the staging quiz review uses the confined bypass", () => {
     assert.equal((source.match(/engine\.newContext\(/g) ?? []).length, 1, "every context is created through open()");
   });
 });
+
+describe("the staging Math Tug of War review uses the confined bypass", () => {
+  const source = readFileSync(new URL("./review-math-tug-of-war-staging.mjs", import.meta.url), "utf8");
+  it("never puts the secret in a URL or in context-wide headers", () => {
+    assert.ok(!/extraHTTPHeaders/.test(source), "no context-wide headers at all");
+    assert.ok(!/[?&]x-vercel-protection-bypass=/.test(source), "no bypass query parameter");
+    assert.ok(!/x-vercel-protection-bypass=\$\{/.test(source), "no bypass value interpolated into a URL");
+    assert.ok(!/"x-vercel-protection-bypass"/.test(source), "the header is only ever built by the module");
+  });
+  it("installs the confined bypass on every browser context and redacts its output", () => {
+    assert.ok(source.includes('import { createProtectionBypass } from "./vercel-protection-bypass.mjs";'));
+    assert.ok(source.includes("const protection = createProtectionBypass({ origin, secret: bypass });"));
+    assert.ok(source.includes("await protection.install(context);"));
+    assert.ok(source.includes("const redact = (text) => protection.redact(text);"), "every note is redacted");
+    assert.equal((source.match(/engine\.newContext\(/g) ?? []).length, 1, "every context is created through newContext()");
+    assert.ok(/headers: protection\.headersFor\([^)]*\), redirect: "manual"/.test(source), "the direct health probe neither leaks nor follows redirects");
+  });
+});

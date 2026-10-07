@@ -4,17 +4,21 @@
  * Launched by scripts/invoke-math-tug-of-war-staging.ps1 -Stage review
  * -Origin <staging preview URL>, which supplies the staging Supabase secret
  * key and the Vercel protection-bypass entry (Deployment Protection is not
- * changed; the value travels only in request headers/cookie and is never
- * printed). Two synthetic subscriber accounts are created on STAGING and
- * deleted at the end, with every room they opened. The game runs under its
- * real route CSP (no CSP bypass).
+ * changed). The bypass value travels only in request headers, only to the
+ * review origin itself (scripts/vercel-protection-bypass.mjs): never in a URL,
+ * never to another host, never on a redirect to another origin, and never
+ * printed. Synthetic accounts are created on STAGING and deleted at the end,
+ * with every room they opened; each deletion is verified. The game runs under
+ * its real route CSP (no CSP bypass).
  */
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { chromium, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // REVIEW_TARGET=production (scripts/invoke-math-tug-of-war-production.ps1 -Stage review)
@@ -35,8 +39,7 @@ if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const out = resolve(process.env.REVIEW_OUT ?? "owner-review/math-tug-of-war-v1/staging");
 mkdirSync(out, { recursive: true });
-const bypassHeaders = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
-const landing = bypass ? `${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true` : `${origin}/`;
+const protection = createProtectionBypass({ origin, secret: bypass });
 const accountPrefix = isProduction ? "tug-release-review" : "tug-staging";
 
 const admin = createClient(`https://${projectRef}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -49,7 +52,11 @@ const users = [];
 const roomCodes = new Set();
 const reviewStartedAt = new Date(Date.now() - 60_000).toISOString();
 const results = [];
-const redact = (text) => (bypass ? String(text).split(bypass).join("[hidden]") : String(text));
+const redact = (text) => protection.redact(text);
+// Every printed line is kept, so the run can prove the secret never reached its output.
+const printed = [];
+const print = console.log.bind(console);
+console.log = (...parts) => { printed.push(parts.map(String).join(" ")); print(...parts); };
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   console.log(`${condition ? "ok  " : "FAIL"} ${redact(message)}`);
@@ -102,23 +109,29 @@ async function subscriber(label, kind = "subscriber") {
   return email;
 }
 
-// A clean browser with no MathNexa session (Deployment Protection passed with the bypass header only).
+// Every browser context comes from here. On a protected preview the secret is
+// sent once, in headers, on one redirect-free API request to the review origin
+// for Vercel's host-only bypass cookie; pages, fetches and API requests then
+// ride on that cookie, so no other host ever receives the secret.
+async function newContext(engine, options) {
+  const context = await engine.newContext(options);
+  await protection.install(context);
+  return context;
+}
+
+// A clean browser with no MathNexa session (Deployment Protection passed with the confined bypass cookie only).
 async function anonymous(engine, viewport, options = {}) {
-  const context = await engine.newContext({ viewport, extraHTTPHeaders: bypassHeaders, ...options });
+  const context = await newContext(engine, { viewport, ...options });
   const page = await context.newPage();
-  await page.goto(landing, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
   return { context, page };
 }
 
 async function session(engine, email, viewport, options = {}) {
-  const context = await engine.newContext({
-    viewport,
-    extraHTTPHeaders: bypassHeaders,
-    ...options
-  });
+  const context = await newContext(engine, { viewport, ...options });
   const page = await context.newPage();
   page.on("pageerror", (error) => console.log(`pageerror ${redact(error.message)}`));
-  await page.goto(landing, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
   await page.goto(`${origin}/sign-in?next=${encodeURIComponent("/games")}`, { waitUntil: "domcontentloaded" });
   await page.getByLabel("Email address").fill(email);
   await page.locator('input[name="password"]').fill(password);
@@ -180,7 +193,8 @@ const shot = (page, name) => page.screenshot({ path: resolve(out, `${name}.png`)
 const browser = await chromium.launch();
 const safari = await webkit.launch();
 try {
-  const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders });
+  // Redirect-free, so the secret cannot follow a redirect to another host.
+  const health = await fetch(`${origin}/api/health`, { headers: protection.headersFor(`${origin}/api/health`), redirect: "manual" });
   const healthText = await health.text();
   ok(health.status === 200, `health 200 (${health.status})`);
   if (expectCommit) ok(healthText.includes(expectCommit.slice(0, 7)), `deployment serves commit ${expectCommit.slice(0, 7)}`);
@@ -563,12 +577,40 @@ try {
     await freeGuest.context.close();
   }
   await a.context.close();
+} catch (error) {
+  // A fatal error is reported redacted; cleanup still runs below.
+  results.push(false);
+  console.log(`FAIL fatal: ${redact(error?.stack ?? error)}`);
 } finally {
-  for (const code of roomCodes) await admin.from("tug_rooms").delete().eq("code", code).gte("created_at", reviewStartedAt);
-  for (const id of users) await admin.auth.admin.deleteUser(id);
+  let roomsRemoved = 0;
+  for (const code of roomCodes) {
+    const removed = await admin.from("tug_rooms").delete().eq("code", code).gte("created_at", reviewStartedAt);
+    if (!removed.error) roomsRemoved += 1;
+  }
+  let usersDeleted = 0;
+  for (const id of users) {
+    await admin.auth.admin.deleteUser(id);
+    // Verified, not assumed: the lookup must positively answer "not found"
+    // (a failed lookup is not proof of deletion).
+    const after = await admin.auth.admin.getUserById(id);
+    if (!after.data?.user && (after.error?.status === 404 || /not.?found/i.test(after.error?.message ?? ""))) usersDeleted += 1;
+  }
+  const leftoverRooms = roomCodes.size
+    ? await admin.from("tug_rooms").select("code", { count: "exact", head: true }).in("code", [...roomCodes]).gte("created_at", reviewStartedAt)
+    : { error: null, count: 0 };
   await browser.close();
   await safari.close();
+  ok(usersDeleted === users.length, `cleanup: synthetic users deleted and verified gone ${usersDeleted}/${users.length}`);
+  ok(roomsRemoved === roomCodes.size && !leftoverRooms.error && (leftoverRooms.count ?? 0) === 0, `cleanup: review rooms removed ${roomsRemoved}/${roomCodes.size}, none left`);
+  if (bypass) {
+    // Byte scan of everything this run wrote and printed; only counts are reported.
+    const files = readdirSync(out, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => resolve(entry.parentPath, entry.name));
+    const needle = Buffer.from(bypass);
+    const leakingFiles = files.filter((file) => readFileSync(file).includes(needle)).length;
+    const leakingLines = printed.filter((line) => line.includes(bypass)).length;
+    ok(leakingFiles === 0 && leakingLines === 0, `bypass secret absent from ${files.length} output files and ${printed.length} printed lines (${leakingFiles} files, ${leakingLines} lines contain it)`);
+  }
   const passed = results.filter(Boolean).length;
-  console.log(`\nREVIEW ${passed}/${results.length} passed; synthetic users deleted: ${users.length}; rooms removed: ${roomCodes.size}`);
+  console.log(`\nREVIEW ${passed}/${results.length} passed; synthetic users deleted (verified): ${usersDeleted}/${users.length}; rooms removed: ${roomsRemoved}/${roomCodes.size}`);
   if (passed !== results.length || results.length === 0) process.exitCode = 1;
 }
