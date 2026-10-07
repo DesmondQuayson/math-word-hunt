@@ -108,7 +108,7 @@ describe("Stripe Sandbox consumer provider", () => {
       managed_payments: null,
       metadata: parameters.metadata ?? { mathnexa_account_id: "90000000-0000-0000-0000-000000000001", mathnexa_plan: "mathnexa-monthly" }
     });
-    const create = vi.fn(async (parameters: Record<string, unknown>) => subscription(parameters, parameters.trial_period_days || parameters.trial_end ? shape(createdAt) : null));
+    const create = vi.fn(async (...call: [parameters: Record<string, unknown>, options?: Record<string, unknown>]) => subscription(call[0], call[0].trial_period_days || call[0].trial_end ? shape(createdAt) : null));
     const update = vi.fn(async (_reference: string, parameters: Record<string, unknown>) => {
       const trial = shape(createdAt);
       return subscription({}, { trial_start: trial.trial_start, trial_end: parameters.trial_end as number });
