@@ -47,19 +47,28 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
      * Gives a browser context access to the protected deployment: one
      * redirect-free API request obtains Vercel's host-only bypass cookie for
      * the context; every later request rides on that cookie, unmodified.
+     *
+     * `unlock(context)` is for a deployment whose app puts its own gate in
+     * front of every route (MathNexa's locked staging alias answers 404 until
+     * its staging-access cookie is set). It runs once the bypass cookie is in
+     * place, before the secret-free verification, and its requests are carried
+     * by that cookie: it must never send the secret itself.
      */
-    async install(context) {
-      if (!value) return;
+    async install(context, { unlock } = {}) {
       const bootstrap = `${trusted}${bootstrapPath}`;
-      const response = await context.request.get(bootstrap, { headers: headersFor(bootstrap, { setCookie: true }), maxRedirects: 0 });
-      // Vercel accepts by answering (often with a 307 back to the same URL)
-      // and setting its cookie; it refuses with a 401/403 or a redirect to
-      // its SSO page on another host. The redirect is never followed here.
-      const location = response.headers().location;
-      const backToOrigin = response.status() >= 300 && response.status() < 400 && Boolean(location) && isTrusted(new URL(location, bootstrap).href);
-      if (!response.ok() && !backToOrigin) {
-        throw new Error(`protection bypass was refused for the review origin (${response.status()})`);
+      if (value) {
+        const response = await context.request.get(bootstrap, { headers: headersFor(bootstrap, { setCookie: true }), maxRedirects: 0 });
+        // Vercel accepts by answering (often with a 307 back to the same URL)
+        // and setting its cookie; it refuses with a 401/403 or a redirect to
+        // its SSO page on another host. The redirect is never followed here.
+        const location = response.headers().location;
+        const backToOrigin = response.status() >= 300 && response.status() < 400 && Boolean(location) && isTrusted(new URL(location, bootstrap).href);
+        if (!response.ok() && !backToOrigin) {
+          throw new Error(`protection bypass was refused for the review origin (${response.status()})`);
+        }
       }
+      if (unlock) await unlock(context);
+      if (!value) return;
       // Prove the cookie alone now opens the origin - this request carries no secret.
       const verified = await context.request.get(bootstrap, { maxRedirects: 0 });
       if (!verified.ok()) {

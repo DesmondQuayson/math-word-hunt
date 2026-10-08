@@ -15,6 +15,7 @@ import {
   inspectManagedBucketDefinitions,
   syntheticOwnerEmail
 } from "./phase8-content-cleanup-contract.mjs";
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const origin = "https://mathnexa-platform-staging.vercel.app";
 const projectRef = "gcmuhzxkwvfireyrearl";
@@ -43,6 +44,15 @@ const vercelCli = required("PHASE8_VERCEL_CLI");
 const candidateTree = required("PHASE8_CANDIDATE_TREE", /^[a-f0-9]{40}$/);
 const supabaseUrl = `https://${projectRef}.supabase.co`;
 const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
+// The bypass value reaches nothing but the staging origin: a header on direct
+// requests that never follow a redirect, and one cookie bootstrap per browser
+// context (scripts/vercel-protection-bypass.mjs). Everything printed is redacted.
+const protection = createProtectionBypass({ origin, secret: bypassSecret });
+function redact(text) {
+  let safe = protection.redact(text);
+  for (const secret of [accessToken, databasePassword, secretKey, publishableKey, stagingToken]) safe = safe.replaceAll(secret, "[REDACTED]");
+  return safe;
+}
 
 const fixtureTables = [
   "admin_users", "admin_sessions", "admin_audit_log",
@@ -70,15 +80,7 @@ function run(command, args, options = {}) {
     input: options.input
   });
   if (result.status !== 0) {
-    const safe = `${result.stdout}\n${result.stderr}`
-      .replaceAll(accessToken, "[REDACTED]")
-      .replaceAll(databasePassword, "[REDACTED]")
-      .replaceAll(secretKey, "[REDACTED]")
-      .replaceAll(publishableKey, "[REDACTED]")
-      .replaceAll(stagingToken, "[REDACTED]")
-      .replaceAll(bypassSecret, "[REDACTED]")
-      .slice(-4000);
-    throw new Error(`command-failed:${safe}`);
+    throw new Error(`command-failed:${redact(`${result.stdout}\n${result.stderr}`).slice(-4000)}`);
   }
   return result.stdout.trim();
 }
@@ -107,8 +109,7 @@ async function managementQuery(query) {
   });
   const text = await response.text();
   if (!response.ok) {
-    const safe = text.replaceAll(accessToken, "[REDACTED]").replaceAll(databasePassword, "[REDACTED]").slice(-2000);
-    throw new Error(`management-query-failed-${response.status}:${safe}`);
+    throw new Error(`management-query-failed-${response.status}:${redact(text).slice(-2000)}`);
   }
   try { return text ? JSON.parse(text) : null; }
   catch { return text; }
@@ -278,7 +279,7 @@ async function waitForDeployment() {
   const deadline = Date.now() + 180000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(origin, { redirect: "manual", headers: { "x-vercel-protection-bypass": bypassSecret } });
+      const response = await fetch(origin, { headers: protection.headersFor(origin), redirect: "manual" });
       if (response.status === 404 && response.headers.get("cache-control")?.includes("no-store")) return;
     } catch { /* deployment still converging */ }
     await new Promise((done) => setTimeout(done, 2000));
@@ -491,15 +492,21 @@ async function verifyContentLifecycle(evidence, runId, fixture) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
-    reducedMotion: "reduce",
-    extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret }
+    reducedMotion: "reduce"
   });
-  const bootstrap = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
-    headers: { Authorization: `Bearer ${stagingToken}`, "x-vercel-protection-bypass": bypassSecret }
-  });
-  check(bootstrap.status() === 204, "staging-access-bootstrap-failed");
   const page = await context.newPage();
   try {
+    // Vercel's host-only bypass cookie first, then the staging gate's own
+    // cookie (that request rides on the bypass cookie and carries no secret).
+    await protection.install(context, {
+      unlock: async () => {
+        const bootstrap = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
+          headers: { Authorization: `Bearer ${stagingToken}` },
+          maxRedirects: 0
+        });
+        check(bootstrap.status() === 204, "staging-access-bootstrap-failed");
+      }
+    });
     await loginOwner(page, email, password);
     await captureRunAuditRows(fixture);
     for (const [section, label] of [["games", "Add Game"], ["homework", "Add Homework"], ["quizzes", "Add Quiz"]]) {
@@ -920,13 +927,15 @@ async function main() {
   }
   if (cleanupError) throw new Error(`cleanup-to-zero-failed:${cleanupError.message}`);
   if (primaryError) throw primaryError;
-  process.stdout.write(`${JSON.stringify({
+  process.stdout.write(`${redact(JSON.stringify({
     passed: true,
     candidateTree,
     deploymentId: deployment.id ?? deployment.uid,
     deploymentUrl: deployment.url,
     evidence
-  }, null, 2)}\n`);
+  }, null, 2))}\n`);
 }
 
-await main();
+await main().catch((error) => {
+  process.stderr.write(`${redact(error?.stack ?? error)}\n`, () => process.exit(1));
+});

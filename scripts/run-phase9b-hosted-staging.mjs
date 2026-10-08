@@ -7,6 +7,8 @@ import { join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
+
 const origin = "https://mathnexa-platform-staging.vercel.app";
 const projectRef = "gcmuhzxkwvfireyrearl";
 const projectName = "mathnexa-platform-staging";
@@ -35,9 +37,19 @@ const candidateTree = required("PHASE9B_CANDIDATE_TREE", /^[a-f0-9]{40}$/);
 const supabaseUrl = `https://${projectRef}.supabase.co`;
 const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const secrets = [accessToken, databasePassword, publishableKey, secretKey, stagingToken, bypassSecret];
+// The bypass value reaches nothing but the staging origin: a header on direct
+// requests that never follow a redirect, and one cookie bootstrap per browser
+// context (scripts/vercel-protection-bypass.mjs). Everything printed is redacted.
+const protection = createProtectionBypass({ origin, secret: bypassSecret });
 
 function check(value, code) {
   if (!value) throw new Error(code);
+}
+
+function redact(text) {
+  let safe = protection.redact(text);
+  for (const secret of secrets) safe = safe.replaceAll(secret, "[REDACTED]");
+  return safe;
 }
 
 function run(command, args, options = {}) {
@@ -49,9 +61,7 @@ function run(command, args, options = {}) {
     input: options.input
   });
   if (result.status !== 0) {
-    let safe = `${result.stdout}\n${result.stderr}`;
-    for (const secret of secrets) safe = safe.replaceAll(secret, "[REDACTED]");
-    throw new Error(`command-failed:${safe.slice(-4000)}`);
+    throw new Error(`command-failed:${redact(`${result.stdout}\n${result.stderr}`).slice(-4000)}`);
   }
   return result.stdout.trim();
 }
@@ -103,9 +113,7 @@ async function managementQuery(query) {
   });
   const text = await response.text();
   if (!response.ok) {
-    let safe = text;
-    for (const secret of secrets) safe = safe.replaceAll(secret, "[REDACTED]");
-    throw new Error(`management-query-failed-${response.status}:${safe.slice(-1000)}`);
+    throw new Error(`management-query-failed-${response.status}:${redact(text).slice(-1000)}`);
   }
   try { return text ? JSON.parse(text) : null; } catch { return text; }
 }
@@ -209,7 +217,7 @@ async function main() {
     deploymentId = deployment.id;
     await waitFor(
       "staging-deployment",
-      () => fetch(origin, { redirect: "manual", headers: { "x-vercel-protection-bypass": bypassSecret } }),
+      () => fetch(origin, { headers: protection.headersFor(origin), redirect: "manual" }),
       (response) => response.status === 404 && response.headers.get("cache-control")?.includes("no-store"),
       300_000
     );
@@ -236,15 +244,34 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 320, height: 760 },
       reducedMotion: "reduce",
-      forcedColors: "active",
-      extraHTTPHeaders: { "x-vercel-protection-bypass": bypassSecret }
+      forcedColors: "active"
     });
-    const bootstrap = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
-      headers: { Authorization: `Bearer ${stagingToken}`, "x-vercel-protection-bypass": bypassSecret }
-    });
-    check(bootstrap.status() === 204, "staging-access-bootstrap-failed");
+    // The staging gate's own cookie; the request rides on Vercel's bypass
+    // cookie and carries no secret.
+    const unlockStagingAccess = async (code) => {
+      const access = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
+        headers: { Authorization: `Bearer ${stagingToken}` },
+        maxRedirects: 0
+      });
+      check(access.status() === 204, code);
+    };
     const page = await context.newPage();
     try {
+      // Signing out keeps the cookies Vercel set for the bypass (captured before
+      // the staging gate's): clearCookies() alone would drop them, and
+      // installing the bypass again would resend the secret.
+      let protectionCookies = [];
+      await protection.install(context, {
+        unlock: async () => {
+          protectionCookies = await context.cookies();
+          await unlockStagingAccess("staging-access-bootstrap-failed");
+        }
+      });
+      const signOut = async (code) => {
+        await context.clearCookies();
+        await context.addCookies(protectionCookies);
+        await unlockStagingAccess(code);
+      };
       const publicResponse = await context.request.get(`${origin}/`);
       const publicHtml = await publicResponse.text();
       check(publicResponse.status() === 200 && publicHtml.includes("Online math prep that "), "public-homepage-smoke-failed");
@@ -252,11 +279,7 @@ async function main() {
       check(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth).catch(() => true), "mobile-overflow");
 
       for (const destination of ["/games", "/homework", "/quizzes", "/map-prep"]) {
-        await context.clearCookies();
-        const access = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
-          headers: { Authorization: `Bearer ${stagingToken}`, "x-vercel-protection-bypass": bypassSecret }
-        });
-        check(access.status() === 204, "staging-access-refresh-failed");
+        await signOut("staging-access-refresh-failed");
         await signIn(page, entitledEmail, password, destination);
         check(page.url() === `${origin}${destination}`, `post-subscription-return-failed:${destination}`);
       }
@@ -288,21 +311,13 @@ async function main() {
       check(mapBody.includes("MAP Prep is not configured") || await page.getByRole("link", { name: "Open MAP Prep" }).count() === 1, "map-prep-state-invalid");
       evidence.mapPrep = true;
 
-      await context.clearCookies();
-      const access = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
-        headers: { Authorization: `Bearer ${stagingToken}`, "x-vercel-protection-bypass": bypassSecret }
-      });
-      check(access.status() === 204, "staging-access-review-failed");
+      await signOut("staging-access-review-failed");
       await signIn(page, reviewEmail, password, "/games");
       await page.waitForURL(`${origin}/subscription?next=/games`);
       check((await page.locator("body").innerText()).includes("One MathNexa subscription includes Games, MAP Prep, Homework, and Quizzes."), "payment-required-copy-missing");
       evidence.paymentAndContentStatesDistinct = true;
 
-      await context.clearCookies();
-      const adminAccess = await context.request.post(`${origin}/api/internal/staging-access/bootstrap`, {
-        headers: { Authorization: `Bearer ${stagingToken}`, "x-vercel-protection-bypass": bypassSecret }
-      });
-      check(adminAccess.status() === 204, "staging-admin-access-failed");
+      await signOut("staging-admin-access-failed");
       const adminSignIn = await context.request.get(`${origin}/admin/sign-in`, { maxRedirects: 0 });
       const adminHidden = await context.request.get(`${origin}/admin`, { maxRedirects: 0 });
       check(adminSignIn.status() === 200 && adminHidden.status() === 404, "admin-regression-smoke-failed");
@@ -336,7 +351,9 @@ async function main() {
   }
   if (cleanupError) throw new Error(`cleanup-to-zero-failed:${cleanupError.message}`);
   if (primaryError) throw primaryError;
-  process.stdout.write(`${JSON.stringify({ passed: true, candidateTree, deploymentId, fingerprint: createHash("sha256").update(beforeFingerprint).digest("hex").slice(0, 16), evidence }, null, 2)}\n`);
+  process.stdout.write(`${redact(JSON.stringify({ passed: true, candidateTree, deploymentId, fingerprint: createHash("sha256").update(beforeFingerprint).digest("hex").slice(0, 16), evidence }, null, 2))}\n`);
 }
 
-await main();
+await main().catch((error) => {
+  process.stderr.write(`${redact(error?.stack ?? error)}\n`, () => process.exit(1));
+});

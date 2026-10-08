@@ -5,21 +5,31 @@
  *   ADMIN_PROBE_ORIGIN=https://...            (required)
  *   VERCEL_AUTOMATION_BYPASS_SECRET=...       (optional, protected previews only)
  *
+ * The bypass value travels only as a header on requests to ADMIN_PROBE_ORIGIN
+ * itself (scripts/vercel-protection-bypass.mjs), never in a URL; a redirect is
+ * reported, never followed; everything printed goes through redact().
+ *
  * Checks: /admin, /admin/mfa, forged and unknown session cookies and signed-out
  * POSTs are concealed as 404 with no-store/noindex; the sign-in page carries the
  * expiry notice and only a validated `next`; security headers are present.
  */
 import { randomBytes } from "node:crypto";
 
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
+
 const origin = (process.env.ADMIN_PROBE_ORIGIN ?? "").trim().replace(/\/$/, "");
 if (!/^https:\/\/[a-z0-9.-]+$/.test(origin)) throw new Error("ADMIN_PROBE_ORIGIN must be an https origin");
-const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
-const baseHeaders = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
+const protection = createProtectionBypass({ origin, secret: (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim() });
 const results = [];
-const redact = (text) => (bypass ? String(text).split(bypass).join("[hidden]") : String(text));
+const redact = (text) => protection.redact(text);
+// A failed probe is reported redacted too, never as Node's raw error print.
+process.on("uncaughtException", (error) => {
+  process.stderr.write(`${redact(error?.stack ?? error)}\n`, () => process.exit(1));
+});
 
 async function probe(name, path, { method = "GET", headers = {}, body, expect }) {
-  const response = await fetch(`${origin}${path}`, { method, headers: { ...baseHeaders, ...headers }, body, redirect: "manual" });
+  const url = `${origin}${path}`;
+  const response = await fetch(url, { method, headers: { ...protection.headersFor(url), ...headers }, body, redirect: "manual" });
   const text = await response.text();
   const problems = expect(response, text);
   results.push({ name, status: response.status, pass: problems.length === 0, problems });
