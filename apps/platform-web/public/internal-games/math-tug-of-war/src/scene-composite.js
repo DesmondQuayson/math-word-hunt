@@ -17,7 +17,9 @@ function loadModule() {
 
 /** True when this device could show the 3D scene at all (used for the toggle). */
 export function canRender3D() {
-  if (graphicsOverride() === "3d") return true;
+  const override = graphicsOverride();
+  if (override === "classic") return false;
+  if (override) return true;
   if (prefersReducedMotion()) return false;
   const webgl = probeWebGL();
   return webgl.webgl2 && !webgl.software && !webgl.caveat;

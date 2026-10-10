@@ -50,9 +50,14 @@ Production, Super Admin V2 and ShowMe Math Lab are untouched.
 | 3D regression (forced 3D, pulls, victory, fallback, toggle, resize) | `node scripts/run-math-tug-of-war-e2e.mjs -g "3D"` (`e2e/math-tug-of-war/scene-3d.spec.ts`) | see §5 |
 | Review pack (screenshots, recordings, measurements) | `node scripts/math-tug-of-war-3d/snap.mjs …` / `capture-math-tug-of-war-3d-review-pack.mjs` | `owner-review/math-tug-of-war-3d-v1/` |
 
-## 4. Known limitations
+## 4. Known limitations and honest caveats
 
-Filled in with the final report (§5).
+- **Realism level.** The pullers are MakeHuman-grade humans (realistic proportions, faces and skin, real clothes and shoes), not photoreal scans. Hair is polygon-card hair; skin textures are 1024 px, so extreme close-ups are soft. The rig is Mixamo-named, so a licensed higher-fidelity character set can be dropped in later without touching the animation code.
+- **Procedural motion.** Every pose is computed (IK, state machine, noise), not motion-captured. It reads as natural at game distance; it is not mocap. Hands grip with curled fingers but there is no per-finger contact solving; clothing and hair follow the body without cloth simulation.
+- **Phone layout is unchanged.** On portrait phones the scene box keeps its existing 1000:310 aspect (about 113 px tall at 390 px wide), exactly like the SVG scene, so keypads and questions keep their certified space. The 3D scene is readable there but small; the math stays the priority by design.
+- **Headless measurements.** Frame times come from headless Chromium/WebKit on the development machine (integrated GPU). Real phones, iPads and Smart Boards were not measured in hand; the tiers and the watchdog are the safety net.
+- **Assets.** First load fetches about 4.6 MB of models plus about 0.73 MB of three.js (cached afterwards, prefetched from the home screen). Data-saver, reduced-motion, software-GL and non-WebGL2 browsers get the classic scene automatically.
+- **Online Match evidence** depends on the local Supabase stack (Docker); see §5 for whether the two-client suite ran in this session.
 
 ## 5. Results
 

@@ -186,8 +186,15 @@ try {
       if (n === needed - 1) break;
       await page.waitForTimeout(900);
     }
-    for (const [label, delay] of [["win-0.4s", 400], ["win-1.3s", 900], ["win-2.4s", 1100], ["win-4.5s", 2100]]) {
-      await page.waitForTimeout(delay);
+    // Time the captures from the moment the game confirmed the winner (the
+    // celebration and the fall start then), not from the last key press.
+    await page.waitForFunction(() => {
+      const scene = window.__MATHNEXA_TUG_SCENE__;
+      return Boolean(scene?.snapshot?.().three?.winner) || document.querySelector(".tug-scene-svg")?.classList.contains("is-won");
+    }, null, { timeout: 15_000 });
+    const confirmedAt = Date.now();
+    for (const [label, at] of [["win-0.4s", 400], ["win-1.3s", 1300], ["win-2.4s", 2400], ["win-4.5s", 4500]]) {
+      await page.waitForTimeout(Math.max(0, confirmedAt + at - Date.now()));
       results.steps.push({ step: label, ...(await snapshot()) });
       await shot(`${String(index).padStart(2, "0")}-${label}`);
       index += 1;
