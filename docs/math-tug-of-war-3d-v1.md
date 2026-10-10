@@ -76,7 +76,7 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 | Local e2e, classic + 3D projects together (8 projects, 3 workers, 9.3 min) | **126 passed, 14 skipped (desktop-only cases on mobile projects), 1 failed**: the `webkit-3d` axe audit lost its page ("Target page, context or browser has been closed") while two other GPU browsers ran beside it; see the WebKit matrix below |
 | Local e2e, final gate (same suites, 2 workers) | **131 passed, 15 skipped, 6 failed** (12.5 min): five were `online-3d.spec.ts` being collected by the database-less local harness (the local config now ignores it, like the other online specs); one was the `webkit-3d` soak losing its page ("Target page, context or browser has been closed") while the second worker rendered 3D in Chromium; see the WebKit section |
 | 3D physicality and lifecycle (`hands really hold the rope…`, `repeated matches and re-entries…`) | **passed on `chromium-3d` and `webkit-3d`** (mobile project skips the soak by design): reach miss < 3 cm mid-heave and < 2 cm at rest, rope on the grass within 1.6 s of the win and back at the waist for the rematch; five matches and three exit/re-entries with geometries, textures and shader programs flat and the JS heap within tolerance; the previous WebGL context reports `isContextLost()` after exit |
-| WebKit stability matrix | **36 of 36 runs passed, no crash**: A alone ×3 repeats (9), B three concurrent WebKit workers (8), C WebKit + Chromium + Chromium-mobile 3D concurrently (12), D the classic WebKit viewport sweep and 200 % text while 3D projects ran beside it (7) |
+| WebKit stability matrix | **42 of 42 targeted runs passed, no crash**: A alone ×3 repeats (9), B three concurrent WebKit workers (8), C WebKit + Chromium + Chromium-mobile 3D concurrently (12), D the classic WebKit viewport sweep and 200 % text while 3D projects ran beside it (7), E the WebKit soak alone ×2 (2), F the WebKit soak beside a Chromium soak, two workers, ×2 (4) |
 | Online Match two-client suite (classic scene; local Supabase) | **`online.spec.ts` 4 passed** (two clients end to end, failure cases, API security, WebKit interop); **`free-access.spec.ts` 8 passed** on its own run (one sign-in navigation race failed once while the soak, lint and typecheck ran beside it, then passed 8/8 alone) |
 | Online Match with the 3D scene on both clients (`online-3d.spec.ts`, GPU Chromium, local Supabase) | **passed** (52 s): both 3D layers at the same position after every pull, same pulling states, no celebration until the server confirmed the winner, both celebrate the same winner with the rope on the grass on both screens, rematch resets both, a reload reconnect rebuilds the guest's 3D scene at the live position, leaving ends the match with no celebration; the database agrees with both screens; every request body the clients sent carried only `action/code/token/round/questionIndex/answer/name/skill` (no position, pull count or winner) |
 | Lint / typecheck | `npm run lint` 0 errors (8 pre-existing warnings elsewhere); `npm run typecheck` clean; the new e2e specs type-check with `tsc --noEmit` |
@@ -84,10 +84,10 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 
 ### The WebKit crash, investigated
 
-- **What happened.** In the previous session the classic WebKit viewport sweep lost its renderer while the 3D projects ran beside it; in this session's 3-worker full run the `webkit-3d` axe audit lost its page the same way. Both were Playwright's WebKit build on Windows (WinCairo, not Safari), both during long concurrent runs with three browsers rendering WebGL on one integrated GPU, and both in the *test* process (axe traverses the whole document while the scene renders).
-- **What was ruled out, by experiment.** Isolation (A): WebKit alone, every 3D scenario three times, no crash. Same-engine concurrency (B): three WebKit workers rendering 3D at once, no crash. Cross-engine contention (C): WebKit, Chromium and Chromium-mobile 3D at once, no crash. The original condition (D): the classic WebKit sweep and 200 % text under 3D load, no crash. 36/36.
+- **What happened.** Three page losses, all "Target page, context or browser has been closed" from Playwright's WebKit build on Windows (WinCairo, not Safari), all inside long full-suite runs (9–12 min) with two or three browsers on one integrated GPU: the classic WebKit viewport sweep in the previous session (a page pinned to the SVG scene, with no WebGL at all), the `webkit-3d` axe audit in this session's 3-worker run, and the `webkit-3d` soak in this session's 2-worker final gate.
+- **What was ruled out, by experiment.** Isolation (A, E): WebKit alone, every 3D scenario three times and the soak twice, no crash. Same-engine concurrency (B): three WebKit workers rendering 3D at once, no crash. Cross-engine contention (C, F): WebKit beside Chromium and Chromium-mobile 3D, and the WebKit soak beside a Chromium soak twice, no crash. The original condition (D): the classic WebKit sweep and 200 % text under 3D load, no crash. 42/42 targeted runs; the losses only appear in long mixed runs, and one of them hit a page that was not using WebGL.
 - **Application side.** The soak proves no growth in geometries, textures, programs or heap across repeated matches and re-entries, and that the WebGL context is released on exit. Asset loading is one document per page (prefetched, cached). The runtime already handles `webglcontextlost` (stop, one restore, then classic) and pauses on `visibilitychange`. No defect was found that the application could fix; the only change made here is in the test tooling (the three new 3D e2e tests themselves) and the capture timing.
-- **Conclusion.** Not reproducible on demand; consistent with transient GPU pressure in the WebKit test build under concurrent load, not with a reproducible application crash. Real Safari and iPad were not in hand; the hosted staging review exercises WebKit against the deployed build.
+- **Conclusion.** Not reproducible on demand (0 of 42 targeted runs, including the exact test pairs that failed), and one of the three losses hit a classic page with no WebGL, so the application's 3D code is not the trigger. The evidence fits transient GPU-device pressure in the Windows WebKit test build under long multi-browser load. For a clean WebKit gate, run `--project webkit-3d --workers 1` (as in A and E). Real Safari and iPad were not in hand; the hosted staging review exercises WebKit against the deployed build.
 
 Asset and performance figures are in `owner-review/math-tug-of-war-3d-v1/measurements.md`
 (frame time, draw calls, triangles, canvas size, JS heap, model bytes and load time per
@@ -102,3 +102,43 @@ home screen prefetches them). Vendored three.js: 743 KB uncompressed.
 
 Commits on the branch: `12c0752` (the upgrade), `94beff1` (adult heights, e2e pinning, capture
 timing), `1ca3f94` (review pack), then the polish / multiplayer 3D certification / WebKit matrix / staging tooling commit (§6). Staging deployment: see §6.
+
+## 6. Staging deployment (protected preview) and owner review
+
+The branch is ready for a protected staging preview; nothing on this branch is merged,
+promoted or pointed at the customer domain, and no production database is touched.
+
+**What a push does.** The Vercel project `mathnexa-platform-staging` is GitHub-linked
+(`DesmondQuayson/math-word-hunt`, production branch `main`, root `apps/platform-web`,
+SSO protection on every preview). Pushing this branch creates a preview deployment at
+`https://mathnexa-platform-staging-<hash>-bright-path-ed-tech.vercel.app`; the production
+project has no Git link, so a branch push can never reach `mathnexa.com`. The staging
+Supabase project (`gcmuhzxkwvfireyrearl`) already carries the Math Tug of War schema from the
+v1 release and this branch adds no migration.
+
+**Steps (owner, or with the owner's push).**
+
+1. Push the branch: `git push -u origin feature/math-tug-of-war-3d-characters-v1`
+   (the session's permission policy refused to publish on its own; the push is the only
+   outward action this branch needs).
+2. Wait for the preview to build (`npx --yes vercel@59 ls mathnexa-platform-staging`), note its
+   URL and deployment id, and the commit it was built from (`/api/health` reports it).
+3. Classic certification of the hosted build (auth, free access, subscription gates, six
+   skills, keypad, Smart Board, phones, iPad, reduced motion, Online Match on two phones):
+   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-tug-of-war-staging.ps1 -Stage review -Origin <preview URL> -ExpectCommit <sha>`
+4. 3D certification of the hosted build (runtime hash and byte-identical assets, CSP, 3D on
+   hardware GL / classic on reduced motion and software GL, pulls and the confirmed-winner
+   celebration, toggle, phone / Smart Board / iPad / WebKit renders, Online Match with the
+   3D scene on both clients): same launcher with `-Stage review-3d`; screenshots and
+   `staging-3d-results.json` land in `owner-review/math-tug-of-war-3d-v1/staging/`.
+5. Open the preview URL in a browser, sign in with a staging account, choose Two Teams or
+   Online Match: the 3D scene starts automatically on a hardware-accelerated browser and the
+   "3D" toolbar button switches to the classic scene and back.
+
+**Rollback plan.** A preview deployment is isolated: it has no custom domain and no alias. To
+withdraw it, delete the deployment in Vercel (or leave it; protected previews expire with the
+branch). Production is untouched: `https://mathnexa.com` stays on its current deployment
+(see `docs/current-deployment.md`), and the 3D layer is a client-side enhancement under the
+existing route, so a future production rollback is the ordinary "promote the previous
+deployment" step with no data migration to undo.
+
