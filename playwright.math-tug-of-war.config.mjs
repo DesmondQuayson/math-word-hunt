@@ -11,11 +11,11 @@ import { defineConfig, devices } from "@playwright/test";
 // the game correctly treats as "classic". The 3D projects ask Chromium for the
 // real GPU so the 3D scene runs at play speed; WebKit uses its own GPU path.
 const GPU_ARGS = ["--use-gl=angle", "--use-angle=d3d11", "--ignore-gpu-blocklist", "--enable-gpu-rasterization"];
-const CLASSIC_IGNORE = ["**/online.spec.ts", "**/free-access.spec.ts", "**/scene-3d.spec.ts"];
+const CLASSIC_IGNORE = ["**/online.spec.ts", "**/free-access.spec.ts", "**/scene-3d.spec.ts", "**/online-3d.spec.ts"];
 
 export default defineConfig({
   testDir: "./e2e/math-tug-of-war",
-  testIgnore: ["**/online.spec.ts", "**/free-access.spec.ts"],
+  testIgnore: ["**/online.spec.ts", "**/free-access.spec.ts", "**/online-3d.spec.ts"],
   timeout: 180_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,

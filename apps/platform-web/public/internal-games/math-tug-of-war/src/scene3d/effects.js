@@ -5,7 +5,7 @@
 import { CanvasTexture, CircleGeometry, Color, DoubleSide, Group, InstancedMesh, Mesh, MeshBasicMaterial, Object3D, PlaneGeometry, Sprite, SpriteMaterial } from "../vendor/three.js";
 import { makeRandom } from "./math.js";
 
-const CONFETTI_COLORS = [0x0fb5c6, 0xff4f9a, 0xf3a712, 0x5b6cff, 0xffffff, 0x7ee787];
+const CONFETTI_COLORS = [0x0fb5c6, 0xff4f9a, 0xf3a712, 0x5b6cff, 0xffd166, 0x7ee787];
 
 export class Confetti {
   constructor(count = 180) {
@@ -148,9 +148,12 @@ export class Dust {
   }
 }
 
-/** Soft dark discs under each puller for tiers without shadow maps. */
+/**
+ * Soft dark discs under each puller: the only shadow on tiers without shadow
+ * maps, and a faint grounding blob under the feet on tiers with them.
+ */
 export class ContactShadows {
-  constructor(count) {
+  constructor(count, opacity = 1) {
     this.group = new Group();
     this.discs = [];
     const canvas = document.createElement("canvas");
@@ -165,7 +168,7 @@ export class ContactShadows {
     this.texture = new CanvasTexture(canvas);
     const geometry = new CircleGeometry(0.48, 20);
     for (let index = 0; index < count; index += 1) {
-      const disc = new Mesh(geometry, new MeshBasicMaterial({ map: this.texture, transparent: true, depthWrite: false }));
+      const disc = new Mesh(geometry, new MeshBasicMaterial({ map: this.texture, transparent: true, depthWrite: false, opacity }));
       disc.rotation.x = -Math.PI / 2;
       disc.position.y = 0.006;
       this.group.add(disc);
@@ -180,6 +183,10 @@ export class ContactShadows {
     disc.position.x = x;
     disc.position.z = z;
     disc.scale.set(scale * 1.25, scale, 1);
+  }
+
+  setOpacity(opacity) {
+    for (const disc of this.discs) disc.material.opacity = opacity;
   }
 
   dispose() {

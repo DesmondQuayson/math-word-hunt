@@ -192,6 +192,26 @@ function shrinkIndices(document) {
 
 const SMALL_TEXTURES = /hair|afro|bob|braid|ponytail|short0|long0|shoe|pants|cargo|teeth|eyebrow|eyelash/i;
 
+/**
+ * Push a garment out along its vertex normals so the body underneath never
+ * pokes through at extreme poses (raised arms, kneeling). Runs before
+ * quantization, in metres.
+ */
+function inflatePrimitive(primitive, distance) {
+  const position = primitive.getAttribute("POSITION");
+  const normal = primitive.getAttribute("NORMAL");
+  if (!position || !normal || position.getCount() !== normal.getCount()) return false;
+  const p = Float32Array.from(position.getArray());
+  const n = normal.getArray();
+  for (let index = 0; index < p.length; index += 3) {
+    p[index] += n[index] * distance;
+    p[index + 1] += n[index + 1] * distance;
+    p[index + 2] += n[index + 2] * distance;
+  }
+  position.setArray(p);
+  return true;
+}
+
 async function loadCharacter(name) {
   const document = await io.read(join(inDir, name, `${name}.gltf`));
   const root = document.getRoot();
@@ -203,8 +223,10 @@ async function loadCharacter(name) {
     const isTeeth = /teeth/.test(meshName);
     const isHair = /hair|afro|bob|braid|ponytail|short0|long0/.test(meshName);
     const isShoe = /shoe/.test(meshName);
+    const isGarment = /shirt|polo|tee|top|suit|pants|trousers|jeans|shorts/.test(meshName) && !isBody;
     for (const primitive of mesh.listPrimitives()) {
       let result = null;
+      if (isGarment && inflatePrimitive(primitive, /pants|trousers|jeans|shorts/.test(meshName) ? 0.004 : 0.008)) stats.primitives.push({ mesh: mesh.getName(), inflated: true });
       if (isBody) result = simplifyPrimitive(primitive, { ratio: bodyRatio, lockY: faceLockY, error: errorBudget, lockBorder: true });
       else if (isTeeth) result = simplifyPrimitive(primitive, { ratio: 0.3, error: 0.02 });
       else if (isHair) result = simplifyPrimitive(primitive, { ratio: 0.55, error: 0.01 });

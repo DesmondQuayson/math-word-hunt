@@ -138,6 +138,8 @@ describe("Math Tug of War runtime delivery", () => {
       const source = readFileSync(resolve(RUNTIME_DIR, "src", file), "utf8");
       expect(source, file).not.toMatch(/from\s+["']\.\.?\/(online|robot|questions|answer|panel|app)\.js["']/);
       expect(source, file).not.toMatch(/createLocalMatch|submit\(|tug_submit|winner\s*=\s*["']/);
+      // ...and never talks to a server or to storage: the only bytes it fetches are its own models.
+      expect(source, file).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie/);
     }
     const tugImport = readFileSync(resolve(RUNTIME_DIR, "src/scene3d/constants.js"), "utf8").match(/import \{([^}]+)\} from "\.\.\/tug\.js"/);
     expect(tugImport?.[1].trim()).toBe("TUG_LIMIT");

@@ -47,6 +47,9 @@ export class Rope {
     this.fallT = 0;
     this.time = 0;
     this.controls = [];
+    // The last hand points seen: once every hand lets go, the released rope
+    // keeps falling from where it was held.
+    this.anchors = [];
     this.geometry = new BufferGeometry();
     const vertexCount = (SEGMENTS + 1) * (RADIAL + 1);
     this.positions = new Float32Array(vertexCount * 3);
@@ -108,6 +111,7 @@ export class Rope {
     this.fallT = 0;
     this.tension = 0.35;
     this.vibration = 0;
+    this.anchors.length = 0;
   }
 
   /**
@@ -127,7 +131,15 @@ export class Rope {
 
     const points = this.controls;
     points.length = 0;
-    if (!hands.length) return;
+    if (hands.length) {
+      while (this.anchors.length < hands.length) this.anchors.push(new Vector3());
+      this.anchors.length = hands.length;
+      for (let index = 0; index < hands.length; index += 1) this.anchors[index].copy(hands[index]);
+    } else if (!this.released || !this.anchors.length) {
+      return;
+    } else {
+      hands = this.anchors;
+    }
     const first = hands[0];
     const last = hands[hands.length - 1];
     // Drooping tails beyond the end pullers.

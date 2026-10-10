@@ -63,6 +63,12 @@ function prepareDocument(gltf) {
           if (material.alphaMode !== "MASK" && !material.transparent) material.side = FrontSide;
           // Hair and lashes come through as alpha-masked; keep them two-sided.
           if (material.alphaTest > 0) material.side = 2; // DoubleSide
+          // Hair cards: matte, so the strands read as hair rather than lacquer.
+          if (HAIR_PATTERN.test(material.name)) {
+            material.roughness = Math.max(material.roughness, 0.88);
+            material.metalness = 0;
+            material.envMapIntensity = 0.2;
+          }
         }
         object.castShadow = true;
         object.receiveShadow = true;
@@ -75,6 +81,7 @@ function prepareDocument(gltf) {
 }
 
 const SHIRT_PATTERN = /shirt|polo|tee|top|suit/i;
+const HAIR_PATTERN = /hair|low-poly|ponytail|bob|afro|braid|short|long|curl|fade/i;
 const SKIN_PATTERN = /\.body$|body/i;
 
 /**
@@ -94,8 +101,12 @@ export function instantiateCharacter(name, { teamColor } = {}) {
     object.material = material;
     materials.push(material);
     if (teamColor !== undefined && SHIRT_PATTERN.test(material.name) && !SKIN_PATTERN.test(material.name)) {
+      // A plain team jersey: the source shirts carry prints that would tint
+      // into blotches, so the shirt is a flat matte colour.
+      material.map = null;
       material.color = new Color(teamColor);
-      material.roughness = Math.max(material.roughness, 0.75);
+      material.roughness = Math.max(material.roughness, 0.82);
+      material.needsUpdate = true;
     }
   });
   return { root, meshes, materials };

@@ -97,7 +97,8 @@ async function snapshot() {
 }
 
 async function shot(name) {
-  await page.screenshot({ path: join(outDir, `${name}.png`) });
+  // The enlarged scene capture comes first so timed labels (fall, recovery)
+  // describe the stage frame; the full-page frame follows a moment later.
   if (flag("--stage")) {
     await page.evaluate(() => {
       const stage = document.querySelector(".scene-stage");
@@ -114,21 +115,15 @@ async function shot(name) {
     });
     await page.waitForTimeout(60);
   }
+  await page.screenshot({ path: join(outDir, `${name}.png`) });
   if (closeup) {
-    // Park the camera on one puller's face (review override exposes the scene), shoot, release.
+    // Park the camera on one puller's face (the review override exposes the
+    // scene, which then tracks that head every frame), shoot, release.
     const [team, index] = closeup.split("-");
     const parked = await page.evaluate(([teamName, pullerIndex]) => {
       const d = window.__MATHNEXA_TUG_3D_DEBUG__;
       if (!d) return false;
-      const puller = d.pullers[teamName][Number(pullerIndex)];
-      const head = new d.camera.position.constructor();
-      puller.rig.worldPosition(puller.rig.bone("Head"), head);
-      head.y += 0.06;
-      puller.root.localToWorld(head);
-      const towardsCentre = teamName === "turquoise" ? 1 : -1;
-      d.closeup = true;
-      d.camera.position.set(head.x + towardsCentre * 0.55, head.y + 0.12, head.z + 0.95);
-      d.camera.lookAt(head.x, head.y, head.z);
+      d.closeup = { team: teamName, index: Number(pullerIndex) };
       return true;
     }, [team, index]);
     if (parked) {
@@ -137,7 +132,7 @@ async function shot(name) {
       await page.screenshot({ path: join(outDir, `${name}-closeup.png`), clip: box ?? undefined });
       await page.evaluate(() => {
         const d = window.__MATHNEXA_TUG_3D_DEBUG__;
-        if (d) d.closeup = false;
+        if (d) d.closeup = null;
       });
       await page.waitForTimeout(80);
     }
@@ -193,7 +188,7 @@ try {
       return Boolean(scene?.snapshot?.().three?.winner) || document.querySelector(".tug-scene-svg")?.classList.contains("is-won");
     }, null, { timeout: 15_000 });
     const confirmedAt = Date.now();
-    for (const [label, at] of [["win-0.4s", 400], ["win-1.3s", 1300], ["win-2.4s", 2400], ["win-4.5s", 4500]]) {
+    for (const [label, at] of [["win-0.5s", 500], ["win-1.4s", 1400], ["win-2.6s", 2600], ["win-4.8s", 4800], ["win-6.0s", 6000]]) {
       await page.waitForTimeout(Math.max(0, confirmedAt + at - Date.now()));
       const actual = (Date.now() - confirmedAt) / 1000; // what the label really is, recorded in snap.json
       results.steps.push({ step: label, secondsAfterWin: Number(actual.toFixed(2)), ...(await snapshot()) });

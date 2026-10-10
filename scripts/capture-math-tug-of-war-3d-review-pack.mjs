@@ -29,6 +29,8 @@ const gpu = !args.includes("--no-gpu");
 const work = join(root, "qa-artifacts", "tug-3d-review");
 rmSync(work, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
+// Stale captures from an earlier pack (renamed or retimed shots) never linger next to new ones.
+for (const file of readdirSync(outDir)) if (/.(png|webm|json)$/.test(file) || file === "measurements.md") rmSync(join(outDir, file), { force: true });
 
 const snap = join(root, "scripts", "math-tug-of-war-3d", "snap.mjs");
 function run(name, extra) {
@@ -91,16 +93,18 @@ note("desktop 1600x900 after 24 pulls", long.summary);
 
 // 4. Stumble, fall, recovery and the celebration (Pink wins, Turquoise loses), with a recording.
 const win = run("victory", ["--viewport", "1600x900", "--wait", "900", "--pulls", "t,p,p", "--win", "pink", "--stage", "--video"]);
-copy(join(win.dir, "04-win-0.4s-stage.png"), "08-loss-stumble-0.4s.png");
-copy(join(win.dir, "05-win-1.3s-stage.png"), "09-loss-fall-1.3s.png");
-copy(join(win.dir, "06-win-2.4s-stage.png"), "10-loss-down-2.4s.png");
-copy(join(win.dir, "07-win-4.5s-stage.png"), "11-recovery-4.5s.png");
-copy(join(win.dir, "06-win-2.4s.png"), "12-winning-celebration-with-result-card.png");
+copy(join(win.dir, "04-win-0.5s-stage.png"), "08-loss-stumble-0.5s.png");
+copy(join(win.dir, "05-win-1.4s-stage.png"), "09-loss-fall-1.4s.png");
+copy(join(win.dir, "06-win-2.6s-stage.png"), "10-loss-down-helping-hand-2.6s.png");
+copy(join(win.dir, "07-win-4.8s-stage.png"), "11-recovery-4.8s.png");
+copy(join(win.dir, "08-win-6.0s-stage.png"), "11b-dejected-6.0s.png");
+copy(join(win.dir, "06-win-2.6s.png"), "12-winning-celebration-with-result-card.png");
 for (const file of readdirSync(win.dir).filter((name) => name.endsWith(".webm"))) copy(join(win.dir, file), "13-recording-pulls-victory-fall-recovery.webm");
 const win2 = run("victory-turquoise", ["--viewport", "1600x900", "--wait", "900", "--pulls", "p", "--win", "turquoise", "--stage", "--closeup", "turquoise-1"]);
-copy(join(win2.dir, "03-win-1.3s-stage.png"), "14-winning-team-turquoise-1.3s.png");
-copy(join(win2.dir, "05-win-4.5s-stage.png"), "15-winning-team-turquoise-4.5s-high-five.png");
-copy(join(win2.dir, "03-win-1.3s-closeup.png"), "16-winner-face-joy.png");
+copy(join(win2.dir, "03-win-1.4s-stage.png"), "14-winning-team-turquoise-1.4s.png");
+copy(join(win2.dir, "04-win-2.6s-stage.png"), "15-winning-team-turquoise-2.6s-high-five.png");
+copy(join(win2.dir, "05-win-4.8s-stage.png"), "15b-winning-team-turquoise-4.8s.png");
+copy(join(win2.dir, "03-win-1.4s-closeup.png"), "16-winner-face-joy.png");
 
 // 5. Devices.
 const devices = [["phone-390x844", "390x844"], ["phone-430x932", "430x932"], ["ipad-portrait-820x1180", "820x1180"], ["ipad-landscape-1180x820", "1180x820"], ["smart-board-1920x1080", "1920x1080"], ["4k-3840x2160", "3840x2160"]];

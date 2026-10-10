@@ -28,6 +28,7 @@ const MIN_ASPECT = 740 / 420;
 const VERTICAL_FOV = 27;
 const PULL_MS = 680;
 const PULL_FAST_MS = 360;
+const CONTACT_UNDER_SHADOW_MAPS = 0.35;
 
 const tmpV = new Vector3();
 
@@ -111,7 +112,7 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, settings.pixelRatio));
     renderer.shadowMap.enabled = settings.shadowMap > 0;
     arena?.setShadows(settings.shadowMap);
-    if (contactShadows) contactShadows.group.visible = settings.shadowMap === 0;
+    contactShadows?.setOpacity(settings.shadowMap === 0 ? 1 : CONTACT_UNDER_SHADOW_MAPS);
     resize(width, height);
   }
 
@@ -120,11 +121,13 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, settings.pixelRatio));
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 0.82;
     renderer.shadowMap.enabled = settings.shadowMap > 0;
     renderer.shadowMap.type = PCFShadowMap;
     const pmrem = new PMREMGenerator(renderer);
-    environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const room = new RoomEnvironment();
+    environment = pmrem.fromScene(room, 0.04).texture;
+    room.dispose?.();
     pmrem.dispose();
     scene.environment = environment;
   }
@@ -150,8 +153,9 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     scene.add(confetti.mesh);
     dust = new Dust();
     scene.add(dust.group);
-    contactShadows = new ContactShadows(PULLERS_PER_TEAM * 2);
-    contactShadows.group.visible = settings.shadowMap === 0;
+    // Grounding blobs under the feet: the whole shadow on the low tier, a faint
+    // contact darkening under the shadow-mapped tiers.
+    contactShadows = new ContactShadows(PULLERS_PER_TEAM * 2, settings.shadowMap === 0 ? 1 : CONTACT_UNDER_SHADOW_MAPS);
     tug.add(contactShadows.group);
     for (const team of TEAMS) {
       for (let index = 0; index < PULLERS_PER_TEAM; index += 1) {
@@ -183,8 +187,21 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
   }
 
   function placeCamera() {
-    // Review tooling may park the camera on a face; leave it alone then.
-    if (debugHook?.closeup) return;
+    // Review tooling may park the camera on a face; follow that head instead.
+    if (debugHook?.closeup) {
+      const closeup = debugHook.closeup;
+      const puller = pullers[closeup.team]?.[closeup.index];
+      if (!puller) return;
+      const head = puller.rig.worldPosition(puller.rig.bone("Head"), tmpV);
+      head.y += 0.06;
+      puller.root.localToWorld(head);
+      const towardsCentre = closeup.team === "turquoise" ? 1 : -1;
+      // A three-quarter view from the front (the puller faces the centre), close enough to read the face.
+      const distance = closeup.distance ?? 1;
+      camera.position.set(head.x + towardsCentre * 0.8 * distance, head.y + 0.1, head.z + 0.6 * distance);
+      camera.lookAt(head.x, head.y, head.z);
+      return;
+    }
     const aspect = camera.aspect || DEFAULT_ASPECT;
     const tanHalf = Math.tan((VERTICAL_FOV * Math.PI) / 360);
     const distance = halfWidth / (tanHalf * aspect);
@@ -259,7 +276,7 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
       if (t >= 1) moving = null;
     }
     tug.position.x = tugX;
-    placeCamera();
+    if (!debugHook?.closeup) placeCamera();
 
     // Momentum decays towards the standing situation (who is on the losing side).
     for (const team of TEAMS) {
@@ -293,27 +310,31 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
           const point = handBuffer[slot++];
           point.copy(puller.lastHands[side]);
           puller.root.localToWorld(point);
-          if (puller.release.value < 0.98) handPoints.push(point);
+          if (puller.handOnRope[side]) handPoints.push(point);
         }
       }
     }
     handPoints.sort((a, b) => a.x - b.x);
     rope.update(dt, handPoints, tugX, tension);
 
-    // Contact shadows (low tier) follow the hips.
-    if (contactShadows.group.visible) {
+    // Contact shadows sit between the feet (under the body when down).
+    {
       let index = 0;
       for (const team of TEAMS) {
         for (const puller of pullers[team]) {
-          const hips = puller.rig.worldPosition(puller.rig.bone("Hips"), tmpV);
-          puller.root.localToWorld(hips);
-          contactShadows.place(index++, hips.x - tugX, hips.z, puller.state === "down" ? 1.6 : 1);
+          const down = puller.state === "down" || puller.state === "falling" || puller.state === "rising";
+          const anchor = down ? puller.rig.worldPosition(puller.rig.bone("Hips"), tmpV) : tmpV.copy(puller.feet.Left.position).add(puller.feet.Right.position).multiplyScalar(0.5);
+          anchor.y = 0;
+          puller.root.localToWorld(anchor);
+          contactShadows.place(index++, anchor.x - tugX, anchor.z, puller.state === "down" ? 1.6 : 1);
         }
       }
     }
     confetti.update(dt, matchTime);
     dust.update(dt);
     arena.update(dt, { animateCrowd: currentTier !== "low", excitement });
+    // The camera follows a parked close-up after the pose is final.
+    if (debugHook?.closeup) placeCamera();
 
     if (winner) {
       celebrationTime += dt;
@@ -512,6 +533,8 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         drawCalls: renderer?.info.render.calls ?? 0,
         triangles: renderer?.info.render.triangles ?? 0,
         states: Object.fromEntries(TEAMS.map((team) => [team, pullers[team].map((puller) => puller.state)])),
+        // Largest distance any hand missed its target this frame (metres): hands really hold the rope.
+        reachMiss: Number(Math.max(0, ...TEAMS.flatMap((team) => pullers[team].flatMap((puller) => [puller.reachMiss.Left, puller.reachMiss.Right]))).toFixed(3)),
         fatigue: Object.fromEntries(TEAMS.map((team) => [team, Number((pullers[team][0]?.fatigue ?? 0).toFixed(2))])),
         momentum: { turquoise: Number(momentum.turquoise.toFixed(2)), pink: Number(momentum.pink.toFixed(2)) }
       };

@@ -5,7 +5,7 @@
 // Character space: +Y up, +Z towards the centre knot and the opposing team,
 // +X the puller's left. A team pulls towards its own -Z.
 
-import { Vector3 } from "../vendor/three.js";
+import { Quaternion, Vector3 } from "../vendor/three.js";
 import { BODY_SIDE, HAND_GAP, ROPE_Y } from "./constants.js";
 import { Face } from "./expressions.js";
 import { approach, bump, clamp, deg, easeOutCubic, lerp, makeNoise, makeRandom, smoothstep } from "./math.js";
@@ -13,16 +13,27 @@ import { Rig } from "./rig.js";
 
 const UP = new Vector3(0, 1, 0);
 const FORWARD = new Vector3(0, 0, 1);
+const X_AXIS = new Vector3(1, 0, 0);
 const ARM_POLE_REST = new Vector3(0, -0.35, -1); // elbows point back/down in the rest A-pose
 const LEG_POLE_REST = new Vector3(0, 0, 1); // knees forward
 
 const tmpA = new Vector3();
 const tmpB = new Vector3();
 const tmpC = new Vector3();
+const tmpD = new Vector3();
+const tmpQ = new Quaternion();
 
 const GRIP_OFFSET = 0.07; // wrist → palm centre, metres
 const STEP_DURATION = 0.26;
 const STEP_HEIGHT = 0.09;
+// Braced stance: both feet ahead of the hips so the body can hang back on the rope.
+const FRONT_FOOT_Z = 0.2;
+const BACK_FOOT_Z = -0.16;
+// The rope runs past the waist: the front grip just ahead of the hips, the back grip beside them.
+const GRIP_FRONT_Z = 0.14;
+const GRIP_BACK_Z = GRIP_FRONT_Z - HAND_GAP;
+const ARM_FIT = 0.94; // fraction of the arm length a grip may sit from the shoulder
+const LEG_FIT = 0.985;
 
 /**
  * Keeps a foot where it was planted (in the moving team frame) and takes a
@@ -48,9 +59,9 @@ class Foot {
     return tmpA.subVectors(this.home, this.position).length();
   }
 
-  step(duration = STEP_DURATION, height = STEP_HEIGHT) {
+  step(duration = STEP_DURATION, height = STEP_HEIGHT, target = null) {
     if (this.stepping) return false;
-    this.stepping = { from: this.position.clone(), to: this.home.clone(), t: 0, duration, height };
+    this.stepping = { from: this.position.clone(), to: (target ?? this.home).clone(), t: 0, duration, height };
     return true;
   }
 
@@ -124,10 +135,18 @@ export class Puller {
     this.ropeX = ropeSide * BODY_SIDE;
     this.height = this.rig.lengths.height;
     this.scale = this.height / 1.76;
+    const rig = this.rig;
+    const hipsRest = rig.restPosition("Hips");
+    // Rest offsets from the hips, used to estimate where joints land for a given lean.
+    this.shoulderRest = { Left: rig.restPosition("LeftArm").clone().sub(hipsRest), Right: rig.restPosition("RightArm").clone().sub(hipsRest) };
+    this.hipJointRest = { Left: rig.restPosition("LeftUpLeg").clone().sub(hipsRest), Right: rig.restPosition("RightUpLeg").clone().sub(hipsRest) };
+    this.headRest = rig.restPosition("Head").clone().sub(hipsRest);
+    this.armReach = rig.lengths.upperArm + rig.lengths.foreArm;
+    this.legReach = rig.lengths.thigh + rig.lengths.shin;
     const stance = 0.17 * this.traits.stance;
     this.feet = {
-      Left: new Foot("Left", new Vector3(stance, 0, ropeSide > 0 ? 0.22 : -0.26)),
-      Right: new Foot("Right", new Vector3(-stance, 0, ropeSide > 0 ? -0.26 : 0.22))
+      Left: new Foot("Left", new Vector3(stance, 0, ropeSide > 0 ? FRONT_FOOT_Z : BACK_FOOT_Z)),
+      Right: new Foot("Right", new Vector3(-stance, 0, ropeSide > 0 ? BACK_FOOT_Z : FRONT_FOOT_Z))
     };
     // Smoothed pose channels.
     this.lean = new Value(0.55, 4); // 0 upright … 1 maximal backward lean
@@ -136,10 +155,13 @@ export class Puller {
     this.momentum = 0; // -1 losing … +1 winning, set by the team
     this.hipsOffset = new Vector3(); // transient heave / yank displacement
     this.hipsOffsetTarget = new Vector3();
+    this.handShift = 0; // how much of the transient hip motion the hands have followed
+    this.handShiftRate = 6;
     this.torsoPitchExtra = new Value(0, 8);
     this.release = new Value(0, 5); // 0 hands on rope … 1 hands free
     this.grip = new Value(0.92, 6);
     this.action = null; // { type, t, duration, ... }
+    this.wipe = null; // { side, t, weight } a tired puller wiping their brow
     this.lookTarget = new Vector3(0, 1.3, 6);
     this.handTargets = { Left: new Vector3(), Right: new Vector3() };
     this.handPalm = { Left: new Vector3(0, -1, 0), Right: new Vector3(0, -1, 0) };
@@ -147,6 +169,8 @@ export class Puller {
     this.freeHands = { Left: new Vector3(), Right: new Vector3() };
     this.rootYOffset = 0;
     this.lastHands = { Left: new Vector3(), Right: new Vector3() };
+    this.handOnRope = { Left: true, Right: true };
+    this.reachMiss = { Left: 0, Right: 0 };
     this.helpTarget = null;
     this.celebration = null;
     this.fall = null;
@@ -160,8 +184,11 @@ export class Puller {
   heave(strength = 0.7, fast = false) {
     if (this.state !== "ready" && this.state !== "pulling") return;
     this.state = "pulling";
-    this.action = { type: "heave", t: 0, duration: fast ? 0.42 : 0.72, strength, delay: this.index * 0.045 };
-    this.face.set({ determined: 0.8, strain: 0.3 + this.fatigue * 0.5 }, 9);
+    // Tired pullers heave more slowly.
+    const slow = 1 + this.fatigue * 0.45;
+    this.action = { type: "heave", t: 0, duration: (fast ? 0.42 : 0.72) * slow, strength, delay: this.index * 0.045 };
+    this.handShiftRate = 5.5;
+    this.face.set({ determined: 0.9, strain: 0.45 + this.fatigue * 0.5 }, 10);
   }
 
   /** The other team pulled: this puller is dragged a step towards the centre. */
@@ -169,13 +196,15 @@ export class Puller {
     if (this.state !== "ready" && this.state !== "pulling") return;
     this.state = "pulling";
     this.action = { type: "yank", t: 0, duration: fast ? 0.5 : 0.85, strength, delay: 0.06 + this.index * 0.05 };
-    const surprise = strength > 0.55 ? 0.6 : 0.3;
-    this.face.set({ surprise, strain: 0.5 + this.fatigue * 0.4 }, 10);
+    this.handShiftRate = 16;
+    const surprise = strength > 0.55 ? 0.8 : 0.45;
+    this.face.set({ surprise, strain: 0.6 + this.fatigue * 0.4 }, 12);
   }
 
   /** The match is decided. */
   finish(won) {
     this.action = null;
+    this.wipe = null;
     this.stateTime = 0;
     if (won) {
       this.state = "celebrate";
@@ -183,7 +212,7 @@ export class Puller {
       this.face.set({ joy: 0.9, excited: 0.4 }, 6);
     } else {
       this.state = "falling";
-      this.fall = { kind: ["kneel", "sit", "catch"][this.variant], t: 0 };
+      this.fall = { kind: ["kneel", "sit", "catch"][this.variant], t: 0, steps: 0 };
       this.face.set({ surprise: 0.7, wince: 0.3 }, 10);
     }
     this.release.target = 1;
@@ -195,8 +224,10 @@ export class Puller {
     this.state = "ready";
     this.stateTime = 0;
     this.action = null;
+    this.wipe = null;
     this.celebration = null;
     this.fall = null;
+    this.helpTarget = null;
     this.release.value = 0;
     this.release.target = 0;
     this.grip.target = 0.85;
@@ -204,12 +235,15 @@ export class Puller {
     this.effort.target = 0.3;
     this.hipsOffset.set(0, 0, 0);
     this.hipsOffsetTarget.set(0, 0, 0);
+    this.handShift = 0;
     this.fatigue = 0;
     this.momentum = 0;
     for (const foot of Object.values(this.feet)) {
       foot.position.copy(foot.home);
       foot.stepping = null;
     }
+    this.handOnRope.Left = true;
+    this.handOnRope.Right = true;
     this.face.set({ concentration: 0.6 }, 5);
   }
 
@@ -230,10 +264,15 @@ export class Puller {
     if (this.state === "ready" || this.state === "pulling") {
       const losing = clamp(-momentum, 0, 1);
       const winning = clamp(momentum, 0, 1);
-      this.lean.target = clamp((0.5 + losing * 0.3 + winning * 0.1 - fatigue * 0.12) * this.traits.lean, 0.2, 0.85);
-      this.effort.target = clamp(0.3 + losing * 0.5 + winning * 0.25, 0, 1);
+      this.lean.target = clamp((0.6 + losing * 0.28 + winning * 0.12 - fatigue * 0.14) * this.traits.lean, 0.25, 0.9);
+      this.effort.target = clamp(0.35 + losing * 0.5 + winning * 0.25, 0, 1);
       if (!this.action && this.stateTime > 1.2) {
         this.face.set(fatigue > 0.55 ? { tired: 0.7, strain: losing * 0.4 } : losing > 0.4 ? { strain: 0.6 + fatigue * 0.3, determined: 0.3 } : { concentration: 0.6, determined: 0.3 + winning * 0.3 }, 3);
+      }
+      // A tired puller occasionally wipes their brow with the back hand while nothing is happening.
+      if (!this.action && !this.wipe && fatigue > 0.5 && this.stateTime > 2.4 && this.random() < dt / 9) {
+        const backSide = this.traits.frontHand === "Left" ? "Right" : "Left";
+        this.wipe = { side: backSide, t: 0, weight: 0 };
       }
     }
     const lean = this.lean.update(dt);
@@ -246,28 +285,30 @@ export class Puller {
     this.hipsOffsetTarget.set(0, 0, 0);
     let torsoExtra = 0;
     let stepRequest = null;
+    let digFront = 0;
     if (this.action) {
       const action = this.action;
       action.t += dt;
       const local = clamp((action.t - action.delay) / action.duration, 0, 1);
       if (action.type === "heave") {
-        // Wind up, drive the hips back and down, then recover as the feet re-plant.
-        // A short wind-up (body eases towards the rope) then the drive back and down.
+        // A short wind-up (body eases towards the rope, arms bend) then the
+        // drive: hips back and down, torso laid back, front heel dug in.
         const windUp = local < 0.18 ? Math.sin((local / 0.18) * Math.PI) : 0;
         const drive = bump(clamp((local - 0.12) / 0.88, 0, 1));
-        this.hipsOffsetTarget.z = 0.05 * windUp - 0.26 * action.strength * drive * (1 - fatigue * 0.3);
-        this.hipsOffsetTarget.y = -0.12 * action.strength * drive;
-        torsoExtra = deg(4) * windUp - deg(17) * action.strength * drive;
-        if (local > 0.4 && !action.stepped) {
+        this.hipsOffsetTarget.z = 0.06 * windUp - 0.3 * action.strength * drive * (1 - fatigue * 0.25);
+        this.hipsOffsetTarget.y = -0.13 * action.strength * drive;
+        torsoExtra = deg(5) * windUp - deg(21) * action.strength * drive;
+        digFront = drive;
+        if (local > 0.42 && !action.stepped) {
           action.stepped = true;
           stepRequest = "back";
         }
       } else {
         // Jerked forward: the body lurches, feet slide, then a catch-step.
         const lurch = bump(clamp(local * 1.5, 0, 1));
-        this.hipsOffsetTarget.z = 0.2 * action.strength * lurch;
-        this.hipsOffsetTarget.y = -0.06 * lurch;
-        torsoExtra = deg(26) * action.strength * lurch;
+        this.hipsOffsetTarget.z = 0.22 * action.strength * lurch;
+        this.hipsOffsetTarget.y = -0.07 * lurch;
+        torsoExtra = deg(28) * action.strength * lurch;
         if (local > 0.3 && !action.stepped) {
           action.stepped = true;
           stepRequest = "catch";
@@ -281,6 +322,23 @@ export class Puller {
     }
     this.torsoPitchExtra.target = torsoExtra;
     this.hipsOffset.lerp(this.hipsOffsetTarget, 1 - Math.exp(-14 * dt));
+    // The hands trail the hips on a heave (arms straighten under load) and lead on a yank.
+    const shiftTarget = this.hipsOffset.z * (this.action?.type === "yank" ? 1.25 : 1);
+    this.handShift = approach(this.handShift, shiftTarget, this.handShiftRate, dt);
+
+    // Brow wipe: out, across, back (cancelled quickly by any pull).
+    if (this.wipe) {
+      const wipe = this.wipe;
+      const active = !this.action && (this.state === "ready" || this.state === "pulling");
+      if (active) {
+        wipe.t += dt;
+        wipe.weight = approach(wipe.weight, wipe.t < 1.5 ? 1 : 0, 6, dt);
+        if (wipe.t > 1.5 && wipe.weight < 0.02) this.wipe = null;
+      } else {
+        wipe.weight = approach(wipe.weight, 0, 12, dt);
+        if (wipe.weight < 0.02) this.wipe = null;
+      }
+    }
 
     // Feet: step when the body has moved away from the stance.
     const feet = this.feet;
@@ -305,7 +363,7 @@ export class Puller {
     switch (this.state) {
       case "ready":
       case "pulling":
-        this.posePulling(dt, lean, effort, fatigue, context);
+        this.posePulling(dt, lean, effort, fatigue, digFront, context);
         break;
       case "celebrate":
         this.poseCelebrate(dt, context);
@@ -317,7 +375,7 @@ export class Puller {
         this.poseLosing(dt, context);
         break;
       default:
-        this.posePulling(dt, lean, effort, fatigue, context);
+        this.posePulling(dt, lean, effort, fatigue, digFront, context);
     }
     this.face.update(dt, this.time);
   }
@@ -357,22 +415,29 @@ export class Puller {
       const pole = tmpB.copy(FORWARD).applyAxisAngle(UP, foot.yaw).add(tmpC.set(side === "Left" ? 0.35 : -0.35, 0, 0));
       rig.reach(`${side}UpLeg`, `${side}Leg`, `${side}Foot`, target, pole, LEG_POLE_REST, [rig.lengths.thigh, rig.lengths.shin]);
       const forward = tmpB.copy(FORWARD).applyAxisAngle(UP, foot.yaw);
-      if (foot.lift > 0.005 || pose.footLift[side] > 0.005) forward.y -= 0.6 * clamp((foot.lift + pose.footLift[side]) / STEP_HEIGHT, 0, 1);
+      const lifted = foot.lift + pose.footLift[side];
+      if (lifted > 0.005) forward.y -= 0.6 * clamp(lifted / STEP_HEIGHT, 0, 1);
+      // A dug-in heel: toes up.
+      if (pose.heelDig[side] > 0) forward.y += 0.45 * pose.heelDig[side];
       rig.orientFoot(side, forward.normalize(), UP);
     }
     // Arms.
     for (const side of ["Left", "Right"]) {
       const target = pose.hand[side];
       const pole = pose.armPole[side];
-      rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, target, pole, ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
+      this.reachMiss[side] = rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, target, pole, ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
       rig.orientHand(side, pose.handFingers[side], pose.handPalm[side]);
       rig.curl(side, pose.curl[side]);
     }
     rig.lookAt(pose.look, pose.lookWeight);
     rig.rotate("Head", "z", pose.headRoll);
     this.root.position.y = pose.rootY ?? 0;
-    this.lastHands.Left.copy(pose.grip.Left.lengthSq() > 0 ? pose.grip.Left : pose.hand.Left);
-    this.lastHands.Right.copy(pose.grip.Right.lengthSq() > 0 ? pose.grip.Right : pose.hand.Right);
+    // Where the palms really are (the rope is built through these), from the posed bones.
+    for (const side of ["Left", "Right"]) {
+      const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpA);
+      this.lastHands[side].copy(wrist).addScaledVector(tmpB.copy(pose.handFingers[side]).normalize(), GRIP_OFFSET);
+      this.handOnRope[side] = pose.onRope[side];
+    }
   }
 
   basePose() {
@@ -388,8 +453,10 @@ export class Puller {
       shoulderForward: { Left: 0, Right: 0 },
       shoulderUp: { Left: 0, Right: 0 },
       footLift: { Left: 0, Right: 0 },
+      heelDig: { Left: 0, Right: 0 },
       hand: { Left: new Vector3(), Right: new Vector3() },
       grip: { Left: new Vector3(), Right: new Vector3() },
+      onRope: { Left: false, Right: false },
       handFingers: { Left: new Vector3(0, 0, 1), Right: new Vector3(0, 0, 1) },
       handPalm: { Left: new Vector3(0, -1, 0), Right: new Vector3(0, -1, 0) },
       armPole: { Left: new Vector3(0.6, -0.6, -0.5), Right: new Vector3(-0.6, -0.6, -0.5) },
@@ -401,25 +468,62 @@ export class Puller {
     };
   }
 
+  /** Estimate where a joint carried by the torso lands for this pose (rest offset from the hips, pitched). */
+  torsoPoint(pose, restOffset, out) {
+    const pitch = pose.hipsPitch + pose.spinePitch * 0.9;
+    tmpQ.setFromAxisAngle(X_AXIS, pitch);
+    return out.copy(restOffset).applyQuaternion(tmpQ).add(pose.hipsPosition);
+  }
+
+  /** Pull the hips towards any foot the legs cannot reach (keeps feet planted, never floating). */
+  fitLegs(pose) {
+    const maxLeg = this.legReach * LEG_FIT;
+    for (const side of ["Left", "Right"]) {
+      const foot = this.feet[side];
+      const joint = tmpC.copy(this.hipJointRest[side]).add(pose.hipsPosition);
+      const dx = foot.position.x - joint.x;
+      const dy = this.rig.footRestY + foot.lift + pose.footLift[side] - joint.y;
+      const dz = foot.position.z - joint.z;
+      if (dx * dx + dy * dy + dz * dz <= maxLeg * maxLeg) continue;
+      const room = Math.sqrt(Math.max(0, maxLeg * maxLeg - dx * dx - dy * dy));
+      // Move the hips along z towards the foot until the leg can reach.
+      pose.hipsPosition.z = dz > 0 ? foot.position.z - room : foot.position.z + room;
+    }
+  }
+
+  /** Keep a grip within the arm's reach of its shoulder by sliding it along the rope (z). */
+  fitArm(pose, side) {
+    const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+    const grip = pose.grip[side];
+    const max = this.armReach * ARM_FIT;
+    const dx = grip.x - shoulder.x;
+    const dy = grip.y - shoulder.y;
+    const dz = grip.z - shoulder.z;
+    if (dx * dx + dy * dy + dz * dz <= max * max) return;
+    const room = Math.sqrt(Math.max(0, max * max - dx * dx - dy * dy));
+    grip.z = dz > 0 ? shoulder.z + room : shoulder.z - room;
+  }
+
   /** Where this puller's two hands sit on the rope, character space. */
   ropeHands(pose, release) {
     const frontSide = this.traits.frontHand;
     const backSide = frontSide === "Left" ? "Right" : "Left";
     const ropeY = ROPE_Y + this.noise(this.time * 0.6 + 3) * 0.004;
-    const frontZ = HAND_GAP * 0.5;
-    const backZ = -HAND_GAP * 0.5;
-    // Where each palm closes around the rope (the rope is built through these).
-    pose.grip[frontSide].set(this.ropeX, ropeY, frontZ);
-    pose.grip[backSide].set(this.ropeX, ropeY, backZ);
+    // Grips ride with the hips (the rope passes the waist) and trail or lead them on a pull.
+    const base = pose.hipsPosition.z - this.hipsOffset.z + this.handShift;
+    pose.grip[frontSide].set(this.ropeX, ropeY, base + GRIP_FRONT_Z);
+    pose.grip[backSide].set(this.ropeX, ropeY, base + GRIP_BACK_Z);
     // Overhand grip: knuckles roll outwards over the rope and down, palms face
     // down and slightly back towards the body.
     for (const side of ["Left", "Right"]) {
+      this.fitArm(pose, side);
       pose.handFingers[side].set(this.ropeSide * 0.75, -0.6, 0.12).normalize();
       pose.handPalm[side].set(-this.ropeSide * 0.35, -0.9, -0.2).normalize();
       pose.curl[side] = this.grip.value;
       pose.armPole[side].set(side === "Left" ? 0.7 : -0.7, -0.55, -0.45);
       // The IK target is the wrist: one palm-length back along the knuckle direction.
       pose.hand[side].copy(pose.grip[side]).addScaledVector(pose.handFingers[side], -GRIP_OFFSET);
+      pose.onRope[side] = release < 0.5;
     }
     if (release > 0) {
       // Hands drift off the rope towards a free pose.
@@ -428,39 +532,64 @@ export class Puller {
         pose.grip[side].copy(pose.hand[side]);
       }
     }
+    // The brow wipe lifts the back hand off the rope and across the forehead.
+    if (this.wipe && this.wipe.weight > 0.001) {
+      const wipe = this.wipe;
+      const side = wipe.side;
+      const head = this.torsoPoint(pose, this.headRest, tmpD);
+      const sweep = Math.sin(clamp((wipe.t - 0.35) / 0.9, 0, 1) * Math.PI) * 0.09;
+      const brow = tmpC.set(head.x + (side === "Left" ? 0.07 : -0.07) - this.ropeSide * sweep, head.y + 0.08, head.z + 0.13);
+      pose.hand[side].lerp(brow, wipe.weight);
+      pose.handFingers[side].lerp(tmpD.set(side === "Left" ? -1 : 1, 0.2, 0).normalize(), wipe.weight).normalize();
+      pose.handPalm[side].lerp(tmpD.set(0, -0.3, -1).normalize(), wipe.weight).normalize();
+      pose.armPole[side].lerp(tmpD.set(side === "Left" ? 0.9 : -0.9, -0.5, 0.2), wipe.weight);
+      pose.curl[side] = lerp(pose.curl[side], 0.25, wipe.weight);
+      pose.onRope[side] = wipe.weight < 0.3 && pose.onRope[side];
+      pose.look.y -= 0.25 * wipe.weight;
+    }
     return { front: pose.grip[frontSide], back: pose.grip[backSide] };
   }
 
-  posePulling(dt, lean, effort, fatigue, context) {
+  posePulling(dt, lean, effort, fatigue, digFront, context) {
     const pose = this.basePose();
     const t = this.time;
-    const breath = 0.5 + 0.5 * Math.sin(t * (1.6 + fatigue * 1.6) * this.traits.tempo);
+    const breath = 0.5 + 0.5 * Math.sin(t * (1.6 + fatigue * 1.8) * this.traits.tempo);
     const sway = this.noise(t * 0.7) * 0.012 * this.traits.sway + this.noise(t * 2.3 + 9) * 0.004 * (1 + fatigue);
-    const kneeBend = 0.08 + effort * 0.09 + lean * 0.07;
-    // Hips sit behind the rope slot and lower as the lean grows.
+    // Lower, braced stance: the deeper the lean the lower the hips; tired legs sag further.
+    const sink = 0.1 + effort * 0.08 + lean * 0.1 + fatigue * 0.05;
     pose.hipsPosition.set(
       sway + this.hipsOffset.x,
-      this.rig.hipsRestY - kneeBend - this.hipsOffset.y * -1 + Math.sin(t * 3.1) * 0.003 * (1 + fatigue) + this.hipsOffset.y,
-      -0.16 - lean * 0.2 + this.hipsOffset.z
+      this.rig.hipsRestY - sink + Math.sin(t * 3.1) * 0.003 * (1 + fatigue) + this.hipsOffset.y,
+      -0.2 - lean * 0.2 + this.hipsOffset.z
     );
-    pose.hipsPitch = -deg(6) - lean * deg(10);
+    pose.hipsPitch = -deg(8) - lean * deg(14);
     pose.hipsYaw = this.ropeSide * deg(14);
     pose.hipsRoll = this.ropeSide * deg(2);
-    const slump = fatigue * deg(12);
-    pose.spinePitch = -deg(12) - lean * deg(22) + this.torsoPitchExtra.value + slump;
+    const slump = fatigue * deg(10);
+    pose.spinePitch = -deg(10) - lean * deg(26) + this.torsoPitchExtra.value + slump;
     pose.spineTwist = this.ropeSide * deg(10);
     pose.spineRoll = -this.ropeSide * deg(4) * lean;
-    pose.chest = breath * deg(2.5) * (0.5 + fatigue);
+    pose.chest = breath * deg(2.5) * (0.6 + fatigue * 1.2);
     pose.shoulderForward.Left = deg(10) + effort * deg(8);
     pose.shoulderForward.Right = deg(10) + effort * deg(8);
-    pose.shoulderUp.Left = deg(3) + fatigue * deg(4) + breath * deg(1.5);
-    pose.shoulderUp.Right = deg(3) + fatigue * deg(4) + breath * deg(1.5);
+    pose.shoulderUp.Left = deg(3) + fatigue * deg(5) + breath * deg(1.5);
+    pose.shoulderUp.Right = deg(3) + fatigue * deg(5) + breath * deg(1.5);
+    this.fitLegs(pose);
     this.ropeHands(pose, this.release.value);
-    pose.look.set(this.ropeX * 0.5, 1.15 - fatigue * 0.3, 5);
+    const frontFoot = this.ropeSide > 0 ? "Left" : "Right";
+    pose.heelDig[frontFoot] = clamp(digFront * 0.9 + lean * 0.25, 0, 1);
+    pose.look.set(this.ropeX * 0.5, 1.15 - fatigue * 0.35, 5);
     pose.lookWeight = 0.65;
-    pose.headRoll = this.noise(t * 0.4 + 20) * deg(3);
+    pose.headRoll = this.noise(t * 0.4 + 20) * deg(3) + fatigue * deg(4) * this.ropeSide;
     this.applyPose(pose);
     void context;
+    void dt;
+  }
+
+  /** Straight arm from the shoulder along `direction` (character space), slightly short of full reach. */
+  armStraight(pose, side, direction, reach = 0.96) {
+    const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+    pose.hand[side].copy(shoulder).addScaledVector(tmpD.copy(direction).normalize(), this.armReach * reach);
   }
 
   poseCelebrate(dt, context) {
@@ -469,40 +598,66 @@ export class Puller {
     c.t += dt;
     const t = c.t;
     const settle = smoothstep(0, 0.45, t); // stand up out of the pulling stance
-    const bounce = Math.max(0, Math.sin(t * 7.5 * this.traits.tempo));
+    const tempo = this.traits.tempo;
+    const bounce = Math.max(0, Math.sin(t * 7.5 * tempo));
     pose.hipsPosition.set(this.noise(t * 0.9) * 0.01, this.rig.hipsRestY - 0.06 * (1 - settle), -0.05 * (1 - settle));
     pose.hipsPitch = -deg(4) * (1 - settle);
-    pose.spinePitch = -deg(14) * (1 - settle) - deg(6) * settle;
-    pose.look.set(this.ropeSide * 0.2, 1.75, 4);
+    pose.spinePitch = -deg(14) * (1 - settle) - deg(8) * settle;
+    pose.look.set(this.ropeSide * 0.2, 1.9, 4);
     pose.lookWeight = 0.9;
-    const armsUp = (side, spread, height) => {
-      pose.hand[side].set(side === "Left" ? spread : -spread, height, 0.12);
+    const armsUp = (side, spread, forward = 0.12) => {
+      this.armStraight(pose, side, tmpA.set(side === "Left" ? spread : -spread, 1, forward));
       pose.handFingers[side].set(side === "Left" ? 0.4 : -0.4, 1, 0.1).normalize();
       pose.handPalm[side].set(0, 0, 1);
       pose.armPole[side].set(side === "Left" ? 0.9 : -0.9, 0.1, -0.3);
       pose.curl[side] = 0.25;
     };
+    const fistsUp = (phase) => {
+      // Both fists pumping at chest / head height.
+      for (const side of ["Left", "Right"]) {
+        const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+        pose.hand[side].set(shoulder.x + (side === "Left" ? 0.08 : -0.08), shoulder.y + 0.05 + phase * 0.3, shoulder.z + 0.3 - phase * 0.1);
+        pose.handFingers[side].set(0, 1, 0.2).normalize();
+        pose.handPalm[side].set(0, 0, -1);
+        pose.armPole[side].set(side === "Left" ? 0.9 : -0.9, -0.4, -0.3);
+        pose.curl[side] = 0.95;
+      }
+    };
     let rootLift = 0;
     if (c.kind === "arms") {
-      const wave = Math.sin(t * 5) * 0.08;
-      armsUp("Left", 0.42 + wave, 1.72 + Math.abs(wave) * 0.5);
-      armsUp("Right", 0.42 - wave, 1.72 + Math.abs(wave) * 0.5);
-      pose.spineRoll = Math.sin(t * 2.5) * deg(5);
+      // Arms straight up in a V, rocking side to side; then both fists pumping; repeat.
+      const cycle = (t * tempo) % 4.4;
+      if (cycle < 2.6) {
+        const wave = Math.sin(t * 5) * 0.08;
+        armsUp("Left", 0.45 + wave);
+        armsUp("Right", 0.45 - wave);
+        pose.spineRoll = Math.sin(t * 2.5) * deg(6);
+      } else {
+        const pump = 0.5 + 0.5 * Math.sin(t * 7 * tempo);
+        fistsUp(pump);
+        pose.spinePitch -= deg(6) * pump;
+      }
+      // Knees give a little with every beat; weight shifts from foot to foot.
+      pose.hipsPosition.y -= 0.06 * (1 - bounce) * settle;
+      pose.hipsRoll = Math.sin(t * 3.75 * tempo) * deg(3);
     } else if (c.kind === "jump") {
-      const phase = (t * 1.6 * this.traits.tempo) % 1;
+      const phase = (t * 1.6 * tempo) % 1;
       const air = phase < 0.45 ? bump(phase / 0.45) : 0;
-      rootLift = air * 0.22 * settle;
-      armsUp("Left", 0.38, 1.7 + air * 0.08);
-      armsUp("Right", 0.38, 1.7 + air * 0.08);
+      const crouch = phase > 0.75 ? bump((phase - 0.75) / 0.25) : 0;
+      rootLift = air * 0.24 * settle;
+      armsUp("Left", 0.35 + air * 0.1, 0.08);
+      armsUp("Right", 0.35 + air * 0.1, 0.08);
       pose.footLift.Left = air * 0.1;
       pose.footLift.Right = air * 0.1;
-      pose.hipsPosition.y -= (1 - air) * 0.04 * settle;
+      pose.hipsPosition.y -= (crouch * 0.07 + (1 - air) * 0.03) * settle;
+      pose.spinePitch += deg(6) * crouch;
     } else {
-      // Fist pump with the rope-side arm, other hand on the hip.
+      // Fist pump with the rope-side arm, other hand on the hip, hopping on the spot.
       const pumpSide = this.ropeSide > 0 ? "Right" : "Left";
       const restSide = pumpSide === "Left" ? "Right" : "Left";
-      const pump = 0.5 + 0.5 * Math.sin(t * 6 * this.traits.tempo);
-      pose.hand[pumpSide].set(pumpSide === "Left" ? 0.28 : -0.28, 1.35 + pump * 0.45, 0.25 - pump * 0.1);
+      const pump = 0.5 + 0.5 * Math.sin(t * 6 * tempo);
+      const shoulder = this.torsoPoint(pose, this.shoulderRest[pumpSide], tmpC);
+      pose.hand[pumpSide].set(shoulder.x + (pumpSide === "Left" ? 0.12 : -0.12), shoulder.y + 0.05 + pump * 0.42, shoulder.z + 0.28 - pump * 0.12);
       pose.handFingers[pumpSide].set(0, 1, 0.2).normalize();
       pose.handPalm[pumpSide].set(pumpSide === "Left" ? -1 : 1, 0, 0);
       pose.armPole[pumpSide].set(pumpSide === "Left" ? 0.8 : -0.8, -0.2, -0.4);
@@ -513,6 +668,9 @@ export class Puller {
       pose.armPole[restSide].set(restSide === "Left" ? 0.9 : -0.9, -0.3, -0.5);
       pose.curl[restSide] = 0.3;
       pose.spineTwist = (pumpSide === "Left" ? 1 : -1) * pump * deg(8);
+      const hop = Math.max(0, Math.sin(t * 6 * tempo));
+      rootLift = hop * 0.05 * settle;
+      pose.hipsPosition.y -= (1 - hop) * 0.03 * settle;
     }
     // High five with the neighbour when asked for one.
     if (c.highFive) {
@@ -532,6 +690,7 @@ export class Puller {
     }
     pose.rootY = rootLift;
     pose.chest = bounce * deg(2);
+    this.fitLegs(pose);
     this.applyPose(pose);
     void context;
   }
@@ -550,31 +709,43 @@ export class Puller {
     f.t += dt;
     const t = f.t;
     const hipsY = this.rig.hipsRestY;
-    // Phase 1 (0–0.5 s): the rope goes slack and the body lurches forward.
-    // Phase 2 (0.5–1.2 s): the fall / catch. Phase 3 (1.2–3.0 s): on the ground. Phase 4: rise and stand dejected.
-    const lurch = smoothstep(0, 0.35, t) * (1 - smoothstep(0.55, 1.2, t));
-    const drop = smoothstep(0.45, 1.15, t);
-    const rise = smoothstep(3.0, 4.3, t);
-    if (this.state === "falling" && t > 1.2) this.state = "down";
-    if (this.state === "down" && t > 3.0) this.state = "rising";
-    if (this.state === "rising" && t > 4.3) {
+    // Phase 1 (0–0.7 s): the rope goes slack; the body lurches forward and
+    // stumbles two quick steps. Phase 2 (0.6–1.25 s): the fall / catch.
+    // Phase 3 (1.25–3.2 s): on the ground. Phase 4 (3.2–4.5 s): rise; then stand dejected.
+    const lurch = smoothstep(0, 0.28, t) * (1 - smoothstep(0.7, 1.3, t));
+    const drop = smoothstep(0.6, 1.25, t);
+    const rise = smoothstep(3.2, 4.5, t);
+    if (this.state === "falling" && t > 1.25) this.state = "down";
+    if (this.state === "down" && t > 3.2) this.state = "rising";
+    if (this.state === "rising" && t > 4.5) {
       this.state = "dejected";
       this.face.set({ disappointed: 0.8 }, 3);
     }
-    if (this.state === "down" && t > 1.5 && !f.faced) {
+    if (this.state === "down" && t > 1.6 && !f.faced) {
       f.faced = true;
       this.face.set({ disappointed: 0.6, tired: 0.4 }, 3);
     }
+    // Stumble: the feet chase the lurching body with two quick, high steps.
+    const front = this.ropeSide > 0 ? this.feet.Left : this.feet.Right;
+    const back = this.ropeSide > 0 ? this.feet.Right : this.feet.Left;
+    if (f.steps === 0 && t > 0.06) {
+      f.steps = 1;
+      front.step(0.19, 0.1, tmpA.set(front.position.x * 0.8, 0, front.position.z + 0.42));
+    } else if (f.steps === 1 && t > 0.28) {
+      f.steps = 2;
+      back.step(0.19, 0.09, tmpA.set(back.position.x * 0.8, 0, back.position.z + 0.5));
+    }
     const kind = f.kind;
     const downAmount = drop * (1 - rise);
-    let hipsTargetY = hipsY - 0.08;
-    let hipsZ = 0.18 * lurch;
-    let spinePitch = deg(28) * lurch;
+    let hipsTargetY = hipsY - 0.1 - 0.06 * lurch;
+    let hipsZ = 0.4 * smoothstep(0, 0.55, t) * (1 - drop * 0.4);
+    let spinePitch = deg(44) * lurch;
     const handL = pose.hand.Left;
     const handR = pose.hand.Right;
-    // Hands leave the rope and reach forward with the lurch.
-    handL.set(0.28, 1.05 - lurch * 0.25, 0.45 + lurch * 0.2);
-    handR.set(-0.28, 1.05 - lurch * 0.25, 0.45 + lurch * 0.2);
+    // Hands leave the rope and windmill forward with the lurch.
+    const flail = Math.sin(t * 15) * 0.1 * lurch;
+    handL.set(0.36 + flail, 1.05 - lurch * 0.3 + flail, hipsZ + 0.35 + lurch * 0.25);
+    handR.set(-0.36 - flail, 1.05 - lurch * 0.3 - flail, hipsZ + 0.35 + lurch * 0.25);
     for (const side of ["Left", "Right"]) {
       pose.handFingers[side].set(0, -0.3, 1).normalize();
       pose.handPalm[side].set(0, -1, 0.3).normalize();
@@ -583,11 +754,11 @@ export class Puller {
     }
     if (kind === "kneel") {
       // Down onto hands and knees, head low; then push up.
-      hipsTargetY = lerp(hipsY - 0.08, 0.5, downAmount);
+      hipsTargetY = lerp(hipsTargetY, 0.5, downAmount);
       hipsZ += 0.12 * downAmount;
       spinePitch += deg(55) * downAmount;
-      handL.set(0.26, lerp(0.9, 0.05, downAmount), lerp(0.4, 0.55, downAmount));
-      handR.set(-0.26, lerp(0.9, 0.05, downAmount), lerp(0.4, 0.55, downAmount));
+      handL.lerp(tmpA.set(0.26, 0.05, hipsZ + 0.5), downAmount);
+      handR.lerp(tmpB.set(-0.26, 0.05, hipsZ + 0.5), downAmount);
       pose.handFingers.Left.set(0.1, -0.2, 1).normalize();
       pose.handFingers.Right.set(-0.1, -0.2, 1).normalize();
       pose.handPalm.Left.set(0, -1, 0);
@@ -595,78 +766,111 @@ export class Puller {
       pose.armPole.Left.set(0.9, 0.2, -0.3);
       pose.armPole.Right.set(-0.9, 0.2, -0.3);
       // Knees down: feet slide back under the hips.
-      for (const side of ["Left", "Right"]) {
-        const foot = this.feet[side];
-        const target = tmpA.set(side === "Left" ? 0.18 : -0.18, 0, -0.42);
-        foot.position.lerp(target, 1 - Math.exp(-6 * dt * downAmount));
-        if (downAmount > 0.6) pose.footLift[side] = 0.02 * downAmount; // toes trail
+      if (downAmount > 0) {
+        for (const side of ["Left", "Right"]) {
+          const foot = this.feet[side];
+          if (foot.stepping) continue;
+          const target = tmpA.set(side === "Left" ? 0.18 : -0.18, 0, hipsZ - 0.42);
+          foot.position.lerp(target, 1 - Math.exp(-6 * dt * downAmount));
+          if (downAmount > 0.6) pose.footLift[side] = 0.02 * downAmount; // toes trail
+        }
       }
       pose.look.set(0, 0.2, 2);
       pose.lookWeight = 0.6 * downAmount + 0.4;
     } else if (kind === "sit") {
       // Sits back on the ground, hands behind, then gets up.
-      hipsTargetY = lerp(hipsY - 0.08, 0.14, downAmount);
+      hipsTargetY = lerp(hipsTargetY, 0.14, downAmount);
       hipsZ += -0.2 * downAmount;
-      spinePitch = deg(28) * lurch - deg(12) * downAmount;
+      spinePitch = deg(32) * lurch - deg(12) * downAmount;
       pose.hipsPitch = -deg(20) * downAmount;
-      handL.set(lerp(0.28, 0.32, downAmount), lerp(0.9, 0.04, downAmount), lerp(0.4, -0.38, downAmount));
-      handR.set(lerp(-0.28, -0.32, downAmount), lerp(0.9, 0.04, downAmount), lerp(0.4, -0.38, downAmount));
+      handL.lerp(tmpA.set(0.32, 0.04, hipsZ - 0.3), downAmount);
+      handR.lerp(tmpB.set(-0.32, 0.04, hipsZ - 0.3), downAmount);
       pose.handFingers.Left.set(0.3, -0.3, -1).normalize();
       pose.handFingers.Right.set(-0.3, -0.3, -1).normalize();
       pose.handPalm.Left.set(0, -1, 0);
       pose.handPalm.Right.set(0, -1, 0);
       pose.armPole.Left.set(0.8, -0.3, -0.6);
       pose.armPole.Right.set(-0.8, -0.3, -0.6);
-      for (const side of ["Left", "Right"]) {
-        const foot = this.feet[side];
-        const target = tmpA.set(side === "Left" ? 0.2 : -0.2, 0, 0.5);
-        foot.position.lerp(target, 1 - Math.exp(-6 * dt * downAmount));
+      if (downAmount > 0) {
+        for (const side of ["Left", "Right"]) {
+          const foot = this.feet[side];
+          if (foot.stepping) continue;
+          const target = tmpA.set(side === "Left" ? 0.2 : -0.2, 0, hipsZ + 0.55);
+          foot.position.lerp(target, 1 - Math.exp(-6 * dt * downAmount));
+        }
       }
       pose.look.set(0, 0.9, 3);
     } else {
       // Stumbles, catches with hands on the knees, stays on their feet.
-      hipsTargetY = lerp(hipsY - 0.08, hipsY - 0.22, downAmount);
+      hipsTargetY = lerp(hipsTargetY, hipsY - 0.24, downAmount);
       hipsZ += 0.08 * downAmount;
-      spinePitch += deg(48) * downAmount;
-      handL.set(0.17, lerp(0.9, 0.62, downAmount), lerp(0.4, 0.2, downAmount));
-      handR.set(-0.17, lerp(0.9, 0.62, downAmount), lerp(0.4, 0.2, downAmount));
+      spinePitch += deg(50) * downAmount;
+      handL.lerp(tmpA.set(0.17, 0.6, hipsZ + 0.3), downAmount);
+      handR.lerp(tmpB.set(-0.17, 0.6, hipsZ + 0.3), downAmount);
       pose.handFingers.Left.set(0.1, -1, 0.3).normalize();
       pose.handFingers.Right.set(-0.1, -1, 0.3).normalize();
       pose.handPalm.Left.set(-0.3, -0.6, -0.7).normalize();
       pose.handPalm.Right.set(0.3, -0.6, -0.7).normalize();
       pose.armPole.Left.set(0.9, -0.2, -0.4);
       pose.armPole.Right.set(-0.9, -0.2, -0.4);
-      for (const side of ["Left", "Right"]) {
-        const foot = this.feet[side];
-        const target = tmpA.set(side === "Left" ? 0.2 : -0.2, 0, 0.05);
-        foot.position.lerp(target, 1 - Math.exp(-4 * dt * downAmount));
+      if (downAmount > 0) {
+        for (const side of ["Left", "Right"]) {
+          const foot = this.feet[side];
+          if (foot.stepping) continue;
+          const target = tmpA.set(side === "Left" ? 0.2 : -0.2, 0, hipsZ + 0.1);
+          foot.position.lerp(target, 1 - Math.exp(-4 * dt * downAmount));
+        }
       }
       pose.look.set(0, 0.5, 2.5);
     }
-    // Dejected stance after rising: upright-ish, shoulders slumped, head down.
+    // Dejected stance after rising: shoulders slumped, head down; one puller
+    // keeps their hands on the hips, one lets the arms hang, one stays bent
+    // over with hands on the knees.
     const dejected = rise;
-    hipsTargetY = lerp(hipsTargetY, hipsY - 0.03, dejected);
+    const keepBent = kind === "catch" ? 0.55 : 0;
+    hipsTargetY = lerp(hipsTargetY, hipsY - 0.03 - 0.12 * keepBent, dejected);
     hipsZ = lerp(hipsZ, 0, dejected);
-    spinePitch = lerp(spinePitch, deg(14) + Math.sin(t * 1.4) * deg(1.5), dejected);
+    spinePitch = lerp(spinePitch, deg(16) + deg(30) * keepBent + Math.sin(t * 1.4) * deg(1.5), dejected);
     if (dejected > 0) {
-      handL.lerp(tmpA.set(0.22, 0.95, 0.06), dejected);
-      handR.lerp(tmpB.set(-0.22, 0.95, 0.06), dejected);
-      pose.look.lerp(tmpC.set(0.2, 0.9, 3), dejected);
+      if (kind === "kneel") {
+        // Hands on the hips.
+        handL.lerp(tmpA.set(0.2, hipsY + 0.02, -0.06), dejected);
+        handR.lerp(tmpB.set(-0.2, hipsY + 0.02, -0.06), dejected);
+        for (const side of ["Left", "Right"]) {
+          pose.handFingers[side].lerp(tmpA.set(side === "Left" ? -0.6 : 0.6, -0.5, -0.6).normalize(), dejected).normalize();
+          pose.handPalm[side].lerp(tmpB.set(side === "Left" ? -0.8 : 0.8, -0.2, 0.5).normalize(), dejected).normalize();
+          pose.armPole[side].lerp(tmpC.set(side === "Left" ? 0.9 : -0.9, 0.1, -0.5), dejected);
+          pose.curl[side] = lerp(pose.curl[side], 0.35, dejected);
+        }
+      } else if (kind === "sit") {
+        // Arms hanging, a slow shake of the head.
+        handL.lerp(tmpA.set(0.22, 0.86, 0.06), dejected);
+        handR.lerp(tmpB.set(-0.22, 0.86, 0.06), dejected);
+        for (const side of ["Left", "Right"]) {
+          pose.handFingers[side].lerp(tmpA.set(0, -1, 0.2).normalize(), dejected).normalize();
+          pose.handPalm[side].lerp(tmpB.set(side === "Left" ? -1 : 1, 0, 0), dejected).normalize();
+          pose.armPole[side].lerp(tmpC.set(side === "Left" ? 0.9 : -0.9, -0.3, -0.4), dejected);
+        }
+        pose.headRoll = Math.sin(t * 2.2) * deg(5) * dejected;
+      } else {
+        // Hands stay on the knees, breathing hard.
+        handL.lerp(tmpA.set(0.17, 0.62, 0.22), dejected);
+        handR.lerp(tmpB.set(-0.17, 0.62, 0.22), dejected);
+      }
+      pose.look.lerp(tmpC.set(0.2, 0.7 - keepBent * 0.3, 3), dejected);
       for (const side of ["Left", "Right"]) {
-        pose.handFingers[side].lerp(tmpA.set(0, -1, 0.2).normalize(), dejected).normalize();
-        pose.handPalm[side].lerp(tmpB.set(side === "Left" ? -1 : 1, 0, 0), dejected).normalize();
-        pose.armPole[side].lerp(tmpC.set(side === "Left" ? 0.9 : -0.9, -0.3, -0.4), dejected);
         const foot = this.feet[side];
-        foot.position.lerp(tmpA.set(side === "Left" ? 0.16 : -0.16, 0, 0), 1 - Math.exp(-3 * dt * dejected));
+        if (foot.stepping) continue;
+        foot.position.lerp(tmpA.set(side === "Left" ? 0.16 : -0.16, 0, 0.04), 1 - Math.exp(-3 * dt * dejected));
       }
       pose.shoulderUp.Left = deg(6) * dejected;
       pose.shoulderUp.Right = deg(6) * dejected;
       pose.shoulderForward.Left = deg(8) * dejected;
       pose.shoulderForward.Right = deg(8) * dejected;
     }
-    // A standing teammate offers a hand to a fallen neighbour.
-    if (this.helpTarget && t > 2.4) {
-      const reach = smoothstep(2.4, 3.2, t);
+    // A standing teammate offers a hand to a fallen neighbour, until they are up.
+    if (this.helpTarget && t > 2.4 && t < 4.8) {
+      const reach = smoothstep(2.4, 3.2, t) * (1 - smoothstep(4.1, 4.8, t));
       const side = this.helpTarget.x > 0 ? "Left" : "Right";
       pose.hand[side].lerp(this.helpTarget, reach * 0.9);
       pose.handFingers[side].copy(tmpA.subVectors(this.helpTarget, pose.hand[side]).normalize());
@@ -677,7 +881,8 @@ export class Puller {
     }
     pose.hipsPosition.set(this.noise(t * 0.8) * 0.006, hipsTargetY, hipsZ);
     pose.spinePitch = spinePitch;
-    pose.chest = Math.sin(t * 2.6) * deg(2.5);
+    pose.chest = Math.sin(t * (2.6 + keepBent * 2)) * deg(2.5 + keepBent * 2);
+    if (this.state === "dejected" || (this.state === "rising" && rise > 0.5)) this.fitLegs(pose);
     this.applyPose(pose);
     void context;
   }

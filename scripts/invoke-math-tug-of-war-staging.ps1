@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'apply', 'verify', 'migrate', 'smoke', 'review', 'share-check', 'owner-account')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'apply', 'verify', 'migrate', 'smoke', 'review', 'review-3d', 'share-check', 'owner-account')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
@@ -14,12 +14,13 @@ param(
 #   -Stage apply     owner-approved: apply ONLY 20260927100000 in one statement and record it
 #   -Stage smoke     room contract through the service-role functions (synthetic, cleaned up)
 #   -Stage review    real browsers against -Origin <staging preview URL> (synthetic subscribers, deleted)
+#   -Stage review-3d the 3D scene on the hosted build (same credentials, synthetic subscribers, deleted)
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-tug-of-war-staging.ps1 -Stage identify
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable.' }
-if ($Stage -in @('review', 'share-check') -and [string]::IsNullOrWhiteSpace($Origin)) { throw 'The review stage needs -Origin <staging preview URL>.' }
+if ($Stage -in @('review', 'review-3d', 'share-check') -and [string]::IsNullOrWhiteSpace($Origin)) { throw 'The review stage needs -Origin <staging preview URL>.' }
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
   $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
@@ -31,6 +32,7 @@ $stagingNames = switch ($Stage) {
   'migrate' { @('SUPABASE_DB_PASSWORD') }
   'smoke' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'review-3d' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'share-check' { @('SUPABASE_SECRET_KEY') }
   'owner-account' { @('SUPABASE_SECRET_KEY') }
   default { @('SUPABASE_DB_PASSWORD', 'SUPABASE_SECRET_KEY') }
@@ -60,6 +62,12 @@ try {
     $env:STAGING_ORIGIN = $Origin
     $env:EXPECT_COMMIT = $ExpectCommit
     & node scripts/review-math-tug-of-war-staging.mjs
+    exit $LASTEXITCODE
+  }
+  if ($Stage -eq 'review-3d') {
+    $env:STAGING_ORIGIN = $Origin
+    $env:EXPECT_COMMIT = $ExpectCommit
+    & node scripts/review-math-tug-of-war-3d-staging.mjs
     exit $LASTEXITCODE
   }
   & node scripts/run-math-tug-of-war-staging.mjs "--stage=$Stage"

@@ -44,11 +44,11 @@ function grassTexture() {
   canvas.height = size;
   const context = canvas.getContext("2d");
   const random = makeRandom(7);
-  context.fillStyle = "#4d9f4a";
+  context.fillStyle = "#3f9343";
   context.fillRect(0, 0, size, size);
   // Mown stripes.
   for (let x = 0; x < size; x += 64) {
-    context.fillStyle = (x / 64) % 2 ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+    context.fillStyle = (x / 64) % 2 ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
     context.fillRect(x, 0, 64, size);
   }
   // Blade speckle.
@@ -244,14 +244,16 @@ export class Arena {
     this.fog = new Fog(SKY_HORIZON, 24, 70);
 
     // Lights.
-    // Key light from high behind-left so contact shadows fall towards the
-    // camera (readable ground contact); a soft front fill keeps faces lit.
-    this.hemisphere = new HemisphereLight(0xcfe6ff, 0x5d8f4a, 0.5);
-    this.sun = new DirectionalLight(0xfff2dc, 3.4);
-    this.sun.position.set(-5, 12, -3.5);
+    // Key light from high in front-right (camera side) so faces and shirts
+    // are lit and the shadows stretch back across the grass; a cool rim light
+    // from behind separates the pullers from the stands. Ambient is kept low
+    // so the ground shadows read clearly.
+    this.hemisphere = new HemisphereLight(0xd6e8ff, 0x5d8f4a, 0.55);
+    this.sun = new DirectionalLight(0xfff1dd, 2.7);
+    this.sun.position.set(6, 14, 9);
     this.sun.target.position.set(0, 0.8, 0);
-    this.fill = new DirectionalLight(0xe8f1ff, 0.75);
-    this.fill.position.set(4, 6, 12);
+    this.fill = new DirectionalLight(0xdfe9ff, 0.4);
+    this.fill.position.set(-4, 5, -7);
     this.fill.target.position.set(0, 1, 0);
     this.sunAnchor = new Group();
     this.sunAnchor.add(this.sun, this.sun.target, this.fill, this.fill.target);
@@ -268,15 +270,15 @@ export class Arena {
     if (mapSize > 0) {
       sun.shadow.mapSize.set(mapSize, mapSize);
       const camera = sun.shadow.camera;
-      camera.left = -8.5;
-      camera.right = 8.5;
-      camera.top = 4.5;
-      camera.bottom = -4.5;
+      camera.left = -9.5;
+      camera.right = 9.5;
+      camera.top = 5.5;
+      camera.bottom = -5.5;
       camera.near = 1;
       camera.far = 40;
-      sun.shadow.bias = -0.0006;
+      sun.shadow.bias = -0.0005;
       sun.shadow.normalBias = 0.025;
-      sun.shadow.radius = 3;
+      sun.shadow.radius = 4;
       camera.updateProjectionMatrix();
       if (sun.shadow.map) {
         sun.shadow.map.dispose();

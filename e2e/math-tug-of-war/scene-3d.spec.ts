@@ -30,8 +30,28 @@ type SceneSnapshot = {
     triangles: number;
     states: Record<"turquoise" | "pink", string[]>;
     momentum: Record<"turquoise" | "pink", number>;
+    downgrades: unknown[];
+    reachMiss: number;
   };
 };
+
+type DebugWindow = Window & {
+  __MATHNEXA_TUG_3D_DEBUG__: {
+    renderer: { info: { memory: { geometries: number; textures: number }; programs?: unknown[] }; getContext(): WebGL2RenderingContext };
+    rope: { geometry: { attributes: { position: { array: Float32Array } } } };
+  };
+  __MATHNEXA_TUG_OLD_RENDERER__?: { getContext(): WebGL2RenderingContext };
+};
+
+/** Highest point of the rope tube, metres above the grass. */
+function ropeHeight(page: Page) {
+  return page.evaluate(() => {
+    const positions = (window as unknown as DebugWindow).__MATHNEXA_TUG_3D_DEBUG__.rope.geometry.attributes.position.array;
+    let max = -Infinity;
+    for (let index = 1; index < positions.length; index += 3) max = Math.max(max, positions[index]);
+    return max;
+  });
+}
 
 async function sceneSnapshot(page: Page): Promise<SceneSnapshot> {
   return page.evaluate(() => (window as unknown as { __MATHNEXA_TUG_SCENE__: { snapshot(): SceneSnapshot } }).__MATHNEXA_TUG_SCENE__.snapshot());
@@ -216,5 +236,80 @@ test.describe("Math Tug of War — 3D scene", () => {
     await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
     expect(await page.evaluate(() => "__MATHNEXA_TUG_SCENE__" in window)).toBe(false);
     void openGame;
+  });
+
+  test("hands really hold the rope while pulling, and the rope drops to the grass once the match is decided", async ({ page }) => {
+    await startTeams3D(page);
+    expect(await ropeHeight(page)).toBeGreaterThan(0.7); // held at the waist
+    for (const team of ["turquoise", "pink"] as const) {
+      await waitForUnlocked(page, team);
+      await answer(page, team);
+      // Mid-heave and at rest: every palm reaches its grip (the rope passes through the posed hands).
+      await page.waitForTimeout(220);
+      expect((await sceneSnapshot(page)).three?.reachMiss ?? 1).toBeLessThan(0.03);
+      await page.waitForTimeout(900);
+      expect((await sceneSnapshot(page)).three?.reachMiss ?? 1).toBeLessThan(0.02);
+      expect(await ropeHeight(page)).toBeGreaterThan(0.7);
+    }
+    for (let pull = 1; pull <= 7; pull += 1) {
+      await waitForUnlocked(page, "pink");
+      await answer(page, "pink");
+    }
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.winner).toBe("pink");
+    await page.waitForTimeout(1600);
+    expect(await ropeHeight(page)).toBeLessThan(0.12); // released and lying on the ground
+    await page.getByRole("dialog").getByRole("button", { name: "Play Again" }).click();
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.states.pink).toEqual(["ready", "ready", "ready"]);
+    await expect.poll(() => ropeHeight(page)).toBeGreaterThan(0.7); // picked up again for the rematch
+  });
+
+  test("repeated matches and re-entries leave no growing GPU or heap footprint; old contexts are released", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes("mobile"), "soak runs once per engine");
+    const measure = () => page.evaluate(() => {
+      const d = (window as unknown as DebugWindow).__MATHNEXA_TUG_3D_DEBUG__;
+      const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+      return { geometries: d.renderer.info.memory.geometries, textures: d.renderer.info.memory.textures, programs: d.renderer.info.programs?.length ?? 0, heapMB: memory ? Math.round(memory.usedJSHeapSize / 1048576) : null };
+    });
+    const playMatch = async () => {
+      for (let pull = 1; pull <= 7; pull += 1) {
+        await waitForUnlocked(page, "turquoise");
+        await answer(page, "turquoise");
+      }
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("heading", { name: "Sharks WINS!" })).toBeVisible({ timeout: 10_000 });
+      await page.waitForTimeout(1500);
+      await dialog.getByRole("button", { name: "Play Again" }).click();
+      await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", "0");
+      await expect.poll(async () => (await sceneSnapshot(page)).three?.states.turquoise).toEqual(["ready", "ready", "ready"]);
+    };
+    await startTeams3D(page, "multiplication");
+    await playMatch();
+    const first = await measure();
+    for (let match = 0; match < 4; match += 1) await playMatch();
+    const last = await measure();
+    expect(last.geometries, "geometries").toBeLessThanOrEqual(first.geometries);
+    expect(last.textures, "textures").toBeLessThanOrEqual(first.textures);
+    expect(last.programs, "shader programs").toBeLessThanOrEqual(first.programs + 1);
+    if (first.heapMB !== null && last.heapMB !== null) expect(last.heapMB, "JS heap").toBeLessThan(first.heapMB * 1.4 + 16);
+    expect((await sceneSnapshot(page)).three?.downgrades).toEqual([]);
+    // Leaving releases the WebGL context; re-entering builds a fresh scene of the same size.
+    await page.evaluate(() => {
+      const w = window as unknown as DebugWindow;
+      w.__MATHNEXA_TUG_OLD_RENDERER__ = w.__MATHNEXA_TUG_3D_DEBUG__.renderer;
+    });
+    await page.locator('[data-action="exit"]').click();
+    await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as DebugWindow).__MATHNEXA_TUG_OLD_RENDERER__?.getContext().isContextLost())).toBe(true);
+    // Exit returns to the Two Teams setup (names and skill kept); start again from there.
+    for (let entry = 0; entry < 3; entry += 1) {
+      await expect(page.getByRole("heading", { name: /Two Teams/ })).toBeVisible();
+      await page.getByRole("button", { name: "Start Game" }).click();
+      await waitFor3D(page);
+      const again = await measure();
+      expect(again.geometries, `re-entry ${entry} geometries`).toBeLessThanOrEqual(first.geometries);
+      expect(again.textures, `re-entry ${entry} textures`).toBeLessThanOrEqual(first.textures);
+      await page.locator('[data-action="exit"]').click();
+      await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
+    }
   });
 });
