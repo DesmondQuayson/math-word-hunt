@@ -74,6 +74,7 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 | --- | --- |
 | Unit: engine, generator audit, simulations, robot, online authority, API route, runtime delivery (now also "the 3D modules never fetch, open sockets or touch storage"), animation layer | **93 passed, 0 failed** (`lib/games/math-tug-of-war`, 5 files) |
 | Local e2e, classic + 3D projects together (8 projects, 3 workers, 9.3 min) | **126 passed, 14 skipped (desktop-only cases on mobile projects), 1 failed**: the `webkit-3d` axe audit lost its page ("Target page, context or browser has been closed") while two other GPU browsers ran beside it; see the WebKit matrix below |
+| Local e2e, rerun with the corrected configuration (8 projects, 2 workers, 15 min) | **132 passed, 15 skipped, 0 failed** (before the readiness fix; the 3D projects were rerun after it, see below) |
 | Local e2e, final gate (same suites, 2 workers) | **131 passed, 15 skipped, 6 failed** (12.5 min): five were `online-3d.spec.ts` being collected by the database-less local harness (the local config now ignores it, like the other online specs); one was the `webkit-3d` soak losing its page ("Target page, context or browser has been closed") while the second worker rendered 3D in Chromium; see the WebKit section |
 | 3D physicality and lifecycle (`hands really hold the rope…`, `repeated matches and re-entries…`) | **passed on `chromium-3d` and `webkit-3d`** (mobile project skips the soak by design): reach miss < 3 cm mid-heave and < 2 cm at rest, rope on the grass within 1.6 s of the win and back at the waist for the rematch; five matches and three exit/re-entries with geometries, textures and shader programs flat and the JS heap within tolerance; the previous WebGL context reports `isContextLost()` after exit |
 | WebKit stability matrix | **42 of 42 targeted runs passed, no crash**: A alone ×3 repeats (9), B three concurrent WebKit workers (8), C WebKit + Chromium + Chromium-mobile 3D concurrently (12), D the classic WebKit viewport sweep and 200 % text while 3D projects ran beside it (7), E the WebKit soak alone ×2 (2), F the WebKit soak beside a Chromium soak, two workers, ×2 (4) |
@@ -82,9 +83,39 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 | Lint / typecheck | `npm run lint` 0 errors (8 pre-existing warnings elsewhere); `npm run typecheck` clean; the new e2e specs type-check with `tsc --noEmit` |
 | Review pack | regenerated: `owner-review/math-tug-of-war-3d-v1/` (47 files) |
 
+### Hosted staging round 1 (preview of `3a76d84`): a real regression, fixed
+
+- **Classic review** (`-Stage review`): 89/92, with a page error on the WebKit iPad session,
+  `TypeError: null is not an object (evaluating 'rope.twang')`, and the three Online Match checks
+  that followed it failing on the WebKit guest (a pull not counted, screens out of step, no win
+  dialog). **3D review** (`-Stage review-3d`): 37/39, all hash / asset / CSP / device / online
+  checks passing; the two failures were the "no console errors" checks, which counted the
+  preview protection's own refused route prefetches.
+- **Cause.** On the hosted build the character document arrives over the network, so a pull can be
+  issued before the 3D world exists. `runPull` then touched the unbuilt rope, the rejection
+  poisoned the 3D pull queue, and because the composite scene joined the 3D promise into
+  `pull()`/`settled()`, the game's "match settled → celebrate" step never ran on that client.
+  Locally the models were always cached, so no test had covered a pull before readiness.
+- **Fix (follow-up commit).** A pull issued before the world exists only records the authoritative
+  position and resolves at once (the game's result card is never delayed by the network); every queued
+  pull catches its own failure (the queue can never be poisoned); a win that arrives while loading
+  starts the celebration once the world is built; the composite scene swallows any 3D rejection so the
+  animation layer can never reach the game's flow. New e2e test on Chromium and WebKit: the character
+  document is held back until a whole match is decided, no page error, the result card appears on time,
+  and the late 3D scene picks up the rope position, the winner and the rematch. The hosted 3D review
+  now prints the offending errors and ignores the preview protection's prefetch noise.
+
+**Local gates after the fix.** Unit 93/93 (the runtime hash moved to `d5546f1c…`). Chromium 3D:
+load/mirror, confirmed-winner celebration, toggle, hands-on-rope and the new slow-loading test, 5/5.
+WebKit 3D alone (one worker, the clean-gate recipe): **all 10 tests passed in 7.5 min**, including the
+viewport sweep, axe, teardown, rope, the five-match soak and the slow-loading test. Online Match with the
+3D scene on both clients (`online-3d.spec.ts`): passed again (1.5 min). One more WebKit page loss was
+seen while the review pack capture (GPU Chromium) and an Online Match run shared the machine; it is
+counted in the WebKit section below and did not recur alone.
+
 ### The WebKit crash, investigated
 
-- **What happened.** Three page losses, all "Target page, context or browser has been closed" from Playwright's WebKit build on Windows (WinCairo, not Safari), all inside long full-suite runs (9–12 min) with two or three browsers on one integrated GPU: the classic WebKit viewport sweep in the previous session (a page pinned to the SVG scene, with no WebGL at all), the `webkit-3d` axe audit in this session's 3-worker run, and the `webkit-3d` soak in this session's 2-worker final gate.
+- **What happened.** Four page losses, all "Target page, context or browser has been closed" from Playwright's WebKit build on Windows (WinCairo, not Safari), all while two or three browsers rendered on one integrated GPU: the classic WebKit viewport sweep in the previous session (a page pinned to the SVG scene, with no WebGL at all), the `webkit-3d` axe audit in this session's 3-worker run, the `webkit-3d` soak in the 2-worker final gate, and the `webkit-3d` load test while the review pack capture (GPU Chromium) and an Online Match run shared the machine.
 - **What was ruled out, by experiment.** Isolation (A, E): WebKit alone, every 3D scenario three times and the soak twice, no crash. Same-engine concurrency (B): three WebKit workers rendering 3D at once, no crash. Cross-engine contention (C, F): WebKit beside Chromium and Chromium-mobile 3D, and the WebKit soak beside a Chromium soak twice, no crash. The original condition (D): the classic WebKit sweep and 200 % text under 3D load, no crash. 42/42 targeted runs; the losses only appear in long mixed runs, and one of them hit a page that was not using WebGL.
 - **Application side.** The soak proves no growth in geometries, textures, programs or heap across repeated matches and re-entries, and that the WebGL context is released on exit. Asset loading is one document per page (prefetched, cached). The runtime already handles `webglcontextlost` (stop, one restore, then classic) and pauses on `visibilitychange`. No defect was found that the application could fix; the only change made here is in the test tooling (the three new 3D e2e tests themselves) and the capture timing.
 - **Conclusion.** Not reproducible on demand (0 of 42 targeted runs, including the exact test pairs that failed), and one of the three losses hit a classic page with no WebGL, so the application's 3D code is not the trigger. The evidence fits transient GPU-device pressure in the Windows WebKit test build under long multi-browser load. For a clean WebKit gate, run `--project webkit-3d --workers 1` (as in A and E). Real Safari and iPad were not in hand; the hosted staging review exercises WebKit against the deployed build.
@@ -134,6 +165,12 @@ v1 release and this branch adds no migration.
 5. Open the preview URL in a browser, sign in with a staging account, choose Two Teams or
    Online Match: the 3D scene starts automatically on a hardware-accelerated browser and the
    "3D" toolbar button switches to the classic scene and back.
+
+**Round 1 (done).** Push of `3a76d84` built preview `dpl_45Z7maT6uUdpwGLi3ySVdT7yY5Xt`
+(`https://mathnexa-platform-staging-7t4xyv0tc-bright-path-ed-tech.vercel.app`, READY, commit `3a76d84`,
+`/api/health` confirms it); `mathnexa.com` kept serving the v1.2.20 production build
+(`dpl_D2Mc2wEg3HiueKzqbwKcv2baESAA`, health build `56667b0`). The hosted reviews of that preview found the
+readiness regression described in §5 and it is fixed on the branch; the next push builds the preview to review.
 
 **Rollback plan.** A preview deployment is isolated: it has no custom domain and no alias. To
 withdraw it, delete the deployment in Vercel (or leave it; protected previews expire with the

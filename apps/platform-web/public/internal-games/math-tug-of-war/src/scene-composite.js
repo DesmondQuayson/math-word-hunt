@@ -124,11 +124,12 @@ export function createScene({ graphics = "auto", version = "" } = {}) {
     },
     pull(pullingTeam, nextPosition) {
       const a = svg.pull(pullingTeam, nextPosition);
-      const b = three?.pull(pullingTeam, nextPosition);
+      // The 3D layer is decoration: its promise can never reject into the game.
+      const b = three?.pull(pullingTeam, nextPosition)?.catch(() => undefined);
       return b ? Promise.all([a, b]).then(() => undefined) : a;
     },
     settled() {
-      const b = three?.settled();
+      const b = three?.settled()?.catch(() => undefined);
       return b ? Promise.all([svg.settled(), b]).then(() => undefined) : svg.settled();
     },
     celebrate(winner) {

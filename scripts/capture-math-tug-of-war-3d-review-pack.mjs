@@ -110,17 +110,18 @@ copy(join(win2.dir, "03-win-1.4s-closeup.png"), "16-winner-face-joy.png");
 const devices = [["phone-390x844", "390x844"], ["phone-430x932", "430x932"], ["ipad-portrait-820x1180", "820x1180"], ["ipad-landscape-1180x820", "1180x820"], ["smart-board-1920x1080", "1920x1080"], ["4k-3840x2160", "3840x2160"]];
 let index = 17;
 for (const [name, viewport] of devices) {
-  const capture = run(`device-${name}`, ["--viewport", viewport, "--wait", "1200", "--pulls", "t,p,p"]);
+  const mobile = /^(phone|ipad)/.test(name) ? ["--mobile"] : [];
+  const capture = run(`device-${name}`, ["--viewport", viewport, "--wait", "1200", "--pulls", "t,p,p", ...mobile]);
   copy(join(capture.dir, "03-pull-pink.png"), `${index}-device-${name}.png`);
   note(`device ${name}`, capture.summary);
   index += 1;
 }
 // Low tier (no shadow maps, contact shadows) on a phone and the classic phone for comparison.
-const low = run("phone-low", ["--viewport", "390x844", "--tier", "low", "--wait", "1200", "--pulls", "t,p"]);
+const low = run("phone-low", ["--viewport", "390x844", "--tier", "low", "--wait", "1200", "--pulls", "t,p", "--mobile"]);
 copy(join(low.dir, "02-pull-pink.png"), `${index}-device-phone-390x844-low-tier.png`);
 note("phone 390x844 low tier", low.summary);
 index += 1;
-const classicPhone = run("phone-classic", ["--viewport", "390x844", "--tier", "classic", "--wait", "800", "--pulls", "t,p"]);
+const classicPhone = run("phone-classic", ["--viewport", "390x844", "--tier", "classic", "--wait", "800", "--pulls", "t,p", "--mobile"]);
 copy(join(classicPhone.dir, "02-pull-pink.png"), `${index}-device-phone-390x844-classic.png`);
 index += 1;
 

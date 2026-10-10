@@ -97,9 +97,13 @@ async function session(engine, email, viewport, { graphics = "3d", ...options } 
   }
   const page = await context.newPage();
   const errors = [];
-  page.on("pageerror", (error) => errors.push(redact(error.message)));
+  // Preview-protection noise (Next's route prefetches refused by the SSO layer) is not the game's.
+  const noise = (text) => /favicon|_rsc=|access control checks|Failed to load resource/i.test(text);
+  page.on("pageerror", (error) => {
+    if (!noise(error.message)) errors.push(redact(error.message));
+  });
   page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") errors.push(`${message.type()}: ${redact(message.text())}`);
+    if ((message.type() === "error" || message.type() === "warning") && !noise(message.text())) errors.push(`${message.type()}: ${redact(message.text())}`);
   });
   await page.goto(landing, { waitUntil: "domcontentloaded" });
   await page.goto(`${origin}/sign-in?next=${encodeURIComponent(route)}`, { waitUntil: "domcontentloaded" });
@@ -260,7 +264,7 @@ try {
   ok(await settledAt(probe.page, 1), "desktop: classic scene still plays after the toggle");
   await toggle.click();
   ok(await waitForRenderer(probe.page, "3d", 60_000) && await waitFor3DPosition(probe.page, 1), "desktop: toggling back rebuilds the 3D scene at the live position");
-  ok(probe.errors.filter((line) => !/favicon/i.test(line)).length === 0, `desktop: no page errors or console errors (${probe.errors.length})`);
+  ok(probe.errors.length === 0, `desktop: no page errors or console errors (${probe.errors.length}) ${probe.errors.slice(0, 3).join(" | ")}`);
   await probe.context.close();
 
   // ---- The real device path (no override): hardware GL picks 3D, reduced motion picks classic, software GL picks classic.
@@ -354,7 +358,7 @@ try {
   await guest.page.getByRole("button", { name: "Exit to game setup" }).click();
   const leftSeen = await host.page.getByRole("dialog").getByText("Bo left the match.").waitFor({ timeout: 15_000 }).then(() => true, () => false);
   ok(leftSeen && (await snapshot(host.page)).three.winner === null, "online 3D: leaving ends the match with no celebration on the other screen");
-  ok(host.errors.filter((line) => !/favicon/i.test(line)).length === 0 && guest.errors.filter((line) => !/favicon/i.test(line)).length === 0, `online 3D: no page errors on either client (${host.errors.length}/${guest.errors.length})`);
+  ok(host.errors.length === 0 && guest.errors.length === 0, `online 3D: no page errors on either client (${host.errors.length}/${guest.errors.length}) ${[...host.errors, ...guest.errors].slice(0, 4).join(" | ")}`);
   await host.context.close();
   await guest.context.close();
 } finally {

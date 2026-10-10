@@ -16,8 +16,10 @@
  *   --win     make the given team win (7 net pulls) and capture the celebration
  *   --video   record a webm of the whole run
  *   --gpu     ask Chromium for hardware GL (falls back to SwiftShader)
+ *   --mobile  a touch device context (phones, tablets)
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -55,9 +57,13 @@ const browser = await browserType.launch({
 const context = await browser.newContext({
   viewport: { width: viewportWidth, height: viewportHeight },
   deviceScaleFactor: Number(option("--dpr", "1")),
+  // --mobile: a touch device, as phones and tablets really are (the keyboard badge stays hidden).
+  ...(flag("--mobile") ? { hasTouch: true, isMobile: engine === "chromium" } : {}),
   recordVideo: flag("--video") ? { dir: outDir, size: { width: viewportWidth, height: viewportHeight } } : undefined
 });
 const page = await context.newPage();
+const videoStartedAt = Date.now();
+let sceneReadyAt = videoStartedAt;
 const log = [];
 page.on("console", (message) => log.push(`${message.type()}: ${message.text()}`));
 
@@ -143,9 +149,12 @@ const results = { base, engine, viewport: [viewportWidth, viewportHeight], steps
 try {
   await page.goto(`${base}/games/math-tug-of-war/play?graphics=${tier}`);
   await page.locator(`button[data-mode="${mode}"]`).click();
-  await page.fill("#team-1-name", "Sharks").catch(() => undefined);
-  await page.fill("#team-2-name", "Comets").catch(() => undefined);
-  await page.fill("#player-name", "Ava").catch(() => undefined);
+  if (mode === "teams") {
+    await page.fill("#team-1-name", "Sharks");
+    await page.fill("#team-2-name", "Comets");
+  } else {
+    await page.fill("#player-name", "Ava");
+  }
   await page.locator("#skill-addition").check();
   await page.getByRole("button", { name: "Start Game" }).click();
   await page.locator(".team-panel.team-turquoise").waitFor();
@@ -156,6 +165,7 @@ try {
     if (forced === "classic") return stage.dataset.renderer === "svg";
     return stage.dataset.renderer === "3d" || Boolean(stage.dataset.fallback);
   }, tier, { timeout: 60_000 });
+  sceneReadyAt = Date.now();
   await page.waitForTimeout(waitMs);
   results.steps.push({ step: "start", ...(await snapshot()) });
   await shot("00-start");
@@ -224,5 +234,42 @@ try {
   await context.close();
   await browser.close();
   server.close();
+  if (flag("--video")) trimRecording();
 }
 console.log(JSON.stringify(results.steps, null, 1));
+
+/** Playwright's own ffmpeg (installed next to its browsers), if present. */
+function findFfmpeg() {
+  const roots = [process.env.PLAYWRIGHT_BROWSERS_PATH, process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "ms-playwright"), process.env.HOME && join(process.env.HOME, ".cache", "ms-playwright"), process.env.HOME && join(process.env.HOME, "Library", "Caches", "ms-playwright")].filter(Boolean);
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const entry of readdirSync(root).filter((name) => name.startsWith("ffmpeg-")).sort().reverse()) {
+      for (const binary of ["ffmpeg-win64.exe", "ffmpeg-linux", "ffmpeg-mac", "ffmpeg-mac-arm64"]) {
+        const candidate = join(root, entry, binary);
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+/** Cut the setup screens off the front of the recording: it starts one second before the 3D scene was ready. */
+function trimRecording() {
+  const sources = readdirSync(outDir).filter((name) => name.endsWith(".webm") && name !== "recording.webm");
+  const ffmpeg = findFfmpeg();
+  const offset = Math.max(0, (sceneReadyAt - videoStartedAt) / 1000 - 1);
+  for (const name of sources) {
+    const source = join(outDir, name);
+    const target = join(outDir, "recording.webm");
+    if (ffmpeg && offset > 0.5) {
+      const cut = spawnSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-ss", offset.toFixed(2), "-i", source, "-c:v", "libvpx", "-b:v", "2M", "-an", target], { stdio: "ignore" });
+      if (cut.status === 0) {
+        rmSync(source, { force: true });
+        results.recordingTrimmedSeconds = Number(offset.toFixed(2));
+        continue;
+      }
+    }
+    renameSync(source, target);
+  }
+  writeFileSync(join(outDir, "snap.json"), JSON.stringify(results, null, 2));
+}

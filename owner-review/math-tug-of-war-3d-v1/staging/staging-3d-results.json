@@ -1,0 +1,272 @@
+{
+  "origin": "https://mathnexa-platform-staging-7t4xyv0tc-bright-path-ed-tech.vercel.app",
+  "commit": "3a76d84686b4b63c079224ecffd381066ce7f292",
+  "checks": [
+    {
+      "ok": true,
+      "message": "health 200 (200)"
+    },
+    {
+      "ok": true,
+      "message": "deployment serves commit 3a76d84"
+    },
+    {
+      "ok": true,
+      "message": "game document versions its runtime with the tested content hash ded0c36a8498f035 (served ded0c36a8498f035)"
+    },
+    {
+      "ok": true,
+      "message": "route CSP unchanged (default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' da…)"
+    },
+    {
+      "ok": true,
+      "message": "models, vendored three.js and the 3D modules are byte-identical to the tested source (5 files) "
+    },
+    {
+      "ok": true,
+      "message": "character textures served as image/webp (young_darkskinned_male_diffuse.webp)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: 3D scene renders on the hosted build (models loaded under the route CSP)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: tier medium, shadow maps true, 167 draw calls"
+    },
+    {
+      "ok": true,
+      "message": "desktop: Turquoise pull mirrored by the 3D scene (−1 in both layers)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: hands hold the rope mid-heave (reach miss 0 m)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: wrong answer moves neither layer"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 2)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 3)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 4)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 5)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 6)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
+    },
+    {
+      "ok": true,
+      "message": "desktop: Play Again resets both layers"
+    },
+    {
+      "ok": true,
+      "message": "desktop: 3D toggle shows the classic scene (canvas removed)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: classic scene still plays after the toggle"
+    },
+    {
+      "ok": true,
+      "message": "desktop: toggling back rebuilds the 3D scene at the live position"
+    },
+    {
+      "ok": false,
+      "message": "desktop: no page errors or console errors (3)"
+    },
+    {
+      "ok": true,
+      "message": "auto: a hardware-GL browser gets the 3D scene without any override"
+    },
+    {
+      "ok": true,
+      "message": "auto: reduced motion keeps the classic scene and disables the toggle"
+    },
+    {
+      "ok": true,
+      "message": "auto: software GL (no hardware acceleration) keeps the classic scene"
+    },
+    {
+      "ok": true,
+      "message": "auto: the classic scene still plays on software GL"
+    },
+    {
+      "ok": true,
+      "message": "phone-390x844: 3D scene (tier medium) at 546×169 px, pull mirrored, no overflow, keys fit [48,85], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "phone-430x932: 3D scene (tier medium) at 606×267 px, pull mirrored, no overflow, keys fit [54,86], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "smart-board-1920x1080: 3D scene (tier medium) at 902×512 px, pull mirrored, no overflow, keys fit [133,134], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "ipad-820x1180-webkit: 3D scene (tier medium) at 794×349 px, pull mirrored, no overflow, keys fit [115,88], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "webkit-desktop-1366x768: 3D scene (tier medium) at 634×360 px, pull mirrored, no overflow, keys fit [93,87], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: both clients (Chromium host, WebKit guest) render the 3D scene"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: host pull moves both 3D scenes to −1"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: guest pull moves both 3D scenes back to 0"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: both 3D scenes celebrate the same confirmed winner ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"rising\",\"rising\",\"rising\"]} / {\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: the database agrees with both screens {\"position\":-7,\"host_pulls\":8,\"guest_pulls\":1,\"status\":\"won\"}"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: rematch resets both 3D scenes"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: leaving ends the match with no celebration on the other screen"
+    },
+    {
+      "ok": false,
+      "message": "online 3D: no page errors on either client (2/13)"
+    }
+  ],
+  "measurements": [
+    {
+      "label": "staging desktop 1366x900",
+      "tier": "medium",
+      "frameMs": 8.7,
+      "worstMs": 143.1,
+      "drawCalls": 160,
+      "triangles": 292550,
+      "pixelRatio": 1,
+      "reachMiss": 1.036,
+      "downgrades": [],
+      "canvas": [
+        634,
+        360,
+        634,
+        360
+      ]
+    },
+    {
+      "label": "staging phone-390x844",
+      "tier": "medium",
+      "frameMs": 11.54,
+      "worstMs": 42.3,
+      "drawCalls": 167,
+      "triangles": 292206,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        546,
+        169,
+        364,
+        113
+      ]
+    },
+    {
+      "label": "staging phone-430x932",
+      "tier": "medium",
+      "frameMs": 10.87,
+      "worstMs": 51.6,
+      "drawCalls": 167,
+      "triangles": 292206,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        606,
+        267,
+        404,
+        178
+      ]
+    },
+    {
+      "label": "staging smart-board-1920x1080",
+      "tier": "medium",
+      "frameMs": 9.66,
+      "worstMs": 40.5,
+      "drawCalls": 167,
+      "triangles": 292206,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        902,
+        512,
+        902,
+        512
+      ]
+    },
+    {
+      "label": "staging ipad-820x1180-webkit",
+      "tier": "medium",
+      "frameMs": 11.36,
+      "worstMs": 481,
+      "drawCalls": 167,
+      "triangles": 292206,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        794,
+        349,
+        794,
+        349
+      ]
+    },
+    {
+      "label": "staging webkit-desktop-1366x768",
+      "tier": "medium",
+      "frameMs": 10.63,
+      "worstMs": 484,
+      "drawCalls": 167,
+      "triangles": 292206,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        634,
+        360,
+        634,
+        360
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 37,
+    "total": 39,
+    "syntheticUsersDeleted": 2,
+    "roomsRemoved": 1
+  }
+}

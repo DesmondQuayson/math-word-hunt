@@ -369,6 +369,14 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
   // ---------------------------------------------------------------- events
 
   function runPull(team, nextPosition, fast) {
+    // The world may still be loading (models arrive over the network): the
+    // authoritative position is kept, the motion simply starts from there.
+    if (!ready || !rope || disposed) {
+      position = nextPosition;
+      tugX = nextPosition * STEP;
+      pulls[team] += 1;
+      return Promise.resolve();
+    }
     const from = tugX;
     position = nextPosition;
     pulls[team] += 1;
@@ -399,6 +407,12 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     celebrationTime = 0;
     highFived = false;
     helpOffered = false;
+    // Decided before the world was built: the celebration starts once it is.
+    if (!ready || !rope) return;
+    applyCelebration(team);
+  }
+
+  function applyCelebration(team) {
     for (const puller of pullers[team]) puller.finish(true);
     for (const puller of pullers[otherTeam(team)]) puller.finish(false);
     rope.release();
@@ -445,6 +459,10 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
       resize(width, height);
       ready = true;
       canvas.dataset.tier = currentTier;
+      // Events that arrived while loading: the rope is already at the
+      // authoritative position; a decided match celebrates now.
+      placeCamera();
+      if (winner) applyCelebration(winner);
       // Review/test override only: expose internals for inspection tooling.
       if (graphicsOverride()) {
         debugHook = { renderer, scene, camera, arena, rope, pullers, tug, closeup: false };
@@ -500,13 +518,19 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     pull(team, nextPosition) {
       pending += 1;
       const fast = pending > 1;
-      queue = queue.then(() => (disposed ? undefined : runPull(team, nextPosition, fast))).finally(() => {
-        pending -= 1;
-      });
+      // A pull never waits for the models (runPull only records the position
+      // while the world is loading) and swallows its own failure, so one bad
+      // frame can never poison the queue or delay the game.
+      queue = queue
+        .then(() => (disposed ? undefined : runPull(team, nextPosition, fast)))
+        .catch((error) => console.warn("Math Tug of War: 3D pull skipped.", error))
+        .finally(() => {
+          pending -= 1;
+        });
       return queue;
     },
     settled() {
-      return queue;
+      return queue.catch(() => undefined);
     },
     celebrate,
     reset,

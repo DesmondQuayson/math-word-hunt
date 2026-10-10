@@ -312,4 +312,58 @@ test.describe("Math Tug of War — 3D scene", () => {
       await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
     }
   });
+
+  test("pulls and a win that arrive while the models are still loading never break the game and are applied once the 3D scene is ready", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    // A slow network: the character document is held back until the match below
+    // is decided, so every pull and the win arrive before the 3D scene exists.
+    let releaseModels: () => void = () => undefined;
+    const modelsHeld = new Promise<void>((resolve) => {
+      releaseModels = resolve;
+    });
+    await page.route("**/models/characters.gltf**", async (route) => {
+      await modelsHeld;
+      await route.continue();
+    });
+    await page.goto(GAME_3D);
+    await expect(page.getByRole("heading", { level: 1, name: /Math Tug of War/ })).toBeVisible();
+    await page.locator('button[data-mode="teams"]').click();
+    await page.fill("#team-1-name", "Sharks");
+    await page.fill("#team-2-name", "Comets");
+    await page.locator("#skill-addition").check();
+    await page.getByRole("button", { name: "Start Game" }).click();
+    await expect(page.locator(".team-panel.team-turquoise")).toBeVisible();
+    // The whole match is decided while the 3D scene is still loading.
+    for (let pull = 1; pull <= 7; pull += 1) {
+      await waitForUnlocked(page, "pink");
+      await answer(page, "pink");
+      await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", String(pull));
+      if (pull === 1) expect(await page.locator(".scene-stage").getAttribute("data-renderer")).toBe("svg"); // still loading
+    }
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Comets WINS!" })).toBeVisible({ timeout: 10_000 });
+    expect(await page.locator(".scene-stage").getAttribute("data-renderer")).toBe("svg"); // decided before the models arrived
+    // The models arrive now; the scene picks everything up: rope across the line, winners celebrating.
+    releaseModels();
+    await waitFor3D(page);
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.position).toBe(7);
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.winner).toBe("pink");
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.states.pink).toEqual(["celebrate", "celebrate", "celebrate"]);
+    await page.waitForTimeout(1_600);
+    expect(await ropeHeight(page)).toBeLessThan(0.12);
+    expect(errors.filter((line) => !/favicon/i.test(line))).toEqual([]);
+    // The rematch plays on with both layers in step.
+    await dialog.getByRole("button", { name: "Play Again" }).click();
+    await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", "0");
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.position).toBe(0);
+    await waitForUnlocked(page, "turquoise");
+    await answer(page, "turquoise");
+    await expect(page.locator(".tug-scene-svg")).toHaveAttribute("data-position", "-1");
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.position).toBe(-1);
+    await expect.poll(() => ropeHeight(page)).toBeGreaterThan(0.7);
+  });
 });
