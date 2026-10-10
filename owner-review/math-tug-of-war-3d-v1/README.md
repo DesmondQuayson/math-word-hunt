@@ -14,7 +14,7 @@ that qualify and can switch with the "3D" toolbar button.
 | 4 | `04-face-closeup-losing-side.png` | Face close-up of the front Pink puller while losing ground |
 | 5 | `05-pulling-*-frameNN.png` | Active pulling: nine frames at 90 ms after a Turquoise pull, then after a Pink pull (heave, drive, step; lurch, drag, catch-step) |
 | 6 | `06-fatigue-after-24-pulls.png`, `07-fatigue-face-closeup.png` | A long match: slower, heavier posture and strained faces |
-| 7 | `08-loss-stumble-0.4s.png` → `11-recovery-4.5s.png` | The losing team: rope released, stumble, fall (kneel / sit / catch, one per puller), rise, dejected stance with a teammate offering a hand |
+| 7 | `08-loss-stumble-0.4s.png` → `11-recovery-4.5s.png` | The losing team, timed from the confirmed winner: 0.4 s rope released and lurching; 1.3 s down (hands-and-knees / sitting / caught on the knees, one per puller, a teammate's hand on a shoulder); 2.4 s still on the ground; 4.5 s rising into the dejected stance |
 | 8 | `12-winning-celebration-with-result-card.png` | Winners celebrate while the result card shows; confetti; rope on the ground |
 | 9 | `13-recording-pulls-victory-fall-recovery.webm` | Recording of pulls, the win, the fall and the recovery |
 | 10 | `14-…`, `15-…`, `16-winner-face-joy.png` | Turquoise winning: arms up, jump, fist pump, high five; joy close-up |

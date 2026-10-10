@@ -105,14 +105,14 @@ async function shot(name) {
       stage.style.cssText = "position:fixed;inset:0;z-index:999;background:#000;width:100vw;height:100vh";
       stage.querySelector(".tug-scene-svg").style.height = "100%";
     });
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(90);
     await page.screenshot({ path: join(outDir, `${name}-stage.png`) });
     await page.evaluate(() => {
       const stage = document.querySelector(".scene-stage");
       stage.style.cssText = stage.dataset.debugStyle ?? "";
       stage.querySelector(".tug-scene-svg").style.height = "";
     });
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(60);
   }
   if (closeup) {
     // Park the camera on one puller's face (review override exposes the scene), shoot, release.
@@ -132,7 +132,7 @@ async function shot(name) {
       return true;
     }, [team, index]);
     if (parked) {
-      await page.waitForTimeout(120);
+      await page.waitForTimeout(70);
       const box = await page.locator(".scene-stage").boundingBox();
       await page.screenshot({ path: join(outDir, `${name}-closeup.png`), clip: box ?? undefined });
       await page.evaluate(() => {
@@ -195,7 +195,8 @@ try {
     const confirmedAt = Date.now();
     for (const [label, at] of [["win-0.4s", 400], ["win-1.3s", 1300], ["win-2.4s", 2400], ["win-4.5s", 4500]]) {
       await page.waitForTimeout(Math.max(0, confirmedAt + at - Date.now()));
-      results.steps.push({ step: label, ...(await snapshot()) });
+      const actual = (Date.now() - confirmedAt) / 1000; // what the label really is, recorded in snap.json
+      results.steps.push({ step: label, secondsAfterWin: Number(actual.toFixed(2)), ...(await snapshot()) });
       await shot(`${String(index).padStart(2, "0")}-${label}`);
       index += 1;
     }

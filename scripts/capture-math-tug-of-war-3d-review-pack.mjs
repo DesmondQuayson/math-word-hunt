@@ -98,9 +98,9 @@ copy(join(win.dir, "07-win-4.5s-stage.png"), "11-recovery-4.5s.png");
 copy(join(win.dir, "06-win-2.4s.png"), "12-winning-celebration-with-result-card.png");
 for (const file of readdirSync(win.dir).filter((name) => name.endsWith(".webm"))) copy(join(win.dir, file), "13-recording-pulls-victory-fall-recovery.webm");
 const win2 = run("victory-turquoise", ["--viewport", "1600x900", "--wait", "900", "--pulls", "p", "--win", "turquoise", "--stage", "--closeup", "turquoise-1"]);
-copy(join(win2.dir, "05-win-1.3s-stage.png"), "14-winning-team-turquoise-1.3s.png");
-copy(join(win2.dir, "07-win-4.5s-stage.png"), "15-winning-team-turquoise-4.5s-high-five.png");
-copy(join(win2.dir, "05-win-1.3s-closeup.png"), "16-winner-face-joy.png");
+copy(join(win2.dir, "03-win-1.3s-stage.png"), "14-winning-team-turquoise-1.3s.png");
+copy(join(win2.dir, "05-win-4.5s-stage.png"), "15-winning-team-turquoise-4.5s-high-five.png");
+copy(join(win2.dir, "03-win-1.3s-closeup.png"), "16-winner-face-joy.png");
 
 // 5. Devices.
 const devices = [["phone-390x844", "390x844"], ["phone-430x932", "430x932"], ["ipad-portrait-820x1180", "820x1180"], ["ipad-landscape-1180x820", "1180x820"], ["smart-board-1920x1080", "1920x1080"], ["4k-3840x2160", "3840x2160"]];

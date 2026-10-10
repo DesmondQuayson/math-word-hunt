@@ -59,6 +59,26 @@ Production, Super Admin V2 and ShowMe Math Lab are untouched.
 - **Assets.** First load fetches about 4.6 MB of models plus about 0.73 MB of three.js (cached afterwards, prefetched from the home screen). Data-saver, reduced-motion, software-GL and non-WebGL2 browsers get the classic scene automatically.
 - **Online Match evidence** depends on the local Supabase stack (Docker); see §5 for whether the two-client suite ran in this session.
 
-## 5. Results
+## 5. Results (2026-10-10, development machine: 16 cores, 16 GB, AMD Radeon integrated GPU)
 
-Filled in with the final report.
+| Gate | Result |
+| --- | --- |
+| Unit: engine, generator audit, simulations, robot, online authority, API route, runtime delivery, animation layer | **93 passed, 0 failed** (`lib/games/math-tug-of-war`, 5 files) |
+| Local e2e, classic projects (Chromium/WebKit desktop, Pixel 7, iPhone 13, iPad) | **106 passed, 13 skipped (desktop-only cases on mobile projects), 1 failed** in the combined run: the WebKit viewport sweep crashed the WebKit renderer while the 3D projects ran concurrently on the same GPU. Rerun alone: **2 passed** (sweep + 200 % text), so the full classic suite is green (107 equivalent to the baseline) |
+| 3D e2e (`scene-3d.spec.ts`): load/mirroring, no-pull-on-wrong-answer, celebration only after the confirmed winner, fall and recovery, toggle, classic/reduced-motion/override never create a canvas, 12 viewport sizes with no overlap or overflow, axe, prefetch and teardown | **20 passed** across `chromium-3d`, `webkit-3d`, `chromium-3d-mobile` (6.5 min, one worker) |
+| Lint / typecheck / security audits | `npm run typecheck` clean; `eslint` clean for the new TypeScript (two pre-existing warnings elsewhere); `audit-platform-bundle`, `audit-phase11-security`, `audit-game-suite-media` pass |
+| Online Match two-client suite | **Not run in this session**: Docker Desktop's engine never started on this machine (WSL distro and service stayed stopped), so the local Supabase stack could not boot. The 3D layer consumes the same authoritative pull counters and `celebrate` calls as the SVG layer (see `applyOnlineState`/`showOnlineWin` in `app.js`), and `online.test.ts`/`online-route.test.ts` are unchanged and green. Run `node scripts/run-math-tug-of-war-online-e2e.mjs` once Docker is up. |
+
+Asset and performance figures are in `owner-review/math-tug-of-war-3d-v1/measurements.md`
+(frame time, draw calls, triangles, canvas size, JS heap, model bytes and load time per
+device scenario). From that table (headless Chromium with the integrated GPU, one match
+each): medium tier averages 5.2–6.3 ms per frame from a 390×844 phone layout up to 4K
+(1837×1043 canvas), 160 draw calls, 292 k triangles including the shadow pass, 43–48 MB JS
+heap; the low tier (no shadow maps) averages 3.9 ms, 107 draw calls, 148 k triangles,
+40 MB; WebKit 6.6 ms. Worst single frames (213–425 ms) are the first-frame shader
+compilation, after which frames stay in single-digit milliseconds. Models: 4,768 KB in 32
+files, loaded in 83–94 ms from the local harness (a real network adds its own transfer
+time; the home screen prefetches them). Vendored three.js: 743 KB uncompressed.
+
+Commits on the branch: `12c0752` (the upgrade), `94beff1` (adult heights, e2e pinning, capture
+timing). Nothing is merged, pushed or deployed.

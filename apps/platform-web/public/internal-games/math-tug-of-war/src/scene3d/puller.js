@@ -551,13 +551,13 @@ export class Puller {
     const t = f.t;
     const hipsY = this.rig.hipsRestY;
     // Phase 1 (0–0.5 s): the rope goes slack and the body lurches forward.
-    // Phase 2 (0.5–1.4 s): the fall / catch. Phase 3 (1.4–3 s): rest. Phase 4: rise and stand dejected.
+    // Phase 2 (0.5–1.2 s): the fall / catch. Phase 3 (1.2–3.0 s): on the ground. Phase 4: rise and stand dejected.
     const lurch = smoothstep(0, 0.35, t) * (1 - smoothstep(0.55, 1.2, t));
     const drop = smoothstep(0.45, 1.15, t);
-    const rise = smoothstep(2.6, 3.9, t);
+    const rise = smoothstep(3.0, 4.3, t);
     if (this.state === "falling" && t > 1.2) this.state = "down";
-    if (this.state === "down" && t > 2.6) this.state = "rising";
-    if (this.state === "rising" && t > 3.9) {
+    if (this.state === "down" && t > 3.0) this.state = "rising";
+    if (this.state === "rising" && t > 4.3) {
       this.state = "dejected";
       this.face.set({ disappointed: 0.8 }, 3);
     }
