@@ -97,8 +97,9 @@ async function session(engine, email, viewport, { graphics = "3d", ...options } 
   }
   const page = await context.newPage();
   const errors = [];
-  // Preview-protection noise (Next's route prefetches refused by the SSO layer) is not the game's.
-  const noise = (text) => /favicon|_rsc=|access control checks|Failed to load resource/i.test(text);
+  // Preview-only noise is not the game's: Next's route prefetches refused by the SSO layer, and the
+  // Vercel preview toolbar script, which the game's own CSP rightly refuses to load.
+  const noise = (text) => /favicon|_rsc=|access control checks|Failed to load resource|vercel.live|_next-live/i.test(text);
   page.on("pageerror", (error) => {
     if (!noise(error.message)) errors.push(redact(error.message));
   });

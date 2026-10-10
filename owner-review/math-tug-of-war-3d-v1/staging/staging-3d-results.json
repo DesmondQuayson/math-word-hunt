@@ -1,6 +1,6 @@
 {
-  "origin": "https://mathnexa-platform-staging-7t4xyv0tc-bright-path-ed-tech.vercel.app",
-  "commit": "3a76d84686b4b63c079224ecffd381066ce7f292",
+  "origin": "https://mathnexa-platform-staging-5elpskrut-bright-path-ed-tech.vercel.app",
+  "commit": "d073832",
   "checks": [
     {
       "ok": true,
@@ -8,11 +8,11 @@
     },
     {
       "ok": true,
-      "message": "deployment serves commit 3a76d84"
+      "message": "deployment serves commit d073832"
     },
     {
       "ok": true,
-      "message": "game document versions its runtime with the tested content hash ded0c36a8498f035 (served ded0c36a8498f035)"
+      "message": "game document versions its runtime with the tested content hash d5546f1cd9c4d69b (served d5546f1cd9c4d69b)"
     },
     {
       "ok": true,
@@ -88,7 +88,7 @@
     },
     {
       "ok": false,
-      "message": "desktop: no page errors or console errors (3)"
+      "message": "desktop: no page errors or console errors (3) error: Loading the script 'https://vercel.live/_next-live/feedback/feedback.js' violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline'\". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. | error: Loading the script 'https://vercel.live/_next-live/feedback/feedback.js' violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline'\". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. | warning: THREE.WebGLProgram: Program Info Log: (210,81-129): warning X4122: sum of 0.996094 and -2.98545e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision\n\n\n\u0000"
     },
     {
       "ok": true,
@@ -156,19 +156,19 @@
     },
     {
       "ok": false,
-      "message": "online 3D: no page errors on either client (2/13)"
+      "message": "online 3D: no page errors on either client (2/3) error: Loading the script 'https://vercel.live/_next-live/feedback/feedback.js' violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline'\". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. | error: Loading the script 'https://vercel.live/_next-live/feedback/feedback.js' violates the following Content Security Policy directive: \"script-src 'self' 'unsafe-inline'\". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. | error: Refused to load https://vercel.live/_next-live/feedback/feedback.js because it does not appear in the script-src directive of the Content Security Policy. | error: Refused to load https://vercel.live/_next-live/feedback/feedback.js because it does not appear in the script-src directive of the Content Security Policy."
     }
   ],
   "measurements": [
     {
       "label": "staging desktop 1366x900",
       "tier": "medium",
-      "frameMs": 8.7,
-      "worstMs": 143.1,
+      "frameMs": 6.41,
+      "worstMs": 123.6,
       "drawCalls": 160,
       "triangles": 292550,
       "pixelRatio": 1,
-      "reachMiss": 1.036,
+      "reachMiss": 1.011,
       "downgrades": [],
       "canvas": [
         634,
@@ -180,8 +180,8 @@
     {
       "label": "staging phone-390x844",
       "tier": "medium",
-      "frameMs": 11.54,
-      "worstMs": 42.3,
+      "frameMs": 7.06,
+      "worstMs": 41.1,
       "drawCalls": 167,
       "triangles": 292206,
       "pixelRatio": 1.5,
@@ -197,8 +197,8 @@
     {
       "label": "staging phone-430x932",
       "tier": "medium",
-      "frameMs": 10.87,
-      "worstMs": 51.6,
+      "frameMs": 6.91,
+      "worstMs": 36.1,
       "drawCalls": 167,
       "triangles": 292206,
       "pixelRatio": 1.5,
@@ -214,8 +214,8 @@
     {
       "label": "staging smart-board-1920x1080",
       "tier": "medium",
-      "frameMs": 9.66,
-      "worstMs": 40.5,
+      "frameMs": 7.45,
+      "worstMs": 38.6,
       "drawCalls": 167,
       "triangles": 292206,
       "pixelRatio": 1,
@@ -231,8 +231,8 @@
     {
       "label": "staging ipad-820x1180-webkit",
       "tier": "medium",
-      "frameMs": 11.36,
-      "worstMs": 481,
+      "frameMs": 9.43,
+      "worstMs": 431,
       "drawCalls": 167,
       "triangles": 292206,
       "pixelRatio": 1,
@@ -248,8 +248,8 @@
     {
       "label": "staging webkit-desktop-1366x768",
       "tier": "medium",
-      "frameMs": 10.63,
-      "worstMs": 484,
+      "frameMs": 7.49,
+      "worstMs": 427,
       "drawCalls": 167,
       "triangles": 292206,
       "pixelRatio": 1,

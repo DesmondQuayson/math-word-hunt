@@ -172,6 +172,10 @@ v1 release and this branch adds no migration.
 (`dpl_D2Mc2wEg3HiueKzqbwKcv2baESAA`, health build `56667b0`). The hosted reviews of that preview found the
 readiness regression described in §5 and it is fixed on the branch; the next push builds the preview to review.
 
+**Round 2 (the build to review).** Push of `d073832` built preview `dpl_9d6cfMQTAQJuGsd1uCUaumuvoY6M`
+(`https://mathnexa-platform-staging-5elpskrut-bright-path-ed-tech.vercel.app`, READY, commit `d073832`);
+`mathnexa.com` still serves `dpl_D2Mc2wEg3HiueKzqbwKcv2baESAA` (health build `56667b0`). Hosted review results: **classic review 99/99** (free-account path, six skills, keypad, Smart Board, phones 320–430, iPad WebKit, reduced motion, Online Match host/guest across Chromium and WebKit with disconnect, reconnect, win, rematch, leave, and two non-subscribers; the round-1 failures are gone); **3D review 37/39** with every hash, asset, CSP, device, fallback and online-3D check passing; the two flags were the Vercel preview toolbar script (`vercel.live/_next-live/feedback/feedback.js`) being refused by the game's own CSP, which is preview-only and exactly what the CSP should do (now filtered as noise), plus one harmless Direct3D shader-compiler precision note. Hosted frame times 6.4–9.4 ms (medium tier) on desktop, phones, Smart Board, iPad WebKit and WebKit desktop; hands on the rope with zero reach miss on every device. Screenshots and `staging-3d-results.json` in `owner-review/math-tug-of-war-3d-v1/staging/`.
+
 **Rollback plan.** A preview deployment is isolated: it has no custom domain and no alias. To
 withdraw it, delete the deployment in Vercel (or leave it; protected previews expire with the
 branch). Production is untouched: `https://mathnexa.com` stays on its current deployment
