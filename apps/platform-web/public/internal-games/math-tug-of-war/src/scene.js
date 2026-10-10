@@ -216,6 +216,9 @@ export function createScene() {
   const camera = svg.querySelector(".camera");
 
   let position = 0;
+  // The composite scene turns the SVG motion off while the 3D layer is
+  // showing; the SVG still records every pull in its attributes and title.
+  let motionEnabled = true;
   // When the frame is zoomed in (classroom boards), the camera follows half of
   // the tug so the winning team never slides out of view.
   let panFactor = 0;
@@ -258,7 +261,7 @@ export function createScene() {
     const previous = position;
     position = nextPosition;
     svg.dataset.lastPull = pullingTeam;
-    const reduced = prefersReducedMotion();
+    const reduced = prefersReducedMotion() || !motionEnabled;
     if (reduced || typeof world.animate !== "function") {
       place(nextPosition);
       svg.classList.remove("pulled-turquoise", "pulled-pink");
@@ -326,7 +329,7 @@ export function createScene() {
     const loser = winner === "turquoise" ? "pink" : "turquoise";
     team(loser).forEach(figure => figure.classList.add("is-down"));
     team(winner).forEach(figure => figure.classList.add("is-cheering"));
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion() || !motionEnabled) return;
     [...svg.querySelectorAll(".confetti-piece")].forEach((piece, index) => {
       const drift = (index % 2 ? 1 : -1) * (18 + (index % 7) * 6);
       animate(piece, [
@@ -396,6 +399,9 @@ export function createScene() {
       return queue;
     },
     celebrate,
-    reset
+    reset,
+    setMotion(enabled) {
+      motionEnabled = Boolean(enabled);
+    }
   });
 }

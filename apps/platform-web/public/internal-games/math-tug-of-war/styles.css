@@ -271,6 +271,17 @@ button:disabled { cursor: not-allowed; }
   background: #cfe9fb; box-shadow: var(--shadow); border: 3px solid #fff;
 }
 .tug-scene-svg { display: block; width: 100%; height: auto; max-height: 100%; aspect-ratio: 1000 / 310; }
+/* The 3D scene is a canvas laid over the SVG scene. The SVG keeps the layout
+   (its aspect ratio), the accessible name and the data attributes; the
+   canvas fades in once the models are ready and fades out on fallback. */
+.scene-stage { position: relative; width: 100%; }
+.scene-stage .tug-scene-3d {
+  position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block;
+  opacity: 0; transition: opacity .7s ease; pointer-events: none;
+}
+.scene-stage[data-renderer="3d"] .tug-scene-3d { opacity: 1; }
+.scene-stage[data-renderer="3d"] .tug-scene-svg { opacity: 0; transition: opacity .7s ease; }
+.scene-stage .tug-scene-svg { transition: opacity .7s ease; }
 .scene-status {
   position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
   margin: 0; padding: 4px 14px; border-radius: 999px;

@@ -1,0 +1,19 @@
+{
+  "name": "math-tug-of-war-3d-tools",
+  "private": true,
+  "type": "module",
+  "description": "Build-time tooling for the Math Tug of War 3D characters and the vendored three.js bundle. Not a workspace: run `npm ci` in this folder only when regenerating assets.",
+  "scripts": {
+    "bundle:three": "node bundle-three.mjs",
+    "optimize": "node optimize-characters.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0",
+    "sharp": "0.35.5",
+    "three": "0.186.1",
+    "vite": "8.1.5"
+  }
+}

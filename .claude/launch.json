@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:platform"],
       "port": 3000
+    },
+    {
+      "name": "mathnexa-game-harness",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/mobile-gameplay-harness.mjs"],
+      "port": 4195
     }
   ]
 }

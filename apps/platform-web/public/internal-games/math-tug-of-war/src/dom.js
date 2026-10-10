@@ -56,7 +56,8 @@ export function icon(name) {
     wave: ["M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0", "M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"],
     star: ["m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7Z"],
     signal: ["M4 18h.01M8 18v-3M12 18v-6M16 18V9M20 18V6"],
-    home: ["m3 11 9-8 9 8M5 10v10h14V10"]
+    home: ["m3 11 9-8 9 8M5 10v10h14V10"],
+    cube: ["m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z", "M4 7.5l8 4.5 8-4.5M12 12v9"]
   }[name] ?? [];
   for (const d of paths) svg.append(s("path", { d }));
   return svg;

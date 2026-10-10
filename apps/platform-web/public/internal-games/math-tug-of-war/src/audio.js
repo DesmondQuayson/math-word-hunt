@@ -16,7 +16,7 @@ export const MUSIC_TRACK = Object.freeze({
 
 export const PREFERENCES_KEY = "mathnexa:math-tug-of-war:preferences";
 export const MUSIC_VOLUME = 0.24;
-export const DEFAULT_PREFERENCES = Object.freeze({ sound: true, music: true, soundVolume: 0.5, musicVolume: MUSIC_VOLUME });
+export const DEFAULT_PREFERENCES = Object.freeze({ sound: true, music: true, soundVolume: 0.5, musicVolume: MUSIC_VOLUME, graphics: "auto" });
 
 export function migratePreferences(raw) {
   const value = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
@@ -28,7 +28,9 @@ export function migratePreferences(raw) {
     sound: typeof value.sound === "boolean" ? value.sound : DEFAULT_PREFERENCES.sound,
     music: typeof value.music === "boolean" ? value.music : DEFAULT_PREFERENCES.music,
     soundVolume: volume(value.soundVolume, DEFAULT_PREFERENCES.soundVolume, 1),
-    musicVolume: volume(value.musicVolume, DEFAULT_PREFERENCES.musicVolume, 0.35) || MUSIC_VOLUME
+    musicVolume: volume(value.musicVolume, DEFAULT_PREFERENCES.musicVolume, 0.35) || MUSIC_VOLUME,
+    // "auto": the 3D scene when the device can show it; "classic": the SVG scene.
+    graphics: value.graphics === "classic" ? "classic" : "auto"
   };
 }
 

@@ -1,0 +1,164 @@
+[
+  {
+    "name": "puller-a",
+    "phenotype": {
+      "gender": 0.92,
+      "age": 0.42,
+      "muscle": 0.72,
+      "weight": 0.55,
+      "height": 0.62,
+      "proportions": 0.6
+    },
+    "race": {
+      "african": 0.9,
+      "asian": 0.05,
+      "caucasian": 0.05
+    },
+    "skin": "young_african_male/young_african_male.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow004.mhclo",
+    "eyelashes": "eyelashes02.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "short02.mhclo",
+    "clothes": [
+      "toigo_basic_tucked_t-shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes02.mhclo"
+    ]
+  },
+  {
+    "name": "puller-b",
+    "phenotype": {
+      "gender": 0.08,
+      "age": 0.4,
+      "muscle": 0.62,
+      "weight": 0.48,
+      "height": 0.55,
+      "proportions": 0.6
+    },
+    "race": {
+      "african": 0.05,
+      "asian": 0.05,
+      "caucasian": 0.9
+    },
+    "skin": "young_caucasian_female/young_caucasian_female.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow001.mhclo",
+    "eyelashes": "eyelashes01.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "ponytail01.mhclo",
+    "clothes": [
+      "toigo_basic_tucked_t-shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes06.mhclo"
+    ]
+  },
+  {
+    "name": "puller-c",
+    "phenotype": {
+      "gender": 0.9,
+      "age": 0.5,
+      "muscle": 0.6,
+      "weight": 0.6,
+      "height": 0.5,
+      "proportions": 0.55
+    },
+    "race": {
+      "african": 0.05,
+      "asian": 0.9,
+      "caucasian": 0.05
+    },
+    "skin": "young_asian_male/young_asian_male.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow009.mhclo",
+    "eyelashes": "eyelashes02.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "short01.mhclo",
+    "clothes": [
+      "namuhekam_male_polo_shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes04.mhclo"
+    ]
+  },
+  {
+    "name": "puller-d",
+    "phenotype": {
+      "gender": 0.1,
+      "age": 0.42,
+      "muscle": 0.66,
+      "weight": 0.5,
+      "height": 0.58,
+      "proportions": 0.6
+    },
+    "race": {
+      "african": 0.9,
+      "asian": 0.05,
+      "caucasian": 0.05
+    },
+    "skin": "young_african_female/young_african_female.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow004.mhclo",
+    "eyelashes": "eyelashes01.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "afro01.mhclo",
+    "clothes": [
+      "toigo_basic_tucked_t-shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes05.mhclo"
+    ]
+  },
+  {
+    "name": "puller-e",
+    "phenotype": {
+      "gender": 0.92,
+      "age": 0.45,
+      "muscle": 0.7,
+      "weight": 0.58,
+      "height": 0.66,
+      "proportions": 0.6
+    },
+    "race": {
+      "african": 0.05,
+      "asian": 0.05,
+      "caucasian": 0.9
+    },
+    "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow001.mhclo",
+    "eyelashes": "eyelashes02.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "short03.mhclo",
+    "clothes": [
+      "namuhekam_male_polo_shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes01.mhclo"
+    ]
+  },
+  {
+    "name": "puller-f",
+    "phenotype": {
+      "gender": 0.1,
+      "age": 0.38,
+      "muscle": 0.6,
+      "weight": 0.46,
+      "height": 0.52,
+      "proportions": 0.6
+    },
+    "race": {
+      "african": 0.05,
+      "asian": 0.9,
+      "caucasian": 0.05
+    },
+    "skin": "young_asian_female/young_asian_female.mhmat",
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow009.mhclo",
+    "eyelashes": "eyelashes01.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "bob01.mhclo",
+    "clothes": [
+      "toigo_basic_tucked_t-shirt.mhclo",
+      "cortu_cargo_pants.mhclo",
+      "shoes03.mhclo"
+    ]
+  }
+]

@@ -11,12 +11,17 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../apps/platform-web/public/internal-games/math-tug-of-war/", import.meta.url));
 const documentFile = fileURLToPath(new URL("../apps/platform-web/features/games/math-tug-of-war/document.ts", import.meta.url));
 
+// Every file the runtime can fetch: scripts, styles, the vendored three.js
+// bundle and the 3D character models (glTF JSON, geometry, textures).
+const RUNTIME_FILE = /\.(js|css|gltf|bin|webp|png|json)$/;
+const TEXT_FILE = /\.(js|css|gltf|json)$/;
+
 export function runtimeFiles(directory = root) {
   const files = [];
   for (const name of readdirSync(directory)) {
     const path = join(directory, name);
     if (statSync(path).isDirectory()) files.push(...runtimeFiles(path));
-    else if (/\.(js|css)$/.test(name)) files.push(path);
+    else if (RUNTIME_FILE.test(name)) files.push(path);
   }
   return files.sort((a, b) => relative(root, a).localeCompare(relative(root, b)));
 }
@@ -26,8 +31,12 @@ export function runtimeHash() {
   for (const file of runtimeFiles()) {
     hash.update(relative(root, file).split("\\").join("/"));
     hash.update("\n");
-    // Line endings are normalised so a CRLF checkout computes the same value.
-    hash.update(readFileSync(file, "utf8").replace(/\r\n/g, "\n"));
+    if (TEXT_FILE.test(file)) {
+      // Line endings are normalised so a CRLF checkout computes the same value.
+      hash.update(readFileSync(file, "utf8").replace(/\r\n/g, "\n"));
+    } else {
+      hash.update(readFileSync(file));
+    }
     hash.update("\n");
   }
   return hash.digest("hex");

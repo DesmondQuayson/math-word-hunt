@@ -7,7 +7,8 @@ import { normalizeKey } from "./answer.js";
 import { SKILLS, formatInteger, getSkill } from "./questions.js";
 import { DEFAULT_TEAM_NAMES, NAME_MAX_LENGTH, TUG_LIMIT, createLocalMatch, describePosition, otherTeam, sanitizeName } from "./tug.js";
 import { ROBOT_TUNING, planRobotAnswer, robotEntry } from "./robot.js";
-import { createScene, prefersReducedMotion } from "./scene.js";
+import { prefersReducedMotion } from "./scene.js";
+import { canRender3D, createScene, prefetchScene3D } from "./scene-composite.js";
 import { TEAM_LABEL, createPanel, teamBadge } from "./panel.js";
 import { GameAudio, MUSIC_TRACK, readPreferences, writePreferences } from "./audio.js";
 import { OnlineError, createOnlineSeat, forgetSeat, onlineRequest, readSeat, saveSeat } from "./online.js";
@@ -24,6 +25,15 @@ const root = document.querySelector("#app");
 const politeRegion = document.querySelector("#announcer");
 const alertRegion = document.querySelector("#alert-announcer");
 document.documentElement.dataset.gameVersion = GAME_VERSION;
+// The document versions this entry URL with the runtime content hash; the 3D
+// models reuse it so a new deployment is never paired with cached geometry.
+const RUNTIME_VERSION = (() => {
+  try {
+    return new URL(import.meta.url).searchParams.get("v") ?? "";
+  } catch {
+    return "";
+  }
+})();
 
 const app = {
   screen: "home",
@@ -98,6 +108,28 @@ function audioControls() {
     announce(app.prefs.sound ? "Sound effects on" : "Sound effects off");
   });
   return [musicButton, soundButton];
+}
+
+function graphicsButton() {
+  const available = canRender3D();
+  const button = h("button", {
+    type: "button",
+    class: "tool-button",
+    "data-action": "graphics",
+    "aria-pressed": String(available && app.prefs.graphics !== "classic"),
+    disabled: !available,
+    title: available ? null : "3D graphics are unavailable on this device"
+  }, icon("cube"), h("span", { class: "tool-label", text: "3D" }));
+  button.setAttribute("aria-label", "3D graphics");
+  button.addEventListener("click", () => {
+    app.prefs.graphics = app.prefs.graphics === "classic" ? "auto" : "classic";
+    writePreferences(app.prefs);
+    button.setAttribute("aria-pressed", String(app.prefs.graphics !== "classic"));
+    app.scene?.setGraphics?.(app.prefs.graphics);
+    audio.button();
+    announce(app.prefs.graphics === "classic" ? "Classic graphics" : "3D graphics");
+  });
+  return button;
 }
 
 function fullscreenButton() {
@@ -285,6 +317,7 @@ function teardownGame() {
   app.robot = null;
   for (const panel of Object.values(app.panels)) panel.destroy();
   app.panels = {};
+  app.scene?.dispose?.();
   app.scene = null;
   app.overlay = null;
   if (app.online && app.screen !== "lobby" && app.screen !== "game") {
@@ -298,7 +331,7 @@ function skillChip() {
 }
 
 function buildGameScreen({ panels, sideContent, onExit }) {
-  const scene = createScene();
+  const scene = createScene({ graphics: app.prefs.graphics, version: RUNTIME_VERSION });
   app.scene = scene;
   const exit = h("button", { type: "button", class: "tool-button exit-button", "data-action": "exit" }, icon("home"), h("span", { class: "tool-label", text: "Exit" }));
   exit.setAttribute("aria-label", "Exit to game setup");
@@ -317,7 +350,7 @@ function buildGameScreen({ panels, sideContent, onExit }) {
       h("div", { class: "match-title" }, h("span", { class: "vs-names" },
         h("span", { class: "vs-t", text: app.names.turquoise }), h("span", { class: "vs", text: " vs " }), h("span", { class: "vs-p", text: app.names.pink })),
       skillChip()),
-      h("div", { class: "tools" }, audioControls(), fullscreenButton())),
+      h("div", { class: "tools" }, audioControls(), graphicsButton(), fullscreenButton())),
     layout,
     h("div", { class: "overlay-host" }));
   clear(root).append(screen);
@@ -1159,6 +1192,7 @@ document.addEventListener("keydown", event => {
 }, { capture: true });
 
 document.addEventListener("visibilitychange", () => {
+  app.scene?.setHidden?.(document.hidden);
   if (document.hidden) {
     audio.pauseMusic();
     app.robot?.pause();
@@ -1176,6 +1210,7 @@ window.addEventListener("pagehide", event => {
     return;
   }
   app.online?.seat?.stop();
+  app.scene?.dispose?.();
   audio.dispose();
 });
 
@@ -1188,3 +1223,5 @@ window.addEventListener("pageshow", event => {
 
 document.documentElement.classList.toggle("reduced-motion", prefersReducedMotion());
 renderHome();
+// Warm the 3D models while the player reads the home screen.
+prefetchScene3D(app.prefs.graphics, RUNTIME_VERSION);
