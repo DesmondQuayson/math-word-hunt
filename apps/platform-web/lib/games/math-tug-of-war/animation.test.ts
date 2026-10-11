@@ -32,14 +32,31 @@ type PullerLike = {
   finish(won: boolean): void;
   resetMatch(): void;
   update(dt: number, context: object): void;
-  root: { position: { y: number } };
+  lastHands: Record<"Left" | "Right", { x: number; y: number; z: number }>;
+  face: unknown;
+  root: { position: { x: number; y: number; z: number; set(x: number, y: number, z: number): void }; rotation: { y: number }; localToWorld(v: unknown): unknown };
   rig: {
     order: Array<{ name: string; quaternion: { w: number } }>;
+    footRestY: number;
     bone(name: string): unknown;
     worldPosition(bone: unknown, out: { x: number; y: number; z: number }): { x: number; y: number; z: number };
   };
-  lastHands: Record<"Left" | "Right", { x: number; y: number; z: number }>;
-  face: unknown;
+  hug: Record<"Left" | "Right", null | { teammate: PullerLike; target: unknown }>;
+  index: number;
+  boneWorld(name: string, out: { x: number; y: number; z: number }): { x: number; y: number; z: number };
+  worldFromLocal(vector: unknown): { x: number; y: number; z: number };
+  startTeamCelebration(plan: unknown, member: unknown): void;
+  refreshHugArms(): void;
+};
+
+/** The slice of a team celebration plan these tests read. */
+type PlanLike = {
+  t: number;
+  phase: string;
+  jumps: number;
+  period: number;
+  centre: { z: number };
+  members: Array<{ puller: PullerLike; isMiddle: boolean; finalKind: string; slot: { position: { x: number; z: number } }; line: { position: { x: number; z: number } } }>;
 };
 
 const runtimeModule = (file: string) => import(/* @vite-ignore */ pathToFileURL(resolve(RUNTIME, file)).href);
@@ -49,7 +66,8 @@ async function loadModules() {
   const { Rig } = await runtimeModule("scene3d/rig.js");
   const { Puller } = await runtimeModule("scene3d/puller.js");
   const { EXPRESSIONS, FACE_UNITS } = await runtimeModule("scene3d/expressions.js");
-  return { three, Rig, Puller, EXPRESSIONS, FACE_UNITS };
+  const { planCelebration, celebrationPhase } = await runtimeModule("scene3d/celebration.js");
+  return { three, Rig, Puller, EXPRESSIONS, FACE_UNITS, planCelebration, celebrationPhase };
 }
 
 function buildSkeleton(three: Awaited<ReturnType<typeof loadModules>>["three"]) {
@@ -192,6 +210,120 @@ describe("Math Tug of War 3D animation layer", () => {
     expect(puller.state).toBe("dejected");
     puller.resetMatch();
     expect(puller.state).toBe("ready");
+  });
+
+  it("team celebration: the winners walk into a huddle, hold each other's shoulders, jump together, land and line up, with no body overlap", async () => {
+    const { three, Puller, planCelebration, celebrationPhase } = await loadModules();
+    const tug = new three.Group();
+    const pullers: PullerLike[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const root = buildSkeleton(three);
+      root.position.set(1.3 + index, 0, 0.16);
+      root.rotation.y = -Math.PI / 2; // Pink faces the centre (−x)
+      tug.add(root);
+      const puller: PullerLike = new Puller({ instance: { root, meshes: [] }, team: "pink", index, seed: 21 + index });
+      pullers.push(puller);
+    }
+    tug.updateMatrixWorld(true);
+    for (const puller of pullers) puller.finish(true);
+    const plan = planCelebration({ team: "pink", pullers, seed: 42 }) as PlanLike;
+    for (const member of plan.members) member.puller.startTeamCelebration(plan, member);
+    const check = new three.Vector3();
+    const palm = new three.Vector3();
+    const samples: Array<{ t: number; phase: string; contact: number; clearance: number; separation: number; rootY: number[]; feet: number; slot: number }> = [];
+    for (let step = 0; step < 14 * 60; step += 1) {
+      plan.t = (step + 1) / 60;
+      plan.phase = celebrationPhase(plan);
+      for (const puller of pullers) puller.update(1 / 60, {});
+      for (const puller of pullers) puller.refreshHugArms(); // as the scene does once everyone is posed
+      // Finite everywhere, every frame.
+      for (const puller of pullers) {
+        for (const bone of puller.rig.order) {
+          puller.rig.worldPosition(bone, check);
+          expect(finite(check), `${plan.phase}: ${bone.name} at ${plan.t.toFixed(2)} s`).toBe(true);
+        }
+      }
+      if (step % 6 !== 5) continue;
+      let contact = 0;
+      let clearance = 9;
+      for (const puller of pullers) {
+        for (const side of ["Left", "Right"] as const) {
+          const hug = puller.hug[side];
+          if (!hug) continue;
+          puller.worldFromLocal(palm.copy(puller.lastHands[side] as never));
+          contact = Math.max(contact, palm.distanceTo(hug.target as never));
+          const spine = hug.teammate.boneWorld("Spine1", new three.Vector3());
+          clearance = Math.min(clearance, Math.hypot(palm.x - spine.x, palm.z - spine.z));
+        }
+      }
+      const hips = pullers.map((puller) => puller.boneWorld("Hips", new three.Vector3()));
+      let separation = 9;
+      for (let a = 0; a < 3; a += 1) for (let b = a + 1; b < 3; b += 1) separation = Math.min(separation, Math.hypot(hips[a].x - hips[b].x, hips[a].z - hips[b].z));
+      const feet = Math.max(...pullers.map((puller) => Math.max(puller.boneWorld("LeftFoot", new three.Vector3()).y, puller.boneWorld("RightFoot", new three.Vector3()).y) - puller.rig.footRestY));
+      const target = (member: { slot: { position: { x: number; z: number } }; line: { position: { x: number; z: number } } }) => (plan.phase === "break" || plan.phase === "pose" ? member.line.position : member.slot.position);
+      const slot = Math.max(...plan.members.map((member) => Math.hypot(member.puller.root.position.x - target(member).x, member.puller.root.position.z - target(member).z)));
+      samples.push({ t: plan.t, phase: plan.phase, contact, clearance, separation, rootY: pullers.map((puller) => puller.root.position.y), feet, slot });
+    }
+    const during = (phase: string) => samples.filter((sample) => sample.phase === phase);
+    // Approach: the distance to the huddle slot shrinks to nothing.
+    const approach = during("approach");
+    expect(approach[0].slot).toBeGreaterThan(0.4);
+    expect(approach[approach.length - 1].slot).toBeLessThan(0.05);
+    // Hug and jumps: three arms over shoulders, palms on the shoulder (≤ 4 cm), hands outside the torso, bodies close but never overlapping.
+    for (const sample of [...during("hug").filter((sample) => sample.t >= 2.9), ...during("jump")]) {
+      expect(sample.contact, `contact at ${sample.t.toFixed(2)} s`).toBeLessThan(0.04);
+      expect(sample.clearance, `clearance at ${sample.t.toFixed(2)} s`).toBeGreaterThan(0.1);
+      expect(sample.separation, `separation at ${sample.t.toFixed(2)} s`).toBeGreaterThan(0.3);
+      expect(sample.separation).toBeLessThan(0.9);
+    }
+    // Jumps: all three leave the ground together (at least 15 cm), never more than 12 cm apart in height, and land back on the ground.
+    const jumps = during("jump");
+    const airborne = jumps.filter((sample) => Math.min(...sample.rootY) > 0.15);
+    expect(airborne.length).toBeGreaterThanOrEqual(plan.jumps);
+    for (const sample of jumps) expect(Math.max(...sample.rootY) - Math.min(...sample.rootY), `jump spread at ${sample.t.toFixed(2)} s`).toBeLessThan(0.12);
+    expect(Math.max(...airborne.map((sample) => sample.feet))).toBeGreaterThan(0.2); // feet really leave the grass
+    const landed = jumps[jumps.length - 1]; // the last jump's landing: knees bent, feet on the grass
+    expect(Math.max(...landed.rootY)).toBe(0);
+    expect(landed.feet).toBeLessThan(0.03);
+    for (const sample of during("break")) expect(Math.max(...sample.rootY)).toBe(0);
+    // Team pose: lined up arm in arm, facing the camera, still in contact.
+    const pose = during("pose").slice(7);
+    expect(pose.length).toBeGreaterThan(5);
+    for (const sample of pose) {
+      expect(sample.contact, `pose contact at ${sample.t.toFixed(2)} s`).toBeLessThan(0.04);
+      expect(sample.separation).toBeGreaterThan(0.4);
+      expect(sample.slot).toBeLessThan(0.05);
+    }
+    for (const puller of pullers) expect(Math.abs(puller.root.rotation.y)).toBeLessThan(0.05); // facing the camera
+    // Reset returns everyone to their slots.
+    for (const puller of pullers) puller.resetMatch();
+    for (const [index, puller] of pullers.entries()) {
+      expect(Math.abs(puller.root.position.x - (1.3 + index))).toBeLessThan(1e-6);
+      expect(Math.abs(puller.root.rotation.y + Math.PI / 2)).toBeLessThan(1e-6);
+    }
+  });
+
+  it("team celebration: a different seed gives a different choreography (jumps, timing, formation), never an identical one", async () => {
+    const { three, Puller, planCelebration } = await loadModules();
+    const make = (seed: number): PlanLike => {
+      const pullers: PullerLike[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        const root = buildSkeleton(three);
+        root.position.set(-(1.3 + index), 0, 0.16);
+        root.rotation.y = Math.PI / 2;
+        pullers.push(new Puller({ instance: { root, meshes: [] }, team: "turquoise", index, seed: 3 + index }));
+      }
+      return planCelebration({ team: "turquoise", pullers, seed }) as PlanLike;
+    };
+    const plans = [make(1), make(2), make(3), make(4)];
+    const signatures = plans.map((plan) => [plan.jumps, plan.period.toFixed(3), plan.centre.z.toFixed(3), plan.members.map((member) => member.finalKind).join("/")].join("|"));
+    expect(new Set(signatures).size).toBeGreaterThan(1);
+    for (const plan of plans) {
+      expect(plan.jumps).toBeGreaterThanOrEqual(3);
+      expect(plan.jumps).toBeLessThanOrEqual(5);
+      expect(plan.members.filter((member) => member.isMiddle)).toHaveLength(1);
+      expect(plan.members[0].slot.position.x).toBeLessThan(plan.members[2].slot.position.x);
+    }
   });
 
   it("expressions: every named expression only uses face units the models carry, within [0, 1]", async () => {

@@ -25,7 +25,7 @@ let admin: SupabaseClient;
 type Snapshot = {
   svg: number;
   renderer: string;
-  three: null | { position: number; tugX: number; winner: string | null; states: Record<Team, string[]>; reachMiss: number; downgrades: unknown[] };
+  three: null | { position: number; tugX: number; winner: string | null; states: Record<Team, string[]>; reachMiss: number; downgrades: unknown[]; celebration: null | { phase: string; t: number; hugArms: number; hugContact: number; rootY: number[] } };
 };
 
 test.describe.configure({ mode: "serial" });
@@ -194,6 +194,17 @@ test("two 3D clients: pulls, animation states, winner, celebration, rematch and 
   }
   await a.page.waitForTimeout(1_600);
   for (const page of pages) expect(await ropeHeight(page)).toBeLessThan(0.12);
+  // Both screens show the same winning team hugging and jumping, on the same shared clock.
+  await a.page.waitForTimeout(1_800);
+  const [hugA, hugB] = await Promise.all(pages.map((page) => snapshot(page)));
+  for (const snap of [hugA, hugB]) {
+    expect(snap.three?.winner).toBe("turquoise");
+    expect(["hug", "jump"]).toContain(snap.three?.celebration?.phase);
+    expect(snap.three?.celebration?.hugArms ?? 0).toBeGreaterThanOrEqual(3);
+    // Contact precision is certified locally; here the dev-server tab runs slower frames, so allow the lag.
+    expect(snap.three?.celebration?.hugContact ?? 1).toBeLessThan(0.1);
+  }
+  expect(Math.abs((hugA.three?.celebration?.t ?? 0) - (hugB.three?.celebration?.t ?? 0))).toBeLessThan(1.5);
   const finished = await admin.from("tug_rooms").select("position,winner,status").eq("code", code).single();
   expect(finished.data?.position).toBe(-7);
 

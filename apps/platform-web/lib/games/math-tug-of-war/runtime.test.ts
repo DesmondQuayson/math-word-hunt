@@ -14,7 +14,7 @@ const RUNTIME_DIR = resolve(__dirname, "../../../public/internal-games/math-tug-
 const GAME_MODULES = [
   "app.js", "answer.js", "audio.js", "dom.js", "online.js", "panel.js", "questions.js", "random.js", "robot.js",
   "scene.js", "scene-composite.js", "tug.js", "version.js",
-  "scene3d/arena.js", "scene3d/assets.js", "scene3d/constants.js", "scene3d/effects.js", "scene3d/expressions.js",
+  "scene3d/arena.js", "scene3d/assets.js", "scene3d/celebration.js", "scene3d/constants.js", "scene3d/effects.js", "scene3d/expressions.js",
   "scene3d/math.js", "scene3d/puller.js", "scene3d/quality.js", "scene3d/rig.js", "scene3d/rope.js", "scene3d/scene3d.js"
 ];
 

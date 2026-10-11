@@ -96,15 +96,19 @@ const win = run("victory", ["--viewport", "1600x900", "--wait", "900", "--pulls"
 copy(join(win.dir, "04-win-0.5s-stage.png"), "08-loss-stumble-0.5s.png");
 copy(join(win.dir, "05-win-1.4s-stage.png"), "09-loss-fall-1.4s.png");
 copy(join(win.dir, "06-win-2.6s-stage.png"), "10-loss-down-helping-hand-2.6s.png");
-copy(join(win.dir, "07-win-4.8s-stage.png"), "11-recovery-4.8s.png");
-copy(join(win.dir, "08-win-6.0s-stage.png"), "11b-dejected-6.0s.png");
+copy(join(win.dir, "08-win-4.8s-stage.png"), "11-recovery-4.8s.png");
+copy(join(win.dir, "09-win-6.0s-stage.png"), "11b-dejected-6.0s.png");
 copy(join(win.dir, "06-win-2.6s.png"), "12-winning-celebration-with-result-card.png");
+copy(join(win.dir, "07-win-3.4s-stage.png"), "12b-winners-huddle-jump-3.4s.png");
+copy(join(win.dir, "10-win-8.0s-stage.png"), "12c-winners-team-pose-8.0s.png");
+copy(join(win.dir, "11-win-10.5s-stage.png"), "12d-winners-cheer-10.5s.png");
 for (const file of readdirSync(win.dir).filter((name) => name.endsWith(".webm"))) copy(join(win.dir, file), "13-recording-pulls-victory-fall-recovery.webm");
-const win2 = run("victory-turquoise", ["--viewport", "1600x900", "--wait", "900", "--pulls", "p", "--win", "turquoise", "--stage", "--closeup", "turquoise-1"]);
-copy(join(win2.dir, "03-win-1.4s-stage.png"), "14-winning-team-turquoise-1.4s.png");
-copy(join(win2.dir, "04-win-2.6s-stage.png"), "15-winning-team-turquoise-2.6s-high-five.png");
-copy(join(win2.dir, "05-win-4.8s-stage.png"), "15b-winning-team-turquoise-4.8s.png");
-copy(join(win2.dir, "03-win-1.4s-closeup.png"), "16-winner-face-joy.png");
+const win2 = run("victory-turquoise", ["--viewport", "1600x900", "--wait", "900", "--pulls", "p", "--win", "turquoise", "--stage", "--closeup", "turquoise-1", "--closeup-distance", "1.9"]);
+copy(join(win2.dir, "03-win-1.4s-stage.png"), "14-winning-team-turquoise-1.4s-approach.png");
+copy(join(win2.dir, "04-win-2.6s-stage.png"), "15-winning-team-turquoise-2.6s-huddle-hug.png");
+copy(join(win2.dir, "05-win-3.4s-stage.png"), "15b-winning-team-turquoise-3.4s-jump.png");
+copy(join(win2.dir, "08-win-8.0s-stage.png"), "15c-winning-team-turquoise-8.0s-team-pose.png");
+copy(join(win2.dir, "05-win-3.4s-closeup.png"), "16-winner-face-joy.png");
 
 // 5. Devices.
 const devices = [["phone-390x844", "390x844"], ["phone-430x932", "430x932"], ["ipad-portrait-820x1180", "820x1180"], ["ipad-landscape-1180x820", "1180x820"], ["smart-board-1920x1080", "1920x1080"], ["4k-3840x2160", "3840x2160"]];

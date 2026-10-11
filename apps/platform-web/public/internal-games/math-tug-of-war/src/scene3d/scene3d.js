@@ -15,10 +15,11 @@ import {
   WebGLRenderer
 } from "../vendor/three.js";
 import { Arena } from "./arena.js";
+import { celebrationPhase, planCelebration } from "./celebration.js";
 import { instantiateCharacter, disposeCharacter, loadCharacters } from "./assets.js";
 import { BODY_SIDE, FIELD_UNITS_TO_METRES, STEP, TEAM, TEAMS, TEAM_CHARACTERS, PULLERS_PER_TEAM, otherTeam, slotX } from "./constants.js";
 import { Confetti, ContactShadows, Dust } from "./effects.js";
-import { approach, clamp, easeOutCubic, easeInOutSine } from "./math.js";
+import { approach, clamp, easeOutCubic, easeInOutSine, lerp, smoothstep } from "./math.js";
 import { Puller } from "./puller.js";
 import { TIER_SETTINGS, createFrameWatch, graphicsOverride, lowerTier } from "./quality.js";
 import { Rope } from "./rope.js";
@@ -87,8 +88,9 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
   const pulls = { turquoise: 0, pink: 0 };
   const momentum = { turquoise: 0, pink: 0 };
   let celebrationTime = 0;
-  let highFived = false;
   let helpOffered = false;
+  let plan = null; // the winning team's shared celebration plan
+  let matchCount = 0;
   const stats = { frames: 0, frameMs: 0, worstMs: 0, downgrades: [] };
 
   const watch = createFrameWatch({
@@ -204,11 +206,18 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     }
     const aspect = camera.aspect || DEFAULT_ASPECT;
     const tanHalf = Math.tan((VERTICAL_FOV * Math.PI) / 360);
-    const distance = halfWidth / (tanHalf * aspect);
-    const panX = tugX * panFactor;
-    camera.position.set(panX, 1.05 + distance * 0.17, distance);
-    camera.lookAt(panX, 1.0, 0);
-    arena?.follow(tugX);
+    // After a win the view eases in on the winners' huddle so the whole team stays in frame.
+    const focus = plan ? smoothstep(0.15, 1.8, celebrationTime) : 0;
+    const focusX = plan ? tugX + plan.centre.x : 0;
+    // Wide boxes zoom in a little; tall (portrait) boxes already show the whole team.
+    const zoom = 0.22 * clamp((aspect - MIN_ASPECT) / (DEFAULT_ASPECT - MIN_ASPECT), 0, 1);
+    const width = halfWidth * (1 - zoom * focus);
+    const distance = width / (tanHalf * aspect);
+    const panX = lerp(tugX * panFactor, focusX * 0.58, focus);
+    const lookZ = plan ? plan.centre.z * 0.4 * focus : 0;
+    camera.position.set(panX, 1.05 + distance * 0.17, distance + lookZ);
+    camera.lookAt(panX, 1.0 + 0.05 * focus, lookZ);
+    arena?.follow(panX);
   }
 
   function resize(nextWidth, nextHeight) {
@@ -286,6 +295,10 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     }
     const totalPulls = pulls.turquoise + pulls.pink;
     const baseFatigue = clamp(0.42 * (1 - Math.exp(-matchTime / 55)) + 0.025 * totalPulls, 0, 0.95);
+    if (winner && plan) {
+      plan.t = celebrationTime + dt;
+      plan.phase = celebrationPhase(plan);
+    }
     const context = { winner, time: matchTime };
     let tension = winner ? 0 : 0.42 + 0.15 * Math.max(0, momentum.turquoise, momentum.pink);
     if (moving) tension = 0.95;
@@ -300,6 +313,8 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         puller.update(dt, context);
       }
     }
+    // The winners' hug arms are re-solved once everyone is posed (no frame lag in the contact).
+    if (winner && plan) for (const member of plan.members) member.puller.refreshHugArms();
     // Hands → rope.
     handPoints.length = 0;
     let slot = 0;
@@ -338,20 +353,9 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
 
     if (winner) {
       celebrationTime += dt;
-      if (!highFived && celebrationTime > 1.3) {
-        highFived = true;
-        const [a, b] = pullers[winner];
-        if (a && b) {
-          const point = new Vector3();
-          const aHand = a.root.localToWorld(new Vector3(0, 1.55, 0));
-          const bHand = b.root.localToWorld(new Vector3(0, 1.55, 0));
-          point.lerpVectors(aHand, bHand, 0.5);
-          point.y = 1.62;
-          const aLocal = a.root.worldToLocal(point.clone());
-          const bLocal = b.root.worldToLocal(point.clone());
-          a.highFive(aLocal.x >= 0 ? "Left" : "Right", aLocal, aLocal.z < 0 ? Math.PI * 0.45 * Math.sign(aLocal.x || 1) : 0);
-          b.highFive(bLocal.x >= 0 ? "Left" : "Right", bLocal, bLocal.z < 0 ? Math.PI * 0.45 * Math.sign(bLocal.x || 1) : 0);
-        }
+      if (plan) {
+        plan.t = celebrationTime;
+        plan.phase = celebrationPhase(plan);
       }
       if (!helpOffered && celebrationTime > 2.5) {
         helpOffered = true;
@@ -405,7 +409,6 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     if (winner) return;
     winner = team;
     celebrationTime = 0;
-    highFived = false;
     helpOffered = false;
     // Decided before the world was built: the celebration starts once it is.
     if (!ready || !rope) return;
@@ -414,6 +417,10 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
 
   function applyCelebration(team) {
     for (const puller of pullers[team]) puller.finish(true);
+    // One shared plan: the winners release, turn, huddle, jump and pose together,
+    // with per-match variation. Only ever built after the game confirmed the winner.
+    plan = planCelebration({ team, pullers: pullers[team], seed: 500 + matchCount * 31 + (team === "pink" ? 7 : 0) });
+    for (const member of plan.members) member.puller.startTeamCelebration(plan, member);
     for (const puller of pullers[otherTeam(team)]) puller.finish(false);
     rope.release();
     arena.celebrate(team);
@@ -427,6 +434,8 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     position = 0;
     tugX = 0;
     winner = null;
+    if (plan) matchCount += 1;
+    plan = null;
     matchTime = 0;
     celebrationTime = 0;
     pulls.turquoise = 0;
@@ -503,6 +512,58 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     canvas.remove();
   }
 
+  /** Diagnostics for the winning team's celebration (tests and the review pack). */
+  function celebrationSnapshot() {
+    if (!plan || !winner) return null;
+    const winners = plan.members.map((member) => member.puller);
+    const hips = winners.map((puller) => puller.boneWorld("Hips", new Vector3()));
+    let bodySeparation = Infinity;
+    for (let a = 0; a < hips.length; a += 1) {
+      for (let b = a + 1; b < hips.length; b += 1) bodySeparation = Math.min(bodySeparation, Math.hypot(hips[a].x - hips[b].x, hips[a].z - hips[b].z));
+    }
+    let hugContact = 0;
+    let hugArms = 0;
+    let hugReachMiss = 0;
+    let handClearance = Infinity;
+    const palm = new Vector3();
+    for (const puller of winners) {
+      for (const side of ["Left", "Right"]) {
+        const hug = puller.hug?.[side];
+        if (!hug) continue;
+        hugArms += 1;
+        hugReachMiss = Math.max(hugReachMiss, puller.reachMiss[side]);
+        puller.worldFromLocal(palm.copy(puller.lastHands[side]));
+        hugContact = Math.max(hugContact, palm.distanceTo(hug.target));
+        // The hand must sit on the teammate's shoulder, never inside the torso (the spine axis).
+        const spine = hug.teammate.boneWorld("Spine1", new Vector3());
+        handClearance = Math.min(handClearance, Math.hypot(palm.x - spine.x, palm.z - spine.z));
+      }
+    }
+    const phase = plan.phase;
+    const target = (member) => (phase === "break" || phase === "pose" ? member.line.position : member.slot.position);
+    const slotDistance = Math.max(...plan.members.map((member) => Math.hypot(member.puller.root.position.x - target(member).x, member.puller.root.position.z - target(member).z)));
+    const feet = winners.map((puller) => Math.min(puller.boneWorld("LeftFoot", new Vector3()).y, puller.boneWorld("RightFoot", new Vector3()).y) - puller.rig.footRestY);
+    return {
+      phase,
+      t: Number(plan.t.toFixed(2)),
+      jumps: plan.jumps,
+      rootY: winners.map((puller) => Number(puller.root.position.y.toFixed(3))),
+      feetY: feet.map((value) => Number(value.toFixed(3))),
+      slotDistance: Number(slotDistance.toFixed(3)),
+      bodySeparation: Number(bodySeparation.toFixed(3)),
+      hugArms,
+      hugContact: Number(hugContact.toFixed(3)),
+      hugReachMiss: Number(hugReachMiss.toFixed(3)),
+      handClearance: Number((handClearance === Infinity ? 9 : handClearance).toFixed(3)),
+      // Screen-space check: every winner's head and feet inside the canvas.
+      onScreen: winners.every((puller) => {
+        const head = puller.boneWorld("Head", new Vector3()).project(camera);
+        const foot = puller.boneWorld("LeftFoot", new Vector3()).project(camera);
+        return Math.abs(head.x) < 0.98 && Math.abs(head.y) < 0.98 && Math.abs(foot.x) < 0.98 && Math.abs(foot.y) < 0.98;
+      })
+    };
+  }
+
   return Object.freeze({
     element: canvas,
     ready: readyPromise,
@@ -559,6 +620,7 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         states: Object.fromEntries(TEAMS.map((team) => [team, pullers[team].map((puller) => puller.state)])),
         // Largest distance any hand missed its target this frame (metres): hands really hold the rope.
         reachMiss: Number(Math.max(0, ...TEAMS.flatMap((team) => pullers[team].flatMap((puller) => [puller.reachMiss.Left, puller.reachMiss.Right]))).toFixed(3)),
+        celebration: celebrationSnapshot(),
         fatigue: Object.fromEntries(TEAMS.map((team) => [team, Number((pullers[team][0]?.fatigue ?? 0).toFixed(2))])),
         momentum: { turquoise: Number(momentum.turquoise.toFixed(2)), pink: Number(momentum.pink.toFixed(2)) }
       };

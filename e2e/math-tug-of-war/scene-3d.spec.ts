@@ -32,6 +32,20 @@ type SceneSnapshot = {
     momentum: Record<"turquoise" | "pink", number>;
     downgrades: unknown[];
     reachMiss: number;
+    celebration: null | {
+      phase: string;
+      t: number;
+      jumps: number;
+      rootY: number[];
+      feetY: number[];
+      slotDistance: number;
+      bodySeparation: number;
+      hugArms: number;
+      hugContact: number;
+      hugReachMiss: number;
+      handClearance: number;
+      onScreen: boolean;
+    };
   };
 };
 
@@ -161,6 +175,14 @@ test.describe("Math Tug of War — 3D scene", () => {
     await expect(page.locator(".scene-stage")).toHaveAttribute("data-renderer", "svg");
     await expect(page.locator("canvas")).toHaveCount(0);
     await expect(page.locator('[data-action="graphics"]')).toBeDisabled();
+    // A whole match, including the win and its celebration, stays on the calm SVG scene.
+    for (let pull = 1; pull <= 7; pull += 1) {
+      await waitForUnlocked(page, "pink");
+      await answer(page, "pink");
+    }
+    await expect(page.getByRole("dialog").getByRole("heading", { name: "Comets WINS!" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".tug-scene-svg")).toHaveClass(/won-pink/);
+    await expect(page.locator("canvas")).toHaveCount(0);
     await context.close();
 
     const classic = await browser.newPage();
@@ -311,6 +333,84 @@ test.describe("Math Tug of War — 3D scene", () => {
       await page.locator('[data-action="exit"]').click();
       await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
     }
+  });
+
+  test("the winning team hugs and jumps together: approach, shoulder contact, synchronized jumps, clean landing, team pose, all in frame", async ({ page }, testInfo) => {
+    await startTeams3D(page, "multiplication");
+    for (let pull = 1; pull <= 7; pull += 1) {
+      await waitForUnlocked(page, "pink");
+      await answer(page, "pink");
+    }
+    await expect(page.locator(".tug-scene-svg")).toHaveClass(/won-pink/);
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.winner).toBe("pink");
+    // Only the confirmed winners celebrate; the losers fall.
+    const first = await sceneSnapshot(page);
+    expect(first.three?.states.pink).toEqual(["celebrate", "celebrate", "celebrate"]);
+    expect(first.three?.states.turquoise.every((state) => ["falling", "down"].includes(state))).toBe(true);
+    // Sample the celebration for 12 seconds.
+    const samples = await page.evaluate(async () => {
+      const read = () => (window as unknown as { __MATHNEXA_TUG_SCENE__: { snapshot(): { three: { celebration: Record<string, unknown> | null; states: Record<string, string[]>; frameMs: number } } } }).__MATHNEXA_TUG_SCENE__.snapshot().three;
+      const out: Array<Record<string, unknown>> = [];
+      const started = performance.now();
+      while (performance.now() - started < 12_000) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const three = read();
+        out.push({ ...(three.celebration ?? {}), states: three.states, frameMs: three.frameMs });
+      }
+      return out as Array<SceneSnapshot["three"] extends infer T ? (T extends { celebration: infer C } ? NonNullable<C> & { states: Record<string, string[]>; frameMs: number } : never) : never>;
+    });
+    const during = (phase: string) => samples.filter((sample) => sample.phase === phase);
+    // The phases run in order and the celebration reaches the team pose.
+    const order = ["release", "turn", "approach", "hug", "jump", "break", "pose"];
+    const seen = samples.map((sample) => order.indexOf(sample.phase));
+    expect(seen).not.toContain(-1);
+    for (let index = 1; index < seen.length; index += 1) expect(seen[index]).toBeGreaterThanOrEqual(seen[index - 1]);
+    expect(seen[seen.length - 1]).toBe(order.indexOf("pose"));
+    // Approach: the teammates close in on their huddle slots.
+    const approach = during("approach");
+    expect(approach.length).toBeGreaterThan(2);
+    expect(approach[0].slotDistance).toBeGreaterThan(approach[approach.length - 1].slotDistance + 0.3);
+    // Hug: three arms over shoulders with the palm on the shoulder; hands outside the torso; bodies close, never overlapping.
+    // The arms blend onto the shoulders over the first 0.4 s of the hug; judge contact after that.
+    const hugging = [...during("hug").filter((sample) => sample.t >= 2.9), ...during("jump")];
+    expect(hugging.length).toBeGreaterThan(8);
+    for (const sample of hugging) {
+      expect(sample.hugArms).toBeGreaterThanOrEqual(3);
+      expect(sample.hugContact, `contact at ${sample.t} s`).toBeLessThan(0.05);
+      expect(sample.hugReachMiss, `reach at ${sample.t} s`).toBeLessThan(0.02);
+      expect(sample.handClearance, `clearance at ${sample.t} s`).toBeGreaterThan(0.1);
+      expect(sample.bodySeparation, `separation at ${sample.t} s`).toBeGreaterThan(0.3);
+      expect(sample.bodySeparation).toBeLessThan(0.9);
+    }
+    // Jumps: all three in the air together, feet off the grass, then a clean landing.
+    const jumps = during("jump");
+    const airborne = jumps.filter((sample) => Math.min(...sample.rootY) > 0.12);
+    expect(airborne.length).toBeGreaterThanOrEqual(2);
+    // Together: never more than 20 cm apart in height on a 27 cm jump (half-rate posing on phones adds a frame of skew).
+    for (const sample of jumps) expect(Math.max(...sample.rootY) - Math.min(...sample.rootY), `jump spread at ${sample.t} s`).toBeLessThan(0.2);
+    expect(Math.max(...airborne.flatMap((sample) => sample.feetY))).toBeGreaterThan(0.15);
+    const landed = jumps[jumps.length - 1]; // the last jump's landing: knees bent, feet on the grass
+    expect(Math.max(...landed.rootY)).toBe(0);
+    expect(Math.max(...landed.feetY)).toBeLessThan(0.04);
+    for (const sample of during("break")) expect(Math.max(...sample.rootY), `break at ${sample.t} s`).toBe(0);
+    // Team pose: arm in arm, still in contact.
+    const poseStart = during("pose")[0]?.t ?? 0;
+    const pose = during("pose").filter((sample) => sample.t >= poseStart + 0.6);
+    expect(pose.length).toBeGreaterThan(3);
+    for (const sample of pose) {
+      expect(sample.hugArms).toBeGreaterThanOrEqual(3);
+      expect(sample.hugContact, `pose contact at ${sample.t} s`).toBeLessThan(0.05);
+    }
+    // Everyone in frame from the approach onwards (phones included), and the frame rate holds.
+    for (const sample of samples.filter((sample) => sample.phase !== "release" && sample.phase !== "turn")) expect(sample.onScreen, `on screen at ${sample.t} s`).toBe(true);
+    expect(Math.max(...samples.map((sample) => sample.frameMs))).toBeLessThan(testInfo.project.name.includes("webkit") ? 40 : 30);
+    // The losers have risen into their dejected stance; the result card is readable over it all.
+    expect(samples[samples.length - 1].states.turquoise).toEqual(["dejected", "dejected", "dejected"]);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Comets WINS!" })).toBeVisible();
+    await dialog.getByRole("button", { name: "Play Again" }).click();
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.states.pink).toEqual(["ready", "ready", "ready"]);
+    expect((await sceneSnapshot(page)).three?.celebration).toBeNull();
   });
 
   test("pulls and a win that arrive while the models are still loading never break the game and are applied once the 3D scene is ready", async ({ page }) => {

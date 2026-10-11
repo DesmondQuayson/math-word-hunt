@@ -6,6 +6,7 @@
 // +X the puller's left. A team pulls towards its own -Z.
 
 import { Quaternion, Vector3 } from "../vendor/three.js";
+import { celebrationPhase, jumpProfile } from "./celebration.js";
 import { BODY_SIDE, HAND_GAP, ROPE_Y } from "./constants.js";
 import { Face } from "./expressions.js";
 import { approach, bump, clamp, deg, easeOutCubic, lerp, makeNoise, makeRandom, smoothstep } from "./math.js";
@@ -174,6 +175,14 @@ export class Puller {
     this.helpTarget = null;
     this.celebration = null;
     this.fall = null;
+    // Where the slot puts this body; the celebration walks away from it and reset() returns to it.
+    this.homeX = this.root.position.x;
+    this.homeZ = this.root.position.z;
+    this.homeYaw = this.root.rotation.y;
+    this.armMode = { Left: "", Right: "" };
+    this.armFrom = { Left: new Vector3(), Right: new Vector3() };
+    this.armBlend = { Left: 1, Right: 1 };
+    this.hug = { Left: null, Right: null };
     this.rig.reset();
     this.face.set({ concentration: 0.6 });
   }
@@ -208,7 +217,7 @@ export class Puller {
     this.stateTime = 0;
     if (won) {
       this.state = "celebrate";
-      this.celebration = { kind: ["arms", "jump", "pump"][this.variant], t: 0, highFive: null };
+      this.celebration = { kind: ["arms", "jump", "pump"][this.variant], t: 0 };
       this.face.set({ joy: 0.9, excited: 0.4 }, 6);
     } else {
       this.state = "falling";
@@ -221,6 +230,8 @@ export class Puller {
 
   /** Back to the start of a match. */
   resetMatch() {
+    this.placeRoot(this.homeX, this.homeZ, this.homeYaw);
+    this.hug = { Left: null, Right: null };
     this.state = "ready";
     this.stateTime = 0;
     this.action = null;
@@ -432,6 +443,7 @@ export class Puller {
     rig.lookAt(pose.look, pose.lookWeight);
     rig.rotate("Head", "z", pose.headRoll);
     this.root.position.y = pose.rootY ?? 0;
+    this.lastPose = pose;
     // Where the palms really are (the rope is built through these), from the posed bones.
     for (const side of ["Left", "Right"]) {
       const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpA);
@@ -593,6 +605,11 @@ export class Puller {
   }
 
   poseCelebrate(dt, context) {
+    if (this.celebration?.kind === "team") {
+      this.poseTeamCelebrate(dt);
+      void context;
+      return;
+    }
     const pose = this.basePose();
     const c = this.celebration;
     c.t += dt;
@@ -672,22 +689,6 @@ export class Puller {
       rootLift = hop * 0.05 * settle;
       pose.hipsPosition.y -= (1 - hop) * 0.03 * settle;
     }
-    // High five with the neighbour when asked for one.
-    if (c.highFive) {
-      const hf = c.highFive;
-      hf.t += dt;
-      const phase = clamp(hf.t / 0.6, 0, 1);
-      const side = hf.side;
-      const reach = bump(phase);
-      pose.hand[side].lerp(hf.point, reach);
-      pose.handFingers[side].copy(hf.fingers);
-      pose.handPalm[side].copy(hf.palm);
-      pose.curl[side] = 0.1;
-      pose.hipsYaw = hf.yaw * reach;
-      pose.spineTwist = hf.yaw * 0.6 * reach;
-      pose.look.lerp(hf.point, reach * 0.8);
-      if (phase >= 1) c.highFive = null;
-    }
     pose.rootY = rootLift;
     pose.chest = bounce * deg(2);
     this.fitLegs(pose);
@@ -695,12 +696,324 @@ export class Puller {
     void context;
   }
 
-  /** Ask for a high five with a teammate at a character-space point. */
-  highFive(side, point, yaw) {
-    if (this.state !== "celebrate" || !this.celebration) return;
-    const fingers = new Vector3(point.x, point.y + 0.4, point.z).sub(point).normalize();
-    const palm = new Vector3(point.x, 0, point.z).normalize().multiplyScalar(1);
-    this.celebration.highFive = { side, point: point.clone(), fingers, palm, yaw, t: 0 };
+  // ---------------------------------------------------------------- team celebration
+
+  /** Join the winning team's shared celebration plan (after finish(true)). */
+  startTeamCelebration(plan, member) {
+    if (this.state !== "celebrate") return;
+    this.celebration = { kind: "team", plan, member, t: 0, lastJumpIndex: -1, lookTimer: 0, lookWho: 0, cheer: 0, cheerTimer: 0 };
+    this.armMode = { Left: "", Right: "" };
+    this.armFrom = { Left: new Vector3(), Right: new Vector3() };
+    this.armBlend = { Left: 1, Right: 1 };
+    this.hug = { Left: null, Right: null };
+    this.root.updateMatrixWorld(true);
+  }
+
+  /**
+   * Move the character (tug-group space) while every planted foot keeps its
+   * place on the ground; the step controller then walks the feet after the
+   * body. `yaw` maps local +Z onto (sin yaw, 0, cos yaw).
+   */
+  placeRoot(x, z, yaw) {
+    const root = this.root;
+    const oldX = root.position.x;
+    const oldZ = root.position.z;
+    const oldYaw = root.rotation.y;
+    if (oldX === x && oldZ === z && oldYaw === yaw) return;
+    const keep = (vector) => {
+      // local → world (old) → local (new), on the ground plane
+      vector.applyAxisAngle(UP, oldYaw);
+      vector.x += oldX - x;
+      vector.z += oldZ - z;
+      vector.applyAxisAngle(UP, -yaw);
+    };
+    for (const foot of Object.values(this.feet)) {
+      keep(foot.position);
+      if (foot.stepping) keep(foot.stepping.from);
+    }
+    root.position.x = x;
+    root.position.z = z;
+    root.rotation.y = yaw;
+    root.updateMatrixWorld(true);
+  }
+
+  /**
+   * Character space → world, from the root's live position and rotation (the
+   * cached world matrix lags a frame behind a jumping root).
+   */
+  worldFromLocal(vector) {
+    vector.applyQuaternion(this.root.quaternion).add(this.root.position);
+    return this.root.parent ? this.root.parent.localToWorld(vector) : vector;
+  }
+
+  /** World → character space, the inverse of worldFromLocal. */
+  localFromWorld(vector) {
+    if (this.root.parent) this.root.parent.worldToLocal(vector);
+    return vector.sub(this.root.position).applyQuaternion(tmpQ.copy(this.root.quaternion).invert());
+  }
+
+  /** Tug-group space (where root.position and the plan live) → character space. */
+  tugToLocal(vector) {
+    return vector.sub(this.root.position).applyAxisAngle(UP, -this.root.rotation.y);
+  }
+
+  /** World position of a posed bone. */
+  boneWorld(name, out) {
+    this.rig.worldPosition(this.rig.bone(name), out);
+    return this.worldFromLocal(out);
+  }
+
+  /** Smooth the hand target across mode changes (the IK would otherwise snap). */
+  armTarget(pose, side, mode, target, dt) {
+    if (this.armMode[side] !== mode) {
+      this.armMode[side] = mode;
+      this.armFrom[side].copy(this.lastHands[side]);
+      this.armBlend[side] = 0;
+    }
+    this.armBlend[side] = Math.min(1, this.armBlend[side] + dt / 0.38);
+    pose.hand[side].lerpVectors(this.armFrom[side], target, smoothstep(0, 1, this.armBlend[side]));
+  }
+
+  /**
+   * Put this hand over a teammate's nearest shoulder: the palm rests on top of
+   * the shoulder, fingers pointing over it, elbow up (an arm around the
+   * shoulders). Returns the world contact point.
+   */
+  hugArm(pose, side, teammate, dt, expectedLift = null) {
+    const myShoulder = this.boneWorld(side === "Left" ? "LeftArm" : "RightArm", tmpD);
+    const left = teammate.boneWorld("LeftArm", new Vector3());
+    const right = teammate.boneWorld("RightArm", new Vector3());
+    // A teammate posed after me this frame still shows last frame's jump height: use the shared clock's.
+    if (expectedLift !== null) {
+      const correction = expectedLift - teammate.root.position.y;
+      left.y += correction;
+      right.y += correction;
+    }
+    const near = left.distanceTo(myShoulder) <= right.distanceTo(myShoulder) ? left : right;
+    const far = near === left ? right : left;
+    const across = tmpC.subVectors(far, near).setY(0).normalize();
+    // Contact point: on top of the near shoulder, a hand's width over towards the far side.
+    const contactWorld = near.clone().addScaledVector(across, 0.03);
+    contactWorld.y += 0.075;
+    const local = this.localFromWorld(contactWorld.clone());
+    pose.handFingers[side].copy(this.localFromWorld(contactWorld.clone().add(across)).sub(local)).setY(-0.15).normalize();
+    // The IK target is the wrist: one palm-length back along the fingers, so the palm rests on the shoulder.
+    const wrist = local.clone().addScaledVector(pose.handFingers[side], -GRIP_OFFSET);
+    this.armTarget(pose, side, `hug:${teammate.index}`, wrist, dt);
+    pose.handPalm[side].set(0, -1, 0);
+    pose.armPole[side].set(side === "Left" ? 0.3 : -0.3, 1, 0.35);
+    pose.curl[side] = 0.3;
+    this.hug[side] = { teammate, target: contactWorld };
+    return contactWorld;
+  }
+
+  /** A free arm: straight up (V), fist pumping, waving, or resting on the hip. */
+  freeArm(pose, side, kind, t, dt, lift = 1) {
+    const sign = side === "Left" ? 1 : -1;
+    if (kind === "up") {
+      const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+      const target = tmpD.copy(shoulder).addScaledVector(tmpA.set(sign * 0.45, 1, 0.1).normalize(), this.armReach * 0.96);
+      this.armTarget(pose, side, "up", target, dt);
+      pose.handFingers[side].set(sign * 0.4, 1, 0.1).normalize();
+      pose.handPalm[side].set(0, 0, 1);
+      pose.armPole[side].set(sign * 0.9, 0.1, -0.3);
+      pose.curl[side] = 0.25 - 0.1 * lift;
+    } else if (kind === "pump") {
+      const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+      const pump = 0.5 + 0.5 * Math.sin(t * 6 * this.traits.tempo);
+      const target = tmpD.set(shoulder.x + sign * 0.14, shoulder.y + 0.05 + pump * 0.42, shoulder.z + 0.28 - pump * 0.12);
+      this.armTarget(pose, side, "pump", target, dt);
+      pose.handFingers[side].set(0, 1, 0.2).normalize();
+      pose.handPalm[side].set(-sign, 0, 0);
+      pose.armPole[side].set(sign * 0.8, -0.2, -0.4);
+      pose.curl[side] = 0.95;
+    } else if (kind === "wave") {
+      const shoulder = this.torsoPoint(pose, this.shoulderRest[side], tmpC);
+      const wave = Math.sin(t * 5.5) * 0.12;
+      const target = tmpD.copy(shoulder).addScaledVector(tmpA.set(sign * (0.55 + wave), 1, 0.15).normalize(), this.armReach * 0.95);
+      this.armTarget(pose, side, "wave", target, dt);
+      pose.handFingers[side].set(sign * 0.5 + wave, 1, 0.1).normalize();
+      pose.handPalm[side].set(0, 0, 1);
+      pose.armPole[side].set(sign * 0.9, 0.2, -0.2);
+      pose.curl[side] = 0.15;
+    } else {
+      // Open, welcoming arm at shoulder height (the walk into the huddle).
+      const target = tmpD.set(sign * 0.52, 1.22, 0.22);
+      this.armTarget(pose, side, "open", target, dt);
+      pose.handFingers[side].set(sign * 0.8, 0.1, 0.6).normalize();
+      pose.handPalm[side].set(-sign * 0.4, -0.2, 0.9).normalize();
+      pose.armPole[side].set(sign * 0.7, -0.6, -0.4);
+      pose.curl[side] = 0.2;
+    }
+  }
+
+  /**
+   * Second pass, after every winner has been posed this frame: re-solve the hug
+   * arms against the teammates' current shoulders, so contact never lags a
+   * frame behind, however long the frame was.
+   */
+  refreshHugArms() {
+    const pose = this.lastPose;
+    if (!pose || this.celebration?.kind !== "team") return;
+    const rig = this.rig;
+    for (const side of ["Left", "Right"]) {
+      const hug = this.hug[side];
+      if (!hug) continue;
+      this.hugArm(pose, side, hug.teammate, 0);
+      this.reachMiss[side] = rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, pose.hand[side], pose.armPole[side], ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
+      rig.orientHand(side, pose.handFingers[side], pose.handPalm[side]);
+      rig.curl(side, pose.curl[side]);
+      const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpA);
+      this.lastHands[side].copy(wrist).addScaledVector(tmpB.copy(pose.handFingers[side]).normalize(), GRIP_OFFSET);
+    }
+  }
+
+  /** Walk the root towards a slot at a natural pace; returns the remaining distance. */
+  walkTowards(target, yawTarget, dt, speed = 1.0) {
+    const root = this.root;
+    const dx = target.x - root.position.x;
+    const dz = target.z - root.position.z;
+    const distance = Math.hypot(dx, dz);
+    let nx = root.position.x;
+    let nz = root.position.z;
+    if (distance > 0.002) {
+      const pace = speed * clamp(distance / 0.3, 0.35, 1); // ease out into the slot
+      const stepLength = Math.min(distance, pace * dt);
+      nx += (dx / distance) * stepLength;
+      nz += (dz / distance) * stepLength;
+    }
+    let delta = yawTarget - root.rotation.y;
+    delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+    const yaw = root.rotation.y + delta * (1 - Math.exp(-6 * dt));
+    this.placeRoot(nx, nz, yaw);
+    return distance;
+  }
+
+  poseTeamCelebrate(dt) {
+    const c = this.celebration;
+    const plan = c.plan;
+    const member = c.member;
+    const t = plan.t + member.offset;
+    const phase = celebrationPhase(plan, plan.t);
+    const pose = this.basePose();
+    const hipsY = this.rig.hipsRestY;
+    const toLocal = (world) => this.localFromWorld(world.clone());
+    this.hug.Left = null;
+    this.hug.Right = null;
+
+    // ---- where the body is: release / turn on the spot, walk into the huddle, re-form the line.
+    const tugSpace = (vector) => vector; // slots are already in the tug group's space, as root.position is
+    let moving = 0;
+    if (phase === "turn") {
+      this.walkTowards(tugSpace(this.root.position), member.slot.yaw, dt);
+    } else if (phase === "approach" || phase === "hug" || phase === "jump") {
+      moving = this.walkTowards(member.slot.position, member.slot.yaw, dt, phase === "approach" ? 1.2 : 0.6);
+    } else if (phase === "break" || phase === "pose") {
+      moving = this.walkTowards(member.line.position, member.line.yaw, dt, 0.8);
+    }
+
+    // ---- the shared jump.
+    const jump = phase === "jump" ? jumpProfile(plan, t) : { lift: 0, crouch: 0, air: 0, phase: 0 };
+    const jumpIndex = phase === "jump" ? Math.floor((t - plan.times.jump) / plan.period) : -1;
+    if (jumpIndex !== c.lastJumpIndex) {
+      c.lastJumpIndex = jumpIndex;
+      if (jumpIndex >= 0) this.face.set(jumpIndex % 2 ? { joy: 0.9, excited: 0.45 } : { excited: 0.75, joy: 0.6 }, 12);
+    }
+
+    // ---- stance and torso.
+    const settle = smoothstep(0, 0.45, plan.t);
+    const walking = moving > 0.04 ? 1 : 0;
+    const stride = this.feet.Left.lift + this.feet.Right.lift;
+    const bob = walking ? -0.012 * (stride / STEP_HEIGHT) : 0;
+    const bounce = phase === "pose" ? 0.5 + 0.5 * Math.sin(t * 4.2 * this.traits.tempo) : 0;
+    pose.hipsPosition.set(this.noise(t * 0.9) * 0.008, hipsY - 0.06 * (1 - settle) - jump.crouch + bob - 0.015 * bounce, -0.05 * (1 - settle) + (phase === "hug" || phase === "jump" ? 0.03 : 0));
+    pose.hipsPitch = -deg(4) * (1 - settle) + deg(6) * jump.crouch * 7;
+    pose.spinePitch = -deg(14) * (1 - settle) + deg(4) * walking + (phase === "hug" || phase === "jump" ? deg(9) : deg(2)) + deg(30) * jump.crouch - deg(6) * jump.air;
+    // The cheer hop and the jump lift the whole body; apply them to the root now so every
+    // world ↔ local conversion below (hug targets, looks) sees this frame's height.
+    const cheerPhase = phase === "pose" ? (t - plan.times.pose) % plan.cheerEvery : 0;
+    const cheering = phase === "pose" && cheerPhase < 0.9;
+    const hop = cheering ? Math.sin((cheerPhase / 0.9) * Math.PI) : 0;
+    pose.rootY = jump.lift + 0.05 * hop;
+    this.root.position.y = pose.rootY;
+    if (jump.air > 0) {
+      pose.footLift.Left = 0.06 * jump.air;
+      pose.footLift.Right = 0.06 * jump.air;
+    }
+
+    // ---- arms.
+    const neighbourSide = (teammate) => (teammate ? (this.tugToLocal(teammate.puller.root.position.clone()).x >= 0 ? "Left" : "Right") : null);
+    const hugging = phase === "hug" || phase === "jump" || phase === "pose";
+    const done = { Left: false, Right: false };
+    if (hugging) {
+      for (const teammate of [member.left, member.right]) {
+        if (!teammate) continue;
+        const side = neighbourSide(teammate);
+        if (!side || done[side]) continue;
+        // In the line the outer members hold the middle one; the middle holds both.
+        if (phase === "pose" && !member.isMiddle && !teammate.isMiddle) continue;
+        const stale = teammate.puller.celebrationFrame !== plan.t;
+        const lift = stale ? (phase === "jump" ? jumpProfile(plan, plan.t + teammate.offset).lift : 0) : null;
+        this.hugArm(pose, side, teammate.puller, dt, lift);
+        done[side] = true;
+      }
+    }
+    for (const side of ["Left", "Right"]) {
+      if (done[side]) continue;
+      if (phase === "release") {
+        this.freeArm(pose, side, "up", t, dt, settle);
+      } else if (phase === "turn" || phase === "approach") {
+        this.freeArm(pose, side, "open", t, dt);
+      } else if (phase === "hug") {
+        this.freeArm(pose, side, "up", t, dt);
+      } else if (phase === "jump") {
+        this.freeArm(pose, side, jump.air > 0.5 ? "up" : "pump", t, dt);
+      } else if (phase === "break") {
+        this.freeArm(pose, side, "open", t, dt);
+      } else {
+        this.freeArm(pose, side, cheering ? "up" : member.finalKind === "shoulders" ? "wave" : member.finalKind, t, dt);
+      }
+    }
+    if (cheering) {
+      pose.hipsPosition.y -= 0.03 * (1 - hop);
+      if (!c.cheered) {
+        c.cheered = true;
+        this.face.set({ excited: 0.7, joy: 0.7 }, 10);
+      }
+    } else if (c.cheered) {
+      c.cheered = false;
+      this.face.set({ joy: 0.85 }, 4);
+    }
+
+    // ---- head: teammates during the huddle, the crowd and the camera afterwards.
+    c.lookTimer += dt;
+    if (c.lookTimer > member.lookEvery) {
+      c.lookTimer = 0;
+      c.lookWho = 1 - c.lookWho;
+    }
+    const teammates = [member.left, member.right].filter(Boolean);
+    const watched = teammates.length ? teammates[c.lookWho % teammates.length] : null;
+    if (phase === "release") {
+      pose.look.set(0, 1.9, 4);
+      pose.lookWeight = 0.9;
+    } else if (phase === "turn" || phase === "approach") {
+      pose.look.copy(this.tugToLocal(plan.centre.clone())).setY(1.5);
+      pose.lookWeight = 0.8;
+    } else if (phase === "hug" || phase === "jump") {
+      if (watched) {
+        pose.look.copy(toLocal(watched.puller.boneWorld("Head", tmpA)));
+        pose.headRoll = (this.tugToLocal(watched.puller.root.position.clone()).x >= 0 ? 1 : -1) * deg(7);
+      }
+      pose.lookWeight = 0.9;
+    } else {
+      pose.look.set(this.noise(t * 0.3) * 0.6, 1.55, 5);
+      pose.lookWeight = 0.85;
+    }
+    pose.chest = Math.sin(t * 4) * deg(2) + jump.air * deg(3);
+    pose.spineRoll = phase === "pose" ? Math.sin(t * 2.1 + member.index) * deg(2.5) : 0;
+    this.fitLegs(pose);
+    this.applyPose(pose);
+    this.celebrationFrame = plan.t;
   }
 
   poseLosing(dt, context) {

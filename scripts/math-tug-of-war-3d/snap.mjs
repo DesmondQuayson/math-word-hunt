@@ -42,6 +42,7 @@ const engine = option("--engine", "chromium");
 const mode = option("--mode", "teams");
 const tier = option("--tier", "3d");
 const closeup = option("--closeup", null); // "pink-1": also capture that puller's face after each step
+const closeupDistance = Number(option("--closeup-distance", "1")); // 1 = a face close-up; 1.8 = head and shoulders with teammates
 const filmstrip = Number(option("--filmstrip", "0")); // frames to capture (every 90 ms) right after each pull
 
 mkdirSync(outDir, { recursive: true });
@@ -126,12 +127,12 @@ async function shot(name) {
     // Park the camera on one puller's face (the review override exposes the
     // scene, which then tracks that head every frame), shoot, release.
     const [team, index] = closeup.split("-");
-    const parked = await page.evaluate(([teamName, pullerIndex]) => {
+    const parked = await page.evaluate(([teamName, pullerIndex, distance]) => {
       const d = window.__MATHNEXA_TUG_3D_DEBUG__;
       if (!d) return false;
-      d.closeup = { team: teamName, index: Number(pullerIndex) };
+      d.closeup = { team: teamName, index: Number(pullerIndex), distance: Number(distance) };
       return true;
-    }, [team, index]);
+    }, [team, index, closeupDistance]);
     if (parked) {
       await page.waitForTimeout(70);
       const box = await page.locator(".scene-stage").boundingBox();
@@ -198,7 +199,7 @@ try {
       return Boolean(scene?.snapshot?.().three?.winner) || document.querySelector(".tug-scene-svg")?.classList.contains("is-won");
     }, null, { timeout: 15_000 });
     const confirmedAt = Date.now();
-    for (const [label, at] of [["win-0.5s", 500], ["win-1.4s", 1400], ["win-2.6s", 2600], ["win-4.8s", 4800], ["win-6.0s", 6000]]) {
+    for (const [label, at] of [["win-0.5s", 500], ["win-1.4s", 1400], ["win-2.6s", 2600], ["win-3.4s", 3400], ["win-4.8s", 4800], ["win-6.0s", 6000], ["win-8.0s", 8000], ["win-10.5s", 10500]]) {
       await page.waitForTimeout(Math.max(0, confirmedAt + at - Date.now()));
       const actual = (Date.now() - confirmedAt) / 1000; // what the label really is, recorded in snap.json
       results.steps.push({ step: label, secondsAfterWin: Number(actual.toFixed(2)), ...(await snapshot()) });
