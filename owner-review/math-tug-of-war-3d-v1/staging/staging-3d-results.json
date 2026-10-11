@@ -1,6 +1,6 @@
 {
-  "origin": "https://mathnexa-platform-staging-b8uvhvmh3-bright-path-ed-tech.vercel.app",
-  "commit": "fdd1fba",
+  "origin": "https://mathnexa-platform-staging-o9igkl8cx-bright-path-ed-tech.vercel.app",
+  "commit": "c5d0981",
   "checks": [
     {
       "ok": true,
@@ -8,19 +8,19 @@
     },
     {
       "ok": true,
-      "message": "deployment serves commit fdd1fba"
+      "message": "deployment serves commit c5d0981"
     },
     {
-      "ok": true,
-      "message": "game document versions its runtime with the tested content hash fad4f8af6488a7b2 (served fad4f8af6488a7b2)"
+      "ok": false,
+      "message": "game document versions its runtime with the tested content hash 218173111dfcaea3 (served 5dbc8ed1d2cc9680)"
     },
     {
       "ok": true,
       "message": "route CSP unchanged (default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' da…)"
     },
     {
-      "ok": true,
-      "message": "models, vendored three.js and the 3D modules are byte-identical to the tested source (5 files) "
+      "ok": false,
+      "message": "models, vendored three.js and the 3D modules are byte-identical to the tested source (5 files) models/characters.gltf:200:400743/403689 models/characters.bin:200:3986396/4063140 src/scene3d/puller.js:200:59166/59166"
     },
     {
       "ok": true,
@@ -68,7 +68,7 @@
     },
     {
       "ok": true,
-      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
+      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"rising\",\"rising\",\"rising\"]})"
     },
     {
       "ok": true,
@@ -87,173 +87,20 @@
       "message": "desktop: toggling back rebuilds the 3D scene at the live position"
     },
     {
-      "ok": false,
-      "message": "desktop: no page errors or console errors (1) warning: THREE.WebGLProgram: Program Info Log: (210,81-129): warning X4122: sum of 0.996094 and -2.98545e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision\n\n\n\u0000"
-    },
-    {
       "ok": true,
-      "message": "auto: a hardware-GL browser gets the 3D scene without any override"
-    },
-    {
-      "ok": true,
-      "message": "auto: reduced motion keeps the classic scene and disables the toggle"
-    },
-    {
-      "ok": true,
-      "message": "auto: software GL (no hardware acceleration) keeps the classic scene"
-    },
-    {
-      "ok": true,
-      "message": "auto: the classic scene still plays on software GL"
-    },
-    {
-      "ok": true,
-      "message": "phone-390x844: 3D scene (tier medium) at 546×169 px, pull mirrored, no overflow, keys fit [48,85], scene never covers a question"
-    },
-    {
-      "ok": true,
-      "message": "phone-430x932: 3D scene (tier medium) at 606×267 px, pull mirrored, no overflow, keys fit [54,86], scene never covers a question"
-    },
-    {
-      "ok": true,
-      "message": "smart-board-1920x1080: 3D scene (tier medium) at 902×512 px, pull mirrored, no overflow, keys fit [133,134], scene never covers a question"
-    },
-    {
-      "ok": true,
-      "message": "ipad-820x1180-webkit: 3D scene (tier medium) at 794×349 px, pull mirrored, no overflow, keys fit [115,88], scene never covers a question"
-    },
-    {
-      "ok": true,
-      "message": "webkit-desktop-1366x768: 3D scene (tier medium) at 634×360 px, pull mirrored, no overflow, keys fit [93,87], scene never covers a question"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: both clients (Chromium host, WebKit guest) render the 3D scene"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: host pull moves both 3D scenes to −1"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: guest pull moves both 3D scenes back to 0"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: both 3D scenes celebrate the same confirmed winner ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]} / {\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: the database agrees with both screens {\"position\":-7,\"host_pulls\":8,\"guest_pulls\":1,\"status\":\"won\"}"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: rematch resets both 3D scenes"
-    },
-    {
-      "ok": true,
-      "message": "online 3D: leaving ends the match with no celebration on the other screen"
-    },
-    {
-      "ok": false,
-      "message": "online 3D: no page errors on either client (0/1) warning: THREE.WebGLProgram: Program Info Log: (210,81-129): warning X4122: sum of 0.996094 and -2.98545e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision\n(209,37-61): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision\n(210,82-106): warning X4122: sum of 1 and -1.66644e-018 cannot be represented accurately in double precision"
+      "message": "desktop: no page errors or console errors (0) "
     }
   ],
   "measurements": [
     {
       "label": "staging desktop 1366x900",
       "tier": "medium",
-      "frameMs": 5.96,
-      "worstMs": 132.2,
+      "frameMs": 8.2,
+      "worstMs": 177.1,
       "drawCalls": 155,
-      "triangles": 292510,
+      "triangles": 377396,
       "pixelRatio": 1,
-      "reachMiss": 1.011,
-      "downgrades": [],
-      "canvas": [
-        634,
-        360,
-        634,
-        360
-      ]
-    },
-    {
-      "label": "staging phone-390x844",
-      "tier": "medium",
-      "frameMs": 6.38,
-      "worstMs": 38.3,
-      "drawCalls": 167,
-      "triangles": 292206,
-      "pixelRatio": 1.5,
-      "reachMiss": 0,
-      "downgrades": [],
-      "canvas": [
-        546,
-        169,
-        364,
-        113
-      ]
-    },
-    {
-      "label": "staging phone-430x932",
-      "tier": "medium",
-      "frameMs": 6.04,
-      "worstMs": 36.5,
-      "drawCalls": 167,
-      "triangles": 292206,
-      "pixelRatio": 1.5,
-      "reachMiss": 0,
-      "downgrades": [],
-      "canvas": [
-        606,
-        267,
-        404,
-        178
-      ]
-    },
-    {
-      "label": "staging smart-board-1920x1080",
-      "tier": "medium",
-      "frameMs": 6.13,
-      "worstMs": 41.7,
-      "drawCalls": 167,
-      "triangles": 292206,
-      "pixelRatio": 1,
-      "reachMiss": 0,
-      "downgrades": [],
-      "canvas": [
-        902,
-        512,
-        902,
-        512
-      ]
-    },
-    {
-      "label": "staging ipad-820x1180-webkit",
-      "tier": "medium",
-      "frameMs": 8.23,
-      "worstMs": 431,
-      "drawCalls": 167,
-      "triangles": 292206,
-      "pixelRatio": 1,
-      "reachMiss": 0,
-      "downgrades": [],
-      "canvas": [
-        794,
-        349,
-        794,
-        349
-      ]
-    },
-    {
-      "label": "staging webkit-desktop-1366x768",
-      "tier": "medium",
-      "frameMs": 8.94,
-      "worstMs": 421,
-      "drawCalls": 167,
-      "triangles": 292206,
-      "pixelRatio": 1,
-      "reachMiss": 0,
+      "reachMiss": 1.038,
       "downgrades": [],
       "canvas": [
         634,
@@ -264,9 +111,9 @@
     }
   ],
   "summary": {
-    "passed": 37,
-    "total": 39,
+    "passed": 20,
+    "total": 22,
     "syntheticUsersDeleted": 2,
-    "roomsRemoved": 1
+    "roomsRemoved": 0
   }
 }

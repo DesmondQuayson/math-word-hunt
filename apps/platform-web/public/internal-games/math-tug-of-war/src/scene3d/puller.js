@@ -452,7 +452,7 @@ export class Puller {
         // rope, so the wrist stays straight), the palm faces up and a little
         // towards the body, and the wrist is placed so the fist's hole sits on
         // the rope. Two passes, since moving the wrist moves the elbow a little.
-        for (let pass = 0; pass < 3; pass += 1) {
+        for (let pass = 0; pass < 2; pass += 1) {
           const elbow = rig.worldPosition(rig.bone(`${side}ForeArm`), tmpD);
           const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpC);
           const forearm = tmpC.sub(elbow);
@@ -470,7 +470,7 @@ export class Puller {
         // The wrist's range may have left the hand short of the asked orientation,
         // which moves the fist's hole: measure where the hole really is and
         // shift the wrist target by the difference until the rope runs through it.
-        for (let pass = 0; pass < 4 && pose.grip[side].lengthSq() > 0; pass += 1) {
+        for (let pass = 0; pass < 2 && pose.grip[side].lengthSq() > 0; pass += 1) {
           if (!rig.handAxes(side, tmpB, tmpC)) break;
           const hole = rig.worldPosition(rig.bone(`${side}Hand`), tmpD).addScaledVector(tmpB, FIST_FORWARD).addScaledVector(tmpC, FIST_UP);
           const error = tmpA.subVectors(pose.grip[side], hole);

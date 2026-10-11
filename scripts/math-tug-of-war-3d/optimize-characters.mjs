@@ -56,8 +56,8 @@ function characterDirs() {
 
 // Bones whose geometry must keep full detail and must never be welded across
 // joints: hands and fingers (the grip is seen in close-up and a vertex merged
-// between two fingers tears when they curl) and feet (the sneakers' fit).
-const LOCKED_JOINT = /Hand|Thumb|Index|Middle|Ring|Pinky|Foot|Toe/;
+// between two fingers tears when they curl). The feet sit inside the sneakers.
+const LOCKED_JOINT = /Hand|Thumb|Index|Middle|Ring|Pinky/;
 
 /** Vertex indices whose skin weights touch a locked joint (any weight > 0.01). */
 function lockedByJoint(primitive, skin) {
@@ -268,14 +268,14 @@ async function loadCharacter(name) {
     const isTeeth = /teeth/.test(meshName);
     const isHair = /hair|afro|bob|braid|ponytail|short0|long0/.test(meshName);
     const isShoe = /shoe/.test(meshName);
-    const isGarment = /shirt|polo|tee|top|suit|pants|trousers|jeans|shorts/.test(meshName) && !isBody;
+    const isGarment = /shirt|polo|\btee\b|\btop\b|suit|pants|trousers|jeans|shorts/.test(meshName) && !isBody && !isFace;
     for (const primitive of mesh.listPrimitives()) {
       let result = null;
       if (isGarment && inflatePrimitive(primitive, /pants|trousers|jeans|shorts/.test(meshName) ? 0.004 : 0.008)) stats.primitives.push({ mesh: mesh.getName(), inflated: true });
       if (isBody) result = simplifyPrimitive(primitive, { ratio: bodyRatio, lockY: faceLockY, error: errorBudget, lockBorder: true, skin });
       else if (isTeeth) result = simplifyPrimitive(primitive, { ratio: 0.3, error: 0.02, skin });
       else if (isHair) result = simplifyPrimitive(primitive, { ratio: 0.55, error: 0.01, skin });
-      else if (isShoe) result = null; // footwear keeps its full detail (it is seen in close-up and must not tear)
+      else if (isShoe) result = simplifyPrimitive(primitive, { ratio: 0.65, error: 0.004, lockBorder: true, skin }); // gently: laces and eyelets survive, seams are locked
       if (result) stats.primitives.push({ mesh: mesh.getName(), ...result });
     }
   }

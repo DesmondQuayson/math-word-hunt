@@ -280,50 +280,58 @@ export class Rig {
     const hand = this.bones.get(`${side}Hand`);
     const fore = this.bones.get(`${side}ForeArm`);
     const upper = this.bones.get(`${side}Arm`);
-    if (!hand || !fore || !upper) return;
+    if (!hand || !fore || !upper) return 0;
     const wanted = this.worldQuaternion(hand, new Quaternion());
     const restLocal = this.rest.get(hand).lq;
-    // The wrist rotation (away from rest) the hand would need, given the arm as it is now.
-    const wristAngle = () => {
-      const local = this.worldQuaternion(fore, tmpQ1).invert().multiply(wanted);
-      const delta = tmpQ2.copy(restLocal).invert().multiply(local);
-      return 2 * Math.acos(clamp(Math.abs(delta.w), -1, 1));
-    };
-    // Turn `bone` about its own axis (towards its child) by the angle that leaves the smallest wrist rotation.
-    const twistToHelp = (bone, childRestPosition, limit) => {
-      const axis = tmpV1.copy(childRestPosition).normalize();
-      const base = bone.quaternion.clone();
-      let bestAngle = 0;
-      let best = wristAngle();
-      const tryAngle = (angle) => {
-        bone.quaternion.copy(base).multiply(tmpQ1.setFromAxisAngle(axis, angle));
-        const result = wristAngle();
-        if (result < best - 1e-4) {
-          best = result;
-          bestAngle = angle;
-        }
-      };
-      for (let step = -12; step <= 12; step += 1) tryAngle((step / 12) * limit);
-      for (let step = -5; step <= 5; step += 1) tryAngle(clamp(bestAngle + (step / 5) * (limit / 12), -limit, limit));
-      bone.quaternion.copy(base).multiply(tmpQ1.setFromAxisAngle(axis, bestAngle));
-      return bestAngle;
+    const restInverse = tmpQ2.copy(restLocal).invert().clone();
+    // Everything above the forearm is fixed during the search: cache it once.
+    const aboveFore = upper.parent && upper.parent.isBone ? this.worldQuaternion(upper.parent, new Quaternion()) : new Quaternion();
+    const upperWorld = aboveFore.clone().multiply(upper.quaternion);
+    const foreAxis = tmpV1.copy(this.rest.get(hand).lp).normalize().clone();
+    const spin = new Quaternion();
+    const foreWorld = new Quaternion();
+    const local = new Quaternion();
+    // The wrist rotation (away from rest) the hand would need, given a forearm twist of `angle`.
+    const wristAngleAt = (angle) => {
+      spin.setFromAxisAngle(foreAxis, angle);
+      foreWorld.copy(upperWorld).multiply(fore.quaternion).multiply(spin);
+      local.copy(foreWorld).invert().multiply(wanted);
+      local.premultiply(restInverse);
+      return 2 * Math.acos(clamp(Math.abs(local.w), -1, 1));
     };
     let chosenTwist = twist;
     if (twist === null) {
-      chosenTwist = twistToHelp(fore, this.rest.get(hand).lp, maxForearmTwist);
-      // Turning the upper arm would swing the forearm (and the wrist) away from its target; off by default.
-      if (maxUpperTwist > 0 && wristAngle() > maxWrist) twistToHelp(upper, this.rest.get(fore).lp, maxUpperTwist);
-    } else {
-      // A twist found earlier this frame, reapplied so the hand's orientation (and its fist) stays put while the arm is re-solved.
-      fore.quaternion.multiply(tmpQ1.setFromAxisAngle(tmpV1.copy(this.rest.get(hand).lp).normalize(), twist));
+      // Coarse sweep of the forearm's range, then a fine sweep around the best angle.
+      let best = wristAngleAt(0);
+      chosenTwist = 0;
+      for (let step = -8; step <= 8; step += 1) {
+        const angle = (step / 8) * maxForearmTwist;
+        const value = wristAngleAt(angle);
+        if (value < best - 1e-4) {
+          best = value;
+          chosenTwist = angle;
+        }
+      }
+      const coarse = maxForearmTwist / 8;
+      for (let step = -4; step <= 4; step += 1) {
+        const angle = clamp(chosenTwist + (step / 4) * coarse, -maxForearmTwist, maxForearmTwist);
+        const value = wristAngleAt(angle);
+        if (value < best - 1e-4) {
+          best = value;
+          chosenTwist = angle;
+        }
+      }
+      void maxUpperTwist; // the upper arm is left alone: turning it swings the forearm off its target
     }
+    fore.quaternion.multiply(spin.setFromAxisAngle(foreAxis, chosenTwist));
     // The wrist takes the remainder, within its range.
-    const local = this.worldQuaternion(fore, tmpQ1).invert().multiply(wanted);
-    const delta = new Quaternion().copy(restLocal).invert().multiply(local);
+    foreWorld.copy(upperWorld).multiply(fore.quaternion);
+    local.copy(foreWorld).invert().multiply(wanted);
+    const delta = new Quaternion().copy(restInverse).multiply(local);
     const angle = 2 * Math.acos(clamp(Math.abs(delta.w), -1, 1));
-    if (angle > maxWrist) delta.slerp(tmpQ2.identity(), 1 - maxWrist / angle);
+    if (angle > maxWrist) delta.slerp(spin.identity(), 1 - maxWrist / angle);
     hand.quaternion.copy(restLocal).multiply(delta);
-    return chosenTwist ?? 0;
+    return chosenTwist;
   }
 
   /** Curl fingers: 0 = open hand, 1 = tight grip. */

@@ -108,7 +108,7 @@ copy(join(win2.dir, "03-win-1.4s-stage.png"), "14-winning-team-turquoise-1.4s-ap
 copy(join(win2.dir, "04-win-2.6s-stage.png"), "15-winning-team-turquoise-2.6s-huddle-hug.png");
 copy(join(win2.dir, "05-win-3.4s-stage.png"), "15b-winning-team-turquoise-3.4s-jump.png");
 copy(join(win2.dir, "08-win-8.0s-stage.png"), "15c-winning-team-turquoise-8.0s-team-pose.png");
-copy(join(win2.dir, "05-win-3.4s-closeup.png"), "16-winner-face-joy.png");
+copy(join(win2.dir, "02-win-0.5s-closeup.png"), "16-winner-face-joy.png"); // just after the release, still facing the centre
 
 // 5. Devices.
 const devices = [["phone-390x844", "390x844"], ["phone-430x932", "430x932"], ["ipad-portrait-820x1180", "820x1180"], ["ipad-landscape-1180x820", "1180x820"], ["smart-board-1920x1080", "1920x1080"], ["4k-3840x2160", "3840x2160"]];

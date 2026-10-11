@@ -7,7 +7,7 @@ const ASSET_BASE = "/internal-games/math-tug-of-war/";
  * recomputes it and fails if a runtime file changes without updating it
  * (`node scripts/math-tug-of-war-runtime-hash.mjs --write`).
  */
-export const MATH_TUG_OF_WAR_RUNTIME_SHA256 = "5dbc8ed1d2cc9680198b88f261e0fd2faca56a426a7ecdca0b4b9ea67a42d486";
+export const MATH_TUG_OF_WAR_RUNTIME_SHA256 = "218173111dfcaea30b89fb68620afd04a033e27193975f0e4ba80a398c2a8f85";
 
 // Asset URLs are absolute (no <base> element): the document then renders the
 // same under the route CSP and under the platform-wide CSP, whichever a host

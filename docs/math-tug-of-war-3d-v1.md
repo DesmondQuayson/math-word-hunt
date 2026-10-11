@@ -88,6 +88,22 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 | Lint / typecheck | `npm run lint` 0 errors (8 pre-existing warnings elsewhere); `npm run typecheck` clean; the new e2e specs type-check with `tsc --noEmit` |
 | Review pack | regenerated: `owner-review/math-tug-of-war-3d-v1/` (47 files) |
 
+### Rope grip and sneakers hotfix (after v1.2.21, branch `hotfix/math-tug-of-war-3d-grip-sneakers` from `8046e67`)
+
+The owner's live inspection found the hands not convincingly holding the rope and asked for athletic sneakers. What was wrong: the old overhand pose put the *palm centre* on the rope line with the fingers draped over it, so the hands rested on the rope rather than closing around it; and the shoe meshes were bound mostly to the shin by MakeHuman's proxy fitting. The first close-up captures also showed "torn" hands and shoes, which turned out to be the review camera's 0.5 m near plane slicing geometry 0.4 m away, not the models (§4).
+
+| Gate | Result |
+| --- | --- |
+| Unit (`lib/games/math-tug-of-war`, 96 tests; new: the rope passes through the closed fist, fingertip past the rope and curled back to the palm, thumb over, wrist ≤ 57°, both teams, every slot, heave, yank, fatigue, release only on finish) | **96 passed** |
+| Repository unit suites | core 245/245; web **888 passed, 1 skipped, 1 failed**: the CrossCalc 2,500-puzzle validation timed out at its 5-minute limit while the full e2e suite ran on the same machine (it is CPU-bound and unrelated to this branch); rerun alone: __CROSSCALC__ |
+| TypeScript / lint / production build / security (`test:security` 315/315, bundle and launch audits, bypass helper) | clean / 0 errors / built / passed |
+| `chromium-3d` (12 tests incl. the new "every hand closes around the rope and every sneaker stays on its foot": 12 hands within ¾ of the rope's radius of the rope's centreline with wrists under 62°, 6 sneaker pairs enclosing their ankles and toes with soles on the grass, at rest, mid-heave, mid-yank, tired, stumbling and jumping) | **12 passed** |
+| `webkit-3d` and `chromium-3d-mobile`, the new test | **passed** on both |
+| Online Match with the 3D scene on both clients | **passed** (the pulling-state check is now sampled while the answer is in flight, race-free) |
+| Full local suite (8 projects, 2 workers), run concurrently with the unit/build/security chain and the hosted reviews | __FULL__ |
+| Hosted 3D review on the preview (`dpl_GczU1z4ongmBTwzzcN6gT1aLuGcW`, commit `c5d0981`) | **39/39**: runtime hash `5dbc8ed1…`, byte-identical models (now the sneakers) and modules, CSP, 3D on hardware GL, classic fallbacks, hands on the rope with zero reach miss on desktop, phones, Smart Board, iPad WebKit and WebKit desktop, Online Match with 3D on both clients |
+| Hosted classic review on the preview | first run (concurrent with the local full suite) 89/92: the three "simultaneous answers" online checks, the WebKit guest's submit not counted; the online code is byte-identical to `8046e67`, which passed 99/99 twice. Rerun alone: __CLASSIC__ |
+
 ### Team celebration round (owner brief 3)
 
 The individual victory animations were replaced by a shared team celebration (§2). Gates, all after the final code:
