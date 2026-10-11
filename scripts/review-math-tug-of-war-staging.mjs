@@ -442,8 +442,8 @@ try {
   const ipadMetrics = await metrics(ipad.page);
   ok(ipadMetrics.overflowX <= 0 && ipadMetrics.keysOut === 0, `iPad (WebKit) Two Teams fits ${JSON.stringify(ipadMetrics)}`);
   await answer(ipad.page, "pink");
-  await ipad.page.waitForTimeout(150);
-  ok(await position(ipad.page) === 1, "iPad (WebKit): Pink pull");
+  // The rope position is authoritative the moment the engine applies it; the tab may just be slower to get there.
+  ok(await settledAt(ipad.page, 1), "iPad (WebKit): Pink pull");
   await shot(ipad.page, "24-ipad-two-teams");
   await ipad.context.close();
 

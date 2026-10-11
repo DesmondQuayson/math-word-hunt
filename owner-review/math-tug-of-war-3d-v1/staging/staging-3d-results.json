@@ -1,6 +1,6 @@
 {
-  "origin": "https://mathnexa-platform-staging-mtlifu6rr-bright-path-ed-tech.vercel.app",
-  "commit": "af3524a",
+  "origin": "https://mathnexa-platform-staging-pdl42gplj-bright-path-ed-tech.vercel.app",
+  "commit": "8ed4abc",
   "checks": [
     {
       "ok": true,
@@ -8,11 +8,11 @@
     },
     {
       "ok": true,
-      "message": "deployment serves commit af3524a"
+      "message": "deployment serves commit 8ed4abc"
     },
     {
       "ok": true,
-      "message": "game document versions its runtime with the tested content hash 218173111dfcaea3 (served 218173111dfcaea3)"
+      "message": "game document versions its runtime with the tested content hash 4738d366b6beb1dc (served 4738d366b6beb1dc)"
     },
     {
       "ok": true,
@@ -68,7 +68,7 @@
     },
     {
       "ok": true,
-      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"rising\",\"rising\",\"rising\"]})"
+      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
     },
     {
       "ok": true,
@@ -163,12 +163,12 @@
     {
       "label": "staging desktop 1366x900",
       "tier": "medium",
-      "frameMs": 9.57,
-      "worstMs": 160.4,
+      "frameMs": 7.33,
+      "worstMs": 145.2,
       "drawCalls": 155,
       "triangles": 364504,
       "pixelRatio": 1,
-      "reachMiss": 1.038,
+      "reachMiss": 1.031,
       "downgrades": [],
       "canvas": [
         634,
@@ -180,8 +180,8 @@
     {
       "label": "staging phone-390x844",
       "tier": "medium",
-      "frameMs": 10.11,
-      "worstMs": 51.3,
+      "frameMs": 9.73,
+      "worstMs": 51.1,
       "drawCalls": 167,
       "triangles": 364200,
       "pixelRatio": 1.5,
@@ -197,8 +197,8 @@
     {
       "label": "staging phone-430x932",
       "tier": "medium",
-      "frameMs": 9.07,
-      "worstMs": 52.7,
+      "frameMs": 9.85,
+      "worstMs": 54,
       "drawCalls": 167,
       "triangles": 364200,
       "pixelRatio": 1.5,
@@ -214,8 +214,8 @@
     {
       "label": "staging smart-board-1920x1080",
       "tier": "medium",
-      "frameMs": 9.42,
-      "worstMs": 63.2,
+      "frameMs": 9.85,
+      "worstMs": 55,
       "drawCalls": 167,
       "triangles": 364200,
       "pixelRatio": 1,
@@ -231,8 +231,8 @@
     {
       "label": "staging ipad-820x1180-webkit",
       "tier": "medium",
-      "frameMs": 14.76,
-      "worstMs": 489,
+      "frameMs": 13.66,
+      "worstMs": 481,
       "drawCalls": 167,
       "triangles": 364200,
       "pixelRatio": 1,
@@ -248,8 +248,8 @@
     {
       "label": "staging webkit-desktop-1366x768",
       "tier": "medium",
-      "frameMs": 14.26,
-      "worstMs": 588,
+      "frameMs": 13.5,
+      "worstMs": 551,
       "drawCalls": 167,
       "triangles": 364200,
       "pixelRatio": 1,
