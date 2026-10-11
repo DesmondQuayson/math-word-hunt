@@ -224,11 +224,16 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         camera.lookAt(target);
         return;
       }
-      const head = puller.rig.worldPosition(puller.rig.bone("Head"), tmpV);
+      const head = puller.boneWorld("Head", tmpV).clone();
       head.y += 0.06;
-      puller.root.localToWorld(head);
-      // A three-quarter view from the front (the puller faces the centre), close enough to read the face.
-      camera.position.set(head.x + towardsCentre * 0.8 * distance, head.y + 0.1, head.z + 0.6 * distance);
+      // A three-quarter view from the front of the face, wherever the body is
+      // facing (towards the centre while pulling, towards the huddle or the
+      // crowd while celebrating), close enough to read the expression.
+      const yaw = puller.root.rotation.y;
+      const forward = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+      const side = new Vector3(forward.z, 0, -forward.x).multiplyScalar(towardsCentre);
+      camera.position.copy(head).addScaledVector(forward, 0.8 * distance).addScaledVector(side, 0.45 * distance);
+      camera.position.y += 0.1;
       camera.lookAt(head.x, head.y, head.z);
       return;
     }
