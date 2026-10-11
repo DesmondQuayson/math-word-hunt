@@ -2,8 +2,8 @@
   {
     "label": "desktop 1366x768",
     "tier": "medium",
-    "frameMs": 8.35,
-    "worstMs": 143,
+    "frameMs": 8.15,
+    "worstMs": 140.5,
     "drawCalls": 166,
     "triangles": 364198,
     "pixelRatio": 1,
@@ -12,7 +12,7 @@
       360
     ],
     "modelBytes": 5538801,
-    "modelLoadMs": 82,
+    "modelLoadMs": 90,
     "vendorBytes": 742794,
     "usedJSHeapMB": 58,
     "geometries": 105,
@@ -22,8 +22,8 @@
   {
     "label": "desktop 1600x900 after 24 pulls",
     "tier": "medium",
-    "frameMs": 7.51,
-    "worstMs": 141.1,
+    "frameMs": 7.5,
+    "worstMs": 144.8,
     "drawCalls": 167,
     "triangles": 364200,
     "pixelRatio": 1,
@@ -32,9 +32,9 @@
       424
     ],
     "modelBytes": 5538801,
-    "modelLoadMs": 72,
+    "modelLoadMs": 75,
     "vendorBytes": 742794,
-    "usedJSHeapMB": 61,
+    "usedJSHeapMB": 58,
     "geometries": 105,
     "textures": 109,
     "downgrades": []
@@ -42,114 +42,14 @@
   {
     "label": "device phone-390x844",
     "tier": "medium",
-    "frameMs": 8.34,
-    "worstMs": 155.5,
+    "frameMs": 8,
+    "worstMs": 153,
     "drawCalls": 167,
     "triangles": 364200,
     "pixelRatio": 1,
     "canvas": [
       364,
       113
-    ],
-    "modelBytes": 5538801,
-    "modelLoadMs": 89,
-    "vendorBytes": 742794,
-    "usedJSHeapMB": 58,
-    "geometries": 103,
-    "textures": 109,
-    "downgrades": []
-  },
-  {
-    "label": "device phone-430x932",
-    "tier": "medium",
-    "frameMs": 8.11,
-    "worstMs": 139.3,
-    "drawCalls": 167,
-    "triangles": 364200,
-    "pixelRatio": 1,
-    "canvas": [
-      404,
-      178
-    ],
-    "modelBytes": 5538801,
-    "modelLoadMs": 77,
-    "vendorBytes": 742794,
-    "usedJSHeapMB": 58,
-    "geometries": 103,
-    "textures": 109,
-    "downgrades": []
-  },
-  {
-    "label": "device ipad-portrait-820x1180",
-    "tier": "medium",
-    "frameMs": 8.52,
-    "worstMs": 143.1,
-    "drawCalls": 167,
-    "triangles": 364200,
-    "pixelRatio": 1,
-    "canvas": [
-      794,
-      349
-    ],
-    "modelBytes": 5538801,
-    "modelLoadMs": 87,
-    "vendorBytes": 742794,
-    "usedJSHeapMB": 61,
-    "geometries": 103,
-    "textures": 109,
-    "downgrades": []
-  },
-  {
-    "label": "device ipad-landscape-1180x820",
-    "tier": "medium",
-    "frameMs": 8.47,
-    "worstMs": 149.4,
-    "drawCalls": 167,
-    "triangles": 364200,
-    "pixelRatio": 1,
-    "canvas": [
-      545,
-      310
-    ],
-    "modelBytes": 5538801,
-    "modelLoadMs": 77,
-    "vendorBytes": 742794,
-    "usedJSHeapMB": 61,
-    "geometries": 103,
-    "textures": 109,
-    "downgrades": []
-  },
-  {
-    "label": "device smart-board-1920x1080",
-    "tier": "medium",
-    "frameMs": 8.79,
-    "worstMs": 161.1,
-    "drawCalls": 167,
-    "triangles": 364200,
-    "pixelRatio": 1,
-    "canvas": [
-      902,
-      512
-    ],
-    "modelBytes": 5538801,
-    "modelLoadMs": 77,
-    "vendorBytes": 742794,
-    "usedJSHeapMB": 58,
-    "geometries": 103,
-    "textures": 109,
-    "downgrades": []
-  },
-  {
-    "label": "device 4k-3840x2160",
-    "tier": "medium",
-    "frameMs": 8.6,
-    "worstMs": 160.5,
-    "drawCalls": 167,
-    "triangles": 364200,
-    "pixelRatio": 1,
-    "canvas": [
-      1837,
-      1043
     ],
     "modelBytes": 5538801,
     "modelLoadMs": 76,
@@ -160,10 +60,110 @@
     "downgrades": []
   },
   {
+    "label": "device phone-430x932",
+    "tier": "medium",
+    "frameMs": 7.83,
+    "worstMs": 139.4,
+    "drawCalls": 167,
+    "triangles": 364200,
+    "pixelRatio": 1,
+    "canvas": [
+      404,
+      178
+    ],
+    "modelBytes": 5538801,
+    "modelLoadMs": 81,
+    "vendorBytes": 742794,
+    "usedJSHeapMB": 58,
+    "geometries": 103,
+    "textures": 109,
+    "downgrades": []
+  },
+  {
+    "label": "device ipad-portrait-820x1180",
+    "tier": "medium",
+    "frameMs": 8.04,
+    "worstMs": 138.1,
+    "drawCalls": 167,
+    "triangles": 364200,
+    "pixelRatio": 1,
+    "canvas": [
+      794,
+      349
+    ],
+    "modelBytes": 5538801,
+    "modelLoadMs": 78,
+    "vendorBytes": 742794,
+    "usedJSHeapMB": 58,
+    "geometries": 103,
+    "textures": 109,
+    "downgrades": []
+  },
+  {
+    "label": "device ipad-landscape-1180x820",
+    "tier": "medium",
+    "frameMs": 8.37,
+    "worstMs": 158.7,
+    "drawCalls": 167,
+    "triangles": 364200,
+    "pixelRatio": 1,
+    "canvas": [
+      545,
+      310
+    ],
+    "modelBytes": 5538801,
+    "modelLoadMs": 74,
+    "vendorBytes": 742794,
+    "usedJSHeapMB": 58,
+    "geometries": 103,
+    "textures": 109,
+    "downgrades": []
+  },
+  {
+    "label": "device smart-board-1920x1080",
+    "tier": "medium",
+    "frameMs": 7.94,
+    "worstMs": 141.8,
+    "drawCalls": 167,
+    "triangles": 364200,
+    "pixelRatio": 1,
+    "canvas": [
+      902,
+      512
+    ],
+    "modelBytes": 5538801,
+    "modelLoadMs": 74,
+    "vendorBytes": 742794,
+    "usedJSHeapMB": 58,
+    "geometries": 103,
+    "textures": 109,
+    "downgrades": []
+  },
+  {
+    "label": "device 4k-3840x2160",
+    "tier": "medium",
+    "frameMs": 8.02,
+    "worstMs": 129.8,
+    "drawCalls": 167,
+    "triangles": 364200,
+    "pixelRatio": 1,
+    "canvas": [
+      1837,
+      1043
+    ],
+    "modelBytes": 5538801,
+    "modelLoadMs": 73,
+    "vendorBytes": 742794,
+    "usedJSHeapMB": 61,
+    "geometries": 103,
+    "textures": 109,
+    "downgrades": []
+  },
+  {
     "label": "phone 390x844 low tier",
     "tier": "low",
-    "frameMs": 6,
-    "worstMs": 16.5,
+    "frameMs": 5.63,
+    "worstMs": 17.6,
     "drawCalls": 107,
     "triangles": 184184,
     "pixelRatio": 1,
@@ -172,9 +172,9 @@
       113
     ],
     "modelBytes": 5538801,
-    "modelLoadMs": 77,
+    "modelLoadMs": 89,
     "vendorBytes": 742794,
-    "usedJSHeapMB": 58,
+    "usedJSHeapMB": 54,
     "geometries": 102,
     "textures": 106,
     "downgrades": []
@@ -182,8 +182,8 @@
   {
     "label": "webkit 1366x768",
     "tier": "medium",
-    "frameMs": 6.82,
-    "worstMs": 492,
+    "frameMs": 6.69,
+    "worstMs": 451,
     "drawCalls": 167,
     "triangles": 364200,
     "pixelRatio": 1,
@@ -192,7 +192,7 @@
       360
     ],
     "modelBytes": 5538801,
-    "modelLoadMs": 83,
+    "modelLoadMs": 109,
     "vendorBytes": 742794,
     "usedJSHeapMB": null,
     "geometries": 103,
