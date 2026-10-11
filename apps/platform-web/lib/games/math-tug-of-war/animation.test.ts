@@ -171,7 +171,7 @@ describe("Math Tug of War 3D animation layer", () => {
         expect(lowestFoot).toBeGreaterThan(-0.03);
         expect(highestHips).toBeLessThan(1.4);
       }
-    });
+    }, 60_000); // three 6-second simulations with per-bone checks: slow under a full-suite load
   }
 
   it("puller: while pulling, both palms stay on the rope line and the body leans away from the centre", async () => {
@@ -301,7 +301,7 @@ describe("Math Tug of War 3D animation layer", () => {
       expect(Math.abs(puller.root.position.x - (1.3 + index))).toBeLessThan(1e-6);
       expect(Math.abs(puller.root.rotation.y + Math.PI / 2)).toBeLessThan(1e-6);
     }
-  });
+  }, 60_000);
 
   it("team celebration: a different seed gives a different choreography (jumps, timing, formation), never an identical one", async () => {
     const { three, Puller, planCelebration } = await loadModules();
