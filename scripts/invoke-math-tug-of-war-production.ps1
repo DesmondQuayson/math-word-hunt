@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'review')] [string]$Stage = 'audit',
+  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'review', 'review-3d')] [string]$Stage = 'audit',
   [string]$Origin = 'https://mathnexa.com',
   [string]$ExpectBuild = '',
   [string]$Engines = 'chromium,webkit',
@@ -19,6 +19,8 @@ param(
 #   -Stage smoke    service-role room lifecycle with synthetic hashes (cleaned up)
 #   -Stage review   real-browser review of -Origin (default the apex) with
 #                   synthetic consumer accounts that are deleted afterwards
+#   -Stage review-3d the 3D scene and the team celebration on the live apex
+#                   (same synthetic accounts, deleted afterwards)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $stagingProjectRef = 'gcmuhzxkwvfireyrearl'
@@ -55,6 +57,15 @@ try {
     $env:REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION = 'yes'
     if ($ExpectBuild) { $env:EXPECT_COMMIT = $ExpectBuild }
     & node scripts/review-math-tug-of-war-staging.mjs
+    exit $LASTEXITCODE
+  }
+  if ($Stage -eq 'review-3d') {
+    $env:REVIEW_TARGET = 'production'
+    $env:REVIEW_ORIGIN = $Origin
+    $env:REVIEW_OUT = 'owner-review/math-tug-of-war-3d-v1/production'
+    $env:REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION = 'yes'
+    if ($ExpectBuild) { $env:EXPECT_COMMIT = $ExpectBuild }
+    & node scripts/review-math-tug-of-war-3d-staging.mjs
     exit $LASTEXITCODE
   }
   & node scripts/run-math-tug-of-war-production.mjs "--stage=$Stage"

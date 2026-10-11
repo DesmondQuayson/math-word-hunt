@@ -30,22 +30,32 @@ import { createClient } from "@supabase/supabase-js";
 import { runtimeHash } from "./math-tug-of-war-runtime-hash.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
-const origin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
-if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
-const bypass = (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
-if (!/^[A-Za-z0-9_-]{20,}$/.test(bypass)) throw new Error("missing protection-bypass entry");
-const secretKey = (process.env.SUPABASE_SECRET_KEY ?? "").trim();
+// REVIEW_TARGET=production (scripts/invoke-math-tug-of-war-production.ps1 -Stage review-3d)
+// reviews the live apex after a release: no protection bypass, the production project, and
+// an explicit opt-in for temporary synthetic consumer accounts (deleted at the end).
+const isProduction = process.env.REVIEW_TARGET === "production";
+const origin = ((isProduction ? process.env.REVIEW_ORIGIN : process.env.STAGING_ORIGIN) ?? "").trim().replace(/\/$/, "");
+if (isProduction) {
+  if (origin !== "https://mathnexa.com") throw new Error("REVIEW_ORIGIN must be https://mathnexa.com for a production review");
+  if (process.env.REVIEW_ALLOW_SYNTHETIC_ACCOUNTS_ON_PRODUCTION !== "yes") throw new Error("production review creates temporary synthetic accounts; the production launcher must opt in explicitly");
+} else if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
+const bypass = isProduction ? "" : (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim();
+if (!isProduction && !/^[A-Za-z0-9_-]{20,}$/.test(bypass)) throw new Error("missing protection-bypass entry");
+const projectRef = isProduction ? (process.env.SUPABASE_PRODUCTION_PROJECT_REF ?? "").trim().toLowerCase() : STAGING_PROJECT_REF;
+if (!/^[a-z]{20}$/.test(projectRef) || (isProduction && projectRef === STAGING_PROJECT_REF)) throw new Error("project ref unavailable or wrong for this target");
+const secretKey = ((isProduction ? process.env.SUPABASE_PRODUCTION_SECRET_KEY : process.env.SUPABASE_SECRET_KEY) ?? "").trim();
 if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
-const out = resolve(process.env.REVIEW_OUT ?? "owner-review/math-tug-of-war-3d-v1/staging");
+const out = resolve(process.env.REVIEW_OUT ?? (isProduction ? "owner-review/math-tug-of-war-3d-v1/production" : "owner-review/math-tug-of-war-3d-v1/staging"));
 mkdirSync(out, { recursive: true });
-const bypassHeaders = { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" };
-const landing = `${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`;
+const bypassHeaders = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
+const landing = bypass ? `${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true` : `${origin}/`;
+const accountPrefix = isProduction ? "tug-3d-release-review" : "tug-3d-staging";
 const GPU_ARGS = ["--use-gl=angle", "--use-angle=d3d11", "--ignore-gpu-blocklist", "--enable-gpu-rasterization"];
 const ASSET_BASE = "/internal-games/math-tug-of-war/";
 const localRuntime = resolve("apps/platform-web/public/internal-games/math-tug-of-war");
 
-const admin = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+const admin = createClient(`https://${projectRef}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 const run = randomBytes(3).toString("hex");
 const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const MINUS = String.fromCharCode(0x2212);
@@ -56,7 +66,7 @@ const roomCodes = new Set();
 const reviewStartedAt = new Date(Date.now() - 60_000).toISOString();
 const results = [];
 const evidence = { origin, commit: expectCommit || null, checks: [], measurements: [] };
-const redact = (text) => String(text).split(bypass).join("[hidden]");
+const redact = (text) => (bypass ? String(text).split(bypass).join("[hidden]") : String(text));
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   evidence.checks.push({ ok: Boolean(condition), message: redact(message) });
@@ -75,8 +85,8 @@ function solve(text) {
 }
 
 async function subscriber(label) {
-  const email = `tug-3d-staging-${run}-${label}@example.invalid`;
-  const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: "math-tug-of-war-3d-staging-review" } });
+  const email = `${accountPrefix}-${run}-${label}@example.invalid`;
+  const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: isProduction ? "math-tug-of-war-3d-production-release-review" : "math-tug-of-war-3d-staging-review" } });
   if (made.error || !made.data.user) throw new Error("synthetic-user-failed");
   const id = made.data.user.id;
   users.push(id);
@@ -371,7 +381,7 @@ try {
   await safari.close();
   const passed = results.filter(Boolean).length;
   evidence.summary = { passed, total: results.length, syntheticUsersDeleted: users.length, roomsRemoved: roomCodes.size };
-  writeFileSync(resolve(out, "staging-3d-results.json"), JSON.stringify(evidence, null, 2));
+  writeFileSync(resolve(out, isProduction ? "production-3d-results.json" : "staging-3d-results.json"), JSON.stringify(evidence, null, 2));
   console.log(`\nREVIEW-3D ${passed}/${results.length} passed; synthetic users deleted: ${users.length}; rooms removed: ${roomCodes.size}`);
   if (passed !== results.length || results.length === 0) process.exitCode = 1;
 }
