@@ -22,6 +22,8 @@ that qualify and can switch with the "3D" toolbar button.
 | 12 | `23-device-phone-390x844-low-tier.png` | The low tier (no shadow maps, contact shadows only) on a phone |
 | 13 | `24-device-phone-390x844-classic.png` | The classic scene on the same phone for comparison |
 | 14 | `25-webkit-desktop.png` | WebKit (Safari engine) |
+| 14b | `26-…` to `34-…` | Hotfix: hands on the rope from the side, the front and above (both teams, front and back grips) at rest, mid-pull (three 110 ms frames) and after the pull; sneakers from the side, the front and behind |
+| 14c | `35-pink-sneakers-jump-*.png`, `35-recording-sneakers-during-jumps.webm`, `36-recording-hands-on-the-rope-while-pulling.webm` | Sneakers during the celebration jumps; a close-up recording of the hands while both teams pull |
 | 15 | `measurements.md` / `measurements.json` | Frame times, draw calls, triangles, canvas size, JS heap, model bytes and load time per scenario |
 
 Multiplayer synchronisation evidence comes from the Online Match suites

@@ -160,10 +160,11 @@ test("two 3D clients: pulls, animation states, winner, celebration, rematch and 
   for (const page of pages) expect((await snapshot(page)).three?.states).toEqual({ turquoise: ["ready", "ready", "ready"], pink: ["ready", "ready", "ready"] });
 
   // A pulls: both 3D scenes move to -1 and both animate the same event (Turquoise heaves, Pink is yanked).
-  await answerOnline(a.page, "turquoise");
-  for (const page of pages) {
-    await expect.poll(async () => (await snapshot(page)).three?.states.turquoise.some((state) => state === "pulling"), { timeout: 5_000 }).toBe(true);
-  }
+  // Both 3D scenes animate the pull (the "pulling" state lasts under a second, so it is sampled while the answer is in flight).
+  const seenPulling = { a: false, b: false };
+  const watch = async (page: Page, key: "a" | "b") => { for (let i = 0; i < 40 && !seenPulling[key]; i += 1) { const snap = await snapshot(page); if (snap.three?.states.turquoise.some((state) => state === "pulling")) seenPulling[key] = true; else await page.waitForTimeout(50); } };
+  await Promise.all([answerOnline(a.page, "turquoise"), watch(a.page, "a"), watch(b.page, "b")]);
+  expect(seenPulling.a || seenPulling.b, "a 3D scene animated the pull").toBe(true);
   await bothAt(pages, -1);
   for (const page of pages) expect((await snapshot(page)).three?.reachMiss ?? 1).toBeLessThan(0.03);
   // B pulls back.

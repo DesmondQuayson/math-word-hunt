@@ -129,9 +129,25 @@ const classicPhone = run("phone-classic", ["--viewport", "390x844", "--tier", "c
 copy(join(classicPhone.dir, "02-pull-pink.png"), `${index}-device-phone-390x844-classic.png`);
 index += 1;
 
+// 5b. Hands on the rope and the sneakers, close up (both teams), at rest and mid-pull.
+let shot = 26;
+for (const [label, closeup] of [["pink-front-hand-side", "pink-0-RightHand-side-0.4"], ["pink-front-hand-front", "pink-0-RightHand-front-0.4"], ["pink-back-hand-top", "pink-0-LeftHand-top-0.38"], ["turquoise-front-hand-side", "turquoise-0-LeftHand-side-0.4"], ["turquoise-back-hand-front", "turquoise-0-RightHand-front-0.4"], ["pink-sneaker-side", "pink-0-LeftFoot-side-0.45"], ["pink-sneaker-front", "pink-0-LeftFoot-front-0.45"], ["turquoise-sneaker-side", "turquoise-2-RightFoot-side-0.45"], ["turquoise-sneaker-back", "turquoise-2-LeftFoot-back-0.45"]]) {
+  const capture = run(`closeup-${label}`, ["--viewport", "1600x900", "--wait", "1200", "--pulls", "t", "--closeup", closeup, "--filmstrip-closeup", "3"]);
+  copy(join(capture.dir, "00-start-closeup.png"), `${shot}-${label}-at-rest.png`);
+  copy(join(capture.dir, "01-pull-turquoise-closeup.png"), `${shot}-${label}-after-pull.png`);
+  for (const file of readdirSync(capture.dir).filter((name) => /closeup-frame0[0-2]\.png$/.test(name))) copy(join(capture.dir, file), `${shot}-${label}-mid-pull-${file.slice(-6, -4)}.png`);
+  shot += 1;
+}
+const jumpShoes = run("closeup-sneakers-jump", ["--viewport", "1600x900", "--wait", "900", "--pulls", "t", "--win", "pink", "--closeup", "pink-1-LeftFoot-front-1.1", "--video"]);
+for (const at of ["3.4s", "4.8s"]) copy(join(jumpShoes.dir, `0${at === "3.4s" ? 5 : 6}-win-${at}-closeup.png`), `${shot}-pink-sneakers-jump-${at}.png`);
+for (const file of readdirSync(jumpShoes.dir).filter((name) => name.endsWith(".webm"))) copy(join(jumpShoes.dir, file), `${shot}-recording-sneakers-during-jumps.webm`);
+shot += 1;
+const gripFilm = run("closeup-grip-film", ["--viewport", "1600x900", "--wait", "900", "--pulls", "t,p", "--closeup", "pink-0-RightHand-side-0.45", "--video"]);
+for (const file of readdirSync(gripFilm.dir).filter((name) => name.endsWith(".webm"))) copy(join(gripFilm.dir, file), `${shot}-recording-hands-on-the-rope-while-pulling.webm`);
+
 // 6. WebKit.
 const webkit = run("webkit", ["--engine", "webkit", "--viewport", "1366x768", "--wait", "1200", "--pulls", "t,p"]);
-copy(join(webkit.dir, "02-pull-pink.png"), `${index}-webkit-desktop.png`);
+copy(join(webkit.dir, "02-pull-pink.png"), "25-webkit-desktop.png");
 note("webkit 1366x768", webkit.summary);
 
 writeFileSync(join(outDir, "measurements.json"), JSON.stringify(measurements, null, 2));

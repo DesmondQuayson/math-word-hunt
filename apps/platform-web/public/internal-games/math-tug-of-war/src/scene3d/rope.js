@@ -233,6 +233,25 @@ export class Rope {
     this.marker.rotation.z = Math.sin(this.time * 3) * 0.08 * (1 - fall) + 1.2 * fall;
   }
 
+  /** Distance from a world point to the rope tube's axis (metres; 0 = on the centreline). */
+  distanceToAxis(point) {
+    const points = this.controls;
+    if (points.length < 2) return Infinity;
+    let best = Infinity;
+    const a = tmpA;
+    const b = tmpB;
+    for (let index = 0; index < 100; index += 1) {
+      catmull(points, index / 100, a);
+      catmull(points, (index + 1) / 100, b);
+      const segment = tmpC.subVectors(b, a);
+      const length = segment.lengthSq();
+      const t = length > 0 ? clamp(tmpN.subVectors(point, a).dot(segment) / length, 0, 1) : 0;
+      const distance = tmpN.copy(a).addScaledVector(segment, t).distanceTo(point);
+      if (distance < best) best = distance;
+    }
+    return best;
+  }
+
   dispose() {
     this.geometry.dispose();
     this.material.dispose();

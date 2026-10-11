@@ -30,8 +30,11 @@ type SceneSnapshot = {
     triangles: number;
     states: Record<"turquoise" | "pink", string[]>;
     momentum: Record<"turquoise" | "pink", number>;
+    fatigue: Record<"turquoise" | "pink", number>;
     downgrades: unknown[];
     reachMiss: number;
+    hands: null | Array<{ puller: string; side: string; onRope: boolean; ropeDistance: number; wristDeg: number; forearmDeg: number; reachMiss: number }>;
+    footwear: null | Array<{ puller: string; minY: number; liftY: number; size: number[]; enclosesFeet: boolean }>;
     celebration: null | {
       phase: string;
       t: number;
@@ -258,6 +261,79 @@ test.describe("Math Tug of War — 3D scene", () => {
     await expect(page.locator("canvas.tug-scene-3d")).toHaveCount(0);
     expect(await page.evaluate(() => "__MATHNEXA_TUG_SCENE__" in window)).toBe(false);
     void openGame;
+  });
+
+  test("every hand closes around the rope and every sneaker stays on its foot: six characters, both teams, at rest, mid-heave, mid-yank, tired, stumbling and jumping", async ({ page }) => {
+    await startTeams3D(page, "multiplication");
+    const ROPE_RADIUS = 0.022;
+    const check = async (label: string, { gripping = true } = {}) => {
+      const snap = await sceneSnapshot(page);
+      const hands = snap.three?.hands ?? [];
+      const footwear = snap.three?.footwear ?? [];
+      expect(hands.length, label).toBe(12);
+      expect(footwear.length, label).toBe(6);
+      for (const hand of hands) {
+        if (!gripping && !hand.onRope) continue;
+        expect(hand.onRope, `${label}: ${hand.puller} ${hand.side} on the rope`).toBe(true);
+        // The rope's centreline runs through the closed fist (within three quarters of the rope's radius).
+        expect(hand.ropeDistance, `${label}: ${hand.puller} ${hand.side} rope through the fist`).toBeLessThan(ROPE_RADIUS * 0.75);
+        expect(hand.reachMiss, `${label}: ${hand.puller} ${hand.side} reach`).toBeLessThan(0.01);
+        expect(hand.wristDeg, `${label}: ${hand.puller} ${hand.side} wrist`).toBeLessThan(62);
+      }
+      for (const shoe of footwear) {
+        expect(shoe.enclosesFeet, `${label}: ${shoe.puller} sneakers on the feet`).toBe(true);
+        // Soles on the grass (within a centimetre) unless the body is in the air.
+        expect(shoe.minY, `${label}: ${shoe.puller} sole on the ground`).toBeLessThan(0.012);
+        expect(shoe.minY).toBeGreaterThan(-0.03);
+        // The pair's bounding box stays shoe-sized: no stretched or torn geometry (the two feet can be
+        // up to a stride apart and one of them lifted mid-step, so the bounds allow a stride and a step).
+        expect(shoe.size[1], `${label}: ${shoe.puller} sneaker height`).toBeLessThan(0.42); // the pair: one foot can be mid-step while the other digs in
+      }
+      return snap;
+    };
+    await page.waitForTimeout(900);
+    await check("at rest");
+    await answer(page, "turquoise");
+    await page.waitForTimeout(200);
+    await check("mid-heave (Turquoise) / mid-yank (Pink)");
+    await page.waitForTimeout(500);
+    await check("after the pull");
+    for (let pull = 0; pull < 10; pull += 1) {
+      await waitForUnlocked(page, pull % 2 ? "turquoise" : "pink");
+      await answer(page, pull % 2 ? "turquoise" : "pink");
+      await page.waitForTimeout(250);
+      await check(`pull ${pull + 2}`);
+    }
+    await page.waitForTimeout(900);
+    const tired = await check("tired");
+    expect(Math.max(tired.three?.fatigue.turquoise ?? 0, tired.three?.fatigue.pink ?? 0)).toBeGreaterThan(0.3);
+    // The win: the losers stumble (hands released), the winners jump; sneakers stay on through both.
+    for (let pull = 0; pull < 12 && (await sceneSnapshot(page)).three?.winner === null; pull += 1) {
+      await waitForUnlocked(page, "pink");
+      await answer(page, "pink");
+      await expect.poll(async () => (await sceneSnapshot(page)).three?.states.pink.every((state) => state === "ready" || state === "celebrate"), { timeout: 5_000 }).toBe(true);
+    }
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.winner, { timeout: 10_000 }).toBe("pink");
+    await page.waitForTimeout(500);
+    let snap = await sceneSnapshot(page);
+    expect(snap.three?.hands?.every((hand) => !hand.onRope), "every hand has released the rope after the win").toBe(true);
+    for (const shoe of snap.three?.footwear ?? []) expect(shoe.enclosesFeet, `stumble: ${shoe.puller}`).toBe(true);
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.celebration?.phase, { timeout: 8_000 }).toBe("jump");
+    let airborne = 0;
+    for (let sample = 0; sample < 30; sample += 1) {
+      await page.waitForTimeout(100);
+      snap = await sceneSnapshot(page);
+      for (const shoe of snap.three?.footwear ?? []) {
+        expect(shoe.enclosesFeet, `jump: ${shoe.puller} sneakers on the feet`).toBe(true);
+        // (The pair's box height is not a shoe measure in the air: knees bend and one foot trails.)
+        if (shoe.liftY > 0.1) {
+          airborne += 1;
+          // In the air the soles rise with the body (they are not left on the grass).
+          expect(shoe.minY, `jump: ${shoe.puller} soles leave the grass`).toBeGreaterThan(-0.03);
+        }
+      }
+    }
+    expect(airborne).toBeGreaterThan(3);
   });
 
   test("hands really hold the rope while pulling, and the rope drops to the grass once the match is decided", async ({ page }) => {

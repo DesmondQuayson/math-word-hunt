@@ -4,6 +4,7 @@
 
 import {
   ACESFilmicToneMapping,
+  Box3,
   Group,
   PCFShadowMap,
   PMREMGenerator,
@@ -190,16 +191,43 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
 
   function placeCamera() {
     // Review tooling may park the camera on a face; follow that head instead.
+    // Close-ups sit well inside the normal near plane, so it moves in with them.
+    const wantNear = debugHook?.closeup ? 0.03 : 0.5;
+    if (camera.near !== wantNear) {
+      camera.near = wantNear;
+      camera.updateProjectionMatrix();
+    }
     if (debugHook?.closeup) {
       const closeup = debugHook.closeup;
       const puller = pullers[closeup.team]?.[closeup.index];
       if (!puller) return;
+      const towardsCentre = closeup.team === "turquoise" ? 1 : -1;
+      const distance = closeup.distance ?? 1;
+      if (closeup.bone) {
+        // Any bone ("LeftHand", "RightFoot", …), always from outside the body:
+        // "side" looks in from the side the bone is on, "front" from the centre
+        // line, "back" from behind the puller, "top" from above.
+        const target = puller.boneWorld(closeup.bone, tmpV).clone();
+        target.y += closeup.lift ?? 0;
+        const hips = puller.boneWorld("Hips", new Vector3());
+        const out = new Vector3(target.x - hips.x, 0, target.z - hips.z);
+        if (out.lengthSq() < 1e-4) out.set(0, 0, 1);
+        out.normalize();
+        const front = new Vector3(towardsCentre, 0, 0);
+        const view = closeup.view ?? "side";
+        const offset = new Vector3();
+        if (view === "front") offset.addScaledVector(front, distance).addScaledVector(out, distance * 0.3).y += distance * 0.2;
+        else if (view === "back") offset.addScaledVector(front, -distance).addScaledVector(out, distance * 0.4).y += distance * 0.25;
+        else if (view === "top") offset.addScaledVector(out, distance * 0.35).y += distance;
+        else offset.addScaledVector(out, distance * 0.85).addScaledVector(front, distance * 0.3).y += distance * 0.2;
+        camera.position.copy(target).add(offset);
+        camera.lookAt(target);
+        return;
+      }
       const head = puller.rig.worldPosition(puller.rig.bone("Head"), tmpV);
       head.y += 0.06;
       puller.root.localToWorld(head);
-      const towardsCentre = closeup.team === "turquoise" ? 1 : -1;
       // A three-quarter view from the front (the puller faces the centre), close enough to read the face.
-      const distance = closeup.distance ?? 1;
       camera.position.set(head.x + towardsCentre * 0.8 * distance, head.y + 0.1, head.z + 0.6 * distance);
       camera.lookAt(head.x, head.y, head.z);
       return;
@@ -323,8 +351,12 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
       for (const puller of pullers[team]) {
         for (const side of ["Left", "Right"]) {
           const point = handBuffer[slot++];
+          // The rope runs through the fists. A fist within a finger's width of its grip
+          // target contributes the target itself, so tiny IK residues never kink the rope.
           point.copy(puller.lastHands[side]);
-          puller.root.localToWorld(point);
+          const grip = puller.lastPose?.grip?.[side];
+          if (grip && grip.lengthSq() > 0 && point.distanceTo(grip) < 0.02) point.copy(grip);
+          puller.worldFromLocal(point);
           if (puller.handOnRope[side]) handPoints.push(point);
         }
       }
@@ -512,6 +544,58 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     canvas.remove();
   }
 
+  /** Per hand: is it on the rope, how far its fist centre is from the rope tube's axis, and the wrist angle. */
+  function handsSnapshot() {
+    if (!rope) return null;
+    const out = [];
+    const fist = new Vector3();
+    for (const team of TEAMS) {
+      for (const puller of pullers[team]) {
+        for (const side of ["Left", "Right"]) {
+          puller.worldFromLocal(fist.copy(puller.lastHands[side]));
+          out.push({
+            puller: `${team}-${puller.index}`,
+            side,
+            onRope: Boolean(puller.handOnRope[side]),
+            ropeDistance: Number(rope.distanceToAxis(fist).toFixed(3)),
+            wristDeg: Math.round((puller.rig.localAngle(`${side}Hand`) * 180) / Math.PI),
+            forearmDeg: Math.round((puller.rig.localAngle(`${side}ForeArm`) * 180) / Math.PI),
+            reachMiss: Number(puller.reachMiss[side].toFixed(3))
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Per puller: the skinned footwear's world bounds against the foot bones and the ground. */
+  function footwearSnapshot() {
+    const out = [];
+    const box = new Box3();
+    const foot = new Vector3();
+    const toe = new Vector3();
+    for (const team of TEAMS) {
+      for (const puller of pullers[team]) {
+        const shoe = puller.meshes.find((mesh) => /shoe|sneaker/i.test(mesh.name) && mesh.isSkinnedMesh);
+        if (!shoe) continue;
+        shoe.computeBoundingBox();
+        box.copy(shoe.boundingBox).applyMatrix4(shoe.matrixWorld);
+        const size = box.getSize(new Vector3());
+        puller.boneWorld("LeftFoot", foot);
+        puller.boneWorld("LeftToeBase", toe);
+        out.push({
+          puller: `${team}-${puller.index}`,
+          minY: Number((box.min.y - puller.root.position.y).toFixed(3)),
+          liftY: Number(puller.root.position.y.toFixed(3)),
+          size: [Number(size.x.toFixed(3)), Number(size.y.toFixed(3)), Number(size.z.toFixed(3))],
+          // The sneaker pair must enclose the ankles and the toes.
+          enclosesFeet: box.containsPoint(foot.setY(foot.y - 0.02)) && box.containsPoint(toe)
+        });
+      }
+    }
+    return out;
+  }
+
   /** Diagnostics for the winning team's celebration (tests and the review pack). */
   function celebrationSnapshot() {
     if (!plan || !winner) return null;
@@ -621,6 +705,8 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         // Largest distance any hand missed its target this frame (metres): hands really hold the rope.
         reachMiss: Number(Math.max(0, ...TEAMS.flatMap((team) => pullers[team].flatMap((puller) => [puller.reachMiss.Left, puller.reachMiss.Right]))).toFixed(3)),
         celebration: celebrationSnapshot(),
+        hands: handsSnapshot(),
+        footwear: footwearSnapshot(),
         fatigue: Object.fromEntries(TEAMS.map((team) => [team, Number((pullers[team][0]?.fatigue ?? 0).toFixed(2))])),
         momentum: { turquoise: Number(momentum.turquoise.toFixed(2)), pink: Number(momentum.pink.toFixed(2)) }
       };

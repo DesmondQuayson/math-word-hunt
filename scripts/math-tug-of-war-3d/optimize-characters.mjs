@@ -22,7 +22,7 @@
  * lives in this folder's own package.json so the platform's root
  * dependencies stay untouched.
  */
-import { mkdirSync, readdirSync, existsSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createRequire } from "node:module";
 
@@ -40,6 +40,11 @@ const outDir = resolve(option("--out", "out"));
 const bodyRatio = Number(option("--body-ratio", "0.5"));
 const faceLockY = Number(option("--face-lock-y", "1.38")); // metres: everything above the collar keeps full detail
 const errorBudget = Number(option("--error", "0.0015"));
+// Team sneaker textures (sneaker-textures.mjs): puller-a..c wear turquoise, puller-d..f pink.
+const sneakerDir = option("--sneakers", null);
+const skipSparse = args.includes("--no-sparse");
+const skipQuantize = args.includes("--no-quantize");
+const SNEAKER_TEAM = { "puller-a": "turquoise", "puller-b": "turquoise", "puller-c": "turquoise", "puller-d": "pink", "puller-e": "pink", "puller-f": "pink" };
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 
@@ -49,23 +54,46 @@ function characterDirs() {
     .sort();
 }
 
-/** Simplify one primitive with meshoptimizer, optionally locking vertices above `lockY` (character-local metres). */
-function simplifyPrimitive(primitive, { ratio, lockY = -Infinity, error, lockBorder = false }) {
+// Bones whose geometry must keep full detail and must never be welded across
+// joints: hands and fingers (the grip is seen in close-up and a vertex merged
+// between two fingers tears when they curl) and feet (the sneakers' fit).
+const LOCKED_JOINT = /Hand|Thumb|Index|Middle|Ring|Pinky|Foot|Toe/;
+
+/** Vertex indices whose skin weights touch a locked joint (any weight > 0.01). */
+function lockedByJoint(primitive, skin) {
+  const joints = primitive.getAttribute("JOINTS_0");
+  const weights = primitive.getAttribute("WEIGHTS_0");
+  const lock = new Uint8Array(primitive.getAttribute("POSITION").getCount());
+  if (!joints || !weights || !skin) return lock;
+  const names = skin.listJoints().map((joint) => joint.getName());
+  const j = new Array(4);
+  const w = new Array(4);
+  for (let index = 0; index < lock.length; index += 1) {
+    joints.getElement(index, j);
+    weights.getElement(index, w);
+    for (let k = 0; k < 4; k += 1) {
+      if (w[k] > 0.01 && LOCKED_JOINT.test(names[j[k]] ?? "")) {
+        lock[index] = 1;
+        break;
+      }
+    }
+  }
+  return lock;
+}
+
+/** Simplify one primitive with meshoptimizer, optionally locking vertices above `lockY` (character-local metres) and vertices skinned to locked joints. */
+function simplifyPrimitive(primitive, { ratio, lockY = -Infinity, error, lockBorder = false, skin = null }) {
   const indicesAccessor = primitive.getIndices();
   const position = primitive.getAttribute("POSITION");
   if (!indicesAccessor || !position) return null;
   const indices = indicesAccessor.getArray();
   const positions = position.getArray();
   const vertexCount = position.getCount();
-  const lock = new Uint8Array(vertexCount);
+  const lock = lockedByJoint(primitive, skin);
   let locked = 0;
-  if (Number.isFinite(lockY)) {
-    for (let index = 0; index < vertexCount; index += 1) {
-      if (positions[index * 3 + 1] >= lockY) {
-        lock[index] = 1;
-        locked += 1;
-      }
-    }
+  for (let index = 0; index < vertexCount; index += 1) {
+    if (Number.isFinite(lockY) && positions[index * 3 + 1] >= lockY) lock[index] = 1;
+    if (lock[index]) locked += 1;
   }
   const sourceIndices = indices instanceof Uint32Array ? indices : new Uint32Array(indices);
   const positions32 = positions instanceof Float32Array ? positions : new Float32Array(positions);
@@ -85,6 +113,21 @@ function simplifyPrimitive(primitive, { ratio, lockY = -Infinity, error, lockBor
   indicesAccessor.setArray(vertexCount <= 65535 ? new Uint16Array(result) : new Uint32Array(result));
   compactPrimitive(primitive);
   return { before: sourceIndices.length / 3, after: result.length / 3, locked, vertices: primitive.getAttribute("POSITION").getCount() };
+}
+
+/** The footwear material gets the team sneaker texture (the source photo texture is not shipped). */
+function dressSneakers(document, name) {
+  const team = SNEAKER_TEAM[name];
+  if (!team) return;
+  const file = `sneaker-${team}.webp`;
+  const texture = document.createTexture(file.replace(".webp", "")).setImage(readFileSync(join(sneakerDir, file))).setMimeType("image/webp").setURI(file);
+  for (const material of document.getRoot().listMaterials()) {
+    if (!/shoe/i.test(material.getName())) continue;
+    const old = material.getBaseColorTexture();
+    material.setBaseColorTexture(texture);
+    material.setRoughnessFactor(0.72).setMetallicFactor(0);
+    if (old) old.dispose();
+  }
 }
 
 function tidyMaterials(document) {
@@ -216,8 +259,10 @@ async function loadCharacter(name) {
   const document = await io.read(join(inDir, name, `${name}.gltf`));
   const root = document.getRoot();
   const stats = { name, primitives: [] };
+  const skinOf = (mesh) => root.listNodes().find((node) => node.getMesh() === mesh)?.getSkin() ?? null;
   for (const mesh of root.listMeshes()) {
     const meshName = mesh.getName().toLowerCase();
+    const skin = skinOf(mesh);
     const isFace = /teeth|eye|lash|brow/.test(meshName);
     const isBody = /base|body/.test(meshName) && !isFace;
     const isTeeth = /teeth/.test(meshName);
@@ -227,13 +272,14 @@ async function loadCharacter(name) {
     for (const primitive of mesh.listPrimitives()) {
       let result = null;
       if (isGarment && inflatePrimitive(primitive, /pants|trousers|jeans|shorts/.test(meshName) ? 0.004 : 0.008)) stats.primitives.push({ mesh: mesh.getName(), inflated: true });
-      if (isBody) result = simplifyPrimitive(primitive, { ratio: bodyRatio, lockY: faceLockY, error: errorBudget, lockBorder: true });
-      else if (isTeeth) result = simplifyPrimitive(primitive, { ratio: 0.3, error: 0.02 });
-      else if (isHair) result = simplifyPrimitive(primitive, { ratio: 0.55, error: 0.01 });
-      else if (isShoe) result = simplifyPrimitive(primitive, { ratio: 0.5, error: 0.01 });
+      if (isBody) result = simplifyPrimitive(primitive, { ratio: bodyRatio, lockY: faceLockY, error: errorBudget, lockBorder: true, skin });
+      else if (isTeeth) result = simplifyPrimitive(primitive, { ratio: 0.3, error: 0.02, skin });
+      else if (isHair) result = simplifyPrimitive(primitive, { ratio: 0.55, error: 0.01, skin });
+      else if (isShoe) result = null; // footwear keeps its full detail (it is seen in close-up and must not tear)
       if (result) stats.primitives.push({ mesh: mesh.getName(), ...result });
     }
   }
+  if (sneakerDir) dressSneakers(document, name);
   tidyMaterials(document);
   trimMorphs(document);
   shareSkins(document);
@@ -279,8 +325,8 @@ async function main() {
     textureCompress({ encoder: sharp, targetFormat: "webp", quality: 82, resize: [1024, 1024] }),
     // One quantization volume for the whole document keeps every mesh of a
     // character on the same transform, so one skin per character survives.
-    quantize({ quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8, quantizeGeneric: 12, quantizationVolume: "scene" }),
-    sparse({ ratio: 1 / 3 }),
+    ...(skipQuantize ? [] : [quantize({ quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 12, quantizeColor: 8, quantizeWeight: 8, quantizeGeneric: 12, quantizationVolume: "scene" })]),
+    ...(skipSparse ? [] : [sparse({ ratio: 1 / 3 })]),
     prune()
   );
   shrinkIndices(merged);

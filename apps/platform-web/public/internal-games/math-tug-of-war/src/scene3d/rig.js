@@ -251,6 +251,81 @@ export class Rig {
     this.setWorldQuaternion(hand, tmpQ1);
   }
 
+  /** The posed hand's knuckle and palm directions (character space). */
+  handAxes(side, fingersOut, palmOut) {
+    const info = this.hands[side];
+    if (!info) return false;
+    const q = this.worldQuaternion(info.hand, tmpQ1).multiply(tmpQ2.copy(this.rest.get(info.hand).q).invert());
+    fingersOut.copy(info.fingerDirection).applyQuaternion(q);
+    palmOut.copy(info.palm).applyQuaternion(q);
+    return true;
+  }
+
+  /** Angle (radians) a bone is rotated away from its rest pose, relative to its parent. */
+  localAngle(name) {
+    const bone = this.bones.get(name);
+    if (!bone) return 0;
+    const delta = tmpQ1.copy(this.rest.get(bone).lq).invert().multiply(bone.quaternion);
+    return 2 * Math.acos(clamp(Math.abs(delta.w), -1, 1));
+  }
+
+  /**
+   * Keep the wrist anatomical after orientHand(): as much as possible of the
+   * rotation the hand needs is taken by the forearm turning about its own axis
+   * (pronation / supination), then by the upper arm, and what is left at the
+   * wrist (flexion / deviation) is limited to `maxWrist`. Skinned wrists tear
+   * when they are rotated much further than a real one can go.
+   */
+  relaxWrist(side, { maxForearmTwist = 1.45, maxUpperTwist = 0, maxWrist = 1.0, twist = null } = {}) {
+    const hand = this.bones.get(`${side}Hand`);
+    const fore = this.bones.get(`${side}ForeArm`);
+    const upper = this.bones.get(`${side}Arm`);
+    if (!hand || !fore || !upper) return;
+    const wanted = this.worldQuaternion(hand, new Quaternion());
+    const restLocal = this.rest.get(hand).lq;
+    // The wrist rotation (away from rest) the hand would need, given the arm as it is now.
+    const wristAngle = () => {
+      const local = this.worldQuaternion(fore, tmpQ1).invert().multiply(wanted);
+      const delta = tmpQ2.copy(restLocal).invert().multiply(local);
+      return 2 * Math.acos(clamp(Math.abs(delta.w), -1, 1));
+    };
+    // Turn `bone` about its own axis (towards its child) by the angle that leaves the smallest wrist rotation.
+    const twistToHelp = (bone, childRestPosition, limit) => {
+      const axis = tmpV1.copy(childRestPosition).normalize();
+      const base = bone.quaternion.clone();
+      let bestAngle = 0;
+      let best = wristAngle();
+      const tryAngle = (angle) => {
+        bone.quaternion.copy(base).multiply(tmpQ1.setFromAxisAngle(axis, angle));
+        const result = wristAngle();
+        if (result < best - 1e-4) {
+          best = result;
+          bestAngle = angle;
+        }
+      };
+      for (let step = -12; step <= 12; step += 1) tryAngle((step / 12) * limit);
+      for (let step = -5; step <= 5; step += 1) tryAngle(clamp(bestAngle + (step / 5) * (limit / 12), -limit, limit));
+      bone.quaternion.copy(base).multiply(tmpQ1.setFromAxisAngle(axis, bestAngle));
+      return bestAngle;
+    };
+    let chosenTwist = twist;
+    if (twist === null) {
+      chosenTwist = twistToHelp(fore, this.rest.get(hand).lp, maxForearmTwist);
+      // Turning the upper arm would swing the forearm (and the wrist) away from its target; off by default.
+      if (maxUpperTwist > 0 && wristAngle() > maxWrist) twistToHelp(upper, this.rest.get(fore).lp, maxUpperTwist);
+    } else {
+      // A twist found earlier this frame, reapplied so the hand's orientation (and its fist) stays put while the arm is re-solved.
+      fore.quaternion.multiply(tmpQ1.setFromAxisAngle(tmpV1.copy(this.rest.get(hand).lp).normalize(), twist));
+    }
+    // The wrist takes the remainder, within its range.
+    const local = this.worldQuaternion(fore, tmpQ1).invert().multiply(wanted);
+    const delta = new Quaternion().copy(restLocal).invert().multiply(local);
+    const angle = 2 * Math.acos(clamp(Math.abs(delta.w), -1, 1));
+    if (angle > maxWrist) delta.slerp(tmpQ2.identity(), 1 - maxWrist / angle);
+    hand.quaternion.copy(restLocal).multiply(delta);
+    return chosenTwist ?? 0;
+  }
+
   /** Curl fingers: 0 = open hand, 1 = tight grip. */
   curl(side, amount) {
     const info = this.hands[side];

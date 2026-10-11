@@ -1,6 +1,7 @@
 // The exact three.js surface the Math Tug of War 3D scene uses. Keep this list
 // tight: everything not listed is tree-shaken out of the vendored bundle.
 export {
+  Box3,
   ACESFilmicToneMapping,
   AmbientLight,
   BackSide,

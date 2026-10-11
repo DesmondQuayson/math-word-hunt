@@ -62,6 +62,54 @@ COVERED_BONES = {"mixamorig:Hips", "mixamorig:Spine", "mixamorig:Spine1", "mixam
                  "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg", "mixamorig:LeftLeg", "mixamorig:RightLeg"}
 
 
+FOOT_GROUPS = ("mixamorig:LeftFoot", "mixamorig:RightFoot", "mixamorig:LeftToeBase", "mixamorig:RightToeBase",
+               "mixamorig:LeftLeg", "mixamorig:RightLeg")
+
+
+def reweight_footwear(basemesh):
+    """Footwear follows the foot: copy each shoe vertex's deform weights from the
+    nearest body vertex of the foot/ankle region. MakeHuman's proxy fitting binds
+    most shoe vertices to the shin bone, which tears the shoe open at the ankle as
+    soon as the knee bends; the body's own foot vertices carry the right blend
+    (toes -> ToeBase, foot -> Foot, collar -> a little Leg)."""
+    from mathutils.kdtree import KDTree
+    groups = {g.index: g.name for g in basemesh.vertex_groups}
+    region = []
+    for vertex in basemesh.data.vertices:
+        best, best_weight = None, 0.0
+        for element in vertex.groups:
+            name = groups.get(element.group)
+            if name and element.weight > best_weight:
+                best, best_weight = name, element.weight
+        if best in FOOT_GROUPS:
+            region.append(vertex)
+    if not region:
+        log("reweight_footwear: no foot vertices on the body")
+        return
+    tree = KDTree(len(region))
+    for index, vertex in enumerate(region):
+        tree.insert(basemesh.matrix_world @ vertex.co, index)
+    tree.balance()
+    for obj in bpy.data.objects:
+        if obj.type != "MESH" or "shoe" not in obj.name.lower():
+            continue
+        shoe_groups = {g.name: g for g in obj.vertex_groups}
+        for name in set(groups.values()):
+            if name not in shoe_groups:
+                shoe_groups[name] = obj.vertex_groups.new(name=name)
+        for vertex in obj.data.vertices:
+            for group in obj.vertex_groups:
+                group.remove([vertex.index])
+            _, index, _ = tree.find(obj.matrix_world @ vertex.co)
+            source = region[index]
+            total = sum(element.weight for element in source.groups) or 1.0
+            for element in source.groups:
+                name = groups.get(element.group)
+                if name and element.weight > 0.0:
+                    shoe_groups[name].add([vertex.index], element.weight / total, "REPLACE")
+        log("reweighted footwear", obj.name, len(obj.data.vertices), "vertices from", len(region), "foot vertices")
+
+
 def delete_covered_body(basemesh):
     """Remove body vertices whose dominant deform bone is under clothing."""
     import bmesh
@@ -142,6 +190,9 @@ def build(spec):
             obj.shape_key_remove(key)
     # 4. Remove helper geometry and apply clothes delete-groups (keeps shape keys).
     ExportService.bake_modifiers_remove_helpers(basemesh, bake_masks=True, bake_subdiv=False, remove_helpers=True, also_proxy=False)
+
+    # 4a. Footwear deforms with the foot, not the shin (see reweight_footwear), before the shin goes.
+    reweight_footwear(basemesh)
 
     # 4b. Delete body geometry that clothes always cover (torso, thighs, shins):
     # nothing can poke through a shirt or trousers, and the body mesh shrinks.

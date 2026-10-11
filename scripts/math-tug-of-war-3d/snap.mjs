@@ -44,6 +44,7 @@ const tier = option("--tier", "3d");
 const closeup = option("--closeup", null); // "pink-1": also capture that puller's face after each step
 const closeupDistance = Number(option("--closeup-distance", "1")); // 1 = a face close-up; 1.8 = head and shoulders with teammates
 const filmstrip = Number(option("--filmstrip", "0")); // frames to capture (every 90 ms) right after each pull
+const filmstripCloseup = Number(option("--filmstrip-closeup", "0")); // the same, with the camera parked on the --closeup target
 
 mkdirSync(outDir, { recursive: true });
 const server = await startMobileGameplayHarness(0);
@@ -126,13 +127,14 @@ async function shot(name) {
   if (closeup) {
     // Park the camera on one puller's face (the review override exposes the
     // scene, which then tracks that head every frame), shoot, release.
-    const [team, index] = closeup.split("-");
-    const parked = await page.evaluate(([teamName, pullerIndex, distance]) => {
+    // "pink-1" (face), or "pink-1-LeftHand-side-0.4" (a bone, a view and a distance).
+    const [team, index, bone, view, distance] = closeup.split("-");
+    const parked = await page.evaluate(([teamName, pullerIndex, boneName, viewName, dist]) => {
       const d = window.__MATHNEXA_TUG_3D_DEBUG__;
       if (!d) return false;
-      d.closeup = { team: teamName, index: Number(pullerIndex), distance: Number(distance) };
+      d.closeup = { team: teamName, index: Number(pullerIndex), bone: boneName || undefined, view: viewName || undefined, distance: Number(dist) };
       return true;
-    }, [team, index, closeupDistance]);
+    }, [team, index, bone, view, distance ?? closeupDistance]);
     if (parked) {
       await page.waitForTimeout(70);
       const box = await page.locator(".scene-stage").boundingBox();
@@ -178,6 +180,22 @@ try {
       await page.waitForTimeout(90);
       const box = await page.locator(".scene-stage").boundingBox();
       await page.screenshot({ path: join(outDir, `${String(index).padStart(2, "0")}-pull-${team}-frame${String(frame).padStart(2, "0")}.png`), clip: box ?? undefined });
+    }
+    if (filmstripCloseup > 0 && closeup) {
+      const [team2, index2, bone, view, distance] = closeup.split("-");
+      await page.evaluate(([teamName, pullerIndex, boneName, viewName, dist]) => {
+        const d = window.__MATHNEXA_TUG_3D_DEBUG__;
+        if (d) d.closeup = { team: teamName, index: Number(pullerIndex), bone: boneName || undefined, view: viewName || undefined, distance: dist ? Number(dist) : undefined };
+      }, [team2, index2, bone, view, distance]);
+      for (let frame = 0; frame < filmstripCloseup; frame += 1) {
+        await page.waitForTimeout(110);
+        const box = await page.locator(".scene-stage").boundingBox();
+        await page.screenshot({ path: join(outDir, `${String(index).padStart(2, "0")}-pull-${team}-closeup-frame${String(frame).padStart(2, "0")}.png`), clip: box ?? undefined });
+      }
+      await page.evaluate(() => {
+        const d = window.__MATHNEXA_TUG_3D_DEBUG__;
+        if (d) d.closeup = null;
+      });
     }
     await page.waitForTimeout(waitMs);
     results.steps.push({ step: `pull-${index}-${team}`, ...(await snapshot()) });

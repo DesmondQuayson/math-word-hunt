@@ -24,15 +24,23 @@ const tmpC = new Vector3();
 const tmpD = new Vector3();
 const tmpQ = new Quaternion();
 
-const GRIP_OFFSET = 0.07; // wrist → palm centre, metres
+const GRIP_OFFSET = 0.07; // wrist → palm centre, metres (open-hand contact: shoulders, knees)
+// The closed fist: where the hole between the curled fingers and the palm sits,
+// from the wrist, along the knuckles and out of the palm. The rope runs through it.
+const FIST_FORWARD = 0.066;
+const FIST_UP = 0.044;
+const FIST_CURL = 0.6; // leaves a hole 31 mm in radius for the 22 mm rope (measured on the rig)
+const ROPE_AXIS = new Vector3(0, 0, 1);
 const STEP_DURATION = 0.26;
 const STEP_HEIGHT = 0.09;
 // Braced stance: both feet ahead of the hips so the body can hang back on the rope.
 const FRONT_FOOT_Z = 0.2;
 const BACK_FOOT_Z = -0.16;
-// The rope runs past the waist: the front grip just ahead of the hips, the back grip beside them.
-const GRIP_FRONT_Z = 0.14;
-const GRIP_BACK_Z = GRIP_FRONT_Z - HAND_GAP;
+// The rope runs past the waist: the front grip a little ahead of the hips, the
+// back grip beside them, and never closer than a fist's width to each other.
+const GRIP_FRONT_Z = 0.1;
+const GRIP_BACK_Z = -0.05;
+const GRIP_MIN_GAP = 0.115;
 const ARM_FIT = 0.94; // fraction of the arm length a grip may sit from the shoulder
 const LEG_FIT = 0.985;
 
@@ -129,7 +137,9 @@ export class Puller {
       stance: 0.9 + this.random() * 0.25,
       tempo: 0.9 + this.random() * 0.2,
       sway: 0.7 + this.random() * 0.6,
-      frontHand: this.random() < 0.5 ? "Left" : "Right"
+      // The far arm reaches across the body to the front grip; the near hand takes
+      // the back grip beside the hip, where its forearm can cross the rope.
+      frontHand: team === "turquoise" ? "Right" : "Left"
     };
     const ropeSide = team === "turquoise" ? 1 : -1; // rope lies on this side (+X = left) of the body
     this.ropeSide = ropeSide;
@@ -160,7 +170,7 @@ export class Puller {
     this.handShiftRate = 6;
     this.torsoPitchExtra = new Value(0, 8);
     this.release = new Value(0, 5); // 0 hands on rope … 1 hands free
-    this.grip = new Value(0.92, 6);
+    this.grip = new Value(FIST_CURL, 6);
     this.action = null; // { type, t, duration, ... }
     this.wipe = null; // { side, t, weight } a tired puller wiping their brow
     this.lookTarget = new Vector3(0, 1.3, 6);
@@ -241,7 +251,7 @@ export class Puller {
     this.helpTarget = null;
     this.release.value = 0;
     this.release.target = 0;
-    this.grip.target = 0.85;
+    this.grip.target = FIST_CURL;
     this.lean.target = 0.55;
     this.effort.target = 0.3;
     this.hipsOffset.set(0, 0, 0);
@@ -437,17 +447,55 @@ export class Puller {
       const target = pose.hand[side];
       const pole = pose.armPole[side];
       this.reachMiss[side] = rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, target, pole, ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
+      if (pose.onRope[side] && pose.grip[side].lengthSq() > 0) {
+        // A gripping hand: the knuckles continue the solved forearm (across the
+        // rope, so the wrist stays straight), the palm faces up and a little
+        // towards the body, and the wrist is placed so the fist's hole sits on
+        // the rope. Two passes, since moving the wrist moves the elbow a little.
+        for (let pass = 0; pass < 3; pass += 1) {
+          const elbow = rig.worldPosition(rig.bone(`${side}ForeArm`), tmpD);
+          const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpC);
+          const forearm = tmpC.sub(elbow);
+          forearm.addScaledVector(ROPE_AXIS, -forearm.dot(ROPE_AXIS));
+          if (forearm.lengthSq() > 0.004) pose.handFingers[side].copy(forearm).normalize();
+          pose.handPalm[side].set(-this.ropeSide * 0.35, 1, 0);
+          pose.handPalm[side].addScaledVector(pose.handFingers[side], -pose.handPalm[side].dot(pose.handFingers[side])).normalize();
+          target.copy(pose.grip[side]).addScaledVector(pose.handFingers[side], -FIST_FORWARD).addScaledVector(pose.handPalm[side], -FIST_UP);
+          this.reachMiss[side] = rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, target, pole, ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
+        }
+      }
       rig.orientHand(side, pose.handFingers[side], pose.handPalm[side]);
+      if (pose.onRope[side]) {
+        const twist = rig.relaxWrist(side);
+        // The wrist's range may have left the hand short of the asked orientation,
+        // which moves the fist's hole: measure where the hole really is and
+        // shift the wrist target by the difference until the rope runs through it.
+        for (let pass = 0; pass < 4 && pose.grip[side].lengthSq() > 0; pass += 1) {
+          if (!rig.handAxes(side, tmpB, tmpC)) break;
+          const hole = rig.worldPosition(rig.bone(`${side}Hand`), tmpD).addScaledVector(tmpB, FIST_FORWARD).addScaledVector(tmpC, FIST_UP);
+          const error = tmpA.subVectors(pose.grip[side], hole);
+          if (error.lengthSq() < 4e-6) break;
+          target.add(error);
+          this.reachMiss[side] = rig.reach(`${side}Arm`, `${side}ForeArm`, `${side}Hand`, target, pole, ARM_POLE_REST, [rig.lengths.upperArm, rig.lengths.foreArm]);
+          rig.orientHand(side, pose.handFingers[side], pose.handPalm[side]);
+          rig.relaxWrist(side, { twist });
+        }
+      }
       rig.curl(side, pose.curl[side]);
     }
     rig.lookAt(pose.look, pose.lookWeight);
     rig.rotate("Head", "z", pose.headRoll);
     this.root.position.y = pose.rootY ?? 0;
     this.lastPose = pose;
-    // Where the palms really are (the rope is built through these), from the posed bones.
+    // Where the hands really are, from the posed bones: the fist hole while the
+    // rope is held (the rope is built through these), the palm otherwise.
     for (const side of ["Left", "Right"]) {
       const wrist = rig.worldPosition(rig.bone(`${side}Hand`), tmpA);
-      this.lastHands[side].copy(wrist).addScaledVector(tmpB.copy(pose.handFingers[side]).normalize(), GRIP_OFFSET);
+      if (pose.onRope[side] && rig.handAxes(side, tmpB, tmpC)) {
+        this.lastHands[side].copy(wrist).addScaledVector(tmpB, FIST_FORWARD).addScaledVector(tmpC, FIST_UP);
+      } else {
+        this.lastHands[side].copy(wrist).addScaledVector(tmpB.copy(pose.handFingers[side]).normalize(), GRIP_OFFSET);
+      }
       this.handOnRope[side] = pose.onRope[side];
     }
   }
@@ -525,16 +573,32 @@ export class Puller {
     const base = pose.hipsPosition.z - this.hipsOffset.z + this.handShift;
     pose.grip[frontSide].set(this.ropeX, ropeY, base + GRIP_FRONT_Z);
     pose.grip[backSide].set(this.ropeX, ropeY, base + GRIP_BACK_Z);
-    // Overhand grip: knuckles roll outwards over the rope and down, palms face
-    // down and slightly back towards the body.
+    // Underhand grip, like holding a bar at hip height: the knuckles point
+    // across the rope (the way the forearm comes in, so the wrist stays
+    // straight), the palm faces up and a little towards the body, the fingers
+    // curl up and over the rope and the thumb closes on top. The IK target is
+    // the wrist, placed so the hole of the closed fist sits on the rope line.
+    this.fitArm(pose, frontSide);
+    this.fitArm(pose, backSide);
+    // The fists must not overlap: the back hand moves back if the front one had to.
+    if (pose.grip[frontSide].z - pose.grip[backSide].z < GRIP_MIN_GAP) {
+      pose.grip[backSide].z = pose.grip[frontSide].z - GRIP_MIN_GAP;
+      this.fitArm(pose, backSide);
+    }
     for (const side of ["Left", "Right"]) {
-      this.fitArm(pose, side);
-      pose.handFingers[side].set(this.ropeSide * 0.75, -0.6, 0.12).normalize();
-      pose.handPalm[side].set(-this.ropeSide * 0.35, -0.9, -0.2).normalize();
+      // First guess (applyPose refines it from the solved forearm): knuckles
+      // across the rope towards the body, palm up.
+      pose.handFingers[side].set(-this.ropeSide, -0.35, 0).normalize();
+      pose.handPalm[side].set(-this.ropeSide * 0.35, 1, 0);
+      pose.handPalm[side].addScaledVector(pose.handFingers[side], -pose.handPalm[side].dot(pose.handFingers[side])).normalize();
       pose.curl[side] = this.grip.value;
-      pose.armPole[side].set(side === "Left" ? 0.7 : -0.7, -0.55, -0.45);
-      // The IK target is the wrist: one palm-length back along the knuckle direction.
-      pose.hand[side].copy(pose.grip[side]).addScaledVector(pose.handFingers[side], -GRIP_OFFSET);
+      // Elbows out, so each forearm crosses the rope instead of running along it:
+      // the near arm flares wide (its shoulder is almost above the rope), the far
+      // arm reaches across the body with its elbow out on the other side.
+      const near = (side === "Left") === this.ropeSide > 0;
+      if (near) pose.armPole[side].set(this.ropeSide * 1.0, -0.25, 0.1);
+      else pose.armPole[side].set(-this.ropeSide * 0.85, -0.35, -0.3);
+      pose.hand[side].copy(pose.grip[side]).addScaledVector(pose.handFingers[side], -FIST_FORWARD).addScaledVector(pose.handPalm[side], -FIST_UP);
       pose.onRope[side] = release < 0.5;
     }
     if (release > 0) {
