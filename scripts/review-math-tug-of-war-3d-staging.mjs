@@ -24,7 +24,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { chromium, webkit } from "@playwright/test";
+import { chromium, devices, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 import { playerCameraHands } from "../e2e/math-tug-of-war/player-camera-hands.ts";
@@ -317,11 +317,13 @@ try {
     await soft.context.close();
   }
 
-  // ---- Phones, Smart Board 1920×1080, iPad portrait and landscape (WebKit), WebKit desktop.
+  // ---- Phones, iPhone 13 (WebKit, Safari's engine), Smart Board 1920×1080, iPad portrait and landscape (WebKit), WebKit desktop.
+  const iphone = devices["iPhone 13"];
   for (const [name, engine, viewport, options] of [
     ["phone-390x844", browser, { width: 390, height: 844 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 3 }],
     ["phone-430x932", browser, { width: 430, height: 932 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 3 }],
     ["phone-pixel7-412x915", browser, { width: 412, height: 915 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 2.625 }],
+    ["iphone13-390x664-webkit", safari, iphone.viewport, { userAgent: iphone.userAgent, hasTouch: true, isMobile: true, deviceScaleFactor: iphone.deviceScaleFactor }],
     ["smart-board-1920x1080", browser, { width: 1920, height: 1080 }, {}],
     ["ipad-820x1180-webkit", safari, { width: 820, height: 1180 }, { hasTouch: true }],
     ["ipad-1180x820-webkit", safari, { width: 1180, height: 820 }, { hasTouch: true }],
