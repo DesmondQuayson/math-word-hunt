@@ -225,7 +225,8 @@ try {
   const localHash = runtimeHash().slice(0, 16);
   const subscriberEmail = await subscriber("a");
   const guestEmail = await subscriber("b");
-  const probe = await session(browser, subscriberEmail, { width: 1366, height: 900 });
+  // REVIEW_VIDEO=1 records this desktop session (start, pulls, the win, the celebration, the toggle) into REVIEW_OUT/recordings.
+  const probe = await session(browser, subscriberEmail, { width: 1366, height: 900 }, process.env.REVIEW_VIDEO === "1" ? { recordVideo: { dir: resolve(out, "recordings"), size: { width: 1366, height: 900 } } } : {});
   const document = await probe.page.request.get(`${origin}${route}`);
   const html = await document.text();
   const csp = document.headers()["content-security-policy"] ?? "";
