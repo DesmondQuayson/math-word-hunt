@@ -1,0 +1,1296 @@
+{
+  "capturedAt": "2026-10-15T00:05:16.601Z",
+  "before": {
+    "desktop": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 2,
+          "touching": 1
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 9,
+          "touching": 9
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 9,
+          "touching": 5
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 9,
+          "touching": 4
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 4,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 4,
+          "touching": 4
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ],
+      "midPullTurquoise": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 13,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 9,
+          "touching": 9
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 17,
+          "touching": 14
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 12,
+          "touching": 10
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 16,
+          "touching": 15
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ],
+      "midPullPink": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 16,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 15,
+          "touching": 13
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 21,
+          "touching": 19
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ]
+    },
+    "phone-390x844": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 3,
+          "touching": 3
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 1,
+          "touching": 1
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 4,
+          "touching": 4
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 2,
+          "touching": 2
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 3,
+          "touching": 1
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 3,
+          "touching": 3
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ]
+    },
+    "phone-pixel7-412x915": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 4,
+          "touching": 4
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 4,
+          "touching": 4
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 5,
+          "touching": 3
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 2,
+          "touching": 2
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ]
+    },
+    "smart-board-1920x1080": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 4,
+          "touching": 2
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 19,
+          "touching": 17
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 16,
+          "touching": 7
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 20,
+          "touching": 8
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 0,
+          "touching": 0
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 5,
+          "touching": 0
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 0,
+          "touching": 0
+        }
+      ]
+    }
+  },
+  "after": {
+    "desktop": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 31,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 58,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 27,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 48,
+          "touching": 27
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 25,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 52,
+          "touching": 30
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 56,
+          "touching": 32
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 33,
+          "touching": 23
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 59,
+          "touching": 35
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 40,
+          "touching": 27
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 46,
+          "touching": 33
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        }
+      ],
+      "midPullTurquoise": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 23,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 30,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 17,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 21,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 21,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 26,
+          "touching": 21
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 52,
+          "touching": 31
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 25,
+          "touching": 22
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 56,
+          "touching": 33
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 29,
+          "touching": 23
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 36,
+          "touching": 21
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 17
+        }
+      ],
+      "midPullPink": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 27,
+          "touching": 23
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 50,
+          "touching": 28
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 21,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 33,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 23,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 42,
+          "touching": 32
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 44,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 29,
+          "touching": 26
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 54,
+          "touching": 32
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 31,
+          "touching": 25
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 36,
+          "touching": 22
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 17
+        }
+      ]
+    },
+    "phone-390x844": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 21,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 9,
+          "touching": 9
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 19,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 21
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 22,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 24,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 14,
+          "touching": 14
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 20,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 9,
+          "touching": 9
+        }
+      ]
+    },
+    "phone-pixel7-412x915": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 18,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 28,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 24,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 16,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 29,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 27,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 18,
+          "touching": 18
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 33,
+          "touching": 25
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 21,
+          "touching": 21
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 26,
+          "touching": 25
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 13,
+          "touching": 13
+        }
+      ]
+    },
+    "smart-board-1920x1080": {
+      "rest": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 59,
+          "touching": 33
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 113,
+          "touching": 40
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 52,
+          "touching": 38
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 97,
+          "touching": 36
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 61,
+          "touching": 41
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 110,
+          "touching": 41
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 111,
+          "touching": 42
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 71,
+          "touching": 45
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 121,
+          "touching": 42
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 76,
+          "touching": 47
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 96,
+          "touching": 47
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 45,
+          "touching": 35
+        }
+      ]
+    },
+    "sequence": {
+      "match start": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 30,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 54,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 26,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 46,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 27,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 53,
+          "touching": 24
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 57,
+          "touching": 33
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 32,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 60,
+          "touching": 34
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 33,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 49,
+          "touching": 36
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 23,
+          "touching": 20
+        }
+      ],
+      "rope moving towards Turquoise (third pull in a row: strong)": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 22,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 23,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 17,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 20,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 28,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 43,
+          "touching": 32
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 25,
+          "touching": 22
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 43,
+          "touching": 27
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 29,
+          "touching": 23
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 24,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 19,
+          "touching": 18
+        }
+      ],
+      "rope moving towards Pink (Turquoise yanked forward)": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 20,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 36,
+          "touching": 22
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 17,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 34,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 17,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 27,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 26,
+          "touching": 21
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 24,
+          "touching": 18
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 24,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 18,
+          "touching": 17
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 18,
+          "touching": 17
+        }
+      ],
+      "tired pullers after 19 pulls": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 25,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 47,
+          "touching": 28
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 22,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 35,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 21,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 34,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 36,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 41,
+          "touching": 21
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 23,
+          "touching": 18
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 30,
+          "touching": 18
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 19,
+          "touching": 17
+        }
+      ]
+    },
+    "fists": [
+      {
+        "puller": "turquoise-0",
+        "side": "Left",
+        "coverage": 0.79,
+        "channelDeg": 0,
+        "wristDeg": 29
+      },
+      {
+        "puller": "turquoise-0",
+        "side": "Right",
+        "coverage": 0.83,
+        "channelDeg": 0,
+        "wristDeg": 27
+      },
+      {
+        "puller": "turquoise-1",
+        "side": "Left",
+        "coverage": 0.71,
+        "channelDeg": 0,
+        "wristDeg": 33
+      },
+      {
+        "puller": "turquoise-1",
+        "side": "Right",
+        "coverage": 0.75,
+        "channelDeg": 0,
+        "wristDeg": 32
+      },
+      {
+        "puller": "turquoise-2",
+        "side": "Left",
+        "coverage": 0.71,
+        "channelDeg": 0,
+        "wristDeg": 34
+      },
+      {
+        "puller": "turquoise-2",
+        "side": "Right",
+        "coverage": 0.79,
+        "channelDeg": 0,
+        "wristDeg": 32
+      },
+      {
+        "puller": "pink-0",
+        "side": "Left",
+        "coverage": 0.75,
+        "channelDeg": 0,
+        "wristDeg": 33
+      },
+      {
+        "puller": "pink-0",
+        "side": "Right",
+        "coverage": 0.79,
+        "channelDeg": 0,
+        "wristDeg": 34
+      },
+      {
+        "puller": "pink-1",
+        "side": "Left",
+        "coverage": 0.75,
+        "channelDeg": 0,
+        "wristDeg": 24
+      },
+      {
+        "puller": "pink-1",
+        "side": "Right",
+        "coverage": 0.83,
+        "channelDeg": 0,
+        "wristDeg": 33
+      },
+      {
+        "puller": "pink-2",
+        "side": "Left",
+        "coverage": 0.79,
+        "channelDeg": 0,
+        "wristDeg": 33
+      },
+      {
+        "puller": "pink-2",
+        "side": "Right",
+        "coverage": 0.83,
+        "channelDeg": 0,
+        "wristDeg": 32
+      }
+    ]
+  },
+  "notes": []
+}
