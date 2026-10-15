@@ -27,7 +27,7 @@ unchanged. Super Admin V2 stays paused.
 | Production candidate | `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv` (`https://mathnexa-platform-production-in25ou19j-bright-path-ed-tech.vercel.app`), built from `fe3e819` |
 | Production runtime | `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv`, `/api/health` build `fe3e81968f5d0452ab0607ef5aff4d4dcc973b9d`, promoted 2026-10-15 02:32:34–02:33:02 UTC |
 | Rollback runtime | `dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH` (v1.2.22, build `9c3917d`), retained and Ready |
-| Main | **Pending owner action.** `origin/main` is still `8046e67` (v1.2.21), an ancestor of the release branch, so the integration is a clean fast-forward with no force: `git push origin hotfix/math-tug-of-war-3d-visible-rope-grip:main`. The release session's push to `main` was refused by its permission policy, so it was not attempted another way. The fast-forward also brings the v1.2.22 commits (`c5d0981..9c3917d`), which never reached `main`. |
+| Main | Fast-forwarded `8046e67..d057949` with no force, after the owner authorized the push (the session's permission policy had first refused it). This also brought the v1.2.22 commits (`c5d0981..9c3917d`), which had not reached `main`. This note follows as a docs commit, fast-forwarded the same way. |
 | Migration | None. Nothing under `supabase/` changed. |
 | Production environment | Unchanged. The pipeline deploys with the existing production variables and changes none. |
 | Dependencies | Unchanged (`package-lock.json` identical to v1.2.20–v1.2.22). `npm audit --omit=dev`: the same two high advisories as at v1.2.21 and v1.2.22 (see Security). |
@@ -240,9 +240,6 @@ Or use `vercel promote dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH --scope bright-path-ed-t
   same on the production build.
 
 ## Follow-ups (not started; owner-gated)
-
-- **Fast-forward `main`** to the release branch, as in the Main row above. Check first that `origin/main` is still an
-  ancestor of the branch (`git merge-base --is-ancestor origin/main origin/hotfix/math-tug-of-war-3d-visible-rope-grip`).
 
 - **Tags `v1.2.21` and `v1.2.22`** do not exist. Their production builds are `8046e67` (`dpl_8FwRLvGcV5AFHSZLRh2Kc7Fa527i`)
   and `9c3917d` (`dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH`). They have not been created after the fact.
