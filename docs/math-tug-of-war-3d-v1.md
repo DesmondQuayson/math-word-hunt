@@ -88,6 +88,22 @@ Certification pass after the polish (the fourth commit on the branch; exact hash
 | Lint / typecheck | `npm run lint` 0 errors (8 pre-existing warnings elsewhere); `npm run typecheck` clean; the new e2e specs type-check with `tsc --noEmit` |
 | Review pack | regenerated: `owner-review/math-tug-of-war-3d-v1/` (47 files) |
 
+### Visible rope grip hotfix (after v1.2.22, branch `hotfix/math-tug-of-war-3d-visible-rope-grip` from `9c3917d`)
+
+The owner's check of the live v1.2.22 game found the pullers still not visibly holding the rope. Root cause,
+measured from the gameplay camera with `e2e/math-tug-of-war/player-camera-hands.ts`: the pullers stood
+between the camera and the rope, so the fists were behind the torso (8–11 of 12 hands with under 4 px on
+the visible rope, several 0 px visible); the grips hugged the hips; the fist was a fixed curl; the rope tube
+was wound inside-out; and the old "rope through the fist" test measured a rope built through the very point
+it checked. Fix and evidence: the **Grip** and **Rope** paragraphs above, and the owner pack
+`owner-review/math-tug-of-war-3d-v1/visible-grip/README.md` (before/after from the player's camera, all
+twelve fists from three angles, recordings, measurements, tests, performance). Local gates: unit 245/245 and
+891 (+1 skipped), typecheck, lint, build, security 315/315, classic browser projects 107 (+13 skipped),
+Chromium 3D 24 (+2 skipped), WebKit 3D 13/13, Online Match 13 (+1 skipped); the new visual acceptance test
+fails on `9c3917d` and passes on the fix. Hosted on the staging preview `dpl_9oj299TLnvPsKQVmGX7GkG7Hf3tg`
+(commit `3d23c9c`): 3D review 41/41 (including all 12 hands on the rope from the gameplay camera), classic
+review 99/99. Frame cost about +1 ms (5.7–6.1 → 6.8–7.0 ms, medium tier), 60 fps unchanged.
+
 ### Rope grip and sneakers hotfix (after v1.2.21, branch `hotfix/math-tug-of-war-3d-grip-sneakers` from `8046e67`)
 
 The owner's live inspection found the hands not convincingly holding the rope and asked for athletic sneakers. What was wrong: the old overhand pose put the *palm centre* on the rope line with the fingers draped over it, so the hands rested on the rope rather than closing around it; and the shoe meshes were bound mostly to the shin by MakeHuman's proxy fitting. The first close-up captures also showed "torn" hands and shoes, which turned out to be the review camera's 0.5 m near plane slicing geometry 0.4 m away, not the models (§4).

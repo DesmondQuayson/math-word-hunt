@@ -1,6 +1,6 @@
 {
-  "origin": "https://mathnexa-platform-staging-pdl42gplj-bright-path-ed-tech.vercel.app",
-  "commit": "8ed4abc",
+  "origin": "https://mathnexa-platform-staging-mqr9z5rts-bright-path-ed-tech.vercel.app",
+  "commit": "3d23c9c",
   "checks": [
     {
       "ok": true,
@@ -8,11 +8,11 @@
     },
     {
       "ok": true,
-      "message": "deployment serves commit 8ed4abc"
+      "message": "deployment serves commit 3d23c9c"
     },
     {
       "ok": true,
-      "message": "game document versions its runtime with the tested content hash 4738d366b6beb1dc (served 4738d366b6beb1dc)"
+      "message": "game document versions its runtime with the tested content hash 79574206b9401535 (served 79574206b9401535)"
     },
     {
       "ok": true,
@@ -36,11 +36,19 @@
     },
     {
       "ok": true,
+      "message": "desktop: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 18 px touching the rope) "
+    },
+    {
+      "ok": true,
       "message": "desktop: Turquoise pull mirrored by the 3D scene (−1 in both layers)"
     },
     {
       "ok": true,
       "message": "desktop: hands hold the rope mid-heave (reach miss 0 m)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 15 px touching the rope) "
     },
     {
       "ok": true,
@@ -161,14 +169,168 @@
   ],
   "measurements": [
     {
+      "label": "player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 31,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 59,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 26,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 49,
+          "touching": 27
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 25,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 51,
+          "touching": 25
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 56,
+          "touching": 33
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 34,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 60,
+          "touching": 36
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 40,
+          "touching": 31
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 48,
+          "touching": 35
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        }
+      ]
+    },
+    {
+      "label": "player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 20,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 30,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 18,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 18,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 21,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 26,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 51,
+          "touching": 32
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 57,
+          "touching": 30
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 26,
+          "touching": 22
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 34,
+          "touching": 25
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 17
+        }
+      ]
+    },
+    {
       "label": "staging desktop 1366x900",
       "tier": "medium",
-      "frameMs": 7.33,
-      "worstMs": 145.2,
+      "frameMs": 8.33,
+      "worstMs": 116.4,
       "drawCalls": 155,
-      "triangles": 364504,
+      "triangles": 371544,
       "pixelRatio": 1,
-      "reachMiss": 1.031,
+      "reachMiss": 1.036,
       "downgrades": [],
       "canvas": [
         634,
@@ -180,10 +342,10 @@
     {
       "label": "staging phone-390x844",
       "tier": "medium",
-      "frameMs": 9.73,
-      "worstMs": 51.1,
+      "frameMs": 8.17,
+      "worstMs": 44,
       "drawCalls": 167,
-      "triangles": 364200,
+      "triangles": 371240,
       "pixelRatio": 1.5,
       "reachMiss": 0,
       "downgrades": [],
@@ -197,10 +359,10 @@
     {
       "label": "staging phone-430x932",
       "tier": "medium",
-      "frameMs": 9.85,
-      "worstMs": 54,
+      "frameMs": 8.65,
+      "worstMs": 46.3,
       "drawCalls": 167,
-      "triangles": 364200,
+      "triangles": 371240,
       "pixelRatio": 1.5,
       "reachMiss": 0,
       "downgrades": [],
@@ -214,10 +376,10 @@
     {
       "label": "staging smart-board-1920x1080",
       "tier": "medium",
-      "frameMs": 9.85,
-      "worstMs": 55,
+      "frameMs": 8.42,
+      "worstMs": 43.5,
       "drawCalls": 167,
-      "triangles": 364200,
+      "triangles": 371240,
       "pixelRatio": 1,
       "reachMiss": 0,
       "downgrades": [],
@@ -231,10 +393,10 @@
     {
       "label": "staging ipad-820x1180-webkit",
       "tier": "medium",
-      "frameMs": 13.66,
-      "worstMs": 481,
+      "frameMs": 11.76,
+      "worstMs": 432,
       "drawCalls": 167,
-      "triangles": 364200,
+      "triangles": 371240,
       "pixelRatio": 1,
       "reachMiss": 0,
       "downgrades": [],
@@ -248,10 +410,10 @@
     {
       "label": "staging webkit-desktop-1366x768",
       "tier": "medium",
-      "frameMs": 13.5,
-      "worstMs": 551,
+      "frameMs": 9.91,
+      "worstMs": 426,
       "drawCalls": 167,
-      "triangles": 364200,
+      "triangles": 371240,
       "pixelRatio": 1,
       "reachMiss": 0,
       "downgrades": [],
@@ -264,8 +426,8 @@
     }
   ],
   "summary": {
-    "passed": 39,
-    "total": 39,
+    "passed": 41,
+    "total": 41,
     "syntheticUsersDeleted": 2,
     "roomsRemoved": 1
   }

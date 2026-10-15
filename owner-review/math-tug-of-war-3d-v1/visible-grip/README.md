@@ -61,7 +61,8 @@ the same on every tier; classic is the SVG scene), the 3D toggle (on by default 
 | 10 | `10-recording-all-six-pulling.webm` | All six pulling through six pulls (gameplay camera, scene enlarged to the frame) |
 | 11 | `11-recording-fist-holds-while-rope-moves.webm` | A front fist in close-up through six pulls both ways |
 | 12 | `12-recording-hands-release-at-victory.webm` | A match to the win: fists open as the rope drops, falls, celebration |
-| 13 | `measurements.md` / `measurements.json` | Per-hand player-camera pixels before / after on every device and through the match; per-fist coverage, channel angle and wrist angle |
+| 13 | `13-hosted-before-production-vs-after-staging.png` | The same hosted review script and view: mathnexa.com v1.2.22 (before) and the staging preview of this branch (after) |
+| 14 | `measurements.md` / `measurements.json` | Per-hand player-camera pixels before / after on every device and through the match; per-fist coverage, channel angle and wrist angle |
 
 ## Measurements (player camera; px of each hand visible / touching the rope)
 
@@ -89,6 +90,16 @@ Exact per-hand numbers: `measurements.md`.
 | Multiplayer (`run-math-tug-of-war-online-e2e.mjs`, local Supabase) | 13 passed, 1 skipped — incl. Online Match with the 3D scene on both clients |
 | New visual acceptance test against the **production** commit | **fails** (Turquoise front puller's left hand: 0 px visible from the gameplay camera) — it detects exactly this defect |
 | `solve-fists.mjs --check` | the committed fists regenerate byte-identically |
+
+## Hosted staging (protected preview)
+
+Preview `dpl_9oj299TLnvPsKQVmGX7GkG7Hf3tg` (project `mathnexa-platform-staging`, target preview, commit `3d23c9c`),
+`https://mathnexa-platform-staging-mqr9z5rts-bright-path-ed-tech.vercel.app/games/math-tug-of-war/play`:
+
+| Review | Result |
+| --- | --- |
+| Hosted 3D review (`invoke-math-tug-of-war-staging.ps1 -Stage review-3d`) | **41/41**: serves commit `3d23c9c`, runtime hash `79574206b9401535` (served = tested), route CSP unchanged, models / three.js / 3D modules byte-identical to source, tier medium with shadow maps; **all 12 hands visibly on the rope from the gameplay camera at rest (fewest 18 px touching) and after a pull (fewest 15 px)**; pulls mirrored, wrong answers ignored, celebration only after the confirmed win, toggle, auto tier (hardware GL → 3D, reduced motion / software GL → classic), phones 390 and 430, Smart Board, iPad WebKit, WebKit desktop, Online Match with the 3D scene on a Chromium host and a WebKit guest (pulls, winner, database agreement, rematch, leave); 0 page errors. Screenshots in `../staging/` |
+| Hosted classic review (`-Stage review`) | **99/99** |
 
 ## Performance (same machine, back to back, medium tier, 1366×768)
 
