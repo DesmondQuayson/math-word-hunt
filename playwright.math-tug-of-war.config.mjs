@@ -37,6 +37,11 @@ export default defineConfig({
     // Traces stay off here: WebKit drops trace resources when many contexts close in one test.
     { name: "chromium-3d", testMatch: ["**/scene-3d.spec.ts"], timeout: 360_000, use: { ...devices["Desktop Chrome"], trace: "off", launchOptions: { args: GPU_ARGS } } },
     { name: "webkit-3d", testMatch: ["**/scene-3d.spec.ts"], timeout: 360_000, use: { ...devices["Desktop Safari"], trace: "off" } },
-    { name: "chromium-3d-mobile", testMatch: ["**/scene-3d.spec.ts"], timeout: 360_000, use: { ...devices["Pixel 7"], trace: "off", launchOptions: { args: GPU_ARGS } } }
+    { name: "chromium-3d-mobile", testMatch: ["**/scene-3d.spec.ts"], timeout: 360_000, use: { ...devices["Pixel 7"], trace: "off", launchOptions: { args: GPU_ARGS } } },
+    // The player-camera grip acceptance on the other classroom screens: Smart Board, iPad (both ways round) and iPhone.
+    { name: "chromium-3d-smart-board", testMatch: ["**/scene-3d.spec.ts"], grep: /visual acceptance/, timeout: 360_000, use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 }, trace: "off", launchOptions: { args: GPU_ARGS } } },
+    { name: "webkit-3d-ipad", testMatch: ["**/scene-3d.spec.ts"], grep: /visual acceptance/, timeout: 360_000, use: { ...devices["iPad (gen 7) landscape"], trace: "off" } },
+    { name: "webkit-3d-ipad-portrait", testMatch: ["**/scene-3d.spec.ts"], grep: /visual acceptance/, timeout: 360_000, use: { ...devices["iPad (gen 7)"], trace: "off" } },
+    { name: "webkit-3d-iphone", testMatch: ["**/scene-3d.spec.ts"], grep: /visual acceptance/, timeout: 360_000, use: { ...devices["iPhone 13"], trace: "off" } }
   ]
 });

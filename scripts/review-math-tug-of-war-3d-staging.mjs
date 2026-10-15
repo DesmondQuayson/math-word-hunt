@@ -174,6 +174,19 @@ async function waitFor3DPosition(page, value) {
   }
   return false;
 }
+/**
+ * Every puller's two fists on the visible rope from the gameplay camera (e2e/math-tug-of-war/player-camera-hands.ts):
+ * at least 10 px of each hand visible and 8 px touching the rope, or 4 and 3 on a phone's small scene (as the e2e suite).
+ */
+async function gripCheckOn(page, device, label) {
+  const phone = (page.viewportSize()?.width ?? 1280) < 700;
+  const [minVisible, minTouching] = phone ? [4, 3] : [10, 8];
+  const hands = await playerCameraHands(page);
+  const weak = hands.filter((hand) => hand.visible < minVisible || hand.touching < minTouching);
+  ok(hands.length === 12 && weak.length === 0, `${device}: ${label}, all 12 hands visibly on the rope from the gameplay camera (fewest ${Math.min(...hands.map((hand) => hand.touching))} px touching the rope) ${weak.map((hand) => `${hand.puller}-${hand.side}:${hand.visible}/${hand.touching}`).join(" ")}`);
+  evidence.measurements.push({ label: `${device} player-camera hands ${label}`, hands });
+}
+
 async function metrics(page) {
   return page.evaluate(() => {
     const doc = document.documentElement;
@@ -249,12 +262,7 @@ try {
   ok(snap?.three?.ready === true && snap.three.shadows === true && ["medium", "high"].includes(snap.three.tier), `desktop: tier ${snap?.three?.tier}, shadow maps ${snap?.three?.shadows}, ${snap?.three?.drawCalls} draw calls`);
   await shot(probe.page, "30-staging-3d-desktop-start");
   // What the player's own camera shows: every puller's two fists on the visible rope (v1.2.22 hid most of them).
-  const gripCheck = async (label) => {
-    const hands = await playerCameraHands(probe.page);
-    const weak = hands.filter((hand) => hand.visible < 10 || hand.touching < 8);
-    ok(hands.length === 12 && weak.length === 0, `desktop: ${label}, all 12 hands visibly on the rope from the gameplay camera (fewest ${Math.min(...hands.map((hand) => hand.touching))} px touching the rope) ${weak.map((hand) => `${hand.puller}-${hand.side}:${hand.visible}/${hand.touching}`).join(" ")}`);
-    evidence.measurements.push({ label: `player-camera hands ${label}`, hands });
-  };
+  const gripCheck = (label) => gripCheckOn(probe.page, "desktop", label);
   await gripCheck("at rest");
   await answer(probe.page, "turquoise");
   ok(await settledAt(probe.page, -1) && await waitFor3DPosition(probe.page, -1), "desktop: Turquoise pull mirrored by the 3D scene (−1 in both layers)");
@@ -308,21 +316,25 @@ try {
     await soft.context.close();
   }
 
-  // ---- Phone 390×844, Smart Board 1920×1080, iPad (WebKit), WebKit desktop.
+  // ---- Phones, Smart Board 1920×1080, iPad portrait and landscape (WebKit), WebKit desktop.
   for (const [name, engine, viewport, options] of [
     ["phone-390x844", browser, { width: 390, height: 844 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 3 }],
     ["phone-430x932", browser, { width: 430, height: 932 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 3 }],
+    ["phone-pixel7-412x915", browser, { width: 412, height: 915 }, { hasTouch: true, isMobile: true, deviceScaleFactor: 2.625 }],
     ["smart-board-1920x1080", browser, { width: 1920, height: 1080 }, {}],
     ["ipad-820x1180-webkit", safari, { width: 820, height: 1180 }, { hasTouch: true }],
+    ["ipad-1180x820-webkit", safari, { width: 1180, height: 820 }, { hasTouch: true }],
     ["webkit-desktop-1366x768", safari, { width: 1366, height: 768 }, {}]
   ]) {
     const device = await session(engine, subscriberEmail, viewport, options);
     await startTeams(device.page, "integers");
     const rendered = await waitForRenderer(device.page, "3d", 90_000);
     await device.page.waitForTimeout(1_000);
+    await gripCheckOn(device.page, name, "at rest");
     await answer(device.page, "pink");
     await settledAt(device.page, 1);
     await device.page.waitForTimeout(900);
+    await gripCheckOn(device.page, name, "after a pull");
     const m = await metrics(device.page);
     const s = await snapshot(device.page);
     ok(rendered && s?.three?.position === 1 && m.overflowX <= 0 && m.keysOut === 0 && m.questionOverlaps === 0 && m.canvas && Math.abs(m.canvas[2] - m.svg[0]) <= 1.5, `${name}: 3D scene (tier ${s?.three?.tier}) at ${m.canvas?.[0]}×${m.canvas?.[1]} px, pull mirrored, no overflow, keys fit ${JSON.stringify(m.minKey)}, scene never covers a question`);

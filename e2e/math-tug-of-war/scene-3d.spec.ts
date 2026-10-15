@@ -341,7 +341,7 @@ test.describe("Math Tug of War — 3D scene", () => {
     expect(airborne).toBeGreaterThan(3);
   });
 
-  test("visual acceptance: from the ordinary gameplay camera every puller visibly holds the rope with both hands — at rest, mid-heave and mid-yank both ways — and lets go once the match is decided", async ({ page }, testInfo) => {
+  test("visual acceptance: from the ordinary gameplay camera every puller visibly holds the rope with both hands — at rest, mid-heave and mid-yank both ways, strong pulls both ways, tired — and lets go once the match is decided", async ({ page }, testInfo) => {
     // In v1.2.22 the rope ran behind the bodies: from this camera most fists were hidden (0–10 px) and
     // none touched visible rope. Now every hand must show on the rope from the player's own view.
     await startTeams3D(page);
@@ -360,6 +360,7 @@ test.describe("Math Tug of War — 3D scene", () => {
     await page.waitForTimeout(900);
     const rest = await check("at rest");
     testInfo.annotations.push({ type: "hand pixels at rest", description: rest.map((hand) => `${hand.puller}-${hand.side[0]}:${hand.visible}/${hand.touching}`).join(" ") });
+    const settle = (team: "turquoise" | "pink") => expect.poll(async () => (await sceneSnapshot(page)).three?.states[team].every((state) => state === "ready"), { timeout: 5_000 }).toBe(true);
     for (const team of ["turquoise", "pink"] as const) {
       await waitForUnlocked(page, team);
       await answer(page, team);
@@ -368,6 +369,28 @@ test.describe("Math Tug of War — 3D scene", () => {
       await page.waitForTimeout(800);
       await check(`after the pull by ${team}`);
     }
+    // Strong pulls: three in a row build momentum (a harder heave, a harder yank), the rope moving each way.
+    for (const team of ["pink", "turquoise"] as const) {
+      for (let pull = 0; pull < 3; pull += 1) {
+        await waitForUnlocked(page, team);
+        await answer(page, team);
+        if (pull < 2) await settle(team);
+      }
+      await page.waitForTimeout(260);
+      await check(`third pull in a row by ${team} (strong, rope moving towards ${team})`);
+      await settle(team);
+    }
+    // Tired: a long exchange of pulls.
+    for (let pull = 0; pull < 10; pull += 1) {
+      const team = pull % 2 ? "pink" : "turquoise";
+      await waitForUnlocked(page, team);
+      await answer(page, team);
+      await settle(team);
+    }
+    await page.waitForTimeout(600);
+    const tired = await sceneSnapshot(page);
+    expect(Math.max(tired.three?.fatigue.turquoise ?? 0, tired.three?.fatigue.pink ?? 0), "the pullers are tired").toBeGreaterThan(0.3);
+    await check("tired pullers");
     for (let pull = 0; pull < 12 && (await sceneSnapshot(page)).three?.winner === null; pull += 1) {
       await waitForUnlocked(page, "turquoise");
       await answer(page, "turquoise");
