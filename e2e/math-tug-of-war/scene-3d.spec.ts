@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { answer, expectNoHorizontalOverflow, openGame, panel, startLocal, waitForUnlocked } from "./helpers";
+import { playerCameraHands } from "./player-camera-hands";
 
 /**
  * Math Tug of War — 3D scene regression.
@@ -33,7 +34,7 @@ type SceneSnapshot = {
     fatigue: Record<"turquoise" | "pink", number>;
     downgrades: unknown[];
     reachMiss: number;
-    hands: null | Array<{ puller: string; side: string; onRope: boolean; ropeDistance: number; wristDeg: number; forearmDeg: number; reachMiss: number }>;
+    hands: null | Array<{ puller: string; side: string; onRope: boolean; ropeDistance: number; channelDeg: number; coverage: number; wristDeg: number; forearmDeg: number; reachMiss: number }>;
     footwear: null | Array<{ puller: string; minY: number; liftY: number; size: number[]; enclosesFeet: boolean }>;
     celebration: null | {
       phase: string;
@@ -278,7 +279,11 @@ test.describe("Math Tug of War — 3D scene", () => {
         // The rope's centreline runs through the closed fist (within three quarters of the rope's radius).
         expect(hand.ropeDistance, `${label}: ${hand.puller} ${hand.side} rope through the fist`).toBeLessThan(ROPE_RADIUS * 0.75);
         expect(hand.reachMiss, `${label}: ${hand.puller} ${hand.side} reach`).toBeLessThan(0.01);
-        expect(hand.wristDeg, `${label}: ${hand.puller} ${hand.side} wrist`).toBeLessThan(62);
+        expect(hand.wristDeg, `${label}: ${hand.puller} ${hand.side} wrist`).toBeLessThan(67);
+        // The rope runs along the fist's own channel (a straight arm at the peak of a drive holds it
+        // diagonally across the palm, as a real one does) and the closed hand covers most of it.
+        expect(hand.channelDeg, `${label}: ${hand.puller} ${hand.side} rope along the fist`).toBeLessThan(50);
+        expect(hand.coverage, `${label}: ${hand.puller} ${hand.side} fist closed round the rope`).toBeGreaterThanOrEqual(0.7);
       }
       for (const shoe of footwear) {
         expect(shoe.enclosesFeet, `${label}: ${shoe.puller} sneakers on the feet`).toBe(true);
@@ -334,6 +339,46 @@ test.describe("Math Tug of War — 3D scene", () => {
       }
     }
     expect(airborne).toBeGreaterThan(3);
+  });
+
+  test("visual acceptance: from the ordinary gameplay camera every puller visibly holds the rope with both hands — at rest, mid-heave and mid-yank both ways — and lets go once the match is decided", async ({ page }, testInfo) => {
+    // In v1.2.22 the rope ran behind the bodies: from this camera most fists were hidden (0–10 px) and
+    // none touched visible rope. Now every hand must show on the rope from the player's own view.
+    await startTeams3D(page);
+    const phone = (page.viewportSize()?.width ?? 1280) < 700;
+    const minVisible = phone ? 4 : 10;
+    const minTouching = phone ? 3 : 8;
+    const check = async (label: string) => {
+      const hands = await playerCameraHands(page);
+      expect(hands, label).toHaveLength(12);
+      for (const hand of hands) {
+        expect(hand.visible, `${label}: ${hand.puller} ${hand.side} hand visible from the gameplay camera`).toBeGreaterThanOrEqual(minVisible);
+        expect(hand.touching, `${label}: ${hand.puller} ${hand.side} hand on the visible rope`).toBeGreaterThanOrEqual(minTouching);
+      }
+      return hands;
+    };
+    await page.waitForTimeout(900);
+    const rest = await check("at rest");
+    testInfo.annotations.push({ type: "hand pixels at rest", description: rest.map((hand) => `${hand.puller}-${hand.side[0]}:${hand.visible}/${hand.touching}`).join(" ") });
+    for (const team of ["turquoise", "pink"] as const) {
+      await waitForUnlocked(page, team);
+      await answer(page, team);
+      await page.waitForTimeout(260);
+      await check(`mid-pull by ${team}`);
+      await page.waitForTimeout(800);
+      await check(`after the pull by ${team}`);
+    }
+    for (let pull = 0; pull < 12 && (await sceneSnapshot(page)).three?.winner === null; pull += 1) {
+      await waitForUnlocked(page, "turquoise");
+      await answer(page, "turquoise");
+      await expect.poll(async () => (await sceneSnapshot(page)).three?.states.turquoise.every((state) => state === "ready" || state === "celebrate"), { timeout: 5_000 }).toBe(true);
+    }
+    await expect.poll(async () => (await sceneSnapshot(page)).three?.winner, { timeout: 10_000 }).toBe("turquoise");
+    await page.waitForTimeout(1600);
+    // Released: no hand is on the rope any more (the rope lies on the grass, the fists have opened).
+    const released = await playerCameraHands(page);
+    // (A fallen loser may end up with a hand on the rope lying in the grass.)
+    expect(released.filter((hand) => hand.touching > 3).length, "hands let go of the rope after the win").toBeLessThanOrEqual(2);
   });
 
   test("hands really hold the rope while pulling, and the rope drops to the grass once the match is decided", async ({ page }) => {

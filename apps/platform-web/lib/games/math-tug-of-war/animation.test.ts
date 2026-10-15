@@ -178,79 +178,172 @@ describe("Math Tug of War 3D animation layer", () => {
     }, 60_000); // three 6-second simulations with per-bone checks: slow under a full-suite load
   }
 
-  it("grip: the rope passes through the closed fist, the fingers curl around it, the thumb opposes them, and the wrist stays within range, both teams, every slot, through heaves, yanks and fatigue", async () => {
+  it("grip: stored fists exist for all six characters and both hands, each wrapping the rope (coverage, closed fingers, unit rotations)", async () => {
+    const { FIST_DATA } = await runtimeModule("scene3d/fist-data.js");
+    const { CHARACTER_NAMES } = await runtimeModule("scene3d/constants.js");
+    const three = await runtimeModule("vendor/three.js");
+    expect(Object.keys(FIST_DATA).sort()).toEqual([...CHARACTER_NAMES].sort());
+    const angle = (q: number[]) => 2 * Math.acos(Math.min(1, Math.abs(q[3])));
+    for (const name of CHARACTER_NAMES) {
+      for (const side of ["Left", "Right"]) {
+        const fist = FIST_DATA[name][side];
+        // The closed hand covers at least 70 % of the rope's circumference inside the fist.
+        expect(fist.coverage, `${name} ${side} coverage`).toBeGreaterThanOrEqual(0.7);
+        expect(Object.keys(fist.deltas)).toHaveLength(15);
+        for (const finger of ["Index", "Middle", "Ring", "Pinky"]) {
+          // Every finger is curled round the rope (knuckle + middle + end joint ≥ 100°), never left straight.
+          let total = 0;
+          for (const joint of [1, 2, 3]) {
+            const q = new three.Quaternion().fromArray(fist.deltas[`${finger}${joint}`]);
+            expect(Math.abs(q.length() - 1), `${name} ${side} ${finger}${joint} unit rotation`).toBeLessThan(1e-4);
+            total += angle(fist.deltas[`${finger}${joint}`]);
+          }
+          expect(total, `${name} ${side} ${finger} curled`).toBeGreaterThan((100 * Math.PI) / 180);
+        }
+        // The thumb closes too.
+        const thumb = [1, 2, 3].reduce((sum, joint) => sum + angle(fist.deltas[`Thumb${joint}`]), 0);
+        expect(thumb, `${name} ${side} thumb closed`).toBeGreaterThan((45 * Math.PI) / 180);
+      }
+    }
+  });
+
+  it("grip: every fist closes round the rope while pulling — the rope runs through the fist along its channel, the fingers and thumb surround it, the wrist stays in range — both teams, every slot, through heaves, yanks and fatigue", async () => {
     const { three, Puller } = await loadModules();
-    const ROPE_RADIUS = 0.022;
+    const { BODY_SIDE, ROPE_Y } = await runtimeModule("scene3d/constants.js");
+    type V3 = InstanceType<typeof three.Vector3>;
     for (const team of ["turquoise", "pink"] as const) {
       for (const index of [0, 1, 2]) {
         const root = buildSkeleton(three);
-        const puller: PullerLike = new Puller({ instance: { root, meshes: [] }, team, index, seed: 5 + index });
+        const puller = new Puller({ instance: { root, meshes: [] }, team, index, seed: 5 + index }) as PullerLike & {
+          fist: Record<"Left" | "Right", { metrics: { stored?: boolean } }>;
+          ropeAxis: Record<"Left" | "Right", V3>;
+        };
         const rig = puller.rig;
+        // The unit fixture is puller-a's skeleton: it gets puller-a's stored fists.
+        expect(puller.fist.Left.metrics.stored).toBe(true);
+        expect(puller.fist.Right.metrics.stored).toBe(true);
         const drive = (step: number) => {
           if (step === 120) puller.heave(0.9, false);
           if (step === 220) puller.yank(0.9, false);
           if (step === 300) { puller.fatigue = 0.9; puller.momentum = -0.8; }
           if (step === 330) puller.heave(0.6, true);
         };
-        const fist = new three.Vector3();
-        const palm = new three.Vector3();
-        const fingers = new three.Vector3();
+        const world = (name: string) => rig.worldPosition(rig.bone(name), new three.Vector3()) as V3;
+        const channels: number[] = [];
         for (let step = 0; step < 400; step += 1) {
           drive(step);
           puller.update(1 / 60, {});
-          if (step < 60 || step % 10 !== 0) continue;
+          if (step < 60 || step % 5 !== 0) continue;
           for (const side of ["Left", "Right"] as const) {
-            expect(puller.handOnRope[side], `${team} ${index} ${side} on the rope at step ${step}`).toBe(true);
-            // The fist hole (lastHands) sits on the rope line: the rope passes through the closed grip.
-            fist.copy(puller.lastHands[side] as never);
-            expect(Math.abs(fist.y - 0.93), `${team} ${index} ${side} fist height at step ${step}`).toBeLessThan(ROPE_RADIUS * 0.75);
-            expect(Math.abs(Math.abs(fist.x) - 0.16), `${team} ${index} ${side} fist across the rope at step ${step}`).toBeLessThan(ROPE_RADIUS * 0.75);
-            expect(puller.reachMiss[side]).toBeLessThan(0.005);
-            // The hand is oriented as asked (palm up and inwards, knuckles across the rope) and the wrist is anatomical.
-            rig.handAxes(side, fingers, palm);
-            expect(palm.y, `${team} ${index} ${side} palm faces up at step ${step}`).toBeGreaterThan(0.45);
-            // The knuckles cross the rope (within about 35° of perpendicular; the wrist's range decides the rest).
-            expect(Math.abs(fingers.z), `${team} ${index} ${side} knuckles across the rope at step ${step}`).toBeLessThan(0.58);
-            expect(rig.localAngle(`${side}Hand`), `${team} ${index} ${side} wrist at step ${step}`).toBeLessThan(1.05);
-            // Fingers curl around the rope: the middle fingertip wraps past the rope's far side and back towards the palm,
-            // and the thumb closes over the top on the other side of the rope from the fingers' roots.
-            type V3 = InstanceType<typeof three.Vector3>;
-            const world = (name: string) => rig.worldPosition(rig.bone(name), new three.Vector3()) as V3;
-            const wrist = world(`${side}Hand`);
-            const knuckle = world(`${side}HandMiddle1`);
-            const tip = world(`${side}HandMiddle3`);
-            const thumb = world(`${side}HandThumb3`);
-            const alongFingers = fingers.clone();
-            expect(tip.clone().sub(fist).dot(alongFingers), `${team} ${index} ${side} fingertip wraps past the rope at step ${step}`).toBeGreaterThan(-0.005);
-            expect(tip.clone().sub(knuckle).dot(palm), `${team} ${index} ${side} fingertip curls back towards the palm at step ${step}`).toBeGreaterThan(0.02);
-            expect(thumb.clone().sub(fist).dot(palm), `${team} ${index} ${side} thumb over the rope at step ${step}`).toBeGreaterThan(0.005);
-            expect(wrist.distanceTo(fist)).toBeLessThan(0.14);
+            const where = `${team} ${index} ${side} at step ${step}`;
+            expect(puller.handOnRope[side], `${where}: on the rope`).toBe(true);
+            expect(puller.reachMiss[side], `${where}: reach`).toBeLessThan(0.005);
+            // The rope's line: on the camera side of the body, at rope height.
+            const centre = new three.Vector3().copy(puller.lastHands[side] as never) as V3;
+            expect(Math.abs(Math.abs(centre.x) - BODY_SIDE), `${where}: fist on the rope line`).toBeLessThan(0.01);
+            expect(Math.abs(centre.y - ROPE_Y), `${where}: fist at rope height`).toBeLessThan(0.02);
+            // The fist's channel lies along the rope (the rope runs through the hand, not across it).
+            // At the peak of a drive a straight near arm holds the rope diagonally across the palm, as a
+            // real one does: judged over the run below, never beyond 50° here.
+            const axis = puller.ropeAxis[side];
+            const channel = Math.acos(Math.min(1, Math.abs(axis.z)));
+            channels.push(channel);
+            expect(channel, `${where}: channel along the rope`).toBeLessThan((50 * Math.PI) / 180);
+            expect(rig.localAngle(`${side}Hand`), `${where}: wrist in range`).toBeLessThan(1.16);
+            // The digits surround the rope: knuckle, fingertips and thumb tip all sit close round the
+            // channel, spread round it so no gap wider than 150° is left (a hand merely resting on or
+            // beside the rope leaves more than half of it open).
+            const angles: number[] = [];
+            const reference = new three.Vector3(0, 1, 0).addScaledVector(axis, -axis.y).normalize();
+            const across = new three.Vector3().crossVectors(axis, reference);
+            for (const bone of [`${side}HandMiddle1`, `${side}HandIndex3`, `${side}HandMiddle3`, `${side}HandRing3`, `${side}HandThumb3`, `${side}Hand`]) {
+              const offset = world(bone).sub(centre);
+              offset.addScaledVector(axis, -offset.dot(axis));
+              if (bone !== `${side}Hand`) expect(offset.length(), `${where}: ${bone} close round the rope`).toBeLessThan(0.06);
+              angles.push(Math.atan2(offset.dot(across), offset.dot(reference)));
+            }
+            angles.sort((a, b) => a - b);
+            let widest = 2 * Math.PI - (angles[angles.length - 1] - angles[0]);
+            for (let k = 1; k < angles.length; k += 1) widest = Math.max(widest, angles[k] - angles[k - 1]);
+            expect(widest, `${where}: digits surround the rope`).toBeLessThan((150 * Math.PI) / 180);
           }
         }
-        // Release: the hands leave the rope only when the match is decided.
+        // Over the whole run the channel stays on the rope: typically within 5°, and within 20° nine times in ten.
+        channels.sort((a, b) => a - b);
+        expect(channels[Math.floor(channels.length * 0.5)], `${team} ${index}: median channel angle`).toBeLessThan((5 * Math.PI) / 180);
+        expect(channels[Math.floor(channels.length * 0.9)], `${team} ${index}: 90th percentile channel angle`).toBeLessThan((20 * Math.PI) / 180);
+        // Release: the fists open and the hands leave the rope smoothly once the match is decided.
+        // A snap is a sudden change in how far a hand moves from one frame to the next (the stumble
+        // itself flings the arms forward fast, but smoothly).
+        const before = { Left: world("LeftHand"), Right: world("RightHand") };
+        const moved = { Left: 0, Right: 0 };
         puller.finish(false);
-        for (let step = 0; step < 40; step += 1) puller.update(1 / 60, {});
-        expect(puller.handOnRope.Left).toBe(false);
-        expect(puller.handOnRope.Right).toBe(false);
+        let snap = 0;
+        let speed = 0;
+        for (let step = 0; step < 40; step += 1) {
+          puller.update(1 / 60, {});
+          for (const side of ["Left", "Right"] as const) {
+            const now = world(`${side}Hand`);
+            const distance = now.distanceTo(before[side]);
+            snap = Math.max(snap, Math.abs(distance - moved[side]));
+            speed = Math.max(speed, distance);
+            moved[side] = distance;
+            before[side] = now;
+          }
+          expect(puller.handOnRope.Left).toBe(false);
+          expect(puller.handOnRope.Right).toBe(false);
+        }
+        expect(snap, `${team} ${index}: no hand snaps off the rope`).toBeLessThan(0.04);
+        expect(speed, `${team} ${index}: hands leave the rope at a human speed`).toBeLessThan(0.13);
       }
     }
   });
 
-  it("puller: while pulling, both palms stay on the rope line and the body leans away from the centre", async () => {
+  it("grip: a brow wipe lets go of the rope and takes hold again without the hand snapping", async () => {
     const { three, Puller } = await loadModules();
     const root = buildSkeleton(three);
-    const puller = new Puller({ instance: { root, meshes: [] }, team: "turquoise", index: 0, seed: 3 });
+    const puller = new Puller({ instance: { root, meshes: [] }, team: "pink", index: 1, seed: 9 }) as PullerLike & { wipe: unknown; traits: { frontHand: string } };
     for (let step = 0; step < 90; step += 1) puller.update(1 / 60, {});
-    for (const side of ["Left", "Right"]) {
-      const grip = puller.lastHands[side];
-      expect(Math.abs(grip.y - 0.93)).toBeLessThan(0.03);
-      expect(Math.abs(Math.abs(grip.x) - 0.16)).toBeLessThan(0.02);
+    const side = (puller.traits.frontHand === "Left" ? "Right" : "Left") as "Left" | "Right";
+    puller.wipe = { side, t: 0, weight: 0 };
+    const wrist = () => puller.rig.worldPosition(puller.rig.bone(`${side}Hand`), new three.Vector3()) as InstanceType<typeof three.Vector3>;
+    let previous = wrist();
+    let moved = 0;
+    let snap = 0;
+    let left = false;
+    for (let step = 0; step < 240; step += 1) {
+      puller.update(1 / 60, {});
+      if (!puller.handOnRope[side]) left = true;
+      const now = wrist();
+      const distance = now.distanceTo(previous);
+      snap = Math.max(snap, Math.abs(distance - moved));
+      moved = distance;
+      previous = now;
     }
-    const hips = puller.rig.worldPosition(puller.rig.bone("Hips"), new three.Vector3());
-    const head = puller.rig.worldPosition(puller.rig.bone("Head"), new three.Vector3());
-    expect(hips.z).toBeLessThan(-0.1); // behind the rope slot
-    expect(head.z).toBeLessThan(hips.z + 0.05); // leaning back, not forward
-    expect(puller.state).toBe("ready");
+    expect(left, "the wiping hand left the rope").toBe(true);
+    expect(puller.handOnRope[side], "and took hold of it again").toBe(true);
+    expect(snap, "without snapping").toBeLessThan(0.04);
+  });
+
+  it("puller: while pulling, both fists stay on the rope line on the camera side and the body leans away from the centre", async () => {
+    const { three, Puller } = await loadModules();
+    const { BODY_SIDE, ROPE_Y } = await runtimeModule("scene3d/constants.js");
+    for (const team of ["turquoise", "pink"]) {
+      const root = buildSkeleton(three);
+      const puller = new Puller({ instance: { root, meshes: [] }, team, index: 0, seed: 3 });
+      for (let step = 0; step < 90; step += 1) puller.update(1 / 60, {});
+      for (const side of ["Left", "Right"]) {
+        const grip = puller.lastHands[side];
+        expect(Math.abs(grip.y - ROPE_Y)).toBeLessThan(0.03);
+        // Turquoise faces +X world, so its camera side is its right (−X); Pink's is its left.
+        expect(grip.x * (team === "turquoise" ? -1 : 1)).toBeGreaterThan(BODY_SIDE - 0.02);
+      }
+      const hips = puller.rig.worldPosition(puller.rig.bone("Hips"), new three.Vector3());
+      const head = puller.rig.worldPosition(puller.rig.bone("Head"), new three.Vector3());
+      expect(hips.z).toBeLessThan(-0.1); // behind the rope slot
+      expect(head.z).toBeLessThan(hips.z + 0.05); // leaning back, not forward
+      expect(puller.state).toBe("ready");
+    }
   });
 
   it("puller: the state machine only moves on events and settles back to ready", async () => {
@@ -280,7 +373,7 @@ describe("Math Tug of War 3D animation layer", () => {
     const pullers: PullerLike[] = [];
     for (let index = 0; index < 3; index += 1) {
       const root = buildSkeleton(three);
-      root.position.set(1.3 + index, 0, 0.16);
+      root.position.set(1.3 + index, 0, -0.22); // the scene's slots: behind the rope line (BODY_SIDE)
       root.rotation.y = -Math.PI / 2; // Pink faces the centre (−x)
       tug.add(root);
       const puller: PullerLike = new Puller({ instance: { root, meshes: [] }, team: "pink", index, seed: 21 + index });
@@ -371,7 +464,7 @@ describe("Math Tug of War 3D animation layer", () => {
       const pullers: PullerLike[] = [];
       for (let index = 0; index < 3; index += 1) {
         const root = buildSkeleton(three);
-        root.position.set(-(1.3 + index), 0, 0.16);
+        root.position.set(-(1.3 + index), 0, -0.22);
         root.rotation.y = Math.PI / 2;
         pullers.push(new Puller({ instance: { root, meshes: [] }, team: "turquoise", index, seed: 3 + index }));
       }

@@ -27,6 +27,7 @@ import { resolve } from "node:path";
 import { chromium, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { playerCameraHands } from "../e2e/math-tug-of-war/player-camera-hands.ts";
 import { runtimeHash } from "./math-tug-of-war-runtime-hash.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
@@ -247,11 +248,20 @@ try {
   let snap = await snapshot(probe.page);
   ok(snap?.three?.ready === true && snap.three.shadows === true && ["medium", "high"].includes(snap.three.tier), `desktop: tier ${snap?.three?.tier}, shadow maps ${snap?.three?.shadows}, ${snap?.three?.drawCalls} draw calls`);
   await shot(probe.page, "30-staging-3d-desktop-start");
+  // What the player's own camera shows: every puller's two fists on the visible rope (v1.2.22 hid most of them).
+  const gripCheck = async (label) => {
+    const hands = await playerCameraHands(probe.page);
+    const weak = hands.filter((hand) => hand.visible < 10 || hand.touching < 8);
+    ok(hands.length === 12 && weak.length === 0, `desktop: ${label}, all 12 hands visibly on the rope from the gameplay camera (fewest ${Math.min(...hands.map((hand) => hand.touching))} px touching the rope) ${weak.map((hand) => `${hand.puller}-${hand.side}:${hand.visible}/${hand.touching}`).join(" ")}`);
+    evidence.measurements.push({ label: `player-camera hands ${label}`, hands });
+  };
+  await gripCheck("at rest");
   await answer(probe.page, "turquoise");
   ok(await settledAt(probe.page, -1) && await waitFor3DPosition(probe.page, -1), "desktop: Turquoise pull mirrored by the 3D scene (−1 in both layers)");
   await probe.page.waitForTimeout(250);
   snap = await snapshot(probe.page);
   ok((snap?.three?.reachMiss ?? 1) < 0.03 && snap.three.states.turquoise.some((state) => ["pulling", "ready"].includes(state)), `desktop: hands hold the rope mid-heave (reach miss ${snap?.three?.reachMiss} m)`);
+  await gripCheck("after a pull");
   await shot(probe.page, "31-staging-3d-desktop-pull");
   await answer(probe.page, "pink", { wrong: true });
   await probe.page.waitForTimeout(1_200);
