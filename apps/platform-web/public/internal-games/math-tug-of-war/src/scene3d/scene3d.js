@@ -31,6 +31,8 @@ const VERTICAL_FOV = 27;
 const PULL_MS = 680;
 const PULL_FAST_MS = 360;
 const CONTACT_UNDER_SHADOW_MAPS = 0.35;
+const FIST_HALF_WIDTH = 0.04; // metres either side of a fist's centre the rope follows its channel
+const ROPE_ALONG = new Vector3(0, 0, 1); // the rope in character space
 
 const tmpV = new Vector3();
 
@@ -166,7 +168,8 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
         const instance = instantiateCharacter(name, { teamColor: TEAM[team].color });
         instances.push(instance);
         const root = instance.root;
-        root.position.set(slotX(team, index), 0, BODY_SIDE);
+        // Behind the rope line (away from the camera): the rope and the fists on it face the player.
+        root.position.set(slotX(team, index), 0, -BODY_SIDE);
         root.rotation.y = TEAM[team].dir === -1 ? Math.PI / 2 : -Math.PI / 2;
         tug.add(root);
         const puller = new Puller({ instance, team, index, seed: 100 + index * 17 + (team === "pink" ? 50 : 0) });
@@ -203,6 +206,21 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
       if (!puller) return;
       const towardsCentre = closeup.team === "turquoise" ? 1 : -1;
       const distance = closeup.distance ?? 1;
+      if (closeup.fist) {
+        // A fist on the rope, centred on where the rope runs through it: "player"
+        // from the gameplay camera's side, "along" down the rope from the centre,
+        // "top" from above, "back" from behind the body.
+        const target = puller.worldFromLocal(tmpV.copy(puller.lastHands[closeup.fist])).clone();
+        const view = closeup.view ?? "player";
+        const offset = new Vector3();
+        if (view === "along") offset.set(towardsCentre * distance, distance * 0.25, distance * 0.35);
+        else if (view === "top") offset.set(towardsCentre * distance * 0.2, distance, distance * 0.3);
+        else if (view === "back") offset.set(towardsCentre * distance * 0.25, distance * 0.3, -distance);
+        else offset.set(towardsCentre * distance * 0.15, distance * 0.3, distance);
+        camera.position.copy(target).add(offset);
+        camera.lookAt(target);
+        return;
+      }
       if (closeup.bone) {
         // Any bone ("LeftHand", "RightFoot", …), always from outside the body:
         // "side" looks in from the side the bone is on, "front" from the centre
@@ -302,7 +320,7 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
 
   const handPoints = [];
   const handBuffer = [];
-  for (let index = 0; index < PULLERS_PER_TEAM * 4; index += 1) handBuffer.push(new Vector3());
+  for (let index = 0; index < PULLERS_PER_TEAM * 12; index += 1) handBuffer.push(new Vector3());
 
   function update(dt, now) {
     matchTime += dt;
@@ -355,14 +373,13 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
     for (const team of TEAMS) {
       for (const puller of pullers[team]) {
         for (const side of ["Left", "Right"]) {
-          const point = handBuffer[slot++];
-          // The rope runs through the fists. A fist within a finger's width of its grip
-          // target contributes the target itself, so tiny IK residues never kink the rope.
-          point.copy(puller.lastHands[side]);
-          const grip = puller.lastPose?.grip?.[side];
-          if (grip && grip.lengthSq() > 0 && point.distanceTo(grip) < 0.02) point.copy(grip);
-          puller.worldFromLocal(point);
-          if (puller.handOnRope[side]) handPoints.push(point);
+          if (!puller.handOnRope[side]) continue;
+          // The rope runs through each fist along the fist's own channel: in at
+          // one side of the hand, through the centre, out at the other.
+          for (const along of [-FIST_HALF_WIDTH, 0, FIST_HALF_WIDTH]) {
+            const point = handBuffer[slot++].copy(puller.lastHands[side]).addScaledVector(puller.ropeAxis[side], along);
+            handPoints.push(puller.worldFromLocal(point));
+          }
         }
       }
     }
@@ -563,6 +580,9 @@ export function createScene3D({ tier = "medium", version = "", onFallback = () =
             side,
             onRope: Boolean(puller.handOnRope[side]),
             ropeDistance: Number(rope.distanceToAxis(fist).toFixed(3)),
+            // How far the fist channel turns away from the rope (degrees) and how much of the rope the closed hand covers.
+            channelDeg: Math.round((Math.acos(Math.min(1, Math.abs(puller.ropeAxis[side].dot(ROPE_ALONG)))) * 180) / Math.PI),
+            coverage: Number((puller.fist[side]?.metrics.coverage ?? 0).toFixed(2)),
             wristDeg: Math.round((puller.rig.localAngle(`${side}Hand`) * 180) / Math.PI),
             forearmDeg: Math.round((puller.rig.localAngle(`${side}ForeArm`) * 180) / Math.PI),
             reachMiss: Number(puller.reachMiss[side].toFixed(3))

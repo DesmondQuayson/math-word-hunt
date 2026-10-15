@@ -27,6 +27,8 @@ const tmpM1 = new Matrix4();
 const tmpM2 = new Matrix4();
 
 const FINGERS = ["Thumb", "Index", "Middle", "Ring", "Pinky"];
+const TWIST_NEAR = 0.3; // radians searched either side of last frame's forearm twist
+const TWIST_KEEP = 0.12; // how much worse (radians of wrist) the continuous twist may be and still win
 
 function perpendicular(vector, axis, out) {
   // Component of `vector` perpendicular to unit `axis`, normalised; falls back to any perpendicular.
@@ -38,7 +40,7 @@ function perpendicular(vector, axis, out) {
 }
 
 /** Rotation that maps the frame (forward0, up0) onto (forward1, up1). */
-function frameRotation(forward0, up0, forward1, up1, out) {
+export function frameRotation(forward0, up0, forward1, up1, out) {
   const r0 = tmpV3.crossVectors(up0, forward0).normalize();
   tmpM1.makeBasis(r0, up0, forward0);
   const r1 = tmpV4.crossVectors(up1, forward1).normalize();
@@ -276,7 +278,7 @@ export class Rig {
    * wrist (flexion / deviation) is limited to `maxWrist`. Skinned wrists tear
    * when they are rotated much further than a real one can go.
    */
-  relaxWrist(side, { maxForearmTwist = 1.45, maxUpperTwist = 0, maxWrist = 1.0, twist = null } = {}) {
+  relaxWrist(side, { maxForearmTwist = 1.45, maxUpperTwist = 0, maxWrist = 1.0, twist = null, near = null } = {}) {
     const hand = this.bones.get(`${side}Hand`);
     const fore = this.bones.get(`${side}ForeArm`);
     const upper = this.bones.get(`${side}Arm`);
@@ -310,6 +312,24 @@ export class Rig {
         if (value < best - 1e-4) {
           best = value;
           chosenTwist = angle;
+        }
+      }
+      // Continuity: last frame's twist, searched around, wins unless the sweep found
+      // something clearly better (a forearm never flips between distant twists).
+      if (near !== null) {
+        let local = wristAngleAt(near);
+        let localTwist = near;
+        for (let step = -4; step <= 4; step += 1) {
+          const angle = clamp(near + (step / 4) * TWIST_NEAR, -maxForearmTwist, maxForearmTwist);
+          const value = wristAngleAt(angle);
+          if (value < local - 1e-4) {
+            local = value;
+            localTwist = angle;
+          }
+        }
+        if (local <= best + TWIST_KEEP) {
+          best = local;
+          chosenTwist = localTwist;
         }
       }
       const coarse = maxForearmTwist / 8;

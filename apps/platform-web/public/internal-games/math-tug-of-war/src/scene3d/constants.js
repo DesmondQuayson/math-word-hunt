@@ -8,11 +8,11 @@ import { TUG_LIMIT } from "../tug.js";
 export const FIELD_UNITS_TO_METRES = 12 / 1000;
 export const STEP = 38 * FIELD_UNITS_TO_METRES; // 0.456 m per pull
 export const LINE_X = TUG_LIMIT * STEP; // 3.19 m: a victory line on each side
-export const ROPE_Y = 0.93;
+export const ROPE_Y = 0.87;
 export const ROPE_RADIUS = 0.022;
 export const FRONT_OFFSET = 1.3; // front puller's rope slot from the centre knot
 export const SPACING = 1.0; // slot spacing within a team
-export const BODY_SIDE = 0.16; // pullers stand this far in front of the rope line (towards the camera)
+export const BODY_SIDE = 0.22; // pullers stand this far behind the rope line (away from the camera)
 export const HAND_GAP = 0.14; // the two hands sit this far apart along the rope
 export const PULLERS_PER_TEAM = 3;
 

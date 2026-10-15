@@ -7,8 +7,8 @@ import { BufferAttribute, BufferGeometry, Color, CylinderGeometry, DynamicDrawUs
 import { ROPE_RADIUS, ROPE_Y } from "./constants.js";
 import { approach, clamp, makeNoise } from "./math.js";
 
-const SEGMENTS = 110;
-const RADIAL = 8;
+const SEGMENTS = 220;
+const RADIAL = 12;
 const TAIL = 1.5;
 
 const tmpA = new Vector3();
@@ -17,23 +17,73 @@ const tmpC = new Vector3();
 const tmpN = new Vector3();
 const tmpBi = new Vector3();
 
-/** Catmull-Rom through `points` (Vector3[]), evaluated at t ∈ [0, 1]. */
-function catmull(points, t, out) {
-  const count = points.length - 1;
-  const scaled = clamp(t, 0, 1) * count;
-  let index = Math.floor(scaled);
-  if (index >= count) index = count - 1;
-  const local = scaled - index;
-  const p0 = points[Math.max(0, index - 1)];
-  const p1 = points[index];
-  const p2 = points[Math.min(count, index + 1)];
-  const p3 = points[Math.min(count, index + 2)];
-  const t2 = local * local;
-  const t3 = t2 * local;
-  out.x = 0.5 * (2 * p1.x + (-p0.x + p2.x) * local + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
-  out.y = 0.5 * (2 * p1.y + (-p0.y + p2.y) * local + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
-  out.z = 0.5 * (2 * p1.z + (-p0.z + p2.z) * local + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 + (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3);
-  return out;
+/**
+ * A smooth curve through `points`: centripetal Catmull-Rom tangents (no
+ * overshoot where a fist's closely spaced points meet a long span between
+ * pullers), sampled evenly along its length into `centres` / `tangents`
+ * (flat xyz arrays of count + 1 entries).
+ */
+function sampleCurve(points, count, centres, tangents, scratch) {
+  const n = points.length;
+  const knots = scratch.knots;
+  const slopes = scratch.slopes;
+  const chords = scratch.chords;
+  knots.length = n;
+  chords.length = n;
+  knots[0] = 0;
+  chords[0] = 0;
+  for (let i = 1; i < n; i += 1) {
+    const d = Math.max(1e-6, points[i].distanceTo(points[i - 1]));
+    knots[i] = knots[i - 1] + Math.sqrt(d);
+    chords[i] = chords[i - 1] + d;
+  }
+  while (slopes.length < n) slopes.push(new Vector3());
+  for (let i = 0; i < n; i += 1) {
+    const m = slopes[i];
+    if (i === 0 || i === n - 1) {
+      const a = points[i === 0 ? 0 : n - 2];
+      const b = points[i === 0 ? 1 : n - 1];
+      const h = i === 0 ? knots[1] - knots[0] : knots[n - 1] - knots[n - 2];
+      m.subVectors(b, a).multiplyScalar(1 / h);
+    } else {
+      const h0 = knots[i] - knots[i - 1];
+      const h1 = knots[i + 1] - knots[i];
+      // Derivative of the Barry–Goldman (centripetal) curve at the knot.
+      m.subVectors(points[i], points[i - 1]).multiplyScalar(1 / h0);
+      m.addScaledVector(tmpC.subVectors(points[i + 1], points[i - 1]), -1 / (h0 + h1));
+      m.addScaledVector(tmpC.subVectors(points[i + 1], points[i]), 1 / h1);
+    }
+  }
+  const total = chords[n - 1];
+  let span = 0;
+  for (let k = 0; k <= count; k += 1) {
+    const target = (k / count) * total;
+    while (span < n - 2 && chords[span + 1] < target) span += 1;
+    const length = chords[span + 1] - chords[span];
+    const u = clamp(length > 0 ? (target - chords[span]) / length : 0, 0, 1);
+    const h = knots[span + 1] - knots[span];
+    const p0 = points[span];
+    const p1 = points[span + 1];
+    const m0 = slopes[span];
+    const m1 = slopes[span + 1];
+    const u2 = u * u;
+    const u3 = u2 * u;
+    const a = 2 * u3 - 3 * u2 + 1;
+    const b = (u3 - 2 * u2 + u) * h;
+    const c = -2 * u3 + 3 * u2;
+    const d = (u3 - u2) * h;
+    const da = 6 * u2 - 6 * u;
+    const db = (3 * u2 - 4 * u + 1) * h;
+    const dc = -6 * u2 + 6 * u;
+    const dd = (3 * u2 - 2 * u) * h;
+    const o = k * 3;
+    centres[o] = a * p0.x + b * m0.x + c * p1.x + d * m1.x;
+    centres[o + 1] = a * p0.y + b * m0.y + c * p1.y + d * m1.y;
+    centres[o + 2] = a * p0.z + b * m0.z + c * p1.z + d * m1.z;
+    tangents[o] = da * p0.x + db * m0.x + dc * p1.x + dd * m1.x;
+    tangents[o + 1] = da * p0.y + db * m0.y + dc * p1.y + dd * m1.y;
+    tangents[o + 2] = da * p0.z + db * m0.z + dc * p1.z + dd * m1.z;
+  }
 }
 
 export class Rope {
@@ -47,6 +97,10 @@ export class Rope {
     this.fallT = 0;
     this.time = 0;
     this.controls = [];
+    this.centres = new Float32Array((SEGMENTS + 1) * 3);
+    this.tangents = new Float32Array((SEGMENTS + 1) * 3);
+    this.scratch = { knots: [], slopes: [], chords: [] };
+    this.sampled = false;
     // The last hand points seen: once every hand lets go, the released rope
     // keeps falling from where it was held.
     this.anchors = [];
@@ -59,12 +113,12 @@ export class Rope {
     for (let i = 0; i <= SEGMENTS; i += 1) {
       for (let j = 0; j <= RADIAL; j += 1) {
         const v = i * (RADIAL + 1) + j;
-        uvs[v * 2] = (i / SEGMENTS) * 60;
+        uvs[v * 2] = (i / SEGMENTS) * 120;
         uvs[v * 2 + 1] = j / RADIAL;
         if (i < SEGMENTS && j < RADIAL) {
           const a = v;
           const b = v + RADIAL + 1;
-          indices.push(a, b, a + 1, b, b + 1, a + 1);
+          indices.push(a, a + 1, b, b, a + 1, b + 1); // outward-facing (front faces outside the tube)
         }
       }
     }
@@ -188,14 +242,23 @@ export class Rope {
 
     const positions = this.positions;
     const normals = this.normals;
+    const centres = this.centres;
+    const tangents = this.tangents;
+    sampleCurve(points, SEGMENTS, centres, tangents, this.scratch);
+    this.sampled = true;
     let prevTangent = null;
     let normal = tmpN.set(0, 1, 0);
+    // The rope only hums between the hands: inside a fist it stays where the fist holds it.
+    const held = this.released ? [] : hands;
+    let nearest = 0;
     for (let i = 0; i <= SEGMENTS; i += 1) {
       const t = i / SEGMENTS;
-      catmull(points, t, tmpA);
-      catmull(points, Math.min(1, t + 0.002), tmpB);
-      catmull(points, Math.max(0, t - 0.002), tmpC);
-      const tangent = tmpB.sub(tmpC).normalize();
+      tmpA.fromArray(centres, i * 3);
+      while (nearest < held.length - 1 && Math.abs(held[nearest + 1].x - tmpA.x) <= Math.abs(held[nearest].x - tmpA.x)) nearest += 1;
+      const free = held.length ? clamp((Math.abs(held[nearest].x - tmpA.x) - 0.06) / 0.14, 0, 1) : 1;
+      const tangent = tmpB.fromArray(tangents, i * 3);
+      if (tangent.lengthSq() < 1e-12) tangent.set(1, 0, 0);
+      tangent.normalize();
       if (!prevTangent) {
         normal = tmpN.set(0, 1, 0).addScaledVector(tangent, -tangent.y).normalize();
       } else {
@@ -211,10 +274,10 @@ export class Rope {
       prevTangent = prevTangent ? prevTangent.copy(tangent) : tangent.clone();
       const binormal = tmpBi.crossVectors(tangent, normal).normalize();
       const sine = Math.sin(t * Math.PI);
-      const centreY = tmpA.y + buzz * sine * Math.sin(t * 31) + wobble * sine;
-      const radius = ROPE_RADIUS * (1 + 0.04 * Math.sin(t * 160)); // twisted-strand look
+      const centreY = tmpA.y + (buzz * sine * Math.sin(t * 31) + wobble * sine) * free;
+      const radius = ROPE_RADIUS;
       for (let j = 0; j <= RADIAL; j += 1) {
-        const angle = (j / RADIAL) * Math.PI * 2 + t * 90; // strand twist
+        const angle = (j / RADIAL) * Math.PI * 2;
         const nx = Math.cos(angle);
         const ny = Math.sin(angle);
         const v = (i * (RADIAL + 1) + j) * 3;
@@ -235,14 +298,13 @@ export class Rope {
 
   /** Distance from a world point to the rope tube's axis (metres; 0 = on the centreline). */
   distanceToAxis(point) {
-    const points = this.controls;
-    if (points.length < 2) return Infinity;
+    if (!this.sampled) return Infinity;
     let best = Infinity;
     const a = tmpA;
     const b = tmpB;
-    for (let index = 0; index < 100; index += 1) {
-      catmull(points, index / 100, a);
-      catmull(points, (index + 1) / 100, b);
+    for (let index = 0; index < SEGMENTS; index += 1) {
+      a.fromArray(this.centres, index * 3);
+      b.fromArray(this.centres, index * 3 + 3);
       const segment = tmpC.subVectors(b, a);
       const length = segment.lengthSq();
       const t = length > 0 ? clamp(tmpN.subVectors(point, a).dot(segment) / length, 0, 1) : 0;
