@@ -1,0 +1,1793 @@
+{
+  "origin": "https://mathnexa.com",
+  "commit": "fe3e819",
+  "checks": [
+    {
+      "ok": true,
+      "message": "health 200 (200)"
+    },
+    {
+      "ok": true,
+      "message": "deployment serves commit fe3e819"
+    },
+    {
+      "ok": true,
+      "message": "game document versions its runtime with the tested content hash 79574206b9401535 (served 79574206b9401535)"
+    },
+    {
+      "ok": true,
+      "message": "route CSP unchanged (default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' da…)"
+    },
+    {
+      "ok": true,
+      "message": "models, vendored three.js and the 3D modules are byte-identical to the tested source (5 files) "
+    },
+    {
+      "ok": true,
+      "message": "character textures served as image/webp (young_darkskinned_male_diffuse.webp)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: 3D scene renders on the hosted build (models loaded under the route CSP)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: tier medium, shadow maps true, 167 draw calls"
+    },
+    {
+      "ok": true,
+      "message": "desktop: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 18 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "desktop: Turquoise pull mirrored by the 3D scene (−1 in both layers)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: hands hold the rope mid-heave (reach miss 0 m)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 14 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "desktop: wrong answer moves neither layer"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 2)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 3)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 4)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 5)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no celebration before the win (pull 6)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: winners celebrate and losers fall only after the confirmed win ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
+    },
+    {
+      "ok": true,
+      "message": "desktop: Play Again resets both layers"
+    },
+    {
+      "ok": true,
+      "message": "desktop: 3D toggle shows the classic scene (canvas removed)"
+    },
+    {
+      "ok": true,
+      "message": "desktop: classic scene still plays after the toggle"
+    },
+    {
+      "ok": true,
+      "message": "desktop: toggling back rebuilds the 3D scene at the live position"
+    },
+    {
+      "ok": true,
+      "message": "desktop: no page errors or console errors (0) "
+    },
+    {
+      "ok": true,
+      "message": "auto: a hardware-GL browser gets the 3D scene without any override"
+    },
+    {
+      "ok": true,
+      "message": "auto: reduced motion keeps the classic scene and disables the toggle"
+    },
+    {
+      "ok": true,
+      "message": "auto: software GL (no hardware acceleration) keeps the classic scene"
+    },
+    {
+      "ok": true,
+      "message": "auto: the classic scene still plays on software GL"
+    },
+    {
+      "ok": true,
+      "message": "phone-390x844: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 9 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-390x844: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 9 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-390x844: 3D scene (tier medium) at 546×169 px, pull mirrored, no overflow, keys fit [48,85], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "phone-430x932: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 12 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-430x932: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 13 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-430x932: 3D scene (tier medium) at 606×267 px, pull mirrored, no overflow, keys fit [54,86], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "phone-pixel7-412x915: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 11 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-pixel7-412x915: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 12 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "phone-pixel7-412x915: 3D scene (tier medium) at 579×255 px, pull mirrored, no overflow, keys fit [51,85], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "iphone13-390x664-webkit: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 8 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "iphone13-390x664-webkit: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 8 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "iphone13-390x664-webkit: 3D scene (tier medium) at 546×169 px, pull mirrored, no overflow, keys fit [52,65], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "smart-board-1920x1080: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 34 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "smart-board-1920x1080: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 29 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "smart-board-1920x1080: 3D scene (tier medium) at 902×512 px, pull mirrored, no overflow, keys fit [133,134], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "ipad-820x1180-webkit: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 20 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "ipad-820x1180-webkit: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 20 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "ipad-820x1180-webkit: 3D scene (tier medium) at 794×349 px, pull mirrored, no overflow, keys fit [115,88], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "ipad-1180x820-webkit: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 14 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "ipad-1180x820-webkit: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 14 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "ipad-1180x820-webkit: 3D scene (tier medium) at 545×310 px, pull mirrored, no overflow, keys fit [78,98], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "webkit-desktop-1366x768: at rest, all 12 hands visibly on the rope from the gameplay camera (fewest 21 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "webkit-desktop-1366x768: after a pull, all 12 hands visibly on the rope from the gameplay camera (fewest 17 px touching the rope) "
+    },
+    {
+      "ok": true,
+      "message": "webkit-desktop-1366x768: 3D scene (tier medium) at 634×360 px, pull mirrored, no overflow, keys fit [93,87], scene never covers a question"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: both clients (Chromium host, WebKit guest) render the 3D scene"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: host pull moves both 3D scenes to −1"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: guest pull moves both 3D scenes back to 0"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: both 3D scenes celebrate the same confirmed winner ({\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"rising\",\"rising\",\"rising\"]} / {\"turquoise\":[\"celebrate\",\"celebrate\",\"celebrate\"],\"pink\":[\"down\",\"down\",\"down\"]})"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: the database agrees with both screens {\"position\":-7,\"host_pulls\":8,\"guest_pulls\":1,\"status\":\"won\"}"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: rematch resets both 3D scenes"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: leaving ends the match with no celebration on the other screen"
+    },
+    {
+      "ok": true,
+      "message": "online 3D: no page errors on either client (0/0) "
+    }
+  ],
+  "measurements": [
+    {
+      "label": "desktop player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 31,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 59,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 26,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 49,
+          "touching": 27
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 25,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 51,
+          "touching": 25
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 56,
+          "touching": 33
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 34,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 59,
+          "touching": 35
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 40,
+          "touching": 32
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 47,
+          "touching": 34
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        }
+      ]
+    },
+    {
+      "label": "desktop player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 21,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 31,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 16,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 20,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 17,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 29,
+          "touching": 24
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 52,
+          "touching": 31
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 25,
+          "touching": 22
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 56,
+          "touching": 34
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 28,
+          "touching": 22
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 33,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 18
+        }
+      ]
+    },
+    {
+      "label": "staging desktop 1366x900",
+      "tier": "medium",
+      "frameMs": 7.58,
+      "worstMs": 130.6,
+      "drawCalls": 155,
+      "triangles": 371544,
+      "pixelRatio": 1,
+      "reachMiss": 1.011,
+      "downgrades": [],
+      "canvas": [
+        634,
+        360,
+        634,
+        360
+      ]
+    },
+    {
+      "label": "phone-390x844 player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 14,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 24,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 18,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 24,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 23,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 28,
+          "touching": 22
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 19,
+          "touching": 19
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 9,
+          "touching": 9
+        }
+      ]
+    },
+    {
+      "label": "phone-390x844 player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 11,
+          "touching": 11
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 23,
+          "touching": 22
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 20,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 11,
+          "touching": 11
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 23,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 23,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 11,
+          "touching": 11
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 24,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 15,
+          "touching": 15
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 19,
+          "touching": 18
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 9,
+          "touching": 9
+        }
+      ]
+    },
+    {
+      "label": "staging phone-390x844",
+      "tier": "medium",
+      "frameMs": 9.28,
+      "worstMs": 43.4,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        546,
+        169,
+        364,
+        113
+      ]
+    },
+    {
+      "label": "phone-430x932 player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 18,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 30,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 14,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 28,
+          "touching": 27
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 14,
+          "touching": 13
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 29,
+          "touching": 24
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 30,
+          "touching": 29
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 20,
+          "touching": 19
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 34,
+          "touching": 27
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 23,
+          "touching": 21
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 26,
+          "touching": 26
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 12,
+          "touching": 12
+        }
+      ]
+    },
+    {
+      "label": "phone-430x932 player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 16,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 29,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 14,
+          "touching": 14
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 23,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 17,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 30,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 30,
+          "touching": 28
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 21,
+          "touching": 20
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 34,
+          "touching": 27
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 21,
+          "touching": 20
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 27,
+          "touching": 27
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 13,
+          "touching": 13
+        }
+      ]
+    },
+    {
+      "label": "staging phone-430x932",
+      "tier": "medium",
+      "frameMs": 8.61,
+      "worstMs": 42.8,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        606,
+        267,
+        404,
+        178
+      ]
+    },
+    {
+      "label": "phone-pixel7-412x915 player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 17,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 27,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 24,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 15,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 25,
+          "touching": 19
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 27,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 18,
+          "touching": 18
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 31,
+          "touching": 30
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 19,
+          "touching": 19
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 23,
+          "touching": 22
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 11,
+          "touching": 11
+        }
+      ]
+    },
+    {
+      "label": "phone-pixel7-412x915 player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 16,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 25,
+          "touching": 23
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 21,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 27,
+          "touching": 26
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 26,
+          "touching": 25
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 17,
+          "touching": 17
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 28,
+          "touching": 26
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 18,
+          "touching": 18
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 25,
+          "touching": 24
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 12,
+          "touching": 12
+        }
+      ]
+    },
+    {
+      "label": "staging phone-pixel7-412x915",
+      "tier": "medium",
+      "frameMs": 9.19,
+      "worstMs": 45.2,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        579,
+        255,
+        386,
+        170
+      ]
+    },
+    {
+      "label": "iphone13-390x664-webkit player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 21,
+          "touching": 15
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 10,
+          "touching": 10
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 18,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 21
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 23,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 11,
+          "touching": 11
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 28,
+          "touching": 22
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 21,
+          "touching": 21
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 8,
+          "touching": 8
+        }
+      ]
+    },
+    {
+      "label": "iphone13-390x664-webkit player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 12,
+          "touching": 12
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 21,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 8,
+          "touching": 8
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 19,
+          "touching": 19
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 9,
+          "touching": 9
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 20
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 22,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 11,
+          "touching": 11
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 27,
+          "touching": 26
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 13,
+          "touching": 13
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 22,
+          "touching": 21
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 8,
+          "touching": 8
+        }
+      ]
+    },
+    {
+      "label": "staging iphone13-390x664-webkit",
+      "tier": "medium",
+      "frameMs": 12.93,
+      "worstMs": 437,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1.5,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        546,
+        169,
+        364,
+        113
+      ]
+    },
+    {
+      "label": "smart-board-1920x1080 player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 55,
+          "touching": 38
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 113,
+          "touching": 37
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 51,
+          "touching": 37
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 98,
+          "touching": 35
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 61,
+          "touching": 41
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 104,
+          "touching": 40
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 110,
+          "touching": 43
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 70,
+          "touching": 44
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 122,
+          "touching": 46
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 74,
+          "touching": 46
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 93,
+          "touching": 39
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 43,
+          "touching": 34
+        }
+      ]
+    },
+    {
+      "label": "smart-board-1920x1080 player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 56,
+          "touching": 33
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 108,
+          "touching": 42
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 49,
+          "touching": 36
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 87,
+          "touching": 37
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 53,
+          "touching": 37
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 104,
+          "touching": 40
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 109,
+          "touching": 44
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 70,
+          "touching": 45
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 121,
+          "touching": 42
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 71,
+          "touching": 46
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 91,
+          "touching": 43
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 41,
+          "touching": 29
+        }
+      ]
+    },
+    {
+      "label": "staging smart-board-1920x1080",
+      "tier": "medium",
+      "frameMs": 10.33,
+      "worstMs": 44.7,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        902,
+        512,
+        902,
+        512
+      ]
+    },
+    {
+      "label": "ipad-820x1180-webkit player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 32,
+          "touching": 30
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 57,
+          "touching": 32
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 26,
+          "touching": 23
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 47,
+          "touching": 32
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 29,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 51,
+          "touching": 35
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 55,
+          "touching": 38
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 33,
+          "touching": 28
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 58,
+          "touching": 34
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 36,
+          "touching": 30
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 48,
+          "touching": 32
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 20,
+          "touching": 20
+        }
+      ]
+    },
+    {
+      "label": "ipad-820x1180-webkit player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 28,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 49,
+          "touching": 29
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 22,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 38,
+          "touching": 28
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 23,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 46,
+          "touching": 29
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 50,
+          "touching": 30
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 30,
+          "touching": 27
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 53,
+          "touching": 24
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 32,
+          "touching": 26
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 41,
+          "touching": 30
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 20
+        }
+      ]
+    },
+    {
+      "label": "staging ipad-820x1180-webkit",
+      "tier": "medium",
+      "frameMs": 12.4,
+      "worstMs": 428,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        794,
+        349,
+        794,
+        349
+      ]
+    },
+    {
+      "label": "ipad-1180x820-webkit player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 21,
+          "touching": 18
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 42,
+          "touching": 30
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 20,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 37,
+          "touching": 26
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 25,
+          "touching": 22
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 39,
+          "touching": 28
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 42,
+          "touching": 31
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 21,
+          "touching": 19
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 47,
+          "touching": 33
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 29,
+          "touching": 23
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 37,
+          "touching": 28
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 15,
+          "touching": 14
+        }
+      ]
+    },
+    {
+      "label": "ipad-1180x820-webkit player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 23,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 40,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 17,
+          "touching": 16
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 30,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 18,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 38,
+          "touching": 23
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 38,
+          "touching": 30
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 18,
+          "touching": 18
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 45,
+          "touching": 34
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 24,
+          "touching": 22
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 31,
+          "touching": 29
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 14,
+          "touching": 14
+        }
+      ]
+    },
+    {
+      "label": "staging ipad-1180x820-webkit",
+      "tier": "medium",
+      "frameMs": 13.7,
+      "worstMs": 426,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        545,
+        310,
+        545,
+        310
+      ]
+    },
+    {
+      "label": "webkit-desktop-1366x768 player-camera hands at rest",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 27,
+          "touching": 21
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 54,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 29,
+          "touching": 28
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 48,
+          "touching": 27
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 27,
+          "touching": 24
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 55,
+          "touching": 31
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 57,
+          "touching": 32
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 31,
+          "touching": 25
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 64,
+          "touching": 37
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 39,
+          "touching": 28
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 49,
+          "touching": 27
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 26,
+          "touching": 23
+        }
+      ]
+    },
+    {
+      "label": "webkit-desktop-1366x768 player-camera hands after a pull",
+      "hands": [
+        {
+          "puller": "turquoise-0",
+          "side": "Left",
+          "visible": 30,
+          "touching": 25
+        },
+        {
+          "puller": "turquoise-0",
+          "side": "Right",
+          "visible": 54,
+          "touching": 30
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Left",
+          "visible": 22,
+          "touching": 20
+        },
+        {
+          "puller": "turquoise-1",
+          "side": "Right",
+          "visible": 39,
+          "touching": 29
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Left",
+          "visible": 22,
+          "touching": 17
+        },
+        {
+          "puller": "turquoise-2",
+          "side": "Right",
+          "visible": 41,
+          "touching": 22
+        },
+        {
+          "puller": "pink-0",
+          "side": "Left",
+          "visible": 55,
+          "touching": 33
+        },
+        {
+          "puller": "pink-0",
+          "side": "Right",
+          "visible": 30,
+          "touching": 25
+        },
+        {
+          "puller": "pink-1",
+          "side": "Left",
+          "visible": 59,
+          "touching": 34
+        },
+        {
+          "puller": "pink-1",
+          "side": "Right",
+          "visible": 36,
+          "touching": 27
+        },
+        {
+          "puller": "pink-2",
+          "side": "Left",
+          "visible": 47,
+          "touching": 27
+        },
+        {
+          "puller": "pink-2",
+          "side": "Right",
+          "visible": 22,
+          "touching": 19
+        }
+      ]
+    },
+    {
+      "label": "staging webkit-desktop-1366x768",
+      "tier": "medium",
+      "frameMs": 9.78,
+      "worstMs": 462,
+      "drawCalls": 167,
+      "triangles": 371240,
+      "pixelRatio": 1,
+      "reachMiss": 0,
+      "downgrades": [],
+      "canvas": [
+        634,
+        360,
+        634,
+        360
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 60,
+    "total": 60,
+    "syntheticUsersDeleted": 2,
+    "roomsRemoved": 1
+  }
+}

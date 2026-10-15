@@ -239,10 +239,81 @@ Or use `vercel promote dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH --scope bright-path-ed-t
 - **Windows WebKit test build.** It can lose a page under multi-project load, as described in Tests. It behaves the
   same on the production build.
 
-## Follow-ups (not started; owner-gated)
+## Follow-ups
 
-- **Tags `v1.2.21` and `v1.2.22`** do not exist. Their production builds are `8046e67` (`dpl_8FwRLvGcV5AFHSZLRh2Kc7Fa527i`)
-  and `9c3917d` (`dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH`). They have not been created after the fact.
-- **The v1.2.22 release record** was drafted but never finalized; its placeholders for the tree, main and production
-  rows are still open. The production identifiers above are the confirmed values to fill them.
-- **Dependency patches:** `sharp` 0.35.5 and the `source-map-js` advisory, each in its own reviewed change.
+- **Tags `v1.2.21` and `v1.2.22`: done on 2026-10-15.** They were created after independent verification and pushed
+  as new refs; no existing tag moved. See the post-release verification below.
+- **The v1.2.22 release record: done on 2026-10-15** (`mathnexa-v1.2.22-release-record.md`). The v1.2.21 record,
+  which existed only on its feature branch, is now on `main` too.
+- **Dependency patches** (`sharp` 0.35.5, `source-map-js` 1.2.2): investigated, and the plan is in
+  `docs/security/sharp-source-map-js-remediation-plan.md`. Neither is exploitable in production. The patch is a
+  separate owner-gated change and has not been started.
+
+## Post-release verification (2026-10-15, 03:58–04:21 UTC)
+
+This was an independent re-check of the live release. Nothing was redeployed or changed in production.
+
+**Deployment and health.**
+
+- `vercel inspect https://mathnexa.com` resolves to `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv`: production target, Ready.
+- `/api/health` returns status `ready` and build `fe3e81968f5d0452ab0607ef5aff4d4dcc973b9d`.
+
+**Uploaded source.** The health build value alone is not proof of what is deployed (security debt register, MN-07), so
+the Vercel file uids were compared again with `fe3e819`:
+
+- 1,298 of 1,300 tracked files identical, 0 different;
+- the 2 files not uploaded are `.gitignore` files;
+- the Tug of War runtime: 62/62 identical.
+
+**Hosted 3D review on the apex.**
+
+- **57/57.** Then the review gained an iPhone 13 device on WebKit, Safari's engine, and ran **60/60 twice**. The
+  second of those runs had the machine otherwise idle.
+- All 12 hands are visibly on the rope from the gameplay camera, at rest and after a pull, on:
+  - desktop Chromium;
+  - phones 390×844, 430×932 and Pixel 7;
+  - **iPhone 13 on WebKit** (fewest 8 px on the rope; the phone threshold is 3);
+  - Smart Board 1920×1080 (fewest 29 px);
+  - iPad portrait and landscape on WebKit;
+  - WebKit desktop.
+- Also checked:
+  - the served hash `79574206…`;
+  - byte-identical modules and models;
+  - the route CSP;
+  - the maths: a wrong answer moves neither layer;
+  - the 7th net pull wins, with no celebration before the confirmed win;
+  - Play Again;
+  - the 3D/classic toggle;
+  - the software-GL and reduced-motion fallbacks;
+  - Online Match with 3D on both clients: the same position after each pull, the same confirmed winner, the database
+    agreeing with both screens, rematch, and leave.
+- Idle-run frame times were 7.6–13.7 ms (medium tier), with no downgrades. The two loaded runs each had one WebKit
+  device averaging about 100 ms per frame while other heavy jobs ran on the same machine. Frame time is measured in
+  the review machine's browser, and the idle rerun had no outlier.
+
+**Hosted classic review on the apex: 99/99.** It covered:
+
+- six skills;
+- the signed-number keypad;
+- the 7th-net-pull win rule;
+- Smart Board, phones 320–430 and iPad WebKit layouts;
+- Online Match host and guest across Chromium and WebKit: reconnect, synchronized win, rematch, leave, and two
+  non-subscribers.
+
+All synthetic users were deleted and all rooms removed after every run.
+
+**Logs**, `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv`, 02:32 to 04:11 UTC:
+
+- **5xx: 0**;
+- runtime `level:error` or `level:fatal`: 0;
+- 4xx: 16, all explained:
+  - 9 certification-probe refusals;
+  - 3 Tug of War API 401/404 responses from the reviews' anonymous and left-room cases;
+  - 2 client aborts (499) as the review browser closed;
+  - 2 scanner hits (`/wp-admin/install.php`, `/xmlrpc.php`) refused with 403.
+
+**Rollback readiness.** `dpl_Ejn4Qooo96nAfvkdmsAabUtZ84QH` is a production target, Ready, and its health reports
+build `9c3917d`. The command in Rollback is unchanged.
+
+The evidence is in `owner-review/math-tug-of-war-3d-v1/production/post-release-2026-10-15/`: both review logs, the 3D
+results, and the iPhone, iPad, Smart Board and desktop screenshots.
