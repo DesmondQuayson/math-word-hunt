@@ -78,7 +78,7 @@ async function deploy() {
   evidence.commit = run("git", ["rev-parse", "HEAD"]);
   evidence.tree = run("git", ["rev-parse", "HEAD^{tree}"]);
   evidence.nextVersion = JSON.parse(run("node", ["-e", "process.stdout.write(JSON.stringify(require('./node_modules/next/package.json').version))"]));
-  check(evidence.nextVersion === "16.3.8", `unexpected-next-version:${evidence.nextVersion}`);
+  check(evidence.nextVersion === "16.4.2", `unexpected-next-version:${evidence.nextVersion}`);
   step("deploy");
   const output = vercel(
     // MVH_SOURCE_REVISION stamps this deployment with the revision it was built
@@ -86,7 +86,7 @@ async function deploy() {
     // CLI deployment carries git metadata but no VERCEL_GIT_COMMIT_SHA, so
     // without this the endpoint would honestly report "unknown". Deployment
     // scoped: no project environment variable is created or changed.
-    ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--prod", "--yes", "--env", `MVH_SOURCE_REVISION=${evidence.commit}`, "--meta", `candidateCommit=${evidence.commit}`, "--meta", `candidateTree=${evidence.tree}`, "--meta", "purpose=nextjs-16.3.4-security-hotfix"],
+    ["deploy", ".", "--project", STAGING_VERCEL_PROJECT, "--prod", "--yes", "--env", `MVH_SOURCE_REVISION=${evidence.commit}`, "--meta", `candidateCommit=${evidence.commit}`, "--meta", `candidateTree=${evidence.tree}`, "--meta", `purpose=${process.env.RELEASE_PURPOSE?.trim() || "nextjs-16.3.4-security-hotfix"}`],
     { allowFailure: true }
   );
   const combined = `${output.stdout}\n${output.stderr}`;

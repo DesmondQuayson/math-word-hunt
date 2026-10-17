@@ -38,7 +38,7 @@ const FORBIDDEN_PROJECTS = ["mathnexa-platform-staging", "showme-map-prep-produc
 const CERTIFIED_RUNTIME_COMMIT = process.env.RELEASE_CERTIFIED_RUNTIME?.trim() || "13d307d";
 /** The deployment that must be serving the apex when this pipeline starts, and the rollback target. */
 const EXPECTED_ROLLBACK_DEPLOYMENT = process.env.RELEASE_ROLLBACK_DEPLOYMENT?.trim() || "dpl_DRmcCTJvzQ8ey84gG6tRo4Vs3C3c";
-const EXPECTED_NEXT_VERSION = "16.3.8";
+const EXPECTED_NEXT_VERSION = "16.4.2";
 const BACKEND_USER_AGENT = "MathNexa-Hotfix-Certification/1.0";
 
 const args = new Map(process.argv.slice(2).map((arg) => { const [key, value = "true"] = arg.split("=", 2); return [key, value]; }));
@@ -110,7 +110,7 @@ function assertRuntimeIsCertified() {
   const nextVersion = JSON.parse(run("node", ["-e", "process.stdout.write(JSON.stringify(require('./node_modules/next/package.json').version))"]));
   const sharpVersion = JSON.parse(run("node", ["-e", "process.stdout.write(JSON.stringify(require('./node_modules/sharp/package.json').version))"]));
   check(nextVersion === EXPECTED_NEXT_VERSION, `unexpected-next-version:${nextVersion}`);
-  check(sharpVersion === "0.35.4", `unexpected-sharp-version:${sharpVersion}`);
+  check(sharpVersion === "0.35.5", `unexpected-sharp-version:${sharpVersion}`);
   for (const file of ["apps/platform-web/lib/observability/security-sink.ts", "apps/platform-web/app/api/internal/security/ingest/route.ts", "supabase/migrations/20260909010000_security_observability_read_path.sql"]) {
     check(run("git", ["ls-files", file]) === "", `ph2-07-runtime-present:${file}`);
   }
