@@ -37,15 +37,16 @@ consideration, not a production one.
 
 ## Version overrides
 
-Five transitive packages are pinned above what their parents request:
+Six transitive packages are pinned above what their parents request:
 
 | Package | Pinned | Why |
 |---|---|---|
-| `postcss` | 8.5.23 | Security upgrade; `next` pins 8.4.31 |
+| `postcss` | 8.5.23 | Security upgrade; `next` itself pins 8.5.23 since 16.3.4 (8.4.31 before) |
 | `nanoid` | 3.3.18 | Security upgrade |
-| `brace-expansion` | 5.0.9 | Security upgrade |
+| `brace-expansion` | 5.0.12 | Security upgrade |
 | `minimatch` | 10.2.5 | Security upgrade |
-| `sharp` | 0.35.3 | Security upgrade |
+| `sharp` | 0.35.5 | Security upgrade (librsvg GHSA-wq5f-xc86-pv6w / Next.js GHSA-2464-fhr4-w9xw); `next@16.4.2` requests `^0.35.5` |
+| `source-map-js` | 1.2.2 | Security upgrade (GHSA-68fv-2mgg-jv7q); build-time only, via PostCSS |
 
 `npm` reports these as `invalid` and `npm sbom` refuses to run because of them.
 That is npm describing an override doing exactly what an override is for, not a

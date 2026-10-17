@@ -205,6 +205,7 @@
     "minimatch": "10.2.5",
     "nanoid": "3.3.18",
     "postcss": "8.5.23",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "source-map-js": "1.2.2"
   }
 }
