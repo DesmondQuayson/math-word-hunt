@@ -1,4 +1,5 @@
-// Image Optimization regression harness for the Next.js 16.3.4 security hotfix.
+// Image Optimization regression harness for the Next.js 16.3.4 security hotfix,
+// extended for 16.4.2 (GHSA-2464-fhr4-w9xw: SVG input reaching librsvg).
 //
 //   node scripts/verify-next-image-optimizer.mjs --write-fixtures
 //   <start `next start` — it indexes public/ at boot, so fixtures must exist first>
@@ -9,7 +10,9 @@
 // --write-fixtures writes BENIGN malformed and truncated AVIF fixtures (a bare
 // `ftypavif` header, a PNG under an .avif name, an empty file, a box with an
 // absurd declared length) into public/__image-fixtures/ so the optimizer can
-// be asked to process them; --fixtures probes them; --clean-fixtures removes
+// be asked to process them, plus a benign SVG and SVG bytes under a .png name,
+// which the optimizer must refuse because there is no dangerouslyAllowSVG;
+// --fixtures probes them; --clean-fixtures removes
 // them. They are never valid AVIF, never weaponized, and never committed.
 // Without --fixtures the harness probes only assets the application ships.
 //
@@ -44,7 +47,11 @@ const fixtures = {
   // PNG bytes served with an AVIF name and content type.
   "png-as.avif": PNG_1X1,
   "empty.avif": Buffer.alloc(0),
-  "garbage.avif": Buffer.from("not an image at all, just text pretending to be avif")
+  "garbage.avif": Buffer.from("not an image at all, just text pretending to be avif"),
+  // A benign SVG, and the same bytes under a PNG name: the optimizer sniffs the
+  // content, so both must be refused before any SVG decoder runs.
+  "plain.svg": Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#0a7"/></svg>'),
+  "svg-as.png": Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#0a7"/></svg>')
 };
 
 const image = (url, width = 64) => `${base}/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=75`;
@@ -85,6 +92,8 @@ results.push(await probe("shipped brand mark (png)", image("/brand/mathnexa-mark
 results.push(await probe("shipped game thumbnail (webp)", image("/media/games/number-cross.webp", 384)));
 results.push(await probe("shipped game thumbnail (avif, static)", `${base}/media/games/number-cross.avif`));
 results.push(await probe("shipped game thumbnail (avif via optimizer)", image("/media/games/number-cross.avif", 384)));
+results.push(await probe("shipped svg (static)", `${base}/media/games/crosscalc.svg`));
+results.push(await probe("shipped svg via optimizer refused", image("/media/games/crosscalc.svg", 64)));
 // Refusals that must hold regardless of version.
 results.push(await probe("remote url refused", image("https://example.com/a.png")));
 results.push(await probe("protocol-relative refused", image("//example.com/a.png")));
@@ -110,6 +119,7 @@ for (const result of results) {
     /refused|traversal|no url|width not allowed/.test(result.label) ? status.startsWith("4") :
     /missing file/.test(result.label) ? status.startsWith("4") :
     /fixture served/.test(result.label) ? status === "200" :
+    /fixture optimized (plain.svg|svg-as)/.test(result.label) ? status.startsWith("4") && !result.leak :
     /fixture optimized (truncated|oversized|png-as|empty|garbage)/.test(result.label) ? /^(2|4)\d\d$/.test(status) && !result.leak :
     /^2\d\d$/.test(status) && !result.leak;
   if (!okForLabel) failures += 1;
