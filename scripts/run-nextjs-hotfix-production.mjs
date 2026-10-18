@@ -12,7 +12,7 @@
 //   --stage=deploy-preview   upload the EXACT certified runtime to the production
 //                            project as a NON-aliased deployment built with the
 //                            production environment (--prod --skip-domain).
-//   --stage=probe-preview    health, webhook, canonical-host, admin, scheduler,
+//   --stage=probe-preview    health, webhook, canonical-host, admin, scheduler (reaches the route, fails closed),
 //                            forged-access and image probes on that deployment.
 //   --stage=promote          move the production alias to the candidate.
 //   --stage=probe-live       probe the configured webhook host, the apex, images,
@@ -206,17 +206,20 @@ async function probePreview() {
   results.thumbnailAvif = curlDeployment(id, "/media/games/number-cross.avif");
   evidence.previewProbes = results;
   // This deployment carries the production environment on a non-apex host, so
-  // every proxied path — pages, admin, the scheduler and fixture routes, static
-  // media — 308s to the apex (canonical host) while the two exempt machine
-  // endpoints answer directly: exactly the v1.2.7 contract, proven before any
-  // traffic moves. The image optimizer sits outside the proxy matcher, so it
-  // answers on this host too. Fail-closed behaviour of the proxied routes is
-  // proven on the apex after promotion and by the standing suites.
+  // every proxied path — pages, admin, the fixture route, static media — 308s
+  // to the apex (canonical host) while the exempt machine endpoints answer
+  // directly: the v1.2.7 contract, proven before any traffic moves. Since
+  // v1.2.25 the scheduler is the third exempt endpoint (the Vercel cron calls
+  // this host and does not follow redirects): it must reach the route and fail
+  // closed without the CRON_SECRET bearer. The image optimizer sits outside the
+  // proxy matcher, so it answers on this host too. Fail-closed behaviour of the
+  // proxied routes is proven on the apex after promotion and by the standing suites.
   const redirectsToApex = (result) => [307, 308].includes(result.status) && (result.location ?? "").startsWith(PRODUCTION_ORIGIN);
   const checks = {
     health: results.health.status === 200 && /"status":"ready"/.test(results.health.body),
     webhook: results.webhookUnsigned.status === 400 && /invalid-signature/.test(results.webhookUnsigned.body) && !results.webhookUnsigned.location,
-    canonicalHost: [results.home, results.account, results.pricing, results.admin, results.scheduler, results.fixture, results.gameRuntime, results.thumbnailAvif, results.forgedAccess].every(redirectsToApex),
+    canonicalHost: [results.home, results.account, results.pricing, results.admin, results.fixture, results.gameRuntime, results.thumbnailAvif, results.forgedAccess].every(redirectsToApex),
+    schedulerReachesRouteClosed: results.scheduler.status === 401 && /"error":"unauthorized"/.test(results.scheduler.body) && !results.scheduler.location,
     noServerErrors: Object.values(results).every((result) => result.status > 0 && result.status < 500),
     optimizer: results.optimizerIcon.status === 200 && /^image\//.test(results.optimizerIcon.contentType ?? ""),
     optimizerRemoteRefused: results.optimizerRemote.status >= 400 && results.optimizerRemote.status < 500
