@@ -1,7 +1,10 @@
 # MathNexa v1.2.25 candidate — exact 24-hour trial event and the daily reconciliation cron
 
-**Status: on protected staging, 2026-10-18. Not merged. Not in production.** Production and merge need the
-owner's personal approval. The owner approved this preparation: "prepare a v1.2.25 candidate on a new branch from
+**Status: RELEASED as v1.2.25 on 2026-10-18 22:26:49 UTC.** Production serves `dpl_8yXvDHZc8vCgmCqLmbkTwSzsa76y`,
+built from `6769f15`. The release record is `docs/releases/mathnexa-v1.2.25-release-record.md`. What follows is the
+candidate review as it stood before the release.
+
+*Earlier status:* on protected staging, not merged, not in production. The owner approved this preparation: "prepare a v1.2.25 candidate on a new branch from
 main ae9f54f with the trial-shape fix (e928ca9 only) and the reconcile-cron host fix (baa362c + a1bba53), run the
 gates, and deploy to protected staging only. No production, no merge."
 
