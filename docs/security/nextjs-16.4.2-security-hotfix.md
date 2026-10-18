@@ -1,6 +1,6 @@
 # MathNexa — Next.js 16.4.2 Security Hotfix (October 14, 2026 advisories)
 
-**Status: on protected staging. Not merged. Not in production. Final review 2026-10-18: HOLD (see the last section).** Production and merge need the owner's
+**Status: on protected staging. Not merged. Not in production. Final verdict 2026-10-18: GO on the owner's approval, with finding A (a benign Next 16.4 redirect-abort) accepted — see "Batch 3 results" and "Final verdict" at the end.** Production and merge need the owner's
 personal approval.
 
 | | |
@@ -577,3 +577,79 @@ full deployment id; an elided id makes the stage fail closed.
    push does not deploy production. It rebuilds the staging project's alias from `main`.
 4. Retire the follow-ups: the `sharp-source-map-js-remediation-plan.md` patch (on `ce4d251`) is superseded by this
    release.
+
+### Batch 3 results (2026-10-18, after the owner's Docker repair)
+
+The owner deleted the three stale entries through WSL and restarted Docker Desktop (engine 29.6.2). Local Supabase
+then started. The base worktree `0f8475b` (Next 16.3.8, sharp 0.35.4) was recreated and used; the candidate tree is
+`2210a47`, whose code under review is identical to `ad48cb3` (Next 16.4.2, sharp 0.35.5). All runs were local, on
+`next dev` with local Supabase. Synthetic users were deleted. The staging database was not touched.
+
+| Gate | Command | Candidate | Base `0f8475b` |
+| --- | --- | --- | --- |
+| Number Cross e2e (A/B) | `npm run test:e2e:number-cross` | **1 of 4 passed**: run 1 pass; runs 2, 3 and the original 10-17 run failed on `failedRequests` | **3 of 3 passed** (2 today, plus the v1.2.20 battery) |
+| Game suite | `npm run test:e2e:game-suite` | 6/6 | v1.2.20 pass |
+| School access | `npm run test:e2e:school-access` (throwaway local code and secret generated per run) | 21/21 | v1.2.20 pass |
+| Header sign-in → Sign out | scratch `auth-signout-probe.mjs` (real form, `signInAction` / `signOutAction`, 1 synthetic user deleted) | 10/10; cookies cleared; `/account`, `/subscription`, `/game-access` gated again; no aborted requests, no page errors | — |
+
+Two Number Cross attempts (one per side) never reached a test: `PGRST002` "Could not query the database for the
+schema cache", because each runner resets the local database at teardown. They were rerun with a PostgREST readiness
+wait (`final-review/batch3-rerun/batch3b.sh`). This is a harness race, not a result.
+
+**Finding A, classified: a Next.js 16.4 client behaviour change. Benign; candidate only.** The Playwright traces
+(`gates/test-results-number-cross-cand-2/`, `-cand-3/`) show the aborted requests are **Server Action POSTs that end
+in `redirect()`**:
+
+- `adminSignInAction` → `/admin/mfa` (run 2);
+- the MFA verify action → `/admin` (runs 2 and 3).
+
+In each case:
+
+- The response is `200` with `x-action-redirect: /admin;push`, `x-action-revalidated: 1` and the session
+  `Set-Cookie` headers (`mvh-admin-session`, `sb-…-auth-token`, and clearing `mvh-admin-mfa-pending`).
+- Then the browser reports `net::ERR_ABORTED` while the body (the inline RSC payload of the redirect target) is
+  still streaming. These redirect responses take about 2 s, because the admin session is created server-side.
+- With 16.4.2 the client router acts on the redirect header and navigates without consuming the rest of that body.
+  Base (16.3.8) never
+  shows an abort (0 of 3 runs).
+- The MFA enroll action, which does not redirect, completes normally.
+
+**Impact:**
+
+- The action has run on the server, and the cookies arrive with the headers.
+- The navigation lands on the redirect target, the admin session works, and the rest of the test passes (admin
+  games, draft preview, consumer sign-in, play, publication).
+- There are no console errors and no page errors.
+- The only observable effect is a cancelled request in the browser's network log, which the Number Cross spec's
+  strict `expect(failedRequests).toEqual([])` counts.
+
+Consumer sign-in and sign-out (a fast redirect) showed no abort in the probe. **Not a security or functional
+regression**, but the established Number Cross e2e suite is red on the candidate in 3 of 4 runs.
+
+**Unchanged open items** (not release blockers, and not caused by the candidate):
+
+- **G.** The staging database has refused synthetic entitlements since 2026-10-17, for base and candidate alike.
+  It needs an owner investigation of staging. The production database is separate.
+- **3D frame times.** The same-session hosted A/B is still not possible because of G. This change cannot move 3D
+  frame times: the game is a route-handler HTML document with identical runtime bytes.
+- **B.** The WebKit 3D grip-angle flake predates this change.
+
+### Final verdict (2026-10-18): GO on the owner's approval, with finding A accepted
+
+Every gate now has a base comparison or a reference, and none shows a functional, security or grip regression. The
+security exposure being fixed is current and direct: GHSA-p3m5, the Server Actions DoS, applies to six modules in
+production today. **Recommendation:** release with the procedure below, recording A as a known Next 16.4 behaviour
+change. Then, as a separate reviewed test-only change, narrow the Number Cross spec so it ignores `net::ERR_ABORTED`
+**only** for POST requests whose response carried `x-action-redirect`; everything else stays strict.
+
+`e2e/` is outside the pipeline's certified-runtime diff (`apps`, `packages`, `supabase`, manifests), so that change
+would not alter the certified candidate. **If the owner wants the suite green before release, it is NO-GO until that
+test change is reviewed**; the runtime candidate stays `ad48cb3` either way.
+
+**The release procedure above is current.**
+
+- `RELEASE_CERTIFIED_RUNTIME=ad48cb3`, `RELEASE_ROLLBACK_DEPLOYMENT=dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv`,
+  `RELEASE_PURPOSE=nextjs-16.4.2-security-hotfix`.
+- The pipeline asserts next 16.4.2 / sharp 0.35.5 from `npm ci`.
+- Commits after `ad48cb3` are docs only, so the runtime diff is empty.
+- Production was still `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv` (build `fe3e819`) at the last read-only check, 2026-10-18T06:01:15Z.
