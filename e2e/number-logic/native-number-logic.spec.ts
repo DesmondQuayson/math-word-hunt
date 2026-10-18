@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
+import { trackFailedRequests } from "../support/server-action-redirect-abort";
+
 const url = process.env.SUPABASE_TEST_URL ?? "";
 const secretKey = process.env.SUPABASE_TEST_SECRET_KEY ?? "";
 const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf8");
@@ -263,10 +265,10 @@ test.beforeAll(async () => {
 test("Draft Admin Preview completes all six modes and preserves native lifecycle contracts", async ({ page, context }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
-  const failedRequests: string[] = [];
   page.on("console", (message) => { if (message.type() === "error" && !message.text().includes("Autoplay")) consoleErrors.push(message.text()); });
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("requestfailed", (request) => failedRequests.push(new URL(request.url()).pathname));
+  // Every failed request counts except Next.js 16.4's redirecting Server Action abort (see the helper).
+  const failedRequests = trackFailedRequests(page);
   await page.addInitScript(() => {
     const host = window as typeof window & {
       __numberLogicAdminMediaProbe?: { calls: number; eligibleRejections: number };
@@ -412,7 +414,7 @@ test("Draft Admin Preview completes all six modes and preserves native lifecycle
   expect(page.url()).not.toContain("vercel.app");
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
-  expect(failedRequests).toEqual([]);
+  expect(await failedRequests()).toEqual([]);
 });
 
 test("published Play starts one real music element on the first ordinary gesture and keeps retries explicit", async ({ page, context }) => {

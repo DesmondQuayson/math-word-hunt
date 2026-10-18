@@ -3,6 +3,8 @@ import { createHmac } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
+import { trackFailedRequests } from "../support/server-action-redirect-abort";
+
 const url = process.env.SUPABASE_TEST_URL ?? "";
 const secretKey = process.env.SUPABASE_TEST_SECRET_KEY ?? "";
 const run = `number-cross-native-${Date.now()}`;
@@ -72,10 +74,10 @@ test.beforeAll(async () => {
 test("Draft Preview, native gameplay, access policy, responsive UI, and publication model remain coherent", async ({ page, context }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
-  const failedRequests: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("requestfailed", (request) => failedRequests.push(new URL(request.url()).pathname));
+  // Every failed request counts except Next.js 16.4's redirecting Server Action abort (see the helper).
+  const failedRequests = trackFailedRequests(page);
   await page.addInitScript(() => {
     Object.defineProperty(HTMLMediaElement.prototype, "play", {
       configurable: true,
@@ -293,5 +295,5 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
   await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
-  expect(failedRequests).toEqual([]);
+  expect(await failedRequests()).toEqual([]);
 });
