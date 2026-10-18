@@ -1,6 +1,6 @@
 # MathNexa — Next.js 16.4.2 Security Hotfix (October 14, 2026 advisories)
 
-**Status: on protected staging. Not merged. Not in production. Final verdict 2026-10-18: GO on the owner's approval, with finding A (a benign Next 16.4 redirect-abort) accepted — see "Batch 3 results" and "Final verdict" at the end.** Production and merge need the owner's
+**Status: on protected staging. Not merged. Not in production. 2026-10-18 (latest): NO-GO pending the owner's decision on finding A2 — Number Cross green on candidate and base with the narrowed check; Number Logic 2/3 on the candidate (see "Narrowed failed-request check" at the end). Runtime candidate unchanged: `ad48cb3`.** Production and merge need the owner's
 personal approval.
 
 | | |
@@ -653,3 +653,97 @@ test change is reviewed**; the runtime candidate stays `ad48cb3` either way.
 - The pipeline asserts next 16.4.2 / sharp 0.35.5 from `npm ci`.
 - Commits after `ad48cb3` are docs only, so the runtime diff is empty.
 - Production was still `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv` (build `fe3e819`) at the last read-only check, 2026-10-18T06:01:15Z.
+
+### Narrowed failed-request check (2026-10-18, owner request: "show me it green on candidate and base")
+
+**Change: commit `6d22188`, test-only, 4 files under `e2e/`.**
+
+- **The helper:** `e2e/support/server-action-redirect-abort.ts`.
+  - `isRedirectingServerActionAbort` tolerates a failed request **only** when all of these hold:
+    - the method is POST;
+    - the failure text is exactly `net::ERR_ABORTED`;
+    - there is a non-empty `Next-Action` request header;
+    - the response is 2xx;
+    - the response carries a non-empty `x-action-redirect` header.
+  - `trackFailedRequests(page)`:
+    - records pathnames as before;
+    - awaits every classification before the final assertion;
+    - reports anything it cannot classify;
+    - logs each tolerated abort, so a run shows whether the 16.4 behaviour occurred.
+- **Spec changes:** `native-number-cross.spec.ts` and `native-number-logic.spec.ts` are the only specs with the strict
+  failed-request check. Each changes three lines (listener → tracker, `expect(await failedRequests()).toEqual([])`).
+  The console-error and page-error assertions are unchanged.
+- **Helper test:** `node --test e2e/support/server-action-redirect-abort.test.mjs`, **3/3 tests**.
+  - The redirecting Server Action abort is ignored, with header names case-insensitive.
+  - All of these are still reported:
+    - a non-action POST abort;
+    - an empty `Next-Action`;
+    - an action abort without a redirect;
+    - action responses of 500 and 404;
+    - no response;
+    - a network error (`ERR_CONNECTION_RESET`);
+    - missing failure text;
+    - a GET failure;
+    - a request whose `response()` or `headers()` throws.
+- **Mutation proof** (scratch `gates/narrowed-check/mutate-helper.mjs`, not committed): **9/9 mutants caught**, and
+  the unmodified control passes. The mutants are:
+  - a loosened matcher that ignores every `ERR_ABORTED`;
+  - a dropped Next-Action check;
+  - a dropped redirect-header check;
+  - a dropped 2xx check;
+  - a dropped POST check;
+  - any failure text accepted;
+  - a tracker that drops everything;
+  - a tracker that tolerates classification errors;
+  - a tracker that doesn't await.
+
+**Runs.** All local on `next dev` + local Supabase, alternating sides, with a PostgREST readiness wait before each.
+Candidate = `ad48cb3` runtime + `6d22188` (Next 16.4.2); base = `0f8475b` + the same four files (Next 16.3.8).
+
+| Suite | Candidate (passed / runs; tolerated aborts per run) | Base (passed / runs; tolerated) |
+| --- | --- | --- |
+| `npm run test:e2e:number-cross` | **3/3** (1 · 0 · 2 tolerated) | **3/3** (0 · 0 · 0) |
+| `npm run test:e2e:number-logic` (2 tests per run) | **2/3** — run 1: 1 failed, 1 passed (0 tolerated); runs 2 and 3: 2/2 each (1 · 1 tolerated) | **3/3** (2/2 each; 0 tolerated) |
+
+**Tolerated aborts, all redirecting Server Actions:**
+
+- `POST /admin/mfa -> /admin;push` ×3;
+- `POST /admin/sign-in -> /admin/mfa;push` ×1;
+- `POST /sign-in -> /games;push` ×1. The consumer sign-in does it too.
+
+Base never produced one.
+
+**New finding A2 (unexpected; reported, not tolerated, as the owner's rule requires).** Number Logic candidate
+run 1 failed only on the final failed-request assertion: `"/admin/mfa"`. Its trace
+(`gates/narrowed-check/test-results-number-logic-cand-1/`) shows the request is the **MFA enroll** Server Action
+(`next-action 60edd846`):
+
+- It answered **200** (`text/x-component`, chunked) with **no `x-action-redirect`**.
+- Chromium aborted it 663 ms after it started. Nothing else was in flight, and the next action (verify) started
+  20 s later.
+- The page still rendered the setup secret, and the test read it, verified the TOTP and completed. There were no
+  console or page errors, so the action's result was fully delivered before the abort.
+- In the Number Cross trace, the same enroll action completed (406 KB) and the redirecting verify was the one
+  aborted.
+
+So, with 16.4.2, the client can also cut off the tail of a **non-redirecting** action response once it has resolved
+the result. It happened in 1 of 6 candidate runs and 0 of 6 base runs. It is the same family as A: no functional
+effect was observed, but the owner's narrowing deliberately still reports it.
+
+**Release candidate identity.** The pipeline's code-identity check (`assertRuntimeIsCertified` in
+`scripts/run-nextjs-hotfix-production.mjs`) diffs only `apps`, `packages`, `supabase`, `package.json`,
+`package-lock.json`, `turbo.json` and `tsconfig.json` against `RELEASE_CERTIFIED_RUNTIME`. `e2e/` is outside it, so
+**the runtime is unchanged and `RELEASE_CERTIFIED_RUNTIME` stays `ad48cb3`**. `deploy-preview` uploads the
+committed tree, so the uploaded source will include the new `e2e/` files, but the app build does not import them.
+`/api/health` will report the deployed commit as `build`, as it did for v1.2.23.
+
+**Verdict: NO-GO for now, by the owner's own criterion.** Number Cross is green on both sides (3/3 + 3/3). Number
+Logic is green on base (3/3) but **not** on the candidate (2/3), because of A2. The owner decides:
+
+- **(a)** Accept A2 as the same benign 16.4 behaviour and release with the recorded procedure, keeping Number Logic
+  as a known intermittent red.
+- **(b)** Extend the matcher to non-redirecting Server Action aborts. That is a deliberate loosening the owner
+  ruled out, so it would need a stronger signal than headers.
+- **(c)** Investigate upstream (Next.js 16.4 / React 19.3 action response handling) before releasing.
+
+The runtime candidate stays `ad48cb3` in every case.
