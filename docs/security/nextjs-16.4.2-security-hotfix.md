@@ -1,6 +1,6 @@
 # MathNexa — Next.js 16.4.2 Security Hotfix (October 14, 2026 advisories)
 
-**Status: on protected staging. Not merged. Not in production.** Production and merge need the owner's
+**Status: on protected staging. Not merged. Not in production. Final review 2026-10-18: HOLD (see the last section).** Production and merge need the owner's
 personal approval.
 
 | | |
@@ -15,8 +15,9 @@ personal approval.
 
 ## Verdict
 
-**GO for production, on the owner's approval.** Every local gate, the staging certification and the hosted
-regressions pass with no new failure. GHSA-p3m5 (Server Actions DoS) is directly reachable on production
+**2026-10-17: GO for production, on the owner's approval. Superseded 2026-10-18 by the final security release
+review below: HOLD — no regression found, but one e2e failure is unclassified and four gates could not run.**
+Every local gate, the staging certification and the hosted regressions in this section passed with no new failure. GHSA-p3m5 (Server Actions DoS) is directly reachable on production
 today, so this patch should not wait for a feature release.
 
 ## Advisories (verified 2026-10-17 against nextjs.org and GitHub)
@@ -201,3 +202,238 @@ attempted against any hosted environment.
 Git-ignored, in this worktree: `qa-artifacts/nextjs-16-4-2/` — `logs/` (every gate log, before/after `npm audit` JSON,
 build stats, staging certification evidence, hosted review transcripts), `tug-classic/` and `tug-3d/` (the hosted
 review screenshots and `staging-3d-results.json`; the tracked owner-review baselines were restored).
+
+## Final security release review (2026-10-18)
+
+Owner request, relayed by the release session: close the remaining gates on the existing candidate `ad48cb3` with no new
+development, promotion or merge. A temporary base worktree at `0f8475b` (Next 16.3.8, sharp 0.35.4) provided the
+A/B runs and was removed afterwards. Gates that already passed on 2026-10-17 (above) were not repeated.
+
+**Verdict: HOLD. Not GO yet, and not a NO-GO on the merits.** Nothing that ran shows a regression caused by the
+upgrade. However:
+
+- one e2e failure (number-cross, below) could not be classified against base;
+- four gates could not run, because Docker Desktop on the review machine crashes at start and local Supabase is
+  unavailable;
+- the staging database refused synthetic entitlements on 2026-10-18, for base and candidate alike.
+
+Under the owner's "stop and report anything unexpected" rule, this is reported, not worked around. **Path to GO**
+is at the end of this section.
+
+**State at the time of review** (2026-10-18 04:33 UTC, read-only):
+
+- Production still serves `dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv`, build `fe3e819`.
+- `origin/main` is `0f8475b` and the branch is `d1b2f43`.
+- The staging alias is `dpl_6L8TQb2Z…`, and preview `dpl_6F7UFDK…` serves build `ad48cb3`.
+- No new Next.js advisory since 2026-10-14. 16.4.2 and sharp 0.35.5 are still the latest versions, and GitHub's
+  global advisory database still returns 404 for all three advisory IDs.
+
+### Gate table
+
+Hosted results are from 2026-10-17 unless noted. "Base" means `0f8475b` run the same way, or the named release
+record.
+
+| # | Gate | Command / suite | Candidate `ad48cb3` | Base / reference | Where |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Upload unit | `vitest platform-core src/admin-files src/public-api.test.ts` | 12/12 (image validation 2, PDF validation 3, public API) | validator source unchanged since `53f6f16` | local |
+| 1 | Admin route surface | `vitest platform-web test/security/security-baseline.test.ts lib/admin` | 136/136 (admin gate and CSRF on all 31 admin routes incl. `media/upload`; admin session) | `test:security` 315/315 on 10-17 | local |
+| 1 | Upload validator + sharp pipeline probe | scratch `final-review/upload-probe.mjs` (real `inspectImageUpload`, then the route's exact `sharp()` pipeline) | 14/14 — see note | — | local |
+| 1 | Admin media upload e2e | `test:e2e:phase8f` (owner TOTP, real PNG through `/admin/media/upload` → draft-saved → published → served 200) | 1/1 | v1.2.20 battery pass | local `next dev` |
+| 1 | Admin PDF resource upload e2e | `test:e2e:phase8d` | 1/1 | v1.2.20 pass | local |
+| 1 | Hosted admin upload | — | not run: needs the owner's AAL2 admin session | — | — |
+| 2 | Auth unit | `vitest platform-web lib/auth components/auth components/forms components/site-header.test.tsx components/consumer lib/staging-access lib/school-access`; `test:phase11` | 126/126; 14/14 | — | local |
+| 2 | Consumer identity e2e | `test:e2e:phase7b` (sign-up minimum data and confirmation, signed-out redirects, protected assets deny, forged entitlement refused, 24-h trial) | 10/10 | v1.2.20 pass | local |
+| 2 | Access-flow e2e | `test:e2e:phase9` (account-intent paths, entitled navigation, Sign out shown, navigation budgets, Smart Board visual baseline) | 17/17 | v1.2.20 pass | local |
+| 2 | Admin auth e2e | `test:e2e:phase8a` (only sign-in public, non-admin genuine 404, TOTP, 2-h / idle session, revocation, a signed-in non-admin's "Sign out and continue" Server Action) | 5/5 | v1.2.20 pass | local |
+| 2 | Hosted sign-in and sign-up through the real forms | Tug classic review | 99/99 | v1.2.23 99/99 | hosted preview |
+| 2 | Staging gate certification | `invoke-nextjs-hotfix-staging.ps1 -Stage all` | PASS | v1.2.8 pass | hosted alias |
+| 2 | School access e2e | `test:e2e:school-access` | **not run**: needs local school-access config (generated for the rerun), then blocked by Docker | — | local |
+| 2 | Consumer header Sign out click | scratch `final-review/auth-signout-probe.mjs` | **not run**: blocked by Docker | — | local |
+| 3 | Number Logic | `test:number-logic`, `:native`, `test:e2e:number-logic` | 26/26, 7/7, 2/2 | — | local |
+| 3 | Number Cross | `test:number-cross`, `:native`, `test:e2e:number-cross` | 26/26 (10-17), 5/5, **e2e 1 failed** (finding A) | base rerun blocked by Docker | local |
+| 3 | CrossCalc V2 | `test:crosscalc:v2`, `test:e2e:crosscalc:v2`, `:native` | 22/22 (10-17), 2/2, native 7/9 (finding C, environment) | — | local |
+| 3 | Game suite | `test:e2e:game-suite` | **not completed**: PostgREST startup race after the runner's DB reset (finding D); rerun blocked by Docker | v1.2.20 pass | local |
+| 3 | Math Vocabulary Hunt | `test:e2e:mvh-session`, `test:e2e:mvh-audio`, `test:e2e:mvh-real-runtime`, `test:mvh-audio-version-atomic` | 4/4, 8/8, 40/40, 3/3 | — | local |
+| 3 | Math Tug of War local, classic | `run-math-tug-of-war-e2e.mjs` (desktop Chromium/WebKit, Pixel 7, iPhone 13, iPad) | 107 passed, 13 skipped | v1.2.23 107/13 | local static harness |
+| 3 | Math Tug of War local, 3D | same runner, 3D projects | Chromium 25 passed / 2 skipped; WebKit desktop 11/13 (finding B) | v1.2.23 Chromium 25/2; WebKit 12/13 with one page loss per run | local |
+| 3 | Hosted-only games | Tug classic and 3D reviews | 99/99, 57/57 | v1.2.23 99/99, 57/57 | hosted preview |
+| 4 | Multiplayer | `run-math-tug-of-war-online-e2e.mjs` (`next dev` + local Supabase Realtime) | 13 passed, 1 skipped | v1.2.23 13/1 | local |
+| 4 | Multiplayer, hosted | Tug classic review: Online Match create/join (2 rooms removed); Tug 3D review: Chromium host + WebKit guest (1 room) | pass | v1.2.23 pass | hosted preview |
+| 5 | Mobile / tablet / desktop contract | `test:e2e:mobile-gameplay` (Chromium + WebKit, desktop + mobile) | 151 passed, 41 skipped by project design | — | local |
+| 5 | Mobile audit | `audit:mobile-gameplay` | 16/16 | — | local |
+| 5 | Hosted devices | 3D review: desktop 1366, phones 390 / 430 / Pixel 7, Smart Board 1920×1080, iPad 820×1180 and 1180×820 WebKit, WebKit desktop 1366×768; staging Chromium 8 pages | pass | v1.2.23 pass | hosted |
+| 5 | Smart Board | exists (see below) | all pass | — | local + hosted |
+| 6 | Performance | see "Performance and runtime" | no regression measured | — | local + hosted |
+| 7 | Rope grip, owner criterion | see "Rope grip evidence" | all six characters, both hands, every device: pass | v1.2.23 | hosted + local |
+| 8 | Lockfile / advisories | `npm ci`; `npm ls next sharp source-map-js eslint-config-next`; `npm audit` | clean `npm ci`, lockfile unchanged; next 16.4.2, sharp 0.35.5, source-map-js 1.2.2; production audit 0; full 7 (dev-only, unchanged) | before: production 2 high | local |
+
+**Upload probe** (`gates/upload-probe.txt`), with sharp 0.35.5, libvips 8.18.7 and librsvg 2.63.2:
+
+- **Converted to WebP:** PNG, JPEG and VP8X WebP.
+- **Quarantined:**
+  - SVG, SVG named `.png` or declared `image/webp`;
+  - AVIF, AVIF named `.png`, GIF;
+  - PNG bytes declared `image/jpeg`;
+  - a PNG declaring 9000×9000;
+  - an empty file;
+  - a PNG-signature + SVG-body polyglot. It passes the magic check, but libvips picks the PNG loader and rejects
+    it ("corrupt header"); the route catches that as `media-decoder-rejected`. No SVG decoder runs.
+- **Pre-existing limitation (not a regression, fail-closed):** the validator reads WebP dimensions only from a
+  `VP8X` header. So simple lossy (`VP8`) and lossless (`VP8L`) WebP uploads are quarantined with
+  `invalid-dimensions`. `image-validation.ts` is unchanged since `53f6f16`.
+
+**Smart Board (1920×1080) coverage.** The suites listed below exist, and all of them passed:
+
+- Phase 9 "teacher-first homepage matches mobile, desktop, and smartboard visual baselines".
+- The mobile-gameplay contract: "tablet, landscape phones, desktop and Smart Board" for every game, Math
+  Vocabulary Hunt "desktop and Smart Board keep the full teacher bar", and CrossCalc "fits the 1440 × 900 desktop and
+  the Smart Board".
+- The mobile audit at 1920×1080.
+- The game-suite, Number Cross, Number Logic and CrossCalc 1920 viewports.
+- Tug local `chromium-3d-smart-board` (visual acceptance) and the 1920×1080 reflow check.
+- Hosted 3D `smart-board-1920x1080` (grip and frame time).
+- The hosted classic 1920 badge check.
+
+### Rope grip evidence (owner's criterion: all six characters visibly hold the rope with both hands)
+
+**Assertions.**
+
+- **Hosted** (`scripts/review-math-tug-of-war-3d-staging.mjs`, probe `e2e/math-tug-of-war/player-camera-hands.ts`).
+  For every puller (`turquoise-0..2`, `pink-0..2`) and each hand, the review counts from the gameplay camera:
+  - the hand's visible pixels, which must be at least 10, or at least 4 on a phone;
+  - its pixels touching the rope, which must be at least 8, or at least 3 on a phone.
+
+  It does this at rest and after a pull, on 8 devices: 6 characters × 2 hands × 2 states × 8 devices =
+  **192 hand measurements on the staging candidate: all pass**.
+- **Local.** `scene-3d.spec.ts` "visual acceptance: from the ordinary gameplay camera every puller visibly holds the
+  rope with both hands" runs the same probe at rest, mid-heave, mid-yank both ways, after strong pulls both ways,
+  when tired, and at the release. It is **7/7** on `chromium-3d`, `webkit-3d`, `chromium-3d-mobile` (Pixel 7),
+  `chromium-3d-smart-board`, `webkit-3d-ipad`, `webkit-3d-ipad-portrait` and `webkit-3d-iphone`. Per-hand
+  rest pixels are in `grip/local-visual-acceptance-hands.txt`.
+
+**Per character** (hosted, candidate vs v1.2.23 staging `3d23c9c`). Each cell gives the hands on the rope, then the
+weaker hand's visible/touching px, with v1.2.23 in brackets. The full per-character table is
+`grip/grip-per-character.md`. Per device, the minima over all twelve hands:
+
+| Device / state | Fewest visible / touching px over all 12 hands, candidate (v1.2.23) | All 6 × 2 hands on rope |
+| --- | --- | --- |
+| desktop 1366, rest · after pull (≥10/8) | 22/19 (21/18) · 16/14 (16/12) | yes · yes |
+| phone 390×844, rest · after pull (≥4/3) | 9/9 (9/9) · 9/9 (9/9) | yes · yes |
+| phone 430×932, rest · after pull (≥4/3) | 12/12 (12/12) · 13/12 (13/13) | yes · yes |
+| Pixel 7, rest · after pull (≥4/3) | 11/11 (10/10) · 11/11 (12/12) | yes · yes |
+| Smart Board 1920×1080, rest · after pull (≥10/8) | 42/35 (43/34) · 40/29 (41/28) | yes · yes |
+| iPad 820×1180 WebKit, rest · after pull (≥10/8) | 22/20 (24/21) · 22/20 (22/19) | yes · yes |
+| iPad 1180×820 WebKit, rest · after pull (≥10/8) | 15/14 (13/13) · 13/13 (13/13) | yes · yes |
+| WebKit desktop 1366×768, rest · after pull (≥10/8) | 25/20 (19/16) · 19/16 (18/15) | yes · yes |
+
+**Screenshots** (hosted candidate, real pixels; `qa-artifacts/nextjs-16-4-2/`):
+
+- `grip/grip-closeups-desktop-rest-v1.2.23-top-candidate-bottom.png`: per-character 3× close-ups, v1.2.23 above and
+  candidate below. All twelve fists are on the rope in both.
+- `grip/grip-teams-desktop-pull-v1.2.23-top-candidate-bottom.png`: both teams mid-pull. All twelve fists are on the
+  rope in both; the frames are captured at different rope positions.
+- `grip/candidate-{rest,pull}-{turquoise,pink}-{left,middle,right}-3x.png`: single-character close-ups.
+- Full device shots: `tug-3d/30–35-staging-3d-*.png`.
+
+**Why the grip cannot have moved.** The game document is served by a route handler as standalone HTML, and the
+served runtime hash `79574206b9401535` is identical to production v1.2.23. Locally, the harness, runtime and specs
+are byte-identical to base.
+
+### Performance and runtime
+
+| Measure | Base `0f8475b` | Candidate | Where / method |
+| --- | --- | --- | --- |
+| Build | route table, 70 static pages | identical; client JS −0.6 %, CSS byte-identical, server −4.5 % | local build (10-17) |
+| Navigation budgets | — | Phase 9 `navigation-performance.spec.ts` budgets pass | local |
+| Server TTFB, staging previews of base and candidate (same project and env, `vercel curl`, median of 4, after a warm-up) | `/` 527 ms · `/sign-in` 395 · `/access` 414 · `/api/health` 259 | 529 · 472 · 436 · 242 | hosted; ranges overlap (e.g. `/sign-in` 377–424 vs 354–533); Brotli HTML +~140 B |
+| 3D frame time (hosted review, 8 devices) | v1.2.23 run 2026-10-14: 7.2–10.4 ms | 10-17 run: 8.5–16.3 ms, same draw calls (155/167), tier `medium`, 0 downgrades | hosted; cross-day — see note |
+
+**Page weight**, local A/B: production-public builds of both trees, `next start`, Chromium 1366×900, median of 5 cold
+loads, alternating. Bytes are the encoded (gzip) bodies transferred.
+
+| Route | Status | All bytes | JS (files) | CSS | TTFB ms | DCL ms | Load ms |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | 200 | 200,040 → 201,218 | 147,668 → 148,865 (8/8) | 24,308 → 24,308 | 19 → 18 | 310 → 294 | 310 → 294 |
+| `/sign-in` | 200 | 189,907 → 192,080 | 139,393 → 140,569 (7/7) | = | 9 → 9 | 250 → 244 | 250 → 250 |
+| `/sign-up` | 200 | 190,971 → 191,050 | 139,393 → 140,569 (7/7) | = | 9 → 8 | 246 → 246 | 248 → 246 |
+| `/access` | 200 | 197,397 → 197,530 | 141,078 → 142,234 (8/8) | = | 15 → 16 | 268 → 263 | 268 → 264 |
+| `/privacy` | 200 | 197,520 → 198,680 | 145,004 → 146,214 (8/8) | = | 12 → 11 | 254 → 257 | 254 → 257 |
+| `/terms` | 200 | 197,505 → 198,704 | 145,004 → 146,214 (8/8) | = | 11 → 11 | 260 → 255 | 260 → 255 |
+| `/admin/sign-in` (404 in production-public) | 404 | 193,201 → 194,331 | 139,393 → 140,569 (7/7) | = | 13 → 15 | 104 → 111 | 304 → 229 |
+
+Client JS is about +1.2 kB per page (+0.8 %, the newer React 19.3 snapshot). Chunk counts are the same, CSS is
+byte-identical, and the timings are equal within noise. There were no page errors on either side.
+
+**3D frame times.** The 2026-10-17 candidate run is 19–62 % slower per frame than the 2026-10-14 v1.2.23 run. Both
+runs used the same GPU-bound measuring browser on the review machine, on different days, and the candidate run came
+straight after a full local battery. The difference cannot come from this change:
+
+- the game page is a route-handler HTML document, with no React or Next client runtime;
+- its runtime bytes are identical;
+- draw calls, quality tier and downgrades are unchanged.
+
+A same-session A/B (base preview vs candidate preview) was attempted on 2026-10-18. Both runs stopped at the same
+setup step: the staging database refused the synthetic entitlement (finding G). So the frame-time comparison is
+**not closed**.
+
+### Findings
+
+- **A — Number Cross e2e (candidate, `next dev`), unclassified.** The flow completed: admin TOTP sign-in, draft
+  preview, sign-in, play, publication model. The final hygiene assertion
+  `expect(failedRequests).toEqual([])` then received `["/admin/mfa", "/admin/mfa"]`: two browser requests to
+  `/admin/mfa` reported `requestfailed` during the admin TOTP enrollment and verification. Both MFA Server Actions
+  returned 200 in the server log. This pattern (navigation-cancelled RSC/action requests, `ERR_ABORTED`) matches the
+  known Chromium quirk recorded for `/sign-up`, but it was seen once and not reproduced. The trace was lost when the
+  next suite cleared `test-results/`, and the base/candidate A/B (2 runs each) could not start because of finding F.
+  The same admin MFA flow passes in Phase 8A (5/5), which does not assert on aborted requests. **Status: open; must be
+  classified before GO.**
+- **B — Math Tug of War `webkit-3d` (local, WebKit on Windows): pre-existing, not a regression.**
+  - `every hand closes around the rope…` fails on "after the pull: turquoise-2 Right rope along the fist":
+    `channelDeg` 50 / 51 vs the limit `< 50`.
+  - It reproduced on **base `0f8475b` 1 of 3** and on the **candidate 2 of 3**, with byte-identical runtime and
+    specs. It fails the same way on both sides.
+  - The same hand passed the earlier assertions in that loop: on the rope, the rope through the fist, reach and
+    wrist angle. The test then stops on the angle, so that hand's coverage check did not run.
+  - `3D layer loads…` failed once with "Target page, context or browser has been closed", the known Windows
+    WebKit page loss (it passed 3/3 in the A/B).
+  - The owner-criterion test, visual acceptance, passes on `webkit-3d`.
+- **C — CrossCalc V2 native provenance (environment).** 2 of 9 fail with "standalone source missing": the
+  standalone CrossCalc checkout (`CROSSCALC_SOURCE_DIR` or `../../crosscalc`) does not exist on this machine. The 7
+  runtime assertions pass.
+- **D — Game suite (environment).** `PGRST002 "Could not query the database for the schema cache"` came right after
+  the runner's own `supabase db reset`. The runner waits only for Auth, not for PostgREST, so it is a readiness
+  race. The rerun is blocked by F.
+- **E — School access e2e (configuration).** The runner needs `MATHNEXA_SCHOOL_ACCESS_CODE` and
+  `MATHNEXA_SCHOOL_ACCESS_SESSION_SECRET`. The follow-up run generates throwaway local values; it is blocked by F.
+- **F — Docker Desktop crashes at start (review machine, environment).** After the session's process restart,
+  Docker Desktop 4.83.0's backend fails with "initializing Inference manager: listening on
+  unix://…/AppData/Local/Docker/run/dockerInference: remove …: The file cannot be accessed by the system". Three
+  stale AF_UNIX socket reparse points from 2026-10-14 sit in `%LOCALAPPDATA%\Docker\run\`. Docker shows an error
+  dialog, and local Supabase is unavailable. **Not repaired:** that changes the owner's Docker installation. Repair,
+  with Docker Desktop quit: delete `dockerInference`, `dockerEthernetVfkit` and `userAnalyticsOtlpHttp.sock` in
+  that folder, then start Docker Desktop and run `npx supabase start`.
+- **G — Staging database refuses synthetic entitlements (environment, 2026-10-18).** The hosted 3D review creates a
+  synthetic subscriber. The user is created, but the `consumer_accounts` update or the `consumer_game_entitlements`
+  insert then fails (`synthetic-entitlement-failed`). This happened identically on the base preview `0f8475b` and on
+  the candidate preview, and the review deleted its user each time. The same script passed 57/57 on 2026-10-17, so
+  the staging database changed in between. That is outside this branch, and the schema was not inspected. Production
+  is unaffected (separate project; checked read-only).
+
+### Path to GO
+
+1. Repair Docker Desktop (F) and start local Supabase.
+2. Run `scratchpad/batch3.sh` as archived in `final-review/` (about 25 minutes, all local):
+   - Number Cross e2e: candidate, base, candidate, base. If base shows the same `/admin/mfa` aborts, A is
+     pre-existing. If only the candidate does, it is a 16.4 behaviour change to investigate.
+   - the game suite;
+   - school access with generated local config;
+   - the sign-in / Sign out probe.
+3. Find out what changed in the staging database (G). Then repeat the same-session hosted 3D A/B for frame times;
+   this is optional for security, and needed only to close the performance comparison.
+4. If A is pre-existing and the reruns pass, the verdict returns to **GO on the owner's approval**. The release plan
+   above is unchanged.
+
+Evidence for this section: `qa-artifacts/nextjs-16-4-2/gates/` (final-review logs, upload probe, lockfile
+consistency, hosted TTFB raw and summary, page-weight A/B JSON, partial 2026-10-18 3D results) and
+`qa-artifacts/nextjs-16-4-2/grip/` (per-character table, close-ups, local visual-acceptance JSON and per-hand
+annotations, WebKit A/B logs).
