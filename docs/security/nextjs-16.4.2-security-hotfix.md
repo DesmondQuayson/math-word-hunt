@@ -1,7 +1,12 @@
 # MathNexa — Next.js 16.4.2 Security Hotfix (October 14, 2026 advisories)
 
-**Status: on protected staging. Not merged. Not in production. 2026-10-18 (latest): NO-GO pending the owner's decision on finding A2 — Number Cross green on candidate and base with the narrowed check; Number Logic 2/3 on the candidate (see "Narrowed failed-request check" at the end). Runtime candidate unchanged: `ad48cb3`.** Production and merge need the owner's
-personal approval.
+**Status: RELEASED as v1.2.24 on 2026-10-18.** The owner authorized the release, accepting findings A and A2.
+Production serves `dpl_FMypQGtyH77iytSB8mVukfeANhUX`, built from `30de166`, with the certified runtime `ad48cb3`.
+Tag `v1.2.24` is on `30de166`, and `main` was fast-forwarded to it. The release record is
+`docs/releases/mathnexa-v1.2.24-release-record.md`. The sections below are the pre-release review as it stood.
+
+*Earlier status:* on protected staging; NO-GO pending the owner's decision on finding A2. Number Cross was green on
+candidate and base with the narrowed check; Number Logic was 2/3 on the candidate.
 
 | | |
 | --- | --- |
