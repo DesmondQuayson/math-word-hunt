@@ -437,3 +437,143 @@ Evidence for this section: `qa-artifacts/nextjs-16-4-2/gates/` (final-review log
 consistency, hosted TTFB raw and summary, page-weight A/B JSON, partial 2026-10-18 3D results) and
 `qa-artifacts/nextjs-16-4-2/grip/` (per-character table, close-ups, local visual-acceptance JSON and per-hand
 annotations, WebKit A/B logs).
+
+### Follow-up 2026-10-18: Docker repair attempt (owner-approved), still blocked
+
+The owner approved the Docker repair and a rerun of batch 3 (relayed by the release session). The outcome:
+
+- **Docker Desktop was already not running**: there was no Docker process to quit and no error dialog left open.
+- **The three stale entries in `%LOCALAPPDATA%\Docker\run\` could not be removed from Windows.** They are
+  `dockerInference`, `dockerEthernetVfkit` and `userAnalyticsOtlpHttp.sock`: 0 bytes, reparse points, 2026-10-14
+  19:07–19:08 local.
+  - `Remove-Item`, `del /f` and `fsutil reparsepoint query` all fail with error 1920, "The file cannot be accessed
+    by the system".
+  - Git Bash `rm -f` only suppresses "no such file" and leaves them in place.
+  - The session is not elevated.
+  - They are WSL special files, created through WSL's view of `C:`. WSL's `docker-desktop` distro sees them at
+    `/mnt/host/c/Users/quays/AppData/Local/Docker/run/` (a read-only `ls` confirmed this).
+- **Removal through WSL was refused by this session's permission policy** (irreversible local deletion). A relayed
+  approval does not override that, and the policy was not worked around. The distro was stopped again with
+  `wsl --terminate docker-desktop`. Nothing in the Docker install or settings changed, and the three files are
+  untouched.
+- **So batch 3 did not run.** That means the Number Cross A/B, the game suite, school access and the sign-out probe.
+  Finding A remains **unclassified**, and the verdict stays **HOLD**.
+
+**For the owner** (PowerShell, Docker Desktop not running): remove the three files through WSL, stop the distro,
+then start Docker Desktop.
+
+```powershell
+wsl -d docker-desktop -- rm /mnt/host/c/Users/quays/AppData/Local/Docker/run/dockerInference /mnt/host/c/Users/quays/AppData/Local/Docker/run/dockerEthernetVfkit /mnt/host/c/Users/quays/AppData/Local/Docker/run/userAnalyticsOtlpHttp.sock
+wsl --terminate docker-desktop
+```
+
+After that: `npx supabase start` in the worktree, then batch 3 from `qa-artifacts/nextjs-16-4-2/gates/final-review/`
+(about 25 minutes). It needs the base worktree `C:/GitHub/mathnexa-nextjs-base` at `0f8475b`, recreated with
+`git worktree add --detach` and `npm ci`.
+
+**Decision rule for finding A.**
+
+- If base `0f8475b` also reports aborted `/admin/mfa` requests, or neither side reproduces in 2 + 2 runs, A is not a
+  regression. With the game suite, school access and sign-out passing, the verdict becomes **GO on the owner's
+  approval**.
+- If only the candidate reproduces, it is a Next.js 16.4 behaviour change in the admin MFA flow, to investigate
+  before release.
+- **Owner's alternative.** The owner may accept A as an unclassified, low-impact finding and release now. The
+  evidence for that:
+  - the admin MFA flow completes (Phase 8A 5/5, and the Number Cross flow passed through MFA);
+  - the server returned 200 for both MFA actions;
+  - the same pattern exists as a known Chromium quirk.
+
+## Production release procedure (only after the owner's explicit GO)
+
+PowerShell, from `C:\GitHub\mathnexa-nextjs-16-4`, with the Vercel CLI signed in.
+
+**The pipeline fails closed** at each of these checks:
+
+- the tree is clean;
+- the code under review is byte-identical to `ad48cb3` (`apps`, `packages`, `supabase`, manifests, lockfile);
+- `next` is 16.4.2 and `sharp` is 0.35.5 in `node_modules`;
+- the apex serves the expected rollback deployment;
+- the staged deployment holds no production alias.
+
+**Every stage prints an `EVIDENCE` JSON path.** Keep those files for the release record.
+
+```powershell
+Set-Location C:\GitHub\mathnexa-nextjs-16-4
+git fetch origin
+git status -sb                      # clean; at origin/fix/security-nextjs-16-4-2 (docs-only commits after ad48cb3)
+Test-Path apps\platform-web\.env.local   # must be False (a local env file would be uploaded)
+npm ci
+$env:RELEASE_CERTIFIED_RUNTIME   = 'ad48cb3'
+$env:RELEASE_ROLLBACK_DEPLOYMENT = 'dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv'
+$env:RELEASE_PURPOSE             = 'nextjs-16.4.2-security-hotfix'
+
+# 1. Read-only: the apex must serve dpl_3dkm5…; health, webhook and host behaviour are recorded.
+node scripts/run-nextjs-hotfix-production.mjs --stage=preflight
+# 2. Upload the certified runtime to the PRODUCTION project without moving any alias (--prod --skip-domain).
+#    Prints PREVIEW {"previewUrl":"https://mathnexa-platform-production-<id>-bright-path-ed-tech.vercel.app","deploymentId":"dpl_…"}
+node scripts/run-nextjs-hotfix-production.mjs --stage=deploy-preview
+# 3. Probe the staged deployment through the CLI's protection bypass: health/build, webhook 400, canonical host,
+#    admin concealed, scheduler 401, forged access refused, images and the optimizer.
+node scripts/run-nextjs-hotfix-production.mjs --stage=probe-preview --url=<previewUrl> --deployment=<deploymentId>
+#    Optional, as for v1.2.23: compare the deployment's file uids with ad48cb3 (npx vercel@59 api /v6/deployments/<deploymentId>/files).
+# 4. Promote: move https://mathnexa.com to the candidate. This is the irreversible step that needs the owner's word.
+node scripts/run-nextjs-hotfix-production.mjs --stage=promote --url=<previewUrl>
+# 5. Probe the live apex and webhook host: 22 checks.
+node scripts/run-nextjs-hotfix-production.mjs --stage=probe-live --expect-deployment=<deploymentId>
+```
+
+**Post-release checks** (the same day):
+
+1. `curl.exe -s https://mathnexa.com/api/health`. Expect `build` to be the deployed commit, `environment` to be
+   `production-platform` and `payments` to be `live`. The apex HTML `data-dpl-id` must be the new deployment.
+2. `node scripts/verify-next-image-optimizer.mjs --base=https://mathnexa.com`. Expect 14/14: shipped assets 200,
+   SVG via the optimizer 400, remote, traversal and bad width refused.
+3. Hosted reviews on the apex. They use synthetic production accounts, deleted afterwards, as in v1.2.21 to
+   v1.2.23. Expect classic 99/99 and 3D 57/57 or better.
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-tug-of-war-production.ps1 -Stage review -ExpectBuild <deployed commit>
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-tug-of-war-production.ps1 -Stage review-3d -ExpectBuild <deployed commit>
+   ```
+
+4. Runtime logs for the new deployment. Expect 0 results for each query.
+
+   ```powershell
+   $env:MSYS_NO_PATHCONV = '1'
+   npx --yes vercel@59 logs --project mathnexa-platform-production --deployment <deploymentId> --status-code 5xx --since 2h --scope bright-path-ed-tech
+   npx --yes vercel@59 logs --project mathnexa-platform-production --deployment <deploymentId> --level error --since 2h --scope bright-path-ed-tech
+   npx --yes vercel@59 logs --project mathnexa-platform-production --deployment <deploymentId> --level fatal --since 2h --scope bright-path-ed-tech
+   ```
+
+5. Owner's manual checks, which automation never does with real credentials:
+   - admin sign-in with TOTP, and one real admin media upload (PNG → WebP);
+   - one subscriber sign-in, a game launch, and Sign out.
+
+**Rollback** (rehearsed command; v1.2.23 is Ready and retained; there is no database or environment change to undo):
+
+```powershell
+$env:RELEASE_CERTIFIED_RUNTIME   = 'ad48cb3'
+$env:RELEASE_ROLLBACK_DEPLOYMENT = 'dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv'
+node scripts/run-nextjs-hotfix-production.mjs --stage=rollback
+node scripts/run-nextjs-hotfix-production.mjs --stage=probe-live --expect-deployment=dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv
+```
+
+Fallback: `npx vercel@59 promote dpl_3dkm5DMpCuUP2zHsqnZMJR2AnNZv --scope bright-path-ed-tech`. Always use the
+full deployment id; an elided id makes the stage fail closed.
+
+**After a verified release, each step only on the owner's word:**
+
+1. Release record `docs/releases/mathnexa-v1.2.24-release-record.md`: the evidence JSONs, probe results, reviews
+   and logs.
+2. Annotated tag on the commit production was built from, which is the `build` reported by `/api/health`:
+   `git tag -a v1.2.24 <deployed commit> -m "MathNexa v1.2.24: Next.js 16.4.2 security hotfix (sharp 0.35.5, source-map-js 1.2.2)"`,
+   then `git push origin v1.2.24`.
+3. Fast-forward `main`, with no force:
+   - check: `git merge-base --is-ancestor origin/main <commit>`;
+   - push: `git push origin <commit>:refs/heads/main`.
+
+   `origin/main` `0f8475b` is an ancestor of the branch. The production Vercel project has no Git link, so this
+   push does not deploy production. It rebuilds the staging project's alias from `main`.
+4. Retire the follow-ups: the `sharp-source-map-js-remediation-plan.md` patch (on `ce4d251`) is superseded by this
+   release.
