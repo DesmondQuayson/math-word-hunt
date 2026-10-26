@@ -2,6 +2,8 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
+
 import { TeacherFirstHome } from "./teacher-first-home";
 
 vi.mock("@/app/auth-actions", () => ({
@@ -16,13 +18,17 @@ vi.mock("@/app/school-access-actions", () => ({
 
 afterEach(cleanup);
 
+const HEADLINE = "Online math prep that shows the thinking, not just the answer.";
+
 describe("teacher-first public homepage", () => {
-  it("uses the approved positioning copy: eyebrow, one H1, hero description and supporting line", () => {
+  it("leads with online math prep: eyebrow, one H1, and the owner's description and audience lines unchanged", () => {
     const { container } = render(<TeacherFirstHome />);
-    expect(screen.getByText("Teacher-led math resources")).toBeTruthy();
+    expect(screen.getByText("Online math prep · Grades 3–8")).toBeTruthy();
     expect(container.querySelectorAll("h1")).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1, name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: HEADLINE })).toBeTruthy();
+    // The hero lede is still the owner's exact sentence, the same text as the meta description.
     expect(screen.getByText("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeTruthy();
+    expect(screen.getByText(PLATFORM_HOMEPAGE_DESCRIPTION)).toBeTruthy();
     expect(screen.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeTruthy();
     // The old Missouri-first hero wording is gone.
     expect(container.textContent).not.toContain("Games, Missouri MAP Prep, image-rich homework, and topic quizzes");
@@ -30,7 +36,7 @@ describe("teacher-first public homepage", () => {
     expect(container.textContent).not.toMatch(/\bMAP Prep\b/);
   });
 
-  it("shows account actions, the approved hero art, and every product card on its unchanged route", () => {
+  it("shows account actions, the approved product art, and every product card on its unchanged route", () => {
     render(<TeacherFirstHome />);
     expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/sign-up");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
@@ -42,29 +48,56 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByRole("link", { name: /Homework PDFs Practice · Print/ }).getAttribute("href")).toBe("/homework");
     expect(screen.getByRole("link", { name: /Quiz PDFs Assess · Print/ }).getAttribute("href")).toBe("/quizzes");
     expect(screen.getByText(/One connected system:/).textContent).toBe("One connected system: engage, learn, practice, assess.");
+    // Online Math Prep leads the shelf.
+    expect(document.querySelector("[data-product]")?.getAttribute("data-product")).toBe("map-prep");
   });
 
-  it("carries no Coming Soon / Praxis block on the homepage (owner V2); the only section after the hero is Featured games (owner 2026-09-27)", () => {
+  it("orders the page hero, prep session, toolkit, home and class, Featured games, with no Coming Soon / Praxis block (owner V2)", () => {
     const { container } = render(<TeacherFirstHome />);
     expect(container.querySelector(".teacher-home-roadmap")).toBeNull();
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
-    // Headings: the H1, the authorized-code form heading, then the featured games row.
-    expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
-      "Make every math lesson clearer, more engaging, and ready to teach.",
-      "Authorize Code",
-      "Featured games",
-      "Math Vocabulary Hunt",
-      "Math Tug of War"
-    ]);
+    const after = ["A prep session, one step at a time", "Learn", "Practice", "Review", "Worksheet Generator", "The whole MathNexa toolkit", "Made for the kitchen table and the classroom", "After school, at home", "In the classroom", "Featured games", "Math Vocabulary Hunt", "Math Tug of War"];
+    // Headings: the H1, the authorized-code form heading, then the sections in order.
+    expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, "Authorize Code", ...after]);
     cleanup();
     // Signed in, the code card leaves nothing behind.
     const signedIn = render(<TeacherFirstHome authState="signed-in" />);
-    expect([...signedIn.container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([
-      "Make every math lesson clearer, more engaging, and ready to teach.",
-      "Featured games",
-      "Math Vocabulary Hunt",
-      "Math Tug of War"
-    ]);
+    expect([...signedIn.container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, ...after]);
+  });
+
+  it("works one example problem in the hero, labelled as an example, with correct arithmetic", () => {
+    render(<TeacherFirstHome />);
+    const board = screen.getByRole("figure", { name: /^Example: a Grade 6 ratio problem/ });
+    const text = board.textContent ?? "";
+    expect(text).toContain("3 cups of oats make 12 granola bars. How many cups make 20 bars?");
+    expect(text).toContain("12 bars ÷ 3 cups = 4 bars per cup");
+    expect(text).toContain("20 bars ÷ 4 = 5 cups");
+    const [cups, bars, target] = [3, 12, 20];
+    expect(bars / cups).toBe(4);
+    expect(target / (bars / cups)).toBe(5);
+    expect(within(board).getByRole("img", { name: /1 cup matches 4 bars, 3 cups match 12 bars, 5 cups match 20 bars/ })).toBeTruthy();
+    expect(within(board).getByRole("list", { name: "Example session progress" }).textContent).toBe("LearnPracticeReview");
+  });
+
+  it("replays the worked example on request, in place, without leaving the page", async () => {
+    const user = userEvent.setup();
+    render(<TeacherFirstHome />);
+    const before = screen.getByRole("figure");
+    await user.click(screen.getByRole("button", { name: "Replay the worked example" }));
+    const after = screen.getByRole("figure");
+    expect(after).not.toBe(before);
+    expect(after.textContent).toBe(before.textContent);
+  });
+
+  it("keeps illustrations decorative: drawn scenes are hidden from assistive technology and the only pictures are product screens", () => {
+    const { container } = render(<TeacherFirstHome />);
+    for (const scene of [...container.querySelectorAll("svg")].filter((svg) => !svg.closest("#authorized-access"))) {
+      const labelled = scene.getAttribute("role") === "img" && scene.getAttribute("aria-label");
+      expect(labelled || scene.getAttribute("aria-hidden") === "true").toBeTruthy();
+    }
+    const sources = [...container.querySelectorAll("img")].map((image) => decodeURIComponent(image.getAttribute("src") ?? ""));
+    expect(sources.length).toBe(6);
+    for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z-]+\.webp/);
   });
 
   it("features Math Tug of War beside Math Vocabulary Hunt with a free Play for Free Now button to the game", () => {
@@ -112,6 +145,7 @@ describe("teacher-first public homepage", () => {
     expect(code.getAttribute("type")).toBe("password");
     // Placement unchanged: directly after the hero actions, in the hero copy.
     expect(anchor.previousElementSibling?.classList.contains("teacher-home-actions")).toBe(true);
+    expect(anchor.parentElement?.classList.contains("teacher-home-copy")).toBe(true);
     expect(container.textContent).not.toContain("Start learning");
   });
 
@@ -161,9 +195,19 @@ describe("teacher-first public homepage", () => {
     expect(screen.queryByLabelText(/^Code/)).toBeNull();
   });
 
-  it("keeps the homepage concise: no showcase span, no commercial details", () => {
+  it("carries no commercial details, testimonials, statistics or retired showcase copy", () => {
     const { container } = render(<TeacherFirstHome />);
     expect(container.textContent).not.toMatch(/MathNexa in action|real resources waiting|Designed around teaching|calmer path|Whole-class energy|Interactive Games/i);
     expect(container.textContent).not.toMatch(/\$5\.99|24-hour|stripe|checkout|consent|automatic renewal|phase \d/i);
+    expect(container.textContent).not.toMatch(/\d+\s?%|testimonial|rated|reviews|★|“|”/i);
+  });
+
+  it("every homepage link goes to an existing, unchanged route", () => {
+    for (const authState of ["signed-out", "signed-in"] as const) {
+      const { container } = render(<TeacherFirstHome authState={authState} />);
+      const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
+      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/play", "/games/math-tug-of-war/play"], `${authState} ${href}`).toContain(href);
+      cleanup();
+    }
   });
 });

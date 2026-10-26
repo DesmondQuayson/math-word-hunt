@@ -115,7 +115,7 @@ function expectNoCodeCard(container: HTMLElement, label: string) {
   expect(screen.queryByRole("button", { name: "Continue" }), label).toBeNull();
   expect(container.textContent, label).not.toMatch(/Authorize Code|Authorized access active/);
   // The rest of the homepage is intact, and the hero copy ends with its actions.
-  expect(screen.getByRole("heading", { level: 1 }).textContent, label).toBe("Make every math lesson clearer, more engaging, and ready to teach.");
+  expect(screen.getByRole("heading", { level: 1 }).textContent, label).toBe("Online math prep that shows the thinking, not just the answer.");
   expect(screen.getByRole("link", { name: /Quiz PDFs Assess · Print/ }).getAttribute("href"), label).toBe("/quizzes");
   const last = container.querySelector(".teacher-home-copy")?.lastElementChild;
   expect(last?.classList.contains("teacher-home-actions") || last?.classList.contains("teacher-home-ready"), label).toBe(true);
