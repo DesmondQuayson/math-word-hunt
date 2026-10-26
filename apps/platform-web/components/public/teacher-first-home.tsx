@@ -16,15 +16,9 @@ import {
 } from "@/lib/seo/platform-positioning";
 
 import styles from "./home/home.module.css";
-import {
-  HOME_EYEBROW,
-  HOME_HEADLINE_LEAD,
-  HOME_HEADLINE_MARK,
-  HOME_HEADLINE_TAIL,
-  PREP_FLOW_STEPS
-} from "./home/home-copy";
-import { ClassroomScene, KitchenTableScene, Marked, StepIcon } from "./home/illustrations";
+import { HOME_EYEBROW, HOME_HEADLINE_LEAD, HOME_HEADLINE_MARK, HOME_HEADLINE_TAIL } from "./home/home-copy";
 import { InView } from "./home/in-view";
+import { Marked } from "./home/marked";
 import { PrepBoard } from "./home/prep-board";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
@@ -65,35 +59,6 @@ function CaptionFeatures({ features }: Readonly<{ features: string }>) {
 }
 
 /**
- * How an Online Math Prep session runs: the four sections the product has,
- * in order. Copy is deliberately modest; it describes the sections, not
- * outcomes.
- */
-function PrepFlow() {
-  return <section className={styles.flowBand} aria-labelledby="prep-flow-title">
-    <div className={`container ${styles.flow}`}>
-      <InView className={`${styles.inView} ${styles.sectionHead}`}>
-        <p className="eyebrow">Inside Online Math Prep</p>
-        <h2 id="prep-flow-title">A prep session, <Marked>one step at a time</Marked></h2>
-        <p>Every topic follows the same steady rhythm, so students know what comes next and the grown-ups helping them can follow along.</p>
-      </InView>
-      <InView className={styles.inView}>
-        <ol className={styles.flowSteps}>
-          {PREP_FLOW_STEPS.map((step, index) => <li key={step.key} className={styles.flowStep}>
-            <StepIcon kind={step.key} />
-            <span className={styles.stepLabel}>Step {index + 1}</span>
-            <h3>{step.title}</h3>
-            <p>{step.body}</p>
-            {"link" in step ? <Link className={styles.textLink} href={step.link.href}>{step.link.label} <span aria-hidden="true">→</span></Link> : null}
-          </li>)}
-        </ol>
-      </InView>
-      <Link className={styles.textLink} href="/map-prep">Explore Online Math Prep <span aria-hidden="true">→</span></Link>
-    </div>
-  </section>;
-}
-
-/**
  * The product shelf: the real product thumbnails, Online Math Prep first and
  * widest. Labels are the customer-facing product names
  * (lib/seo/platform-positioning). The route paths behind them are unchanged on
@@ -104,22 +69,22 @@ function ProductShelf() {
   const [games, mathPrep, homework, quizzes] = PLATFORM_PRODUCTS;
   return <section className={`container ${styles.shelf}`} aria-labelledby="home-shelf-title">
     <InView className={`${styles.inView} ${styles.sectionHead}`}>
-      <p className="eyebrow">Everything in one place</p>
-      <h2 id="home-shelf-title">The whole <Marked>MathNexa toolkit</Marked></h2>
+      <p className="eyebrow">How MathNexa fits together</p>
+      <h2 id="home-shelf-title"><Marked>Prepare online</Marked>, practice on paper, check what stuck</h2>
       <p className={styles.shelfLede}>One connected system: <strong>engage</strong>, <strong>learn</strong>, <strong>practice</strong>, <strong>assess</strong>.</p>
     </InView>
     <div className={styles.shelfGrid}>
       <Link className={`${styles.shelfCard} ${styles.shelfFeature}`} href={mathPrep.href} data-product="map-prep">
         <span className={styles.shelfImage}>
           <Image
-            src="/media/home/map-prep-preview.webp"
+            src="/media/home/online-math-prep-preview.webp"
             alt="MathNexa Online Math Prep workspace with a graph, working board, and math tools"
             width={1200}
             height={800}
             sizes="(max-width: 48rem) 92vw, 42rem"
           />
         </span>
-        <span className={styles.shelfCaption}><strong>{mathPrep.cardTitle}</strong><CaptionFeatures features={mathPrep.features} /><span className={styles.shelfNote}>Lessons, practice and review for each topic, with a worksheet generator for printing.</span></span>
+        <span className={styles.shelfCaption}><strong>{mathPrep.cardTitle}</strong><CaptionFeatures features={mathPrep.features} /><span className={styles.shelfNote}>Lessons, practice and review for Grades 3–8, with a worksheet generator for printing practice.</span><span className={styles.shelfAction}>Open Online Math Prep <span aria-hidden="true">→</span></span></span>
       </Link>
       <Link className={styles.shelfCard} href={games.href} data-product="games">
         <span className={styles.shelfImage}>
@@ -157,32 +122,6 @@ function ProductShelf() {
         </span>
         <span className={styles.shelfCaption}><strong>{quizzes.cardTitle}</strong><CaptionFeatures features={quizzes.features} /></span>
       </Link>
-    </div>
-  </section>;
-}
-
-/** Where MathNexa gets used: two ordinary routines, drawn, with no claims about results. */
-function HomeAndClass() {
-  return <section className={styles.placesBand} aria-labelledby="home-places-title">
-    <div className={`container ${styles.places}`}>
-      <InView className={`${styles.inView} ${styles.sectionHead}`}>
-        <p className="eyebrow">Real routines</p>
-        <h2 id="home-places-title">Made for the <Marked>kitchen table</Marked> and the classroom</h2>
-      </InView>
-      <div className={styles.placesGrid}>
-        <InView className={`${styles.inView} ${styles.place}`}>
-          <KitchenTableScene />
-          <h3>After school, at home</h3>
-          <p>Twenty focused minutes on one topic, a Homework PDF to print, and work you can look over together.</p>
-          <Link className={styles.textLink} href="/homework">Find a Homework PDF <span aria-hidden="true">→</span></Link>
-        </InView>
-        <InView className={`${styles.inView} ${styles.place}`}>
-          <ClassroomScene />
-          <h3>In the classroom</h3>
-          <p>Put a lesson on the big screen, hand out a Quiz PDF at the end of the week, and keep a game ready for when energy dips.</p>
-          <Link className={styles.textLink} href="/quizzes">Find a Quiz PDF <span aria-hidden="true">→</span></Link>
-        </InView>
-      </div>
     </div>
   </section>;
 }
@@ -245,35 +184,32 @@ export function TeacherFirstHome({
   entitled = false,
   schoolAccess = false
 }: TeacherFirstHomeProps) {
+  // The band and its grid open on one line so the hero copy keeps the
+  // original nesting depth: the Authorize Code block below is byte-identical
+  // to the pre-redesign homepage, indentation included.
   return <>
-    <section className={styles.heroBand} aria-labelledby="home-title">
-      <div className={`container ${styles.hero}`}>
-        <div className={`teacher-home-copy ${styles.heroCopy}`}>
-          <p className="eyebrow">{HOME_EYEBROW}</p>
-          <h1 id="home-title">{HOME_HEADLINE_LEAD}<span className={styles.headlineMark}>{HOME_HEADLINE_MARK}</span>{HOME_HEADLINE_TAIL}</h1>
-          <p className={styles.lede}>{PLATFORM_HERO_DESCRIPTION}</p>
-          <p className={styles.audience}>{PLATFORM_HERO_AUDIENCE}</p>
-          <HeroActions authState={authState} entitled={entitled} />
-          {/* The authorized-code entry is for signed-out visitors only (the
-              banner carries no code item: this form is the entry). A session
-              that already entered a code sees its exit control in the same
-              place. Any authenticated account session, whatever its access,
-              gets no code card at all: the container is not rendered, so it
-              leaves no space. authState comes from the server-side session in
-              app/page.tsx, so the page never renders the card and then hides it. */}
-          {authState === "signed-out" ? <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
-            {schoolAccess ? <AuthorizedAccessActivePanel /> : <AuthorizedCodeForm nextDestination="/games" compact />}
-          </div> : null}
-        </div>
-        <PrepBoard />
+    <section className={styles.heroBand} aria-labelledby="home-title"><div className={`container ${styles.hero}`}>
+      <div className={`teacher-home-copy ${styles.heroCopy}`}>
+        <p className="eyebrow">{HOME_EYEBROW}</p>
+        <h1 id="home-title">{HOME_HEADLINE_LEAD}<span className={styles.headlineMark}>{HOME_HEADLINE_MARK}</span>{HOME_HEADLINE_TAIL}</h1>
+        <p className={styles.lede}>{PLATFORM_HERO_DESCRIPTION}</p>
+        <p className={styles.audience}>{PLATFORM_HERO_AUDIENCE}</p>
+        <HeroActions authState={authState} entitled={entitled} />
+        {/* The authorized-code entry is for signed-out visitors only (the
+            banner carries no code item: this form is the entry). A session
+            that already entered a code sees its exit control in the same
+            place. Any authenticated account session, whatever its access,
+            gets no code card at all: the container is not rendered, so it
+            leaves no space. authState comes from the server-side session in
+            app/page.tsx, so the page never renders the card and then hides it. */}
+        {authState === "signed-out" ? <div id={AUTHORIZED_ACCESS_ANCHOR} className="teacher-home-authorized-access">
+          {schoolAccess ? <AuthorizedAccessActivePanel /> : <AuthorizedCodeForm nextDestination="/games" compact />}
+        </div> : null}
       </div>
-    </section>
-
-    <PrepFlow />
+      <PrepBoard />
+    </div></section>
 
     <ProductShelf />
-
-    <HomeAndClass />
 
     <FeaturedGames />
 

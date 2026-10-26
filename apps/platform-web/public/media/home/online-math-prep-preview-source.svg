@@ -6,7 +6,7 @@
   <path d="M72 70h30M72 83h30M72 96h30M78 64v38M90 64v38M102 64v38" stroke="#0b2239" stroke-width="3" opacity=".4"/>
   <path d="m78 96 12-13 12-13" fill="none" stroke="#0b2239" stroke-width="6" stroke-linecap="round"/>
   <text x="136" y="82" fill="#fff" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="4">MATHNEXA</text>
-  <text x="136" y="116" fill="#fff" font-family="Arial,sans-serif" font-size="32" font-weight="800">Missouri MAP Prep</text>
+  <text x="136" y="116" fill="#fff" font-family="Arial,sans-serif" font-size="32" font-weight="800">Online Math Prep</text>
   <rect x="900" y="58" width="226" height="52" rx="16" fill="#dcefe9"/>
   <text x="1013" y="91" text-anchor="middle" fill="#12664f" font-family="Arial,sans-serif" font-size="19" font-weight="800">Practice workspace</text>
   <rect x="54" y="174" width="360" height="566" rx="20" fill="#fff8e8" stroke="#315b72" stroke-width="3"/>

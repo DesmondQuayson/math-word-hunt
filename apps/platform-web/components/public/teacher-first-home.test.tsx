@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,11 +55,13 @@ describe("teacher-first public homepage", () => {
     expect(document.querySelector("[data-product]")?.getAttribute("data-product")).toBe("map-prep");
   });
 
-  it("orders the page hero, prep session, toolkit, home and class, Featured games, with no Coming Soon / Praxis block (owner V2)", () => {
+  it("orders the page hero, toolkit, Featured games, with no Coming Soon / Praxis block (owner V2) and no removed sections (owner 2026-10-26)", () => {
     const { container } = render(<TeacherFirstHome />);
     expect(container.querySelector(".teacher-home-roadmap")).toBeNull();
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
-    const after = ["A prep session, one step at a time", "Learn", "Practice", "Review", "Worksheet Generator", "The whole MathNexa toolkit", "Made for the kitchen table and the classroom", "After school, at home", "In the classroom", "Featured games", "Math Vocabulary Hunt", "Math Tug of War"];
+    // The owner removed "Inside Online Math Prep" and "Made for the kitchen table and the classroom".
+    expect(container.textContent).not.toMatch(/Inside Online Math Prep|A prep session|kitchen table|After school, at home|In the classroom|Explore Online Math Prep|Find a Homework PDF|Find a Quiz PDF/);
+    const after = ["Prepare online, practice on paper, check what stuck", "Featured games", "Math Vocabulary Hunt", "Math Tug of War"];
     // Headings: the H1, the authorized-code form heading, then the sections in order.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, "Authorize Code", ...after]);
     cleanup();
@@ -103,9 +108,17 @@ describe("teacher-first public homepage", () => {
     fetchSpy.mockRestore();
   });
 
-  it("links the Worksheet Generator step to the existing gated route", () => {
+  it("shows Online Math Prep, not the retired Missouri MAP Prep name, in the shelf preview", () => {
     render(<TeacherFirstHome />);
-    expect(screen.getByRole("link", { name: "Open the Worksheet Generator" }).getAttribute("href")).toBe("/worksheets");
+    expect(decodeURIComponent(screen.getByAltText(/Online Math Prep workspace/).getAttribute("src") ?? "")).toContain("/media/home/online-math-prep-preview.webp");
+    // The preview is a homepage-only drawing; its source carries the visible title.
+    const source = readFileSync(resolve(process.cwd(), "public/media/home/online-math-prep-preview-source.svg"), "utf8");
+    expect(source).toContain(">Online Math Prep</text>");
+    expect(source).not.toMatch(/Missouri|MAP Prep/);
+    // The mathematics in the drawing is unchanged: 2 notebooks cost $5, 4 cost $10, y = 2.5x.
+    expect(source).toContain(">y = 2.5x</text>");
+    expect(source).toContain(">$5</text>");
+    expect(source).toContain(">$10</text>");
   });
 
   it("replays the worked example on request, in place, without leaving the page", async () => {

@@ -7,8 +7,9 @@
  * home-featured-games, the button and Authorize Code form classes) keep their
  * global rules; this file only adds layout around them.
  *
- * Motion: the hero's worked problem plays once (under five seconds) and on
- * request; hand-drawn strokes draw once as their section scrolls into view.
+ * Motion: the hero's worked problem plays once (under five seconds) when it
+ * is seen, and again on request; the toolkit heading's marker draws once as it
+ * scrolls into view.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
  */
@@ -26,8 +27,7 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-.heroBand,
-.placesBand {
+.heroBand {
   --hand: "MathNexa Hand", "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", var(--font-body);
 }
 
@@ -49,21 +49,8 @@
   animation: home-marker 700ms var(--ease-standard) 150ms forwards;
 }
 
-.inView [data-draw] {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-
-.inView[data-in-view] [data-draw] {
-  animation: home-draw 800ms var(--ease-standard) 250ms forwards;
-}
-
 @keyframes home-marker {
   to { background-size: 100% 0.5em; }
-}
-
-@keyframes home-draw {
-  to { stroke-dashoffset: 0; }
 }
 
 .sectionHead {
@@ -86,42 +73,12 @@
   line-height: 1.55;
 }
 
-.textLink {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 2.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-brand-primary);
-  font-weight: 800;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.25em;
-}
-
-.textLink:hover {
-  color: var(--color-accent-teal);
-}
-
-.textLink span {
-  transition: translate var(--motion-standard) var(--ease-standard);
-}
-
-.textLink:hover span,
-.textLink:focus-visible span {
-  translate: 0.2rem 0;
-}
-
 /* ---------- 1. Hero ---------- */
 
 .heroBand {
   overflow-x: clip;
   border-bottom: var(--border-width-thin) solid #eadfc6;
-  background:
-    radial-gradient(60rem 30rem at 88% 12%, rgb(32 207 227 / 13%), transparent 70%),
-    radial-gradient(40rem 24rem at 4% 96%, rgb(245 197 66 / 18%), transparent 70%),
-    var(--color-warm-paper);
+  background: var(--color-warm-paper);
 }
 
 .hero {
@@ -739,123 +696,19 @@
   75% { translate: -1px 1px; }
 }
 
-/* ---------- 3. How a prep session flows ---------- */
-
-.flowBand {
-  border-bottom: var(--border-width-thin) solid var(--color-border);
-  background: var(--color-surface-elevated);
-}
-
-.flow {
-  display: grid;
-  gap: clamp(var(--space-8), 4vw, var(--space-12));
-  padding-block: clamp(var(--space-14), 7vw, var(--space-24));
-}
-
-.flowSteps {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* The path that joins the four steps. */
-.flowSteps::before {
-  content: "";
-  position: absolute;
-  top: 3.1rem;
-  right: 10%;
-  left: 10%;
-  border-top: 2px dashed rgb(49 91 114 / 35%);
-}
-
-.flowStep {
-  position: relative;
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  transition:
-    translate var(--motion-standard) var(--ease-standard),
-    box-shadow var(--motion-standard) var(--ease-standard);
-}
-
-.flowStep:hover {
-  translate: 0 -3px;
-  box-shadow: var(--shadow-medium);
-}
-
-.flowStep h3 {
-  margin: 0;
-  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
-  overflow-wrap: break-word;
-}
-
-.flowStep p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  line-height: 1.55;
-}
-
-.stepLabel {
-  color: var(--color-text-muted);
-  font-family: var(--font-utility);
-  font-size: var(--font-size-caption);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.stepIcon {
-  position: relative;
-  width: 4.25rem;
-  height: 4.25rem;
-  padding: 0.45rem;
-  border: 2px solid var(--color-text-primary);
-  border-radius: 1rem;
-  background: var(--color-warm-paper);
-  transition: rotate var(--motion-standard) var(--ease-emphasized);
-}
-
-.flowStep:nth-child(2) .stepIcon { background: #e3f3f6; }
-.flowStep:nth-child(3) .stepIcon { background: #fde8e3; }
-.flowStep:nth-child(4) .stepIcon { background: #e8f0e4; }
-
-.flowStep:hover .stepIcon {
-  rotate: -6deg;
-}
-
-.iconPaper { fill: #ffffff; stroke: var(--color-text-primary); stroke-width: 2.5; }
-.iconInk { fill: none; stroke: var(--color-text-primary); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.5; }
-.iconInkFill { fill: var(--color-text-primary); }
-.iconFill { fill: var(--color-brand-secondary); }
-.iconRule { fill: none; stroke: rgb(49 91 114 / 55%); stroke-linecap: round; stroke-width: 2.2; }
-.iconPen { fill: none; stroke: var(--color-accent); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
-.iconPencil { fill: var(--color-brand-secondary); stroke: var(--color-text-primary); stroke-linejoin: round; stroke-width: 2; }
-
-.flowSteps.inView[data-in-view] .flowStep:nth-child(2) [data-draw] { animation-delay: 450ms; }
-.flowSteps.inView[data-in-view] .flowStep:nth-child(3) [data-draw] { animation-delay: 650ms; }
-.flowSteps.inView[data-in-view] .flowStep:nth-child(4) [data-draw] { animation-delay: 850ms; }
-
-/* ---------- 4. The toolkit shelf ---------- */
+/* ---------- 3. The toolkit shelf ---------- */
 
 .shelf {
   display: grid;
-  gap: clamp(var(--space-8), 4vw, var(--space-10));
-  padding-block: clamp(var(--space-14), 7vw, var(--space-24));
+  gap: clamp(var(--space-6), 3.5vw, var(--space-10));
+  padding-block: clamp(var(--space-12), 6vw, var(--space-20)) clamp(var(--space-12), 5vw, var(--space-16));
 }
 
 .shelfGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
+  container-type: inline-size;
 }
 
 .shelfCard {
@@ -931,6 +784,7 @@
   font-family: var(--font-display);
   font-size: clamp(1.15rem, 1.7vw, 1.35rem);
   line-height: 1.2;
+  text-wrap: balance;
 }
 
 .shelfFeature .shelfCaption {
@@ -962,6 +816,32 @@
   line-height: 1.55;
 }
 
+/* The whole card is the link; this is its visible call to action. */
+.shelfAction {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-primary);
+  box-shadow: 0.25rem 0.25rem 0 var(--color-brand-secondary);
+  color: var(--color-on-brand);
+  font-weight: 800;
+}
+
+.shelfAction span {
+  transition: translate var(--motion-standard) var(--ease-standard);
+}
+
+.shelfCard:hover .shelfAction span,
+.shelfCard:focus-visible .shelfAction span {
+  translate: 0.2rem 0;
+}
+
 .shelfLede {
   margin: 0;
   color: var(--color-text-secondary);
@@ -970,119 +850,6 @@
 
 .shelfLede strong {
   color: var(--color-text-primary);
-}
-
-/* ---------- 5. At home and in class ---------- */
-
-.placesBand {
-  /* Featured games (global styles) starts with no top padding of its own. */
-  margin-bottom: clamp(var(--space-12), 6vw, var(--space-20));
-  border-block: var(--border-width-thin) solid #eadfc6;
-  background: linear-gradient(180deg, var(--color-warm-paper), #fff2d8);
-}
-
-.places {
-  display: grid;
-  gap: clamp(var(--space-8), 4vw, var(--space-10));
-  padding-block: clamp(var(--space-14), 7vw, var(--space-24));
-}
-
-.placesGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-6);
-}
-
-.place {
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-6);
-  border: var(--border-width-thin) solid #e8d6ae;
-  border-radius: var(--radius-large);
-  background: var(--color-surface-elevated);
-  box-shadow: 0 18px 36px -26px rgb(11 34 57 / 40%);
-}
-
-.place h3 {
-  margin: var(--space-2) var(--space-2) 0;
-  font-size: clamp(1.3rem, 2vw, 1.6rem);
-}
-
-.place p {
-  margin: 0 var(--space-2);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
-.place .textLink {
-  margin-inline: var(--space-2);
-}
-
-.scene {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: var(--radius-medium);
-}
-
-.sceneWallWarm { fill: #fde9c4; }
-.sceneWallCool { fill: #dcecf1; }
-.sceneWindow { fill: #c9eef4; stroke: #ffffff; stroke-width: 6; }
-.sceneWindowBars { fill: none; stroke: #ffffff; stroke-width: 4; }
-.scenePlant { fill: #4f9d7a; }
-.scenePot { fill: #d9785f; }
-.sceneTable { fill: #d49a5f; }
-.sceneTableEdge { fill: none; stroke: #b97c45; stroke-width: 4; }
-.sceneNotebook path { fill: #ffffff; stroke: #c9b48b; stroke-width: 1.5; stroke-linejoin: round; }
-.sceneNotebook .sceneNotebookSpine { fill: none; stroke: #c9b48b; }
-.sceneNotebook .sceneRule { fill: none; stroke: #9fc6d6; stroke-width: 1.2; }
-.sceneHand { fill: #1d3557; font-family: var(--hand); font-size: 18px; }
-.scenePen { fill: none; stroke: #1d3557; stroke-linecap: round; stroke-width: 2; }
-.sceneMug path { fill: #ffffff; stroke: #1d3557; stroke-linejoin: round; stroke-width: 3; }
-.sceneSteam { fill: none; stroke: rgb(29 53 87 / 30%); stroke-linecap: round; stroke-width: 2.5; }
-.sceneSticky { fill: #ffe27a; }
-.sceneStickyText { fill: #1d3557; font-family: var(--hand); font-size: 13px; }
-.sceneBoardFrame { fill: #b8c7cf; }
-.sceneBoard { fill: #ffffff; }
-.sceneMarkerInk { fill: none; stroke: #1d3557; stroke-linecap: round; stroke-width: 2.5; }
-.sceneMarkerText { fill: #1d3557; font-family: var(--font-utility); font-size: 13px; font-weight: 700; }
-.sceneMarkerWord { fill: #1c7773; font-family: var(--hand); font-size: 21px; }
-.sceneMarkerArc { fill: none; stroke: #d95d45; stroke-linecap: round; stroke-width: 2.8; }
-.sceneMarkerArcAlt { fill: none; stroke: #1c7773; stroke-linecap: round; stroke-width: 2.8; }
-.sceneQuizStack { fill: #ffffff; stroke: #9ab0bc; stroke-width: 1.2; }
-.sceneDesk { fill: #8a5a35; }
-.sceneFloor { fill: #c4d9e0; }
-.sceneDeskRow { fill: none; stroke: #9a6a42; stroke-width: 10; }
-.sceneArm { fill: none; stroke: #0d3b57; stroke-linecap: round; stroke-width: 9; }
-.sceneShirtTeal { fill: #1c7773; }
-.sceneShirtCoral { fill: #d95d45; }
-.sceneShirtNavy { fill: #0d3b57; }
-.sceneShirtYellow { fill: #e8b730; }
-.sceneShirtPink { fill: #d6336c; }
-.sceneSkinA { fill: #f1c7a5; }
-.sceneSkinB { fill: #a86b45; }
-.sceneSkinC { fill: #6b4128; }
-.sceneHairDark { fill: #2a1c14; }
-.sceneHairGray { fill: #9a9a9a; }
-.sceneHairBrown { fill: #7a4a26; }
-.sceneHairBlack { fill: #111a22; }
-
-.place .scene [data-draw] {
-  animation-delay: 400ms;
-}
-
-/* ---------- Responsive ---------- */
-
-@media (max-width: 64rem) {
-  .flowSteps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .flowSteps::before {
-    display: none;
-  }
 }
 
 @media (max-width: 60rem) {
@@ -1096,10 +863,6 @@
 }
 
 @media (max-width: 48rem) {
-  .shelfGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .shelfFeature {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1110,10 +873,6 @@
     border-right: 0;
     border-bottom: var(--border-width-standard) solid var(--color-text-primary);
   }
-
-  .placesGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 34rem) {
@@ -1122,22 +881,45 @@
     rotate: -0.5deg;
   }
 
-  .flowSteps {
+  .shelfGrid {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+}
+
+/* Phones: the supporting cards become compact rows (thumbnail beside the name),
+   but only while the shelf is at least 17rem wide at the visitor's text size; with
+   enlarged text they stay stacked so their names never clip. */
+@container (min-width: 17rem) and (max-width: 31rem) {
+  .shelfCard:not(.shelfFeature) {
+    grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+    grid-template-rows: auto;
+    border-radius: var(--radius-medium);
   }
 
-  .flowStep {
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: var(--space-4);
+  .shelfCard:not(.shelfFeature) .shelfImage {
+    aspect-ratio: 4 / 3;
+    border-right: var(--border-width-standard) solid var(--color-text-primary);
+    border-bottom: 0;
   }
 
-  .flowStep .stepIcon {
-    grid-row: 1 / span 3;
+  .shelfCard:not(.shelfFeature) .shelfCaption {
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
   }
 
-  /* The Worksheet Generator link runs under the whole card, not in the icon column. */
-  .flowStep > a {
-    grid-column: 1 / -1;
+  .shelfCard:not(.shelfFeature) .shelfCaption strong {
+    font-size: 1.08rem;
+  }
+
+  /* Frame each thumbnail on what identifies it: the game title, the PDF header. */
+  .shelfCard[data-product="games"] .shelfImage img {
+    object-position: 18% 45%;
+  }
+
+  .shelfCard[data-product="homework"] .shelfImage img,
+  .shelfCard[data-product="quizzes"] .shelfImage img {
+    object-position: left top;
   }
 }
 
@@ -1155,18 +937,13 @@
     background-size: 100% 0.5em;
   }
 
-  .inView [data-draw] {
-    stroke-dashoffset: 0;
-  }
-
   .replay {
     display: none;
   }
 
-  .flowStep,
-  .flowStep .stepIcon,
   .shelfCard,
   .shelfImage img,
+  .shelfAction span,
   .choice {
     transition: none;
   }

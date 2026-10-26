@@ -77,7 +77,7 @@ for (const asset of [
   "/media/games/math-vocabulary-hunt.webp",
   "/media/games/math-tug-of-war.webp",
   "/media/home/homework-preview.webp",
-  "/media/home/map-prep-preview.webp",
+  "/media/home/online-math-prep-preview.webp",
   "/media/home/quiz-preview.webp"
 ]) {
   if (!home.includes(asset)) throw new Error(`Homepage product asset is missing: ${asset}`);
