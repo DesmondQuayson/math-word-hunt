@@ -30,9 +30,10 @@ Homepage-only. Anything not on this list is restricted for this change.
 
 | File | Why |
 | --- | --- |
-| `apps/platform-web/components/public/teacher-first-home.tsx` | The production homepage component. The Authorize Code container JSX and `HeroActions` stay byte-identical; `FeaturedGames` keeps its markup. |
+| `apps/platform-web/components/public/teacher-first-home.tsx` | The production homepage component. The Authorize Code container JSX and `HeroActions` keep the same code (the Authorize Code block is indented one level deeper inside the new wrapper); `FeaturedGames` keeps its markup. |
 | `apps/platform-web/components/public/home/home.module.css` (new) | Homepage-only CSS Module: hashed class names cannot match any other page. |
-| `apps/platform-web/components/public/home/*.tsx`, `home-copy.ts` (new) | Homepage-only presentational components (worked-problem board, replay button, in-view helper, illustrations, homepage copy). Imported by the homepage component only. |
+| `apps/platform-web/components/public/home/*.tsx`, `home-copy.ts` (new) | Homepage-only presentational components (worked-problem board, replay and in-view play, Your turn, in-view helper, illustrations, homepage copy). Imported by the homepage component only. |
+| `apps/platform-web/components/public/home/fonts/patrick-hand-latin.woff2`, `PatrickHand-OFL.txt` (new, P1) | Patrick Hand, Google Fonts Latin subset v25 (23,944 bytes, sha256 `ac5bc903…0bbf0199`), SIL Open Font License 1.1, with its licence. Loaded only by the homepage CSS Module. |
 | `apps/platform-web/components/public/teacher-first-home.test.tsx` | Homepage unit test: copy, headings and structure assertions follow the new design; every access-control assertion stays. |
 | `apps/platform-web/components/public/home-page-authorize-code.test.tsx` | One line: the homepage H1 it reads. |
 | `e2e/phase9/teacher-first-access-flow.spec.ts` | Homepage assertions only (H1, eyebrow, product shelf selector). |
@@ -102,7 +103,7 @@ Inside them, the audit list gained the harness's later admin sign-ins (append-on
 went from "NO EVENTS" to "HEALTHY" because the base-code phase 9 checkout test wrote the first local webhook
 event (received 03:36:17Z) after the baseline capture (03:20Z). Data, not code.
 
-Authorize Code: the container JSX is byte-identical and still sits directly after the hero actions inside
+Authorize Code: the container JSX is the same code (indented one level deeper) and still sits directly after the hero actions inside
 `.teacher-home-copy`; signed-out visitors see it, every signed-in state renders nothing. Sign in, password
 Show/Hide, wrong-password and wrong-code errors, sign-out, the trial consent form to checkout, subscriber
 access and every redirect behave exactly as on the base.
@@ -114,6 +115,42 @@ Harness note: when `/worksheets` redirects an entitled or code session to ShowMe
 redirect to `https://showme.mathnexa.com/worksheets` (Playwright routes do not intercept redirects). Those
 were read-only GETs with a locally signed ticket that production does not accept; every subresource was
 blocked. The existing phase 9 Worksheet test exercises the same path.
+
+## P1 round (owner-approved 2026-10-26, after the acceptance review)
+
+The acceptance review recommended NO-GO on design as it stood; the owner approved six homepage-only fixes:
+
+1. The worked example plays when it is seen. Where the board starts below the fold (phones, portrait
+   tablets), its CSS animations are held at the first frame off screen and released when a quarter of
+   the board is visible. Without JavaScript, IntersectionObserver or motion nothing is held.
+2. "Your turn": after the example, "How many cups make 28 bars?" with 6, 7 and 8 cups. A wrong pick says
+   how many bars it would make; the right one shows 7 × 4 = 28. Browser-only; nothing is stored or sent.
+3. The stamp no longer implies grading: "Check: 5 cups × 4 = 20 bars".
+4. One handwriting face on every device: Patrick Hand (SIL OFL 1.1), self-hosted, loaded only by the
+   homepage CSS Module. The drawn sticky note now reads "Fri: quiz" (the font has no check-mark glyph).
+5. LCP: the sheet and the problem text slide in without fading, so the largest text paints at once.
+6. The Worksheet Generator step links to `/worksheets`, the existing gated route the header uses.
+
+Found and fixed during the P1 run: at 320 px with 200% text the first P1 build overflowed by 67 px (phase 9
+reflow tests failed). Causes: the Worksheet Generator link landed in the step card's icon column, and a
+no-wrap on the check line. A third no-wrap from the first round (feature phrases on the shelf, which the
+original page lets wrap below 360 px) was also removed. The narrow-screen sheet tilt is halved.
+
+P1 results (local, 2026-10-26, final P1 code):
+
+| Check | Result |
+| --- | --- |
+| Protected-page screenshots (90) vs the `bcc0106` baseline | 78 pixel-identical; 8 homepage (intended); Super Admin `/admin` x2: 0 changed pixels outside the two live-data panels; trial `/subscription` x2: a 7 x 20 px sliver at the end of the masked "Access ends" date (the synthetic trial's end date is now a different calendar date) |
+| Functional facts | 343 facts, 0 differences from the first-round candidate (which matched the base) |
+| phase 9 (homepage baselines regenerated) / school-access / Tug free access | 17/17 / 21/21 / 8/8 |
+| Quiz PDFs / Number Cross | 20/20 / 1/1 |
+| Unit core / web | 245/245 / 908 passed, 1 skipped (+2 homepage tests) |
+| `test:security`, bundle audit, Number Cross launch audit, protection bypass | 321/321, pass, pass, 7/7 |
+| Phase 11 and Quiz PDF audits, typecheck, lint, build | pass, clean, 0 errors (8 pre-existing warnings), pass |
+| Production-mode review (Chromium + WebKit, 320–1920) | CLS 0 everywhere, no overflow, no console errors; desktop LCP 0.45–0.61 s (base 0.62 s; first round 1.42 s) |
+| Phone hold | off screen 6 s after load: 22 of 22 board animations paused; scrolled in: playing; 5 s later: finished |
+| Reduced motion | 0 running animations, replay hidden |
+| Page weight vs base | JS +1.9 KB, CSS +5.9 KB compressed, plus the 23.9 KB font on the homepage only |
 
 ## Not done here
 
