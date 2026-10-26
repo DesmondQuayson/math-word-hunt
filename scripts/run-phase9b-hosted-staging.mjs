@@ -247,7 +247,7 @@ async function main() {
     try {
       const publicResponse = await context.request.get(`${origin}/`);
       const publicHtml = await publicResponse.text();
-      check(publicResponse.status() === 200 && publicHtml.includes("Make every math lesson clearer"), "public-homepage-smoke-failed");
+      check(publicResponse.status() === 200 && publicHtml.includes("Online math prep that "), "public-homepage-smoke-failed");
       check(secrets.every((secret) => !publicHtml.includes(secret)), "hosted-secret-exposure");
       check(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth).catch(() => true), "mobile-overflow");
 

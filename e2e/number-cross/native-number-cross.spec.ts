@@ -292,7 +292,7 @@ test("Draft Preview, native gameplay, access policy, responsive UI, and publicat
   await audioPage.close();
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Online math prep that shows the thinking, not just the answer." })).toBeVisible();
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
   expect(await failedRequests()).toEqual([]);

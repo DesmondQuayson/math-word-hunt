@@ -102,11 +102,11 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
     "content",
     "Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
   );
-  await expect(page.getByText("Teacher-led math resources", { exact: true })).toBeVisible();
+  await expect(page.getByText("Online math prep · Grades 3–8", { exact: true })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://mathnexa.com");
   await expect(page.getByText("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes");
-  await expect(page.getByRole("heading", { name: "Make every math lesson clearer, more engaging, and ready to teach." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Online math prep that shows the thinking, not just the answer." })).toBeVisible();
   await expect(page.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
 
@@ -133,7 +133,9 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page.getByRole("img", { name: /Online Math Prep workspace/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /homework PDF with fruit diagrams/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /Grade 7 topic quiz/i })).toBeVisible();
-  await expect(page.locator(".constellation-node")).toHaveCount(4);
+  await expect(page.locator("a[data-product]")).toHaveCount(4);
+  await expect(page.locator("a[data-product]").first()).toHaveAttribute("href", "/map-prep");
+  await expect(page.getByRole("figure", { name: /^Example: a Grade 6 ratio problem/ })).toBeVisible();
   // Anonymous visitors see the free-trial path in the header without searching for pricing.
   await expect(page.getByRole("banner").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/sign-up?next=/subscription");
   await expect(page.locator("body")).not.toContainText("Today's math toolkit");
