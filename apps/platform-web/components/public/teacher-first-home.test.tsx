@@ -72,11 +72,40 @@ describe("teacher-first public homepage", () => {
     expect(text).toContain("3 cups of oats make 12 granola bars. How many cups make 20 bars?");
     expect(text).toContain("12 bars ÷ 3 cups = 4 bars per cup");
     expect(text).toContain("20 bars ÷ 4 = 5 cups");
+    // The board checks by multiplying back; it never claims to grade anyone's work.
+    expect(text).toContain("Check: 5 cups × 4 = 20 bars");
+    expect(text).not.toMatch(/Correct|your work shows/i);
     const [cups, bars, target] = [3, 12, 20];
     expect(bars / cups).toBe(4);
     expect(target / (bars / cups)).toBe(5);
+    expect(5 * (bars / cups)).toBe(target);
     expect(within(board).getByRole("img", { name: /1 cup matches 4 bars, 3 cups match 12 bars, 5 cups match 20 bars/ })).toBeTruthy();
     expect(within(board).getByRole("list", { name: "Example session progress" }).textContent).toBe("LearnPracticeReview");
+  });
+
+  it("hands the visitor a problem of their own: feedback shows the reasoning, nothing is sent", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(<TeacherFirstHome />);
+    const turn = screen.getByRole("group", { name: "Your turn How many cups make 28 bars?" });
+    const choices = within(turn).getAllByRole("button");
+    expect(choices.map((button) => button.textContent)).toEqual(["6 cups", "7 cups", "8 cups"]);
+    for (const button of choices) expect(button.getAttribute("aria-pressed")).toBe("false");
+    await user.click(within(turn).getByRole("button", { name: "6 cups" }));
+    expect(turn.textContent).toContain("Not quite: 6 cups × 4 = 24 bars. Try again.");
+    await user.click(within(turn).getByRole("button", { name: "8 cups" }));
+    expect(turn.textContent).toContain("Not quite: 8 cups × 4 = 32 bars. Try again.");
+    await user.click(within(turn).getByRole("button", { name: "7 cups" }));
+    expect(turn.textContent).toContain("Yes: 7 cups × 4 = 28 bars.");
+    expect(within(turn).getByRole("button", { name: "7 cups" }).getAttribute("aria-pressed")).toBe("true");
+    expect(28 / 4).toBe(7);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("links the Worksheet Generator step to the existing gated route", () => {
+    render(<TeacherFirstHome />);
+    expect(screen.getByRole("link", { name: "Open the Worksheet Generator" }).getAttribute("href")).toBe("/worksheets");
   });
 
   it("replays the worked example on request, in place, without leaving the page", async () => {
@@ -206,7 +235,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/play", "/games/math-tug-of-war/play"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/play", "/games/math-tug-of-war/play"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

@@ -84,6 +84,7 @@ function PrepFlow() {
             <span className={styles.stepLabel}>Step {index + 1}</span>
             <h3>{step.title}</h3>
             <p>{step.body}</p>
+            {"link" in step ? <Link className={styles.textLink} href={step.link.href}>{step.link.label} <span aria-hidden="true">→</span></Link> : null}
           </li>)}
         </ol>
       </InView>

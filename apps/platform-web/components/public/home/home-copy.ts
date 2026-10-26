@@ -22,7 +22,13 @@ export const PREP_FLOW_STEPS = [
   { key: "learn", title: "Learn", body: "Start with a clear, visual explanation of one idea." },
   { key: "practice", title: "Practice", body: "Work through problems on that same idea, on a laptop, tablet or phone." },
   { key: "review", title: "Review", body: "Come back to the topic and check what stuck before a quiz or test." },
-  { key: "worksheet", title: "Worksheet Generator", body: "Print a fresh worksheet for practice away from the screen." }
+  {
+    key: "worksheet",
+    title: "Worksheet Generator",
+    body: "Print a fresh worksheet for practice away from the screen.",
+    // The existing gated route: the same destination as the header link.
+    link: { href: "/worksheets", label: "Open the Worksheet Generator" }
+  }
 ] as const;
 
 export type PrepFlowStepKey = (typeof PREP_FLOW_STEPS)[number]["key"];

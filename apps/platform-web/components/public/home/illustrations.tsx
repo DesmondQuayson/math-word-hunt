@@ -94,7 +94,7 @@ export function KitchenTableScene() {
     <text className={styles.sceneHand} x="128" y="141" transform="rotate(-2 128 141)">¾ = 6⁄8</text>
     <path data-draw pathLength="1" className={styles.scenePen} d="M196 155 C 204 150, 211 159, 219 153 C 226 149, 231 157, 238 152" />
     <rect className={styles.sceneSticky} x="20" y="126" width="42" height="34" rx="2" transform="rotate(-6 41 143)" />
-    <text className={styles.sceneStickyText} x="25" y="147" transform="rotate(-6 41 143)">Thu ✓</text>
+    <text className={styles.sceneStickyText} x="25" y="147" transform="rotate(-6 41 143)">Fri: quiz</text>
     <g className={styles.sceneMug}>
       <path d="M304 124 H332 V154 C 332 160, 328 162, 322 162 H314 C 308 162, 304 160, 304 154 Z" />
       <path d="M332 131 C 344 131, 344 149, 332 149" />

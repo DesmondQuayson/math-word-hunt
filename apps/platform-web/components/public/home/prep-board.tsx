@@ -1,18 +1,22 @@
 import styles from "./home.module.css";
 import { PrepBoardReplay } from "./prep-board-replay";
+import { YourTurn } from "./your-turn";
 
 /**
  * The hero's worked problem: one Online Math Prep-style ratio question solved
- * on graph paper, written in step by step on page load.
+ * on graph paper, written in step by step when it comes into view, checked by
+ * multiplying back, then handed to the visitor as "Your turn".
  *
  * It is real text (screen readers read the problem and both steps) inside a
  * captioned figure, and it is labelled as an example. The arithmetic is
- * checked by the homepage unit test: 12 ÷ 3 = 4 bars per cup, 20 ÷ 4 = 5 cups.
+ * checked by the homepage unit test: 12 ÷ 3 = 4 bars per cup, 20 ÷ 4 = 5 cups,
+ * 5 × 4 = 20, 28 ÷ 4 = 7.
  *
  * Motion: one sequence, finished in under five seconds (WCAG 2.2.2), replayed
  * only on request. Every animated element's resting style is its final state,
  * so reduced motion, a cancelled animation or a screenshot all show the solved
- * problem.
+ * problem. The sheet and the problem text never fade (they only slide), so
+ * the page's largest text paints at once.
  */
 export function PrepBoard() {
   return <PrepBoardReplay>
@@ -69,8 +73,10 @@ export function PrepBoard() {
 
         <p className={styles.check}>
           <svg className={styles.checkMark} viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" /><path pathLength="1" d="M9 16.5 L14 21.5 L23.5 10.5" /></svg>
-          <span>Correct, and your work shows why.</span>
+          <span>Check: 5 cups × 4 = 20 bars</span>
         </p>
+
+        <YourTurn />
 
         <svg className={styles.pencil} viewBox="0 0 140 36" aria-hidden="true">
           <path className={styles.pencilWood} d="M18 8 L2 18 L18 28 Z" />
