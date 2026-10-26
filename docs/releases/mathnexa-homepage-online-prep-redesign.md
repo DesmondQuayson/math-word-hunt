@@ -30,9 +30,11 @@ Homepage-only. Anything not on this list is restricted for this change.
 
 | File | Why |
 | --- | --- |
-| `apps/platform-web/components/public/teacher-first-home.tsx` | The production homepage component. The Authorize Code container JSX and `HeroActions` keep the same code (the Authorize Code block is indented one level deeper inside the new wrapper); `FeaturedGames` keeps its markup. |
+| `apps/platform-web/components/public/teacher-first-home.tsx` | The production homepage component. The Authorize Code block, `HeroActions` and `FeaturedGames` are byte-identical to the pre-redesign homepage (indentation restored in round 3). |
 | `apps/platform-web/components/public/home/home.module.css` (new) | Homepage-only CSS Module: hashed class names cannot match any other page. |
-| `apps/platform-web/components/public/home/*.tsx`, `home-copy.ts` (new) | Homepage-only presentational components (worked-problem board, replay and in-view play, Your turn, in-view helper, illustrations, homepage copy). Imported by the homepage component only. |
+| `apps/platform-web/components/public/home/*.tsx`, `home-copy.ts` (new) | Homepage-only presentational components (worked-problem board, replay and in-view play, Your turn, in-view helper, marker underline, homepage copy). Imported by the homepage component only. |
+| `apps/platform-web/public/media/home/online-math-prep-preview.webp`, `.avif`, `-source.svg` (renamed from `map-prep-preview.*`, round 3) | The homepage-only preview drawing, retitled "Online Math Prep" and renamed so no browser, CDN or image-optimizer cache can serve the old title. |
+| `scripts/audit-phase11-security.mjs` (round 3) | One line: the homepage asset it checks now has the new file name. |
 | `apps/platform-web/components/public/home/fonts/patrick-hand-latin.woff2`, `PatrickHand-OFL.txt` (new, P1) | Patrick Hand, Google Fonts Latin subset v25 (23,944 bytes, sha256 `ac5bc903…0bbf0199`), SIL Open Font License 1.1, with its licence. Loaded only by the homepage CSS Module. |
 | `apps/platform-web/components/public/teacher-first-home.test.tsx` | Homepage unit test: copy, headings and structure assertions follow the new design; every access-control assertion stays. |
 | `apps/platform-web/components/public/home-page-authorize-code.test.tsx` | One line: the homepage H1 it reads. |
@@ -103,7 +105,7 @@ Inside them, the audit list gained the harness's later admin sign-ins (append-on
 went from "NO EVENTS" to "HEALTHY" because the base-code phase 9 checkout test wrote the first local webhook
 event (received 03:36:17Z) after the baseline capture (03:20Z). Data, not code.
 
-Authorize Code: the container JSX is the same code (indented one level deeper) and still sits directly after the hero actions inside
+Authorize Code: the container JSX is the same code (byte-identical again since round 3) and still sits directly after the hero actions inside
 `.teacher-home-copy`; signed-out visitors see it, every signed-in state renders nothing. Sign in, password
 Show/Hide, wrong-password and wrong-code errors, sign-out, the trial consent form to checkout, subscriber
 access and every redirect behave exactly as on the base.
@@ -151,6 +153,47 @@ P1 results (local, 2026-10-26, final P1 code):
 | Phone hold | off screen 6 s after load: 22 of 22 board animations paused; scrolled in: playing; 5 s later: finished |
 | Reduced motion | 0 running animations, replay hidden |
 | Page weight vs base | JS +1.9 KB, CSS +5.9 KB compressed, plus the 23.9 KB font on the homepage only |
+
+## Round 3: owner's final visual corrections (2026-10-26)
+
+Requested after the owner reviewed the P1 staging preview; animations preserved by instruction.
+
+1. Removed the "Inside Online Math Prep" section ("A prep session, one step at a time": intro, the four
+   step cards and icons, the Worksheet Generator link, "Explore Online Math Prep"), with its CSS, copy and
+   in-view strokes.
+2. Removed "Made for the kitchen table and the classroom" (both drawn scenes, their copy and the
+   "Find a Homework PDF" / "Find a Quiz PDF" links), with its CSS and drawings. Homework PDFs and Quiz PDFs
+   stay reachable from the header, the footer and the toolkit cards.
+3. The preview drawing's title now reads "MathNexa · Online Math Prep". The drawing is homepage-only
+   (`online-math-prep-preview-source.svg`, rendered to WebP/AVIF); only the title strip of the shipped image
+   was replaced (0 changed pixels elsewhere, exact lossless WebP), so the question, table, graph and tools
+   are untouched. The real Online Math Prep application (ShowMe) is not in this repository and was not changed.
+4. Preserved, unchanged: the worked-problem board (all 564 lines of its CSS and its three components are
+   byte-identical to the P1 code), Your turn, replay, play-when-seen, the headline highlighter, the toolkit
+   heading marker, reduced-motion behaviour.
+5. Polish: flat warm hero band (no decorative gradients), a toolkit heading about preparation ("Prepare
+   online, practice on paper, check what stuck"), a visible "Open Online Math Prep" call to action on the
+   feature card, balanced card titles, tighter section rhythm, and phone rows for the three supporting
+   cards (stacked again when enlarged text needs the room). "Each topic" was dropped from the feature card.
+6. The Authorize Code block, `HeroActions` and `FeaturedGames` are byte-identical to the pre-redesign
+   homepage again, indentation included.
+
+Round 3 results (local, 2026-10-26):
+
+| Check | Result |
+| --- | --- |
+| Protected-page screenshots (90) vs the `bcc0106` baseline | 80 pixel-identical (Super Admin included); 8 homepage (intended); trial `/subscription` x2: a 9 x 21 px sliver at the end of the masked "Access ends" date (data) |
+| Functional facts | 343 facts, 0 differences |
+| phase 9 (homepage baselines regenerated) / school-access / Tug free access | 17/17 / 21/21 / 8/8 |
+| Quiz PDFs / Number Cross | 20/20 / 1/1 |
+| Unit core / web | 245/245 / 908 passed, 1 skipped |
+| `test:security`, bundle audit, Number Cross launch audit, protection bypass | 321/321, pass, pass, 7/7 |
+| Phase 11 and Quiz PDF audits, typecheck, lint, build | pass, clean, 0 errors (8 pre-existing warnings), pass |
+| Production-mode review at 320, 360, 390, 430, 768, 1024, 1440, 1920 (Chromium) and iPad portrait/landscape and iPhone 390 (WebKit) | no overflow, CLS 0, no console errors; page 35% shorter (1440: 5,173 to 3,367 px) |
+| 320 px with 200% text | no overflow, no clipped text |
+| Animations | board code and its 564 CSS lines byte-identical to P1; finished board pixel-identical except a 5 x 38 px sliver of background where the removed gradient was; phone hold: 22/22 held off screen, played on scroll; reduced motion: 0 running, replay hidden |
+| Desktop LCP | 0.47–0.52 s (base 0.62 s) |
+| Share of page height at 1440 | hero 27.9%, toolkit 34.8% (Online Math Prep is its full-width card), Featured games 23.3% |
 
 ## Not done here
 
