@@ -62,7 +62,7 @@ export function PrepBoard() {
 
         <div className={styles.work}>
           <p className={styles.note}>
-            <span>find 1 cup first</span>
+            <span>find the unit rate</span>
             <svg className={styles.noteArrow} viewBox="0 0 60 40" aria-hidden="true"><path pathLength="1" d="M56 6 C 44 4, 26 10, 12 28 M12 28 L 13 17 M12 28 L 23 26" /></svg>
           </p>
           <p className={`${styles.step} ${styles.stepOne}`}><span className={styles.stepInk}>12 bars ÷ 3 cups = <strong>4 bars per cup</strong></span></p>

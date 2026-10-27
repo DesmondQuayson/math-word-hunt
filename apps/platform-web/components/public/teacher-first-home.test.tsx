@@ -75,6 +75,10 @@ describe("teacher-first public homepage", () => {
     const board = screen.getByRole("figure", { name: /^Example: a Grade 6 ratio problem/ });
     const text = board.textContent ?? "";
     expect(text).toContain("3 cups of oats make 12 granola bars. How many cups make 20 bars?");
+    // The margin note names the method of the first step (4 bars per cup is
+    // the unit rate); it is part of the worked example, not an app hint.
+    expect(text).toContain("find the unit rate");
+    expect(text).not.toContain("find 1 cup first");
     expect(text).toContain("12 bars ÷ 3 cups = 4 bars per cup");
     expect(text).toContain("20 bars ÷ 4 = 5 cups");
     // The board checks by multiplying back; it never claims to grade anyone's work.
