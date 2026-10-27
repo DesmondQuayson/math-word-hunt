@@ -3,6 +3,10 @@
 Branch `feature/homepage-online-prep-redesign`, cut from `origin/main` `bcc0106` (v1.2.25 release record).
 Scope: the public homepage only. Production is not touched without the owner's explicit approval.
 
+**Status: RELEASED as v1.2.26 on 2026-10-27** with the owner's approval, from the reviewed candidate `1f24bba`
+(production `dpl_4RKPWVDWd6TuJRb9cwfZKpyVkWQ7`, rollback `dpl_8yXvDHZc8vCgmCqLmbkTwSzsa76y`). See
+`docs/releases/mathnexa-v1.2.26-release-record.md`.
+
 ## Owner rules for this change
 
 - Change the homepage experience, not the website system.
@@ -221,7 +225,8 @@ Requested by the owner before production. One correction (`cc81f83`); everything
    dark-neon pixels; the Online Math Prep picture is 6.3% of the area and 4.6% of the chroma.
    Proposed, **not applied**: show the existing Math Tug of War screen in the toolkit's Math Games card,
    so the neon art appears once, in Featured games. That is one image path and its alt text. Measured:
-   the toolkit's dark-neon share falls from 31% to 4.5%. It needs owner approval and a regression run.
+   the toolkit's dark-neon share falls from 31% to 4.5%. **Closed 2026-10-26: the owner decided to keep
+   Featured Games as it is.** The proposal was not applied; Featured games ships byte-identical to v1.2.25.
 4. **Sticky note.** "find 1 cup first" became "find the unit rate" (`cc81f83`). Online Math Prep shows
    hints only on request ("Show a hint"), so a note that appears by itself could read as an automatic hint.
    The new text names what the arrowed step computes.
@@ -247,10 +252,12 @@ Final acceptance results (local, `cc81f83`):
 | Production-mode review, 11 sizes (Chromium + WebKit) | no overflow, CLS 0, no console errors, heights identical to round 3; Firefox skipped (blocked) |
 | Desktop LCP / section shares at 1440 | 0.46 s / hero 27.9%, toolkit 34.8%, Featured games 23.3% (unchanged) |
 
-## Not done here
+## Owner decisions and release
 
-- Production: not deployed, not merged. Needs the owner's explicit approval.
-- Hosted signed-in checks on staging need the owner's vault-backed run (the staging preview is behind
-  Vercel SSO).
-- Firefox: one manual look by the owner.
-- The Featured Games proposal above waits for the owner's decision.
+- Featured Games: kept as it is (owner, 2026-10-26). The proposal above is closed, not applied.
+- Firefox: the owner checks it; it cannot run on the review machine.
+- Production: released as v1.2.26 on 2026-10-27 from `1f24bba` with the owner's explicit approval, after the
+  full regression was re-run on that commit. PR #2 merged by fast-forwarding `main`. Deployment, verification
+  and rollback: `docs/releases/mathnexa-v1.2.26-release-record.md`.
+- Still the owner's manual checks: a signed-in production session, an Authorize Code entry and a subscriber's
+  product access (nothing in the release signs in to production).
