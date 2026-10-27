@@ -195,8 +195,62 @@ Round 3 results (local, 2026-10-26):
 | Desktop LCP | 0.47–0.52 s (base 0.62 s) |
 | Share of page height at 1440 | hero 27.9%, toolkit 34.8% (Online Math Prep is its full-width card), Featured games 23.3% |
 
+## Final acceptance checks (2026-10-26)
+
+Requested by the owner before production. One correction (`cc81f83`); everything else is evidence.
+
+1. **Signed in.** Local production builds of `bcc0106` and this branch were served side by side
+   against the same local database (fixture billing). Synthetic accounts signed in through the real form:
+   no access, trial active, subscription active and subscription canceled through period end, plus an
+   Authorize Code session, at 1440 and 390 px. Results:
+   - Same in both builds: landing after sign-in, banner and account menu markup, banner pixels in all
+     10 runs, hero account actions, the absent Authorize Code card when signed in, the code session's
+     active panel and exit control, product reach on 9 routes per state, and sign-out. The only markup
+     difference is Next's per-build server-action id.
+   - Only intended difference: the new toolkit card for Online Math Prep, which links to `/map-prep`.
+   - Visible, not a change: the secondary hero buttons ("Sign in", "My Account") use the shared
+     transparent `.button-secondary` style. They now show the warm hero band (since P1) instead of the
+     pale blue page. Their markup, CSS, size and behaviour are unchanged, and `/sign-in` is pixel-identical.
+   - Not run: a signed-in walk-through on the hosted staging preview (owner's Vercel SSO and vault-held
+     staging accounts).
+2. **Firefox: unverified.** Windows App Control still blocks Playwright's Firefox on the review
+   machine (`spawn UNKNOWN`), and no other Firefox is installed. A static check of the homepage's CSS and
+   browser APIs found nothing newer than Firefox 121; `text-wrap: balance` is optional.
+3. **Featured Games weight.** At 1440 px the Math Vocabulary Hunt neon art (toolkit thumbnail plus
+   Featured games) covers 5.6% of the page. It carries 20% of the page's CIELAB chroma and 90% of its
+   dark-neon pixels; the Online Math Prep picture is 6.3% of the area and 4.6% of the chroma.
+   Proposed, **not applied**: show the existing Math Tug of War screen in the toolkit's Math Games card,
+   so the neon art appears once, in Featured games. That is one image path and its alt text. Measured:
+   the toolkit's dark-neon share falls from 31% to 4.5%. It needs owner approval and a regression run.
+4. **Sticky note.** "find 1 cup first" became "find the unit rate" (`cc81f83`). Online Math Prep shows
+   hints only on request ("Show a hint"), so a note that appears by itself could read as an automatic hint.
+   The new text names what the arrowed step computes.
+5. **Animations unchanged.**
+   - The board's CSS and its other four components are byte-identical to round 3.
+   - 24 animations, with identical names, targets, durations, delays and fills at 1440 and 390 px.
+   - With every animation held at 17 timeline points (0–5 s), the only changed pixels are inside the note
+     and its arrow.
+   - Phone hold: 22/22 held, then played. Reduced motion: 0 running.
+   - Page height is identical to round 3 at all 11 review sizes.
+
+Final acceptance results (local, `cc81f83`):
+
+| Check | Result |
+| --- | --- |
+| Protected-page screenshots (90) vs the `bcc0106` baseline | 80 pixel-identical (Super Admin included); 8 homepage (intended); trial `/subscription` x2: the same 189 px date-mask sliver as round 3 |
+| Functional facts | 199 shared with the base run identical; 343/343 identical to round 3 |
+| phase 9 / school-access / Tug free access | 17/17 / 21/21 / 8/8 (homepage baselines still match; no snapshot changed) |
+| Quiz PDFs / Number Cross | 20/20 / 1/1 |
+| Unit core / web | 245/245 / 908 passed, 1 skipped |
+| `test:security`, bundle audit, Number Cross launch audit, protection bypass | 321/321, pass, pass, 7/7 (re-run on a fresh build: the e2e runners had cleared `.next`) |
+| Phase 11 and Quiz PDF audits, typecheck, lint, build | pass, pass, clean, 0 errors (8 pre-existing warnings), pass |
+| Production-mode review, 11 sizes (Chromium + WebKit) | no overflow, CLS 0, no console errors, heights identical to round 3; Firefox skipped (blocked) |
+| Desktop LCP / section shares at 1440 | 0.46 s / hero 27.9%, toolkit 34.8%, Featured games 23.3% (unchanged) |
+
 ## Not done here
 
 - Production: not deployed, not merged. Needs the owner's explicit approval.
 - Hosted signed-in checks on staging need the owner's vault-backed run (the staging preview is behind
   Vercel SSO).
+- Firefox: one manual look by the owner.
+- The Featured Games proposal above waits for the owner's decision.
