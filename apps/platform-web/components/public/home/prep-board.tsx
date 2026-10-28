@@ -12,8 +12,9 @@ import { YourTurn } from "./your-turn";
  * checked by the homepage unit test: 12 ÷ 3 = 4 bars per cup, 20 ÷ 4 = 5 cups,
  * 5 × 4 = 20, 28 ÷ 4 = 7.
  *
- * Motion: one sequence, finished in under five seconds (WCAG 2.2.2), replayed
- * only on request. Every animated element's resting style is its final state,
+ * Motion: one sequence, finished in under five seconds, replayed after a
+ * three-second rest while on screen, with Pause (WCAG 2.2.2) and Replay
+ * buttons. Every animated element's resting style is its final state,
  * so reduced motion, a cancelled animation or a screenshot all show the solved
  * problem. The sheet and the problem text never fade (they only slide), so
  * the page's largest text paints at once.
