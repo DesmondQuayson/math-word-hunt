@@ -8,9 +8,9 @@
  * global rules; this file only adds layout around them.
  *
  * Motion: the hero's worked problem plays (under five seconds) when it is
- * seen, rests three seconds on the solved problem and plays again while it
- * stays on screen, with no manual controls; the toolkit heading's marker draws
- * once as it scrolls into view.
+ * seen, rests three seconds on the solved problem and plays again, three
+ * plays in all, then stays solved, with no manual controls; the toolkit
+ * heading's marker draws once as it scrolls into view.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
  */

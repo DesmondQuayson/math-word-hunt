@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { createBoardLoop, type BoardLoop } from "./board-loop";
 import styles from "./home.module.css";
 
 /**
  * Plays the worked problem when it is seen, then again on its own after a
- * three-second rest on the solved problem, for as long as it stays on screen
- * (see board-loop.ts).
+ * three-second rest on the solved problem, three complete plays in all; then
+ * the solved problem stays for the rest of the visit (see board-loop.ts).
  *
  * Where the board is already in view at load (laptops, Smart Boards,
  * landscape tablets) the CSS sequence simply plays. Where it starts below the
@@ -20,8 +20,10 @@ import styles from "./home.module.css";
  *
  * There are no manual controls (owner, after v1.2.27). Answering "Your turn"
  * stops the cycle so the answer stays on screen. With reduced motion nothing
- * loops: the solved problem shows. When motion is allowed again the board is
- * re-keyed, which restarts its CSS animations from the top.
+ * plays: the solved problem shows. When motion is allowed again the board is
+ * re-keyed, which restarts its CSS animations from the top, or, once the
+ * plays are used up, shows the fresh board already solved (followed before
+ * paint, so its first frame never flashes).
  */
 export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>) {
   const [run, setRun] = useState(0);
@@ -68,7 +70,7 @@ export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>)
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // The first board is followed when the loop starts; this follows each fresh one.
     const current = board.current;
     if (run > 0 && current) loop.current?.track(current.getAnimations({ subtree: true }));

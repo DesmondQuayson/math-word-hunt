@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createBoardLoop, HOLD_MS } from "./board-loop";
+import { createBoardLoop, HOLD_MS, PLAYS } from "./board-loop";
 import { PrepBoard } from "./prep-board";
 
 // Stands in for a CSS animation: a pass ends when the test calls complete().
@@ -9,6 +9,8 @@ class FakeAnimation {
   playState: AnimationPlayState = "running";
   currentTime: number | null = 0;
   plays = 0;
+  /** Plays started from the finished state, i.e. rewinds; resuming a held frame is not one. */
+  restarts = 0;
   finished!: Promise<FakeAnimation>;
   private resolve!: () => void;
 
@@ -24,7 +26,10 @@ class FakeAnimation {
 
   play() {
     this.plays += 1;
-    if (this.playState === "finished") this.renew();
+    if (this.playState === "finished") {
+      this.restarts += 1;
+      this.renew();
+    }
     this.playState = "running";
   }
 
@@ -68,10 +73,11 @@ afterEach(() => {
 });
 
 describe("worked problem loop", () => {
-  it("rests three seconds on the solved problem, then plays the same animations again, pass after pass", async () => {
+  it("rests three seconds on the solved problem between plays, plays three times in all, then stays solved", async () => {
     expect(HOLD_MS).toBe(3_000);
+    expect(PLAYS).toBe(3);
     const { loop, board, remount } = setup();
-    for (let pass = 1; pass <= 6; pass += 1) {
+    for (let play = 1; play < PLAYS; play += 1) {
       expect(board.every((animation) => animation.playState === "running")).toBe(true);
       expect(vi.getTimerCount()).toBe(0);
       await completeAll(board);
@@ -79,11 +85,93 @@ describe("worked problem loop", () => {
       await vi.advanceTimersByTimeAsync(HOLD_MS - 1);
       expect(board.every((animation) => animation.playState === "finished")).toBe(true);
       await vi.advanceTimersByTimeAsync(1);
-      // Rewound to the first frame and running: the next pass has begun.
-      expect(board.every((animation) => animation.currentTime === 0 && animation.playState === "running" && animation.plays === pass)).toBe(true);
+      // Rewound to the first frame and running: the next play has begun.
+      expect(board.every((animation) => animation.currentTime === 0 && animation.playState === "running" && animation.plays === play)).toBe(true);
     }
+    // The third play ends on the solved problem, with no rest timer and no fourth play.
+    await completeAll(board);
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(board.every((animation) => animation.playState === "finished" && animation.currentTime === 4_320 && animation.plays === PLAYS - 1)).toBe(true);
     // The automatic cycle never rebuilds the board.
     expect(remount).not.toHaveBeenCalled();
+    loop.dispose();
+  });
+
+  it("stays solved after the third play whatever happens next: scrolling, the tab, focus", async () => {
+    const { loop, board, remount } = setup();
+    for (let play = 1; play <= PLAYS; play += 1) {
+      await completeAll(board);
+      await vi.advanceTimersByTimeAsync(HOLD_MS);
+    }
+    for (let round = 0; round < 5; round += 1) {
+      loop.setOnScreen(false);
+      await vi.advanceTimersByTimeAsync(10_000);
+      loop.setOnScreen(true);
+      loop.setFocused(true);
+      loop.setFocused(false);
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(vi.getTimerCount()).toBe(0);
+    }
+    expect(board.every((animation) => animation.playState === "finished" && animation.plays === PLAYS - 1)).toBe(true);
+    expect(remount).not.toHaveBeenCalled();
+    loop.dispose();
+  });
+
+  it("does not count a play cut short off screen or in a background tab", async () => {
+    const { loop, board } = setup();
+    // First play: interrupted twice before it finishes.
+    loop.setOnScreen(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    loop.setOnScreen(true);
+    loop.setOnScreen(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    loop.setOnScreen(true);
+    expect(vi.getTimerCount()).toBe(0);
+    await completeAll(board);
+    // Leaving during each rest uses up nothing either.
+    for (let play = 2; play <= PLAYS; play += 1) {
+      loop.setOnScreen(false);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(board.every((animation) => animation.restarts === play - 2)).toBe(true);
+      loop.setOnScreen(true);
+      await vi.advanceTimersByTimeAsync(HOLD_MS);
+      expect(board.every((animation) => animation.playState === "running" && animation.restarts === play - 1)).toBe(true);
+      await completeAll(board);
+    }
+    // Three complete plays were seen: no fourth.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(board.every((animation) => animation.playState === "finished" && animation.restarts === PLAYS - 1)).toBe(true);
+    loop.dispose();
+  });
+
+  it("keeps the plays already seen when a fresh board starts, and a fresh board after the last play is shown solved", async () => {
+    const { loop, board, remount } = setup();
+    await completeAll(board);
+    // Reduced motion on, then off mid-cycle: the fresh board plays, and one play is already counted.
+    loop.setReduced(true);
+    loop.setReduced(false);
+    expect(remount).toHaveBeenCalledTimes(1);
+    const second = fakes();
+    loop.track(asAnimations(second));
+    expect(second.every((animation) => animation.playState === "running")).toBe(true);
+    await completeAll(second);
+    await vi.advanceTimersByTimeAsync(HOLD_MS);
+    await completeAll(second);
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(second.every((animation) => animation.playState === "finished" && animation.plays === 1)).toBe(true);
+    // After the last play, motion allowed again shows a fresh board already solved.
+    loop.setReduced(true);
+    loop.setReduced(false);
+    expect(remount).toHaveBeenCalledTimes(2);
+    const third = fakes();
+    loop.track(asAnimations(third));
+    expect(third.every((animation) => animation.playState === "finished" && animation.plays === 0)).toBe(true);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(third.every((animation) => animation.plays === 0)).toBe(true);
     loop.dispose();
   });
 
@@ -263,18 +351,54 @@ describe("worked problem on the page", () => {
     for (const observer of observers) observer.callback([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
   });
 
-  it("has no manual controls and replays on its own, pass after pass", async () => {
-    render(<PrepBoard />);
+  it("has no manual controls, replays on its own three times in all, and keeps its count through re-renders", async () => {
+    const { rerender } = render(<PrepBoard />);
     // The only buttons are the three "Your turn" answers.
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["6 cups", "7 cups", "8 cups"]);
-    for (let pass = 1; pass <= 5; pass += 1) {
+    const figure = screen.getByRole("figure");
+    for (let play = 1; play < PLAYS; play += 1) {
       for (const animation of boardAnimations) animation.complete();
       await flush();
+      rerender(<PrepBoard />);
       await act(() => vi.advanceTimersByTimeAsync(HOLD_MS - 1));
       expect(boardAnimations.every((animation) => animation.playState === "finished")).toBe(true);
       await act(() => vi.advanceTimersByTimeAsync(1));
-      expect(boardAnimations.every((animation) => animation.playState === "running" && animation.currentTime === 0 && animation.plays === pass)).toBe(true);
+      expect(boardAnimations.every((animation) => animation.playState === "running" && animation.currentTime === 0 && animation.plays === play)).toBe(true);
+      rerender(<PrepBoard />);
     }
+    for (const animation of boardAnimations) animation.complete();
+    await flush();
+    rerender(<PrepBoard />);
+    await act(() => vi.advanceTimersByTimeAsync(HOLD_MS * 20));
+    // Solved and still: no fourth play, the same board, the worked answer and its check in place.
+    expect(boardAnimations.every((animation) => animation.playState === "finished" && animation.plays === PLAYS - 1)).toBe(true);
+    expect(screen.getByRole("figure")).toBe(figure);
+    expect(figure.textContent).toContain("20 bars ÷ 4 = 5 cups");
+    expect(figure.textContent).toContain("Check: 5 cups × 4 = 20 bars");
+  });
+
+  it("keeps the solved problem after the third play when it scrolls away and back, or the tab is hidden", async () => {
+    render(<PrepBoard />);
+    for (let play = 1; play <= PLAYS; play += 1) {
+      for (const animation of boardAnimations) animation.complete();
+      await flush();
+      await act(() => vi.advanceTimersByTimeAsync(HOLD_MS));
+    }
+    seen(false);
+    seen(true);
+    const hidden = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    hidden.mockReturnValue("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    act(() => screen.getByRole("button", { name: "6 cups" }).focus());
+    act(() => screen.getByRole("button", { name: "6 cups" }).blur());
+    await act(() => vi.advanceTimersByTimeAsync(HOLD_MS * 20));
+    expect(boardAnimations.every((animation) => animation.playState === "finished" && animation.plays === PLAYS - 1)).toBe(true);
+    hidden.mockRestore();
   });
 
   it("holds the board while it is off screen or the tab is hidden", async () => {

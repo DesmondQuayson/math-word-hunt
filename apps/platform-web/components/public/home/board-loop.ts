@@ -5,20 +5,25 @@
  * A pass is the board's CSS animations playing once. When every one of them
  * has finished, the solved problem rests for HOLD_MS, then the same
  * animations are rewound and played again: no new elements, so nothing
- * reflows and nothing is painted for the first time. The cycle runs only
- * while the board can be seen. Off screen or in a background tab the
- * animations hold their current frame and the rest timer is cleared, so
- * nothing ticks in the background; coming back resumes the pass, or starts a
- * fresh rest if it had finished.
+ * reflows and nothing is painted for the first time. After PLAYS complete
+ * passes the solved problem stays on screen for the rest of the visit. A pass
+ * counts only when its last animation finishes, so a pass cut short never
+ * uses up a play. The cycle runs only while the board can be seen. Off
+ * screen or in a background tab the animations hold their current frame and
+ * the rest timer is cleared, so nothing ticks in the background; coming back
+ * resumes the pass, or starts a fresh rest if it had finished.
  *
  * The cycle waits while keyboard focus is inside the sheet ("Your turn"), and
  * stops for good when the visitor answers "Your turn", so their answer stays
  * on screen. With reduced motion the stylesheet removes the animations, so
- * there is nothing to loop.
+ * there is nothing to play.
  */
 
 /** The rest on the solved problem between passes. */
 export const HOLD_MS = 3_000;
+
+/** Complete passes per visit; after the last one the solved problem stays. */
+export const PLAYS = 3;
 
 export type BoardLoopOptions = {
   /** Replace the board with a fresh copy: a full reset, "Your turn" included. */
@@ -41,6 +46,7 @@ export type BoardLoop = {
 export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
   let animations: readonly Animation[] = [];
   let pass = 0;
+  let played = 0;
   let settled = false;
   let onScreen = options.onScreen;
   let reduced = options.reduced;
@@ -75,10 +81,13 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
     const current = ++pass;
     animations = list;
     settled = false;
+    // Once stopped, a fresh board (motion allowed again) shows the solved problem at once.
+    if (stopped) for (const animation of list) animation.finish();
     sync();
     void Promise.allSettled(list.map((animation) => animation.finished)).then(() => {
       if (current !== pass || disposed) return;
       settled = true;
+      if (list.length > 0 && !stopped && ++played >= PLAYS) stopped = true;
       sync();
     });
   };
