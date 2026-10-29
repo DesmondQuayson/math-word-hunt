@@ -23,6 +23,6 @@
 .home-featured-games .game-card-content{grid-template-columns:minmax(0,1fr)}.home-featured-games .game-card-content .button{min-width:min(8rem,100%);max-width:100%;white-space:normal;text-align:center}
 /* One featured game: the card takes the whole row, and on wide screens its artwork sits beside the text so no column is left empty. */
 .home-featured-games .game-card-grid{grid-template-columns:minmax(0,1fr)}
-@media(min-width:60rem){.home-featured-games .game-card-grid article{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center}.home-featured-games .game-card-grid .game-card-thumbnail{align-self:stretch;border-bottom:0;border-right:var(--border-width-thin) solid var(--color-border)}}
+@media(min-width:60rem){.home-featured-games .game-card-grid article{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center}.home-featured-games .game-card-grid .game-card-thumbnail{align-self:stretch;aspect-ratio:auto;border-bottom:0;border-right:var(--border-width-thin) solid var(--color-border)}}
 .game-free-badge{display:inline-flex;align-items:center;margin-right:var(--space-2);padding:.15rem .6rem;border-radius:999px;background:#065f69;color:#fff;font:900 var(--font-size-caption) var(--font-utility);letter-spacing:.06em;text-transform:uppercase}
 @media(forced-colors:active){.game-free-badge{border:1px solid CanvasText;background:Canvas;color:CanvasText}}
