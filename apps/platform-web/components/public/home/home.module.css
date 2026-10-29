@@ -7,9 +7,10 @@
  * home-featured-games, the button and Authorize Code form classes) keep their
  * global rules; this file only adds layout around them.
  *
- * Motion: the hero's worked problem plays once (under five seconds) when it
- * is seen, and again on request; the toolkit heading's marker draws once as it
- * scrolls into view.
+ * Motion: the hero's worked problem plays (under five seconds) when it is
+ * seen, rests three seconds on the solved problem and plays again while it
+ * stays on screen, with Replay and Pause buttons; the toolkit heading's marker
+ * draws once as it scrolls into view.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
  */
@@ -597,6 +598,14 @@
   text-align: center;
 }
 
+.boardControls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .replay {
   min-height: 2.75rem;
   display: inline-flex;
@@ -631,6 +640,31 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.pauseToggle {
+  width: 2.75rem;
+  justify-content: center;
+  padding: 0;
+}
+
+/* Narrow phones: Replay and Pause stay on one row (they wrap only if a
+   wider system font still does not fit). */
+@media (max-width: 21rem) {
+  .boardControls {
+    gap: 0.375rem;
+  }
+
+  .replay {
+    gap: 0.375rem;
+    padding-inline: 0.5rem;
+  }
+
+  .pauseToggle {
+    width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0;
+  }
 }
 
 @keyframes home-sheet-in {
@@ -923,7 +957,7 @@
   }
 }
 
-/* ---------- Reduced motion: finished content, no replay ---------- */
+/* ---------- Reduced motion: finished content, no replay or loop ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   .board,
@@ -937,7 +971,7 @@
     background-size: 100% 0.5em;
   }
 
-  .replay {
+  .boardControls {
     display: none;
   }
 
