@@ -1,5 +1,4 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createBoardLoop, HOLD_MS } from "./board-loop";
@@ -54,11 +53,10 @@ const completeAll = async (list: FakeAnimation[]) => {
 
 function setup({ onScreen = true, reduced = false } = {}) {
   const remount = vi.fn();
-  const onPausedChange = vi.fn();
-  const loop = createBoardLoop({ remount, onPausedChange, onScreen, reduced });
+  const loop = createBoardLoop({ remount, onScreen, reduced });
   const board = fakes();
   loop.track(asAnimations(board));
-  return { loop, board, remount, onPausedChange };
+  return { loop, board, remount };
 }
 
 beforeEach(() => {
@@ -102,7 +100,7 @@ describe("worked problem loop", () => {
     loop.dispose();
   });
 
-  it("keeps at most one timer however often its state changes, and Replay cancels the pending rest", async () => {
+  it("keeps at most one timer however often its state changes, and a fresh board cancels the pending rest", async () => {
     const { loop, board, remount } = setup();
     await completeAll(board);
     for (let index = 0; index < 20; index += 1) {
@@ -111,8 +109,10 @@ describe("worked problem loop", () => {
       loop.setReduced(false);
       expect(vi.getTimerCount()).toBe(1);
     }
-    for (let click = 0; click < 5; click += 1) loop.replay();
-    expect(remount).toHaveBeenCalledTimes(5);
+    // Reduced motion on, then off again: the board is rebuilt.
+    loop.setReduced(true);
+    loop.setReduced(false);
+    expect(remount).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
     // The old board's animations are no longer followed or touched.
     await vi.advanceTimersByTimeAsync(HOLD_MS * 2);
@@ -126,9 +126,10 @@ describe("worked problem loop", () => {
     loop.dispose();
   });
 
-  it("ignores a stale board's late finish after Replay", async () => {
+  it("ignores a stale board's late finish after the board is rebuilt", async () => {
     const { loop, board } = setup();
-    loop.replay();
+    loop.setReduced(true);
+    loop.setReduced(false);
     const fresh = fakes();
     loop.track(asAnimations(fresh));
     await completeAll(board);
@@ -177,40 +178,24 @@ describe("worked problem loop", () => {
     loop.dispose();
   });
 
-  it("Pause freezes the pass and stops the cycle; Play resumes it, or starts a fresh board at rest", async () => {
-    const { loop, board, remount, onPausedChange } = setup();
-    loop.togglePause();
-    expect(onPausedChange).toHaveBeenLastCalledWith(true);
-    expect(board.every((animation) => animation.playState === "paused")).toBe(true);
-    loop.togglePause();
-    expect(onPausedChange).toHaveBeenLastCalledWith(false);
-    expect(board.every((animation) => animation.playState === "running")).toBe(true);
-    await completeAll(board);
-    loop.togglePause();
-    expect(vi.getTimerCount()).toBe(0);
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(board.every((animation) => animation.playState === "finished")).toBe(true);
-    loop.togglePause();
-    expect(remount).toHaveBeenCalledTimes(1);
-    loop.dispose();
-  });
-
-  it("an answer to Your turn shows the solved problem and stops the cycle until Replay", async () => {
-    const { loop, board, remount, onPausedChange } = setup();
+  it("an answer to Your turn shows the solved problem and stops the cycle, on and off screen", async () => {
+    const { loop, board, remount } = setup();
     loop.answered();
     expect(board.every((animation) => animation.playState === "finished")).toBe(true);
-    expect(onPausedChange).toHaveBeenLastCalledWith(true);
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(board.every((animation) => animation.plays === 0)).toBe(true);
-    loop.replay();
-    expect(onPausedChange).toHaveBeenLastCalledWith(false);
-    expect(remount).toHaveBeenCalledTimes(1);
+    loop.setOnScreen(false);
+    loop.setOnScreen(true);
+    loop.setFocused(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(board.every((animation) => animation.plays === 0 && animation.playState === "finished")).toBe(true);
+    expect(remount).not.toHaveBeenCalled();
     loop.dispose();
   });
 
   it("never loops with reduced motion, and starts a fresh board if motion is allowed again", async () => {
     const remount = vi.fn();
-    const loop = createBoardLoop({ remount, onPausedChange: vi.fn(), onScreen: true, reduced: true });
+    const loop = createBoardLoop({ remount, onScreen: true, reduced: true });
     // The stylesheet removes the animations: there is nothing to follow.
     loop.track([]);
     await vi.advanceTimersByTimeAsync(60_000);
@@ -235,15 +220,17 @@ describe("worked problem loop", () => {
     loop.dispose();
     expect(vi.getTimerCount()).toBe(0);
     loop.setOnScreen(true);
-    loop.togglePause();
-    loop.replay();
+    loop.setFocused(false);
+    loop.setReduced(true);
+    loop.setReduced(false);
+    loop.answered();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(remount).not.toHaveBeenCalled();
     expect(board.every((animation) => animation.plays === 0)).toBe(true);
   });
 });
 
-describe("worked problem controls", () => {
+describe("worked problem on the page", () => {
   type Observed = { callback: IntersectionObserverCallback; disconnected: boolean };
   let observers: Observed[];
   let boardAnimations: FakeAnimation[];
@@ -276,20 +263,18 @@ describe("worked problem controls", () => {
     for (const observer of observers) observer.callback([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
   });
 
-  it("offers Pause beside Replay, and both work from the keyboard", async () => {
-    vi.useRealTimers();
-    const user = userEvent.setup();
+  it("has no manual controls and replays on its own, pass after pass", async () => {
     render(<PrepBoard />);
-    const pause = screen.getByRole("button", { name: "Pause the worked example" });
-    expect(screen.getByRole("button", { name: "Replay the worked example" })).toBeTruthy();
-    pause.focus();
-    await user.keyboard("{Enter}");
-    expect(boardAnimations.every((animation) => animation.playState === "paused")).toBe(true);
-    // Same button, new name: focus stays put.
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Play the worked example" }));
-    await user.keyboard(" ");
-    expect(screen.getByRole("button", { name: "Pause the worked example" })).toBe(document.activeElement);
-    expect(boardAnimations.every((animation) => animation.playState === "running")).toBe(true);
+    // The only buttons are the three "Your turn" answers.
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["6 cups", "7 cups", "8 cups"]);
+    for (let pass = 1; pass <= 5; pass += 1) {
+      for (const animation of boardAnimations) animation.complete();
+      await flush();
+      await act(() => vi.advanceTimersByTimeAsync(HOLD_MS - 1));
+      expect(boardAnimations.every((animation) => animation.playState === "finished")).toBe(true);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(boardAnimations.every((animation) => animation.playState === "running" && animation.currentTime === 0 && animation.plays === pass)).toBe(true);
+    }
   });
 
   it("holds the board while it is off screen or the tab is hidden", async () => {
@@ -311,18 +296,16 @@ describe("worked problem controls", () => {
     hidden.mockRestore();
   });
 
-  it("an answer to Your turn stops the cycle; Replay rebuilds the board and clears the answer", async () => {
-    vi.useRealTimers();
-    const user = userEvent.setup();
+  it("an answer to Your turn stops the cycle and stays on screen", async () => {
     render(<PrepBoard />);
     const figure = screen.getByRole("figure");
-    await user.click(screen.getByRole("button", { name: "7 cups" }));
+    fireEvent.click(screen.getByRole("button", { name: "7 cups" }));
     expect(screen.getByText("Yes: 7 cups × 4 = 28 bars.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Play the worked example" })).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Replay the worked example" }));
-    expect(screen.getByRole("figure")).not.toBe(figure);
-    expect(screen.queryByText("Yes: 7 cups × 4 = 28 bars.")).toBeNull();
-    expect(screen.getByRole("button", { name: "Pause the worked example" })).toBeTruthy();
+    expect(boardAnimations.every((animation) => animation.playState === "finished")).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(HOLD_MS * 10));
+    expect(boardAnimations.every((animation) => animation.plays === 0)).toBe(true);
+    expect(screen.getByRole("figure")).toBe(figure);
+    expect(screen.getByText("Yes: 7 cups × 4 = 28 bars.")).toBeTruthy();
   });
 
   it("waits while focus is on a Your turn answer, then carries on", async () => {
@@ -358,7 +341,6 @@ describe("worked problem controls", () => {
   it("never touches an answer by clicking elsewhere on the sheet", () => {
     render(<PrepBoard />);
     fireEvent.click(screen.getByText("3 cups of oats make 12 granola bars. How many cups make 20 bars?"));
-    expect(screen.getByRole("button", { name: "Pause the worked example" })).toBeTruthy();
     expect(boardAnimations.every((animation) => animation.playState === "running")).toBe(true);
   });
 });

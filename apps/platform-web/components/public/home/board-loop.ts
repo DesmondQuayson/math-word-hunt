@@ -12,9 +12,9 @@
  * fresh rest if it had finished.
  *
  * The cycle waits while keyboard focus is inside the sheet ("Your turn"), and
- * stops when the visitor answers "Your turn" or presses Pause. Replay and
- * Play start it again with a fresh board. With reduced motion the stylesheet
- * removes the animations, so there is nothing to loop.
+ * stops for good when the visitor answers "Your turn", so their answer stays
+ * on screen. With reduced motion the stylesheet removes the animations, so
+ * there is nothing to loop.
  */
 
 /** The rest on the solved problem between passes. */
@@ -23,7 +23,6 @@ export const HOLD_MS = 3_000;
 export type BoardLoopOptions = {
   /** Replace the board with a fresh copy: a full reset, "Your turn" included. */
   remount: () => void;
-  onPausedChange: (paused: boolean) => void;
   onScreen: boolean;
   reduced: boolean;
 };
@@ -34,10 +33,8 @@ export type BoardLoop = {
   setOnScreen: (onScreen: boolean) => void;
   setFocused: (focused: boolean) => void;
   setReduced: (reduced: boolean) => void;
-  togglePause: () => void;
   /** The visitor answered "Your turn": show the solved problem and stop. */
   answered: () => void;
-  replay: () => void;
   dispose: () => void;
 };
 
@@ -48,11 +45,11 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
   let onScreen = options.onScreen;
   let reduced = options.reduced;
   let focused = false;
-  let paused = false;
+  let stopped = false;
   let disposed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const moving = () => onScreen && !paused && !reduced;
+  const moving = () => onScreen && !stopped && !reduced;
 
   const clearTimer = () => {
     if (timer === undefined) return;
@@ -104,12 +101,6 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
     options.remount();
   };
 
-  const setPaused = (value: boolean) => {
-    if (paused === value) return;
-    paused = value;
-    options.onPausedChange(value);
-  };
-
   return {
     track(list) {
       if (!disposed) follow(list);
@@ -130,29 +121,13 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
       if (was && !value && !disposed) remount();
       else sync();
     },
-    togglePause() {
-      if (disposed) return;
-      if (!paused) {
-        setPaused(true);
-        sync();
-        return;
-      }
-      setPaused(false);
-      if (settled) remount();
-      else sync();
-    },
     answered() {
       if (disposed) return;
       for (const animation of animations) {
         if (animation.playState === "running" || animation.playState === "paused") animation.finish();
       }
-      setPaused(true);
+      stopped = true;
       sync();
-    },
-    replay() {
-      if (disposed) return;
-      setPaused(false);
-      remount();
     },
     dispose() {
       disposed = true;

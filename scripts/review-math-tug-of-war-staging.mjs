@@ -197,9 +197,8 @@ try {
     const cards = anon.page.locator(".home-featured-games article");
     await cards.first().waitFor({ timeout: 45_000 });
     const games = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
-    const [mvhBox, tugBox] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
-    ok(games.join(",") === "math-vocabulary-hunt,math-tug-of-war" && Math.abs(mvhBox.y - tugBox.y) < 2 && tugBox.x > mvhBox.x, "homepage: Math Tug of War beside Math Vocabulary Hunt");
-    const tugCard = cards.nth(1);
+    ok(games.join(",") === "math-tug-of-war", "homepage: Math Tug of War is the featured game");
+    const tugCard = cards.nth(0);
     const tugImage = tugCard.locator("img");
     await tugImage.scrollIntoViewIfNeeded();
     await anon.page.waitForFunction((element) => element.complete && element.naturalWidth > 0, await tugImage.elementHandle());

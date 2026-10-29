@@ -18,15 +18,13 @@ import styles from "./home.module.css";
  * or the Web Animations API nothing is held or repeated: the sequence plays
  * once and the finished problem shows.
  *
- * Replay re-keys the server-rendered board, which restarts its CSS animations
- * from the top and clears "Your turn"; the automatic cycle carries on after
- * it. Pause stops the motion: the cycle runs for longer than five seconds, so
- * it needs one (WCAG 2.2.2). With reduced motion both buttons are hidden and
- * nothing loops: the solved problem shows.
+ * There are no manual controls (owner, after v1.2.27). Answering "Your turn"
+ * stops the cycle so the answer stays on screen. With reduced motion nothing
+ * loops: the solved problem shows. When motion is allowed again the board is
+ * re-keyed, which restarts its CSS animations from the top.
  */
 export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>) {
   const [run, setRun] = useState(0);
-  const [paused, setPaused] = useState(false);
   const stage = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
   const loop = useRef<BoardLoop | null>(null);
@@ -46,7 +44,6 @@ export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>)
     }
     const controller = createBoardLoop({
       remount: () => setRun((value) => value + 1),
-      onPausedChange: setPaused,
       onScreen: inView && document.visibilityState !== "hidden",
       reduced: motion.matches
     });
@@ -91,14 +88,5 @@ export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>)
         if (event.target instanceof Element && event.target.closest("button")) loop.current?.answered();
       }}
     >{children}</div>
-    <div className={styles.boardControls}>
-      <button type="button" className={styles.replay} onClick={() => (loop.current ? loop.current.replay() : setRun((value) => value + 1))}>
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.5 10a5.5 5.5 0 1 0 1.7-4M4.5 3.5V6.5H7.5" /></svg>
-        Replay the worked example
-      </button>
-      <button type="button" className={`${styles.replay} ${styles.pauseToggle}`} aria-label={paused ? "Play the worked example" : "Pause the worked example"} onClick={() => loop.current?.togglePause()}>
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d={paused ? "M7 4.5 L15.5 10 L7 15.5 Z" : "M7.5 4.5 V15.5 M12.5 4.5 V15.5"} /></svg>
-      </button>
-    </div>
   </div>;
 }

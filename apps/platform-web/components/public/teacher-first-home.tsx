@@ -127,9 +127,11 @@ function ProductShelf() {
 }
 
 /**
- * Featured games: Math Vocabulary Hunt beside Math Tug of War, in the same
- * card language as the Math Games shelf. Math Tug of War is free with a
- * MathNexa account (lib/games/access-policy.ts); its button always points at
+ * Featured games: Math Tug of War, in the same card language as the Math Games
+ * shelf. Math Vocabulary Hunt is no longer promoted here (owner, after v1.2.27);
+ * the game itself is unchanged and stays in the Math Games catalog and at its
+ * own routes. Math Tug of War is free with
+ * a MathNexa account (lib/games/access-policy.ts); its button always points at
  * the game, and the game route itself sends a signed-out visitor through sign
  * in / create account and back. Nothing here decides access.
  */
@@ -140,23 +142,6 @@ function FeaturedGames() {
       <h2 id="featured-games-title">Featured games</h2>
     </header>
     <div className="game-card-grid">
-      <article data-game="math-vocabulary-hunt">
-        <div className="game-card-thumbnail">
-          <Image
-            src="/media/games/math-vocabulary-hunt.webp"
-            alt="Math Vocabulary Hunt gameplay artwork"
-            width={1200}
-            height={675}
-            sizes="(max-width: 48rem) 100vw, 50vw"
-          />
-        </div>
-        <div className="game-card-content">
-          <p className="game-path">Included with MathNexa access</p>
-          <h3>Math Vocabulary Hunt</h3>
-          <p>Lead a fast, collaborative vocabulary round with the preserved MathNexa classroom game.</p>
-          <LinkButton href="/play">Play</LinkButton>
-        </div>
-      </article>
       <article data-game="math-tug-of-war">
         <div className="game-card-thumbnail">
           <Image

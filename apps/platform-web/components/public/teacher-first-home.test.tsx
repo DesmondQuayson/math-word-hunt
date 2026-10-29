@@ -61,7 +61,7 @@ describe("teacher-first public homepage", () => {
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
     // The owner removed "Inside Online Math Prep" and "Made for the kitchen table and the classroom".
     expect(container.textContent).not.toMatch(/Inside Online Math Prep|A prep session|kitchen table|After school, at home|In the classroom|Explore Online Math Prep|Find a Homework PDF|Find a Quiz PDF/);
-    const after = ["Prepare online, practice on paper, check what stuck", "Featured games", "Math Vocabulary Hunt", "Math Tug of War"];
+    const after = ["Prepare online, practice on paper, check what stuck", "Featured games", "Math Tug of War"];
     // Headings: the H1, the authorized-code form heading, then the sections in order.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, "Authorize Code", ...after]);
     cleanup();
@@ -125,14 +125,13 @@ describe("teacher-first public homepage", () => {
     expect(source).toContain(">$10</text>");
   });
 
-  it("replays the worked example on request, in place, without leaving the page", async () => {
-    const user = userEvent.setup();
+  it("shows the worked example with no manual controls (owner, after v1.2.27): it replays on its own", () => {
     render(<TeacherFirstHome />);
-    const before = screen.getByRole("figure");
-    await user.click(screen.getByRole("button", { name: "Replay the worked example" }));
-    const after = screen.getByRole("figure");
-    expect(after).not.toBe(before);
-    expect(after.textContent).toBe(before.textContent);
+    const board = screen.getByRole("figure");
+    expect(board.textContent).toContain("Check: 5 cups × 4 = 20 bars");
+    expect(screen.queryByRole("button", { name: /worked example/i })).toBeNull();
+    // The only buttons in the board's stage are the three "Your turn" answers.
+    expect([...board.parentElement!.parentElement!.querySelectorAll("button")].map((button) => button.textContent)).toEqual(["6 cups", "7 cups", "8 cups"]);
   });
 
   it("keeps illustrations decorative: drawn scenes are hidden from assistive technology and the only pictures are product screens", () => {
@@ -142,16 +141,19 @@ describe("teacher-first public homepage", () => {
       expect(labelled || scene.getAttribute("aria-hidden") === "true").toBeTruthy();
     }
     const sources = [...container.querySelectorAll("img")].map((image) => decodeURIComponent(image.getAttribute("src") ?? ""));
-    expect(sources.length).toBe(6);
+    expect(sources.length).toBe(5);
     for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z-]+\.webp/);
   });
 
-  it("features Math Tug of War beside Math Vocabulary Hunt with a free Play for Free Now button to the game", () => {
+  it("features Math Tug of War alone (no Math Vocabulary Hunt promotion) with a free Play for Free Now button to the game", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const cards = [...container.querySelectorAll(".home-featured-games article")];
-      expect(cards.map((card) => card.getAttribute("data-game"))).toEqual(["math-vocabulary-hunt", "math-tug-of-war"]);
-      const tug = cards[1];
+      expect(cards.map((card) => card.getAttribute("data-game"))).toEqual(["math-tug-of-war"]);
+      const featured = container.querySelector(".home-featured-games")!;
+      expect(featured.textContent).not.toMatch(/Math Vocabulary Hunt|Included with MathNexa access/i);
+      expect(featured.querySelector('a[href="/play"]')).toBeNull();
+      const tug = cards[0];
       expect(tug.querySelector("img")?.getAttribute("src")).toContain("math-tug-of-war.webp");
       expect(tug.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Tug of War gameplay artwork/);
       expect(tug.textContent).toContain("Solve the math. Pull the rope. Beat the other side!");

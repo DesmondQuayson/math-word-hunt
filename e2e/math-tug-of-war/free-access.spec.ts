@@ -102,16 +102,14 @@ test("anonymous: homepage features the free game; Play for Free Now and the dire
   await page.goto("/");
   const featured = page.locator(".home-featured-games");
   await expect(featured.getByRole("heading", { name: "Math Tug of War" })).toBeVisible({ timeout: 90_000 });
+  // Math Tug of War is the only featured game (owner, after v1.2.27): Math Vocabulary Hunt is no longer promoted here.
   const cards = featured.locator("article");
-  await expect(cards).toHaveCount(2);
-  await expect(cards.nth(0)).toHaveAttribute("data-game", "math-vocabulary-hunt");
-  await expect(cards.nth(1)).toHaveAttribute("data-game", "math-tug-of-war");
-  const [mvh, tug] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
-  expect(Math.abs(mvh!.y - tug!.y)).toBeLessThan(2);
-  expect(tug!.x).toBeGreaterThan(mvh!.x + mvh!.width - 1);
-  await expect(cards.nth(1).getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
-  await expect(cards.nth(1)).toContainText("Solve the math. Pull the rope. Beat the other side!");
-  await expect(cards.nth(1)).toContainText("Free with a MathNexa account");
+  await expect(cards).toHaveCount(1);
+  await expect(cards.nth(0)).toHaveAttribute("data-game", "math-tug-of-war");
+  await expect(featured).not.toContainText(/Math Vocabulary Hunt|Included with MathNexa access/i);
+  await expect(cards.nth(0).getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
+  await expect(cards.nth(0)).toContainText("Solve the math. Pull the rope. Beat the other side!");
+  await expect(cards.nth(0)).toContainText("Free with a MathNexa account");
   expect(await page.locator("body").innerText()).not.toMatch(/no sign-up required/i);
   expect(await axe(page)).toEqual([]);
 
@@ -326,7 +324,7 @@ test("online: a subscriber and a non-subscriber play the same match", async ({ b
   await guest.context.close();
 });
 
-test("homepage responsive: the featured cards reflow cleanly at every width and at 200% text", async ({ browser }) => {
+test("homepage responsive: the featured card reflows cleanly at every width and at 200% text", async ({ browser }) => {
   for (const [width, height] of [[304, 640], [320, 568], [375, 667], [390, 844], [430, 932], [768, 1024], [820, 1180], [1024, 768], [1180, 820], [1366, 768], [1920, 1080]] as Array<[number, number]>) {
     const { context, page } = await freshContext(browser, { width, height });
     await page.goto("/");
@@ -338,12 +336,11 @@ test("homepage responsive: the featured cards reflow cleanly at every width and 
     await expect(button).toBeVisible();
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${width}`).toBeLessThanOrEqual(0);
-    if (width <= 700) {
-      const boxes = await page.locator(".home-featured-games article").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().top));
-      expect(boxes[1], `${width} stacks`).toBeGreaterThan(boxes[0]);
-    }
+    // The one card fills the row: no empty column beside it.
+    const [section, card] = await Promise.all([page.locator(".home-featured-games .game-card-grid").boundingBox(), tug.boundingBox()]);
+    expect(Math.abs(section!.width - card!.width), `${width} fills the row`).toBeLessThanOrEqual(1);
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
-    // At 200% text every part of the featured cards stays inside the viewport and
+    // At 200% text every part of the featured card stays inside the viewport and
     // inside its card. (The existing site footer and hero are outside this change.)
     const escaped = await page.locator(".home-featured-games").evaluate((section) => {
       const viewport = document.documentElement.clientWidth;
