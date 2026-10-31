@@ -59,6 +59,17 @@ function CaptionFeatures({ features }: Readonly<{ features: string }>) {
 }
 
 /**
+ * `sizes` for the shelf images, matching the widths home.module.css gives
+ * them, so each device downloads the smallest image that still fills its slot:
+ * - the feature image is the full shelf width up to 48rem (92vw), then the
+ *   1.35fr column of the shelf (about 55vw), up to 43rem at the 74rem shelf;
+ * - a supporting image is the 38% thumbnail of a phone row up to 34rem
+ *   (about 36vw), then one of three columns (about 31vw), up to 24rem.
+ */
+const SHELF_FEATURE_SIZES = "(max-width: 48rem) 92vw, (max-width: 78rem) 55vw, 43rem";
+const SHELF_CARD_SIZES = "(max-width: 34rem) 36vw, (max-width: 78rem) 31vw, 24rem";
+
+/**
  * The product shelf: the real product thumbnails, Online Math Prep first and
  * widest. Labels are the customer-facing product names
  * (lib/seo/platform-positioning). The route paths behind them are unchanged on
@@ -81,7 +92,7 @@ function ProductShelf() {
             alt="MathNexa Online Math Prep workspace with a graph, working board, and math tools"
             width={1200}
             height={800}
-            sizes="(max-width: 48rem) 92vw, 42rem"
+            sizes={SHELF_FEATURE_SIZES}
           />
         </span>
         <span className={styles.shelfCaption}><strong>{mathPrep.cardTitle}</strong><CaptionFeatures features={mathPrep.features} /><span className={styles.shelfNote}>Lessons, practice and review for Grades 3–8, with a worksheet generator for printing practice.</span><span className={styles.shelfAction}>Open Online Math Prep <span aria-hidden="true">→</span></span></span>
@@ -93,7 +104,7 @@ function ProductShelf() {
             alt="Math Vocabulary Hunt game artwork: a neon letter grid highlighting FRACTION, INTEGER, RATIO, AREA, and EQUATION"
             width={1200}
             height={675}
-            sizes="(max-width: 48rem) 92vw, 24rem"
+            sizes={SHELF_CARD_SIZES}
           />
         </span>
         <span className={styles.shelfCaption}><strong>{games.cardTitle}</strong><CaptionFeatures features={games.features} /></span>
@@ -105,7 +116,7 @@ function ProductShelf() {
             alt="MathNexa homework PDF with fruit diagrams and space to show thinking"
             width={1200}
             height={800}
-            sizes="(max-width: 48rem) 92vw, 24rem"
+            sizes={SHELF_CARD_SIZES}
           />
         </span>
         <span className={styles.shelfCaption}><strong>{homework.cardTitle}</strong><CaptionFeatures features={homework.features} /></span>
@@ -117,7 +128,7 @@ function ProductShelf() {
             alt="MathNexa Grade 7 topic quiz PDF with a table and two graphs"
             width={1200}
             height={800}
-            sizes="(max-width: 48rem) 92vw, 24rem"
+            sizes={SHELF_CARD_SIZES}
           />
         </span>
         <span className={styles.shelfCaption}><strong>{quizzes.cardTitle}</strong><CaptionFeatures features={quizzes.features} /></span>

@@ -145,6 +145,21 @@ describe("teacher-first public homepage", () => {
     for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z-]+\.webp/);
   });
 
+  it("sizes the shelf images to their real slots, so phones and tablets get small files", () => {
+    const { container } = render(<TeacherFirstHome />);
+    const image = (product: string) => container.querySelector(`[data-product="${product}"] img`)!;
+    expect(image("map-prep").getAttribute("sizes")).toBe("(max-width: 48rem) 92vw, (max-width: 78rem) 55vw, 43rem");
+    for (const product of ["games", "homework", "quizzes"]) {
+      const card = image(product);
+      // A phone row thumbnail is about 36vw, a tablet or desktop column about 31vw, at most 24rem.
+      expect(card.getAttribute("sizes")).toBe("(max-width: 34rem) 36vw, (max-width: 78rem) 31vw, 24rem");
+      // So the srcset now offers the 256 and 384 px files a phone thumbnail needs.
+      expect(card.getAttribute("srcset")).toMatch(/ 256w, .* 384w, /);
+    }
+    // Featured games keeps its own sizes.
+    expect(container.querySelector(".home-featured-games img")?.getAttribute("sizes")).toBe("(max-width: 48rem) 100vw, 50vw");
+  });
+
   it("features Math Tug of War alone (no Math Vocabulary Hunt promotion) with a free Play for Free Now button to the game", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
