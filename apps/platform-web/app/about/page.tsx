@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import type { Metadata } from "next";
-import { publicPageMetadata } from "@/lib/seo/public-pages";
+import { MONTHLY_PRICE_LABEL, TRIAL_HOURS, publicPageMetadata } from "@/lib/seo/public-pages";
 import {
   MISSOURI_ALIGNMENT_NOTE,
   MISSOURI_NON_AFFILIATION,
@@ -32,8 +32,8 @@ function PlatformAboutPage() {
     <section aria-labelledby="about-included">
       <h2 id="about-included">What one subscription includes</h2>
       <ul className="principle-list">
-        <li><strong>{games.cardTitle}</strong><span>Teacher-ready math games for whole-class engagement and quick practice.</span></li>
-        <li><strong>{mathPrep.cardTitle}</strong><span>{mathPrep.features.replaceAll(" · ", ", ")} for Grades 3–8. {MISSOURI_ALIGNMENT_NOTE}</span></li>
+        <li><strong>{mathPrep.cardTitle}</strong><span>Lessons, practice and review for Grades 3–8, with a worksheet generator for printing practice. {MISSOURI_ALIGNMENT_NOTE}</span></li>
+        <li><strong>{games.cardTitle}</strong><span>Math games for whole-class play and quick practice. Math Tug of War is free with any MathNexa account.</span></li>
         <li><strong>{homework.cardTitle}</strong><span>Printable homework by grade, topic, and lesson.</span></li>
         <li><strong>{quizzes.cardTitle}</strong><span>Printable topic quizzes for checking understanding.</span></li>
       </ul>
@@ -42,6 +42,15 @@ function PlatformAboutPage() {
       <h2 id="about-audience">Who it is for</h2>
       <p>{PLATFORM_HERO_AUDIENCE}</p>
     </section>
+    <section aria-labelledby="about-start">
+      <h2 id="about-start">How to get started</h2>
+      <ol>
+        <li>Create a free MathNexa account and confirm your email address.</li>
+        <li>Start the free {TRIAL_HOURS}-hour trial. Each eligible account gets one trial, and you add a payment method on Stripe’s secure checkout page before it starts.</li>
+        <li>After the trial, the subscription renews at {MONTHLY_PRICE_LABEL} a month until you cancel. If you cancel before the trial ends, you are not charged.</li>
+      </ol>
+      <p>Have a code from your school? Enter it in the Authorize Code box on the home page.</p>
+    </section>
     <section aria-labelledby="about-roadmap">
       <h2 id="about-roadmap">Coming soon</h2>
       <p>{ROADMAP_MIDDLE_SCHOOL_REVIEW}</p>
@@ -49,8 +58,8 @@ function PlatformAboutPage() {
     </section>
     <Notice label="Independent product" tone="information"><strong>Not an official state resource.</strong><p>{MISSOURI_NON_AFFILIATION}</p></Notice>
     <div className="button-row">
-      <LinkButton href={games.href}>Explore {games.label}</LinkButton>
-      <LinkButton href={mathPrep.href} variant="secondary">Open {mathPrep.label}</LinkButton>
+      <LinkButton href={mathPrep.href}>Open {mathPrep.label}</LinkButton>
+      <LinkButton href={games.href} variant="secondary">Explore {games.label}</LinkButton>
     </div>
   </Container>;
 }
