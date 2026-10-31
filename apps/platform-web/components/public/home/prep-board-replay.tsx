@@ -18,17 +18,23 @@ import styles from "./home.module.css";
  * or the Web Animations API nothing is held or repeated: the sequence plays
  * once and the finished problem shows.
  *
- * There are no manual controls (owner, after v1.2.27). Answering "Your turn"
- * stops the cycle so the answer stays on screen. With reduced motion nothing
- * plays: the solved problem shows. When motion is allowed again the board is
- * re-keyed, which restarts its CSS animations from the top, or, once the
- * plays are used up, shows the fresh board already solved (followed before
- * paint, so its first frame never flashes).
+ * The one control, Stop animation, shows only while plays are still to come
+ * (WCAG 2.2.2), below the caption and out of the layout, so nothing moves when
+ * it appears or goes. It shows the solved problem at once and stops for good,
+ * as an answer to "Your turn" does, and it is gone after the third play, with
+ * reduced motion, and wherever nothing replays. When it goes while it has
+ * keyboard focus, focus moves to the board rather than the page. With reduced
+ * motion nothing plays: the solved problem shows. When motion is allowed again
+ * the board is re-keyed, which restarts its CSS animations from the top, or,
+ * once the plays are used up, shows the fresh board already solved (followed
+ * before paint, so its first frame never flashes).
  */
 export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>) {
   const [run, setRun] = useState(0);
+  const [active, setActive] = useState(false);
   const stage = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
+  const stop = useRef<HTMLButtonElement | null>(null);
   const loop = useRef<BoardLoop | null>(null);
 
   useEffect(() => {
@@ -46,6 +52,17 @@ export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>)
     }
     const controller = createBoardLoop({
       remount: () => setRun((value) => value + 1),
+      onActiveChange: (value) => {
+        const figure = board.current?.querySelector("figure");
+        if (!value && figure && stop.current && document.activeElement === stop.current) {
+          // Focusable only for this hand-over: a lasting tabindex would let any click on the
+          // sheet focus the figure, which holds the cycle.
+          figure.tabIndex = -1;
+          figure.addEventListener("blur", () => figure.removeAttribute("tabindex"), { once: true });
+          figure.focus();
+        }
+        setActive(value);
+      },
       onScreen: inView && document.visibilityState !== "hidden",
       reduced: motion.matches
     });
@@ -87,8 +104,12 @@ export function PrepBoardReplay({ children }: Readonly<{ children: ReactNode }>)
       }}
       onClick={(event) => {
         // The only buttons on the sheet are the "Your turn" answers.
-        if (event.target instanceof Element && event.target.closest("button")) loop.current?.answered();
+        if (event.target instanceof Element && event.target.closest("button")) loop.current?.stop();
       }}
     >{children}</div>
+    {active && <button ref={stop} type="button" className={styles.boardStop} onClick={() => loop.current?.stop()}>
+      <span aria-hidden="true" className={styles.boardStopIcon} />
+      Stop animation
+    </button>}
   </div>;
 }

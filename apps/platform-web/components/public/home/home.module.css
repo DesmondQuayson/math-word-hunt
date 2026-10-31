@@ -9,8 +9,9 @@
  *
  * Motion: the hero's worked problem plays (under five seconds) when it is
  * seen, rests three seconds on the solved problem and plays again, three
- * plays in all, then stays solved, with no manual controls; the toolkit
- * heading's marker draws once as it scrolls into view.
+ * plays in all, then stays solved; a Stop animation button shows only while
+ * plays are still to come. The toolkit heading's marker draws once as it
+ * scrolls into view.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
  */
@@ -136,6 +137,7 @@
 /* ---------- 2. The worked problem ---------- */
 
 .boardStage {
+  position: relative;
   min-width: 0;
   display: grid;
   justify-items: center;
@@ -595,6 +597,55 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-label);
   text-align: center;
+}
+
+/* The figure takes focus only when Stop animation goes while focused. */
+.board:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: var(--space-2);
+}
+
+/* Stop animation shows only while plays are still to come. It sits below the
+   caption, in the hero's bottom padding and out of the layout, so nothing
+   moves when it appears or goes. */
+.boardStop {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  inset-inline: 0;
+  width: fit-content;
+  min-height: 2rem;
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.boardStop:hover {
+  background: var(--color-accent-sky);
+}
+
+.boardStop:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.boardStopIcon {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 1px;
+  background: currentColor;
 }
 
 @keyframes home-sheet-in {
