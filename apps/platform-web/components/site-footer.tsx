@@ -24,12 +24,17 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
           <Link href="/map-prep" prefetch={false}>Online Math Prep</Link>
           <Link href="/homework" prefetch={false}>Homework PDFs</Link>
           <Link href="/quizzes" prefetch={false}>Quiz PDFs</Link>
+          {/* /about and /help were reachable only from the sitemap: the one
+              page that explains every product, and the access help, had no
+              internal link at all. */}
+          <Link href="/about">About MathNexa</Link>
         </nav>
         <nav className="footer-column" aria-labelledby="footer-account">
           <h2 id="footer-account">Account</h2>
           <Link href="/account" prefetch={false}>My Account</Link>
           <Link href="/subscription" prefetch={false}>Subscription</Link>
           <Link href="/play">{legalLabels.get("/play")}</Link>
+          <Link href="/help">Help</Link>
           <Link href="/support">{legalLabels.get("/support")}</Link>
         </nav>
         <nav className="footer-column" aria-labelledby="footer-legal">
