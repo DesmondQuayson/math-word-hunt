@@ -1,8 +1,13 @@
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
+import type { Metadata } from "next";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Accessibility" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/accessibility") : { title: "Accessibility" };
+}
 
 export default function AccessibilityPage() {
   return <Container className="page-stack"><PageHeader eyebrow="Accessibility" title="Multiple ways to navigate and play" description="MathNexa preserves keyboard, Pointer Events, responsive reflow, visible focus, reduced-motion behavior, and audio fallback in the canonical game." />

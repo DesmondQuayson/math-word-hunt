@@ -3,8 +3,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
 import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import type { Metadata } from "next";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Terms" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/terms") : { title: "Terms" };
+}
 
 export const dynamic = "force-dynamic";
 export default async function TermsPage() {

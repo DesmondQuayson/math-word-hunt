@@ -5,8 +5,12 @@ import { isProductionPlatformMode } from "@/lib/environment/production-platform"
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
 import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Privacy" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/privacy") : { title: "Privacy" };
+}
 
 export const dynamic = "force-dynamic";
 export default async function PrivacyPage() {

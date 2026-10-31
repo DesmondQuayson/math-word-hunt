@@ -13,7 +13,11 @@ import { TeacherFirstHome } from "@/components/public/teacher-first-home";
 import { getGameAccessView } from "@/lib/game-access/server";
 import { loadPublicGameCatalog } from "@/lib/games/catalog";
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getSupportEmail } from "@/lib/commercial/support";
 import { PLATFORM_HOMEPAGE_DESCRIPTION, PLATFORM_HOMEPAGE_TITLE } from "@/lib/seo/platform-positioning";
+import { PLATFORM_OPEN_GRAPH } from "@/lib/seo/public-pages";
+import { homeStructuredData } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +66,7 @@ export async function generateMetadata():Promise<Metadata>{
   if(isProductionPlatformMode())return{
     title:{absolute:PLATFORM_HOMEPAGE_TITLE},
     description:PLATFORM_HOMEPAGE_DESCRIPTION,
-    openGraph:{title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION,url:"https://mathnexa.com",siteName:"MathNexa",type:"website"},
+    openGraph:{...PLATFORM_OPEN_GRAPH,title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION,url:"https://mathnexa.com"},
     twitter:{card:"summary",title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION}
   };
   const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
@@ -78,12 +82,15 @@ export default async function HomePage() {
       : access.context.status === "unconfirmed"
         ? "unconfirmed"
         : "signed-in";
-    return <TeacherFirstHome
-      authState={authState}
-      entitled={access.decision.allowed}
-      schoolAccess={access.source === "school-access"}
-      numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
-    />;
+    return <>
+      <TeacherFirstHome
+        authState={authState}
+        entitled={access.decision.allowed}
+        schoolAccess={access.source === "school-access"}
+        numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
+      />
+      <JsonLd data={homeStructuredData({ supportEmail: getSupportEmail() })} />
+    </>;
   }
   const managed=await loadPublishedCmsDocument("homepage");if(managed)return <Container className="page-stack"><StructuredCmsContent document={managed}/></Container>;
   const catalog = getProductCatalogView();

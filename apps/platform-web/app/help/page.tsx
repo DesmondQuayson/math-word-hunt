@@ -2,8 +2,12 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Help" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/help") : { title: "Help" };
+}
 
 export default function HelpPage() {
   if (isProductionPlatformMode()) {

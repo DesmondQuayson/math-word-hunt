@@ -3,8 +3,13 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { getSupportEmail } from "@/lib/commercial/support";
+import type { Metadata } from "next";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Support" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/support") : { title: "Support" };
+}
 
 export default function SupportPage() {
   const supportEmail = getSupportEmail();

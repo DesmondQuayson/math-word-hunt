@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
+import { PLATFORM_OPEN_GRAPH } from "@/lib/seo/public-pages";
 
 import "./globals.css";
 
@@ -25,9 +26,10 @@ export const metadata: Metadata = {
   description: productionPlatform
     ? PLATFORM_HOMEPAGE_DESCRIPTION
     : "A teacher-led classroom game for building fluency with the language of mathematics.",
-  openGraph: mathNexa
-    ? { siteName: "MathNexa", type: "website" }
-    : undefined,
+  // Every MathNexa page shares the app icon as its social preview; it is
+  // square, so the card stays the small "summary" layout (no crop).
+  openGraph: mathNexa ? PLATFORM_OPEN_GRAPH : undefined,
+  twitter: mathNexa ? { card: "summary" } : undefined,
   robots: publicProduction || productionPlatform
     ? { index: true, follow: true }
     : { index: false, follow: false, noarchive: true, nocache: true }

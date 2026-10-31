@@ -3,6 +3,8 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 import {
   MISSOURI_ALIGNMENT_NOTE,
   MISSOURI_NON_AFFILIATION,
@@ -13,7 +15,9 @@ import {
   ROADMAP_MIDDLE_SCHOOL_REVIEW
 } from "@/lib/seo/platform-positioning";
 
-export const metadata = { title: "About" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/about") : { title: "About" };
+}
 
 /**
  * The production platform's About page is indexed (it sits in the sitemap), so

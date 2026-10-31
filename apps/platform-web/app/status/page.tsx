@@ -2,8 +2,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Container } from "@/components/layout/container";
 import { Notice } from "@/components/feedback/notice";
 import { getOperationalStatus } from "@/lib/environment/operational-status";
+import type { Metadata } from "next";
+import { isProductionPlatformMode } from "@/lib/environment/production-platform";
+import { publicPageMetadata } from "@/lib/seo/public-pages";
 
-export const metadata = { title: "Status" };
+export function generateMetadata(): Metadata {
+  return isProductionPlatformMode() ? publicPageMetadata("/status") : { title: "Status" };
+}
 
 /**
  * The page reports RUNTIME capability, so it must never be prerendered with
