@@ -6,8 +6,9 @@ import { MATHNEXA_LOGO } from "./structured-data";
 
 /**
  * Search and social metadata for the indexable public pages of the production
- * platform (the sitemap routes). Before this, every one of them inherited the
- * homepage description, so seven pages shared one meta description.
+ * platform (the sitemap routes and /status). Before this, every one of them
+ * inherited the homepage description, so seven pages shared one meta
+ * description.
  *
  * Each description summarises what that page actually says. Prices and
  * durations come from the same constants the billing code uses, so the
@@ -70,6 +71,27 @@ export const PUBLIC_PAGE_SEO = Object.freeze({
   "/status": {
     title: "Service status",
     description: "Current MathNexa service status: whether the platform is operational, search indexing is enabled, and live payments are available."
+  },
+  // The public product pages (lib/seo/product-pages.ts).
+  "/online-math-prep": {
+    title: "Online Math Prep for Grades 3–8",
+    description: `Visual lessons, guided and independent practice, quick checks and a worksheet generator for Grades 3–8 math. ${TRIAL_HOURS}-hour free trial, then ${MONTHLY_PRICE_LABEL} a month.`
+  },
+  "/math-games": {
+    title: "Math games for the classroom",
+    description: "Math games for whole-class play and quick practice, with the grades and skills for each game. Math Tug of War is free with any MathNexa account."
+  },
+  "/math-games/math-tug-of-war": {
+    title: "Math Tug of War: free online math game",
+    description: "Answer quick math questions to pull the rope. Play the robot, two teams on one screen, or another player online. Free with any MathNexa account."
+  },
+  "/homework-pdfs": {
+    title: "Printable math homework PDFs",
+    description: "Printable math homework organized by grade, topic and lesson. Preview each lesson activity, then download its PDF. Included with a MathNexa subscription."
+  },
+  "/quiz-pdfs": {
+    title: "Printable math quizzes by topic",
+    description: "Printable math quizzes by grade and topic, one PDF per topic, for checking understanding after a unit. Included with a MathNexa subscription."
   }
 } satisfies Record<string, PublicPageSeo>);
 

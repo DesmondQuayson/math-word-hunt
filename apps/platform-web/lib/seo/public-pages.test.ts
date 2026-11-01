@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "./platform-positioning";
 import { MONTHLY_PRICE_LABEL, PLATFORM_OPEN_GRAPH, PUBLIC_PAGE_SEO, SOCIAL_PREVIEW_IMAGE, TRIAL_HOURS, publicPageMetadata, type PublicSeoPath } from "./public-pages";
 
-// app/sitemap.ts (production platform) plus /status, the one other indexable page.
-const INDEXABLE_PAGES = ["/about", "/help", "/privacy", "/accessibility", "/terms", "/support", "/status"];
+// app/sitemap.ts (production platform, including the product pages) plus /status, the one other indexable page.
+const INDEXABLE_PAGES = [
+  "/about", "/help", "/privacy", "/accessibility", "/terms", "/support", "/status",
+  "/online-math-prep", "/math-games", "/math-games/math-tug-of-war", "/homework-pdfs", "/quiz-pdfs"
+];
 
 describe("public page search metadata", () => {
   it("covers every indexable public page", () => {
@@ -31,6 +34,15 @@ describe("public page search metadata", () => {
     expect(MONTHLY_PRICE_LABEL).toBe("$5.99 USD");
     expect(TRIAL_HOURS).toBe(24);
     expect(PUBLIC_PAGE_SEO["/terms"].description).toContain("$5.99 USD a month after a 24-hour trial");
+    expect(PUBLIC_PAGE_SEO["/online-math-prep"].description).toContain("24-hour free trial, then $5.99 USD a month");
+  });
+
+  it("titles each product page after what it offers, under the site name template", () => {
+    expect(PUBLIC_PAGE_SEO["/online-math-prep"].title).toBe("Online Math Prep for Grades 3–8");
+    expect(PUBLIC_PAGE_SEO["/math-games"].title).toBe("Math games for the classroom");
+    expect(PUBLIC_PAGE_SEO["/math-games/math-tug-of-war"].title).toBe("Math Tug of War: free online math game");
+    expect(PUBLIC_PAGE_SEO["/homework-pdfs"].title).toBe("Printable math homework PDFs");
+    expect(PUBLIC_PAGE_SEO["/quiz-pdfs"].title).toBe("Printable math quizzes by topic");
   });
 
   it("adds the page's own og:url and the square app icon as the social image", () => {

@@ -64,3 +64,28 @@ export function homeStructuredData({ supportEmail }: Readonly<{ supportEmail: st
   };
   return { "@context": "https://schema.org", "@graph": [organization, website] };
 }
+
+export type BreadcrumbStructuredData = Readonly<{
+  "@context": "https://schema.org";
+  "@type": "BreadcrumbList";
+  itemListElement: readonly Readonly<{ "@type": "ListItem"; position: number; name: string; item: string }>[];
+}>;
+
+/**
+ * BreadcrumbList for a public product page, built from the trail the page
+ * shows above its heading (lib/seo/product-pages.ts), so the markup never says
+ * more than the page does. Positions start at 1; every item is an absolute
+ * mathnexa.com URL.
+ */
+export function breadcrumbStructuredData(trail: readonly Readonly<{ name: string; path: string }>[]): BreadcrumbStructuredData {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((entry, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: entry.name,
+      item: `${MATHNEXA_ORIGIN}${entry.path}`
+    }))
+  };
+}
