@@ -2596,3 +2596,79 @@
     background: Highlight;
   }
 }
+
+/* Public product pages (app/online-math-prep, app/math-games, app/homework-pdfs, app/quiz-pdfs). */
+.product-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+}
+
+.product-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.product-figure {
+  max-width: 43rem;
+  margin: 0;
+}
+
+.product-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-large);
+}
+
+.product-landing section > * + * {
+  margin-top: var(--space-3);
+}
+
+.product-landing section:not(.product-more) > ol:not(.principle-list),
+.product-landing section:not(.product-more) > ul:not(.principle-list) {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 54rem;
+  padding-left: var(--space-6);
+}
+
+.product-game-grid .game-card-content h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.product-grade-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-6);
+}
+
+.product-grade-list h3 {
+  margin: 0 0 var(--space-2);
+}
+
+.product-grade-list ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.product-more ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
