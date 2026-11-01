@@ -410,6 +410,13 @@
   font-weight: 900;
 }
 
+/* A long unbroken word, such as an email address, wraps inside the notice
+   instead of pushing the page sideways on narrow screens or with large text. */
+.notice-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .notice-content strong {
   color: var(--color-text-primary);
   font-family: var(--font-display);
