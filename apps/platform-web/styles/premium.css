@@ -445,6 +445,30 @@
   }
 }
 
+/* The footer is its own size container, so its columns also stack when
+   enlarged text needs the room in a wide window: text-only zoom changes rem
+   without firing the width media queries above. Same thresholds; the media
+   queries stay for browsers without container queries. */
+.site-footer-premium {
+  container: site-footer / inline-size;
+}
+
+@container site-footer (max-width: 54rem) {
+  .site-footer-premium .footer-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@container site-footer (max-width: 40rem) {
+  .site-footer-premium .footer-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- 7. Responsive constellation ---------- */
 
 @media (max-width: 54rem) {
