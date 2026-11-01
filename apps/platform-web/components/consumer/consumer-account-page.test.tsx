@@ -90,3 +90,20 @@ describe("permanent authorized-code visibility on consumer account controls", ()
     expect(screen.getByText(allowed ? "Available" : "Unavailable")).toBeTruthy();
   });
 });
+
+describe("access wording", () => {
+  it("says access, not game access: the summary row and the link to the access page", async () => {
+    state.context = { status: "active", userId: account.userId, email: "owner@example.test", account };
+    const { container } = render(await ConsumerAccountPage({}));
+    expect(screen.getByText("Access", { selector: "dt" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Check your access" }).getAttribute("href")).toBe("/game-access");
+    expect(container.textContent).not.toMatch(/game[- ]access/i);
+  });
+
+  it("tells an unconfirmed account that no access has been granted", async () => {
+    state.context = { status: "unconfirmed", userId: account.userId, email: "owner@example.test", account: null };
+    const { container } = render(await ConsumerAccountPage({}));
+    expect(container.textContent).toContain("Access to MathNexa resources and subscriptions remains unavailable until your email is confirmed.");
+    expect(container.textContent).not.toMatch(/game[- ]access/i);
+  });
+});

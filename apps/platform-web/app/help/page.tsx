@@ -20,7 +20,7 @@ export default function HelpPage() {
       <section aria-labelledby="help-free-game"><h2 id="help-free-game">Play a game for free</h2><p><Link href={PRODUCT_PAGE_PATHS.mathTugOfWar}>Math Tug of War</Link> is free with any MathNexa account. You do not need a trial or subscription to play it.</p></section>
       <section aria-labelledby="help-school-code"><h2 id="help-school-code">Use a school access code</h2><p>If your school gave you a code, enter it in the Authorize Code box on the home page. It opens MathNexa resources in that browser for up to {SCHOOL_ACCESS_DURATION_SECONDS / 3600} hours, without an account.</p></section>
       <section aria-labelledby="help-safety"><h2 id="help-safety">Keep student information private</h2><p>Please do not enter or send information about teachers, students, schools, classes, rosters or organizations, or any assignments, results or game progress. MathNexa does not need it.</p></section>
-      <div className="button-row"><LinkButton href="/game-access">Check game access</LinkButton><LinkButton href="/subscriber-management" variant="secondary">Manage subscription</LinkButton><LinkButton href="/support" variant="secondary">Support</LinkButton></div>
+      <div className="button-row"><LinkButton href="/game-access">Check your access</LinkButton><LinkButton href="/subscriber-management" variant="secondary">Manage subscription</LinkButton><LinkButton href="/support" variant="secondary">Support</LinkButton></div>
     </Container>;
   }
   return <Container className="page-stack"><PageHeader eyebrow="Public help" title="Start a Math Vocabulary Hunt" description="The game runs without an account and keeps classroom play on the teacher-led shared screen." />

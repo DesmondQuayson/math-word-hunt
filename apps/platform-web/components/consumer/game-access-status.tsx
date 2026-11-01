@@ -3,26 +3,26 @@ import { LinkButton } from "@/components/ui/link-button";
 import type { GameAccessDecision } from "@math-vocabulary-hunt/platform-core";
 
 const copy: Record<GameAccessDecision["reason"], { title: string; message: string; tone: "information" | "success" | "warning" }> = {
-  "authentication-required": { title: "Sign in required", message: "Sign in to check game access.", tone: "information" },
-  "email-confirmation-required": { title: "Confirm your email", message: "Game access remains unavailable until email confirmation is complete.", tone: "warning" },
+  "authentication-required": { title: "Sign in required", message: "Sign in to check your access.", tone: "information" },
+  "email-confirmation-required": { title: "Confirm your email", message: "Access remains unavailable until email confirmation is complete.", tone: "warning" },
   "checkout-required": { title: "Subscription setup required", message: "Accept the current terms and add a payment method through Stripe to start the one-time 24-hour trial. The server, not this page, activates access.", tone: "information" },
   "trial-activation-pending": { title: "Trial activation pending", message: "The server has not confirmed an active trial. No browser or redirect can grant access.", tone: "information" },
-  "trial-access-active": { title: "Trial access active", message: "The server verified the trial window and permits game launch until the displayed access end.", tone: "success" },
+  "trial-access-active": { title: "Trial access active", message: "The server verified the trial window. MathNexa resources stay open until the displayed access end.", tone: "success" },
   "trial-ended": { title: "Trial ended", message: "The one-time trial cannot be restarted or extended from the browser.", tone: "warning" },
-  "subscription-access-active": { title: "Subscription active", message: "The server verified an active subscription period and permits game launch.", tone: "success" },
-  "payment-past-due": { title: "Payment requires attention", message: "Game access is unavailable while the subscription is past due.", tone: "warning" },
+  "subscription-access-active": { title: "Subscription active", message: "The server verified an active subscription period. MathNexa resources are open.", tone: "success" },
+  "payment-past-due": { title: "Payment requires attention", message: "Access is unavailable while the subscription is past due.", tone: "warning" },
   "renewal-grace-active": { title: "Renewal payment requires attention", message: "A verified renewal grace period is active. Update the payment method before the displayed grace end to avoid losing access.", tone: "warning" },
-  "canceled-access-active": { title: "Cancellation scheduled", message: "Game access remains available only through the verified current period end.", tone: "information" },
-  "subscription-ended": { title: "Subscription ended", message: "Game access is unavailable because the verified subscription period ended.", tone: "warning" },
-  "account-suspended": { title: "Account suspended", message: "Game and subscription actions are unavailable. Contact support.", tone: "warning" },
-  "account-deletion-pending": { title: "Deletion pending", message: "Game and subscription actions are unavailable while deletion is reviewed.", tone: "warning" },
+  "canceled-access-active": { title: "Cancellation scheduled", message: "Access remains available only through the verified current period end.", tone: "information" },
+  "subscription-ended": { title: "Subscription ended", message: "Access is unavailable because the verified subscription period ended.", tone: "warning" },
+  "account-suspended": { title: "Account suspended", message: "Access and subscription actions are unavailable. Contact support.", tone: "warning" },
+  "account-deletion-pending": { title: "Deletion pending", message: "Access and subscription actions are unavailable while deletion is reviewed.", tone: "warning" },
   "subscription-verification-unavailable": { title: "We couldn’t verify your subscription right now", message: "The stored access window has passed and Stripe could not be reached to confirm the latest renewal. Nothing about your subscription has changed. Please try again in a moment; if this continues, contact support.", tone: "warning" },
   "malformed-entitlement": { title: "Access could not be verified", message: "Unknown or incomplete server data denies access. Contact support.", tone: "warning" }
 };
 
 export function GameAccessStatus({ decision, hideSubscriptionLink = false }: { decision: GameAccessDecision; hideSubscriptionLink?: boolean }) {
   const content = copy[decision.reason];
-  return <><Notice label="Game-access status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p>{decision.accessEndsAt ? <p>Access ends: <time dateTime={decision.accessEndsAt}>{new Date(decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p> : null}</Notice>
+  return <><Notice label="Access status" tone={content.tone} live><strong>{content.title}</strong><p>{content.message}</p>{decision.accessEndsAt ? <p>Access ends: <time dateTime={decision.accessEndsAt}>{new Date(decision.accessEndsAt).toLocaleString("en-US", { timeZone: "America/Chicago" })}</time></p> : null}</Notice>
     <div className="button-row">
       {decision.allowed ? <LinkButton href="/play">Play now</LinkButton> : null}
       {!hideSubscriptionLink && (decision.nextAction === "start-checkout" || decision.nextAction === "manage-subscription") ? <LinkButton href="/subscription" variant="secondary">Review subscription</LinkButton> : null}

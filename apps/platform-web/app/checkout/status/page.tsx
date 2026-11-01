@@ -40,7 +40,7 @@ const consumerCopy = {
   processing: { title: "Activating your MathNexa access", message: "Stripe completed setup. The server is creating and verifying the subscription; this redirect cannot grant access.", tone: "information" },
   trialing: { title: "24-hour trial active", message: "The server verified the subscription and exact trial expiration shown below.", tone: "success" },
   active: { title: "Subscription active", message: "The server verified the paid monthly subscription.", tone: "success" },
-  "payment-required": { title: "Payment requires attention", message: "Game access remains locked until Stripe confirms successful payment or an approved renewal grace period.", tone: "warning" },
+  "payment-required": { title: "Payment requires attention", message: "Access remains locked until Stripe confirms successful payment or an approved renewal grace period.", tone: "warning" },
   expired: { title: "Setup session expired", message: "No trial or subscription was activated. Start a new setup from Pricing.", tone: "warning" },
   unavailable: { title: "Billing status unavailable", message: "The server could not verify this Setup Checkout. Access remains locked.", tone: "warning" },
   "manual-review": { title: "Billing review required", message: "Ownership or provider data did not match. Access remains locked while support reviews the record.", tone: "warning" }
