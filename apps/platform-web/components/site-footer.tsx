@@ -4,6 +4,8 @@ import { Container } from "@/components/layout/container";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
+import { PLATFORM_PRODUCTS } from "@/lib/seo/platform-positioning";
+import { PRODUCT_PAGE_FOR_ROUTE } from "@/lib/seo/product-pages";
 
 function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<string, string> }>) {
   return (
@@ -11,19 +13,17 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
       <Container className="footer-inner">
         <div className="footer-brand">
           <p className="brand-name">Math<strong>Nexa</strong></p>
-          <p>Teacher-led math resources in one platform. MathNexa stores only the minimum account and subscription data required to provide protected game access.</p>
+          <p>Teacher-led math resources in one platform. MathNexa stores only the minimum account and subscription data required to provide access to its resources.</p>
         </div>
-        {/* Speed V2: these six routes are already prefetched by the primary
-            navigation (and the product cards). Measured on production, each was
-            fetched twice per homepage view (17 idle RSC requests); the footer
-            copies opt out so the click's own request never competes with
-            duplicate prefetch traffic. Prefetch stays on for everything else. */}
+        {/* Speed V2: the footer's links opt out of prefetching so they never
+            add idle RSC requests to every page view (measured on production:
+            17 per homepage view when they duplicated the navigation's own).
+            Prefetch stays on for everything else. */}
         <nav className="footer-column" aria-labelledby="footer-products">
           <h2 id="footer-products">Products</h2>
-          <Link href="/games" prefetch={false}>Math Games</Link>
-          <Link href="/map-prep" prefetch={false}>Online Math Prep</Link>
-          <Link href="/homework" prefetch={false}>Homework PDFs</Link>
-          <Link href="/quizzes" prefetch={false}>Quiz PDFs</Link>
+          {/* Each product's public page (P2), which links into the product
+              itself; the header navigation keeps the direct product links. */}
+          {PLATFORM_PRODUCTS.map((product) => <Link key={product.href} href={PRODUCT_PAGE_FOR_ROUTE[product.href]} prefetch={false}>{product.label}</Link>)}
           {/* /about and /help were reachable only from the sitemap: the one
               page that explains every product, and the access help, had no
               internal link at all. */}
