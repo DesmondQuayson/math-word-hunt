@@ -132,7 +132,7 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page.getByRole("img", { name: /Math Vocabulary Hunt game artwork/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /Online Math Prep workspace/i })).toBeVisible();
   await expect(page.getByRole("img", { name: /homework PDF with fruit diagrams/i })).toBeVisible();
-  await expect(page.getByRole("img", { name: /Grade 7 topic quiz/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Grade 6 topic quiz/i })).toBeVisible();
   await expect(page.locator("a[data-product]")).toHaveCount(4);
   await expect(page.locator("a[data-product]").first()).toHaveAttribute("href", "/map-prep");
   await expect(page.getByRole("figure", { name: /^Example: a Grade 6 ratio problem/ })).toBeVisible();

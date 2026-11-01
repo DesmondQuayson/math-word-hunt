@@ -125,7 +125,7 @@ function ProductShelf() {
         <span className={styles.shelfImage}>
           <Image
             src="/media/home/quiz-preview.webp"
-            alt="MathNexa Grade 7 topic quiz PDF with a table and two graphs"
+            alt="MathNexa Grade 6 topic quiz PDF with a ratio table and two graphs"
             width={1200}
             height={800}
             sizes={SHELF_CARD_SIZES}
