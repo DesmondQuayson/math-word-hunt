@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
@@ -28,7 +30,7 @@ export default async function TermsPage() {
     <section aria-labelledby="terms-timing"><h2 id="terms-timing">Billing timing and renewal</h2><p>Stripe controls invoice creation and payment-attempt timing after the trial. MathNexa does not promise an exact card-charge minute. The subscription renews monthly until canceled.</p></section>
     <section aria-labelledby="terms-cancellation"><h2 id="terms-cancellation">Cancellation and refunds</h2><p>Authenticated subscribers can cancel at period end through Stripe billing management. Cancellation prevents future renewal but does not extend access. First-charge refund requests submitted within seven days receive manual review; refunds are not automatic or guaranteed.</p></section>
     <section aria-labelledby="terms-deletion"><h2 id="terms-deletion">Deletion requests</h2><p>A deletion request blocks game access and new purchases. Authenticated billing management remains available until cancellation is secured and required billing, refund, dispute, and retention work is complete.</p></section>
-    <section aria-labelledby="terms-support"><h2 id="terms-support">Support</h2><p>Use the published MathNexa support route for account, billing, cancellation, refund, or deletion help. Commercial activation remains blocked until the owner supplies the final business identity and monitored support contact.</p></section>
+    <section aria-labelledby="terms-support"><h2 id="terms-support">Support</h2><p>Use the <Link href="/support">MathNexa Support page</Link> for help with your account, billing, cancellation, refunds, or account deletion.</p></section>
     <section aria-labelledby="terms-access">
       <h2 id="terms-access">Access</h2>
       <p>Game access is available only during a server-verified trial or active subscription period. Account creation, browser state, or a Checkout redirect cannot grant access.</p>
