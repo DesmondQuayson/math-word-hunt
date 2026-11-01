@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "./platform-positioning";
 import { MONTHLY_PRICE_LABEL, PLATFORM_OPEN_GRAPH, PUBLIC_PAGE_SEO, SOCIAL_PREVIEW_IMAGE, TRIAL_HOURS, publicPageMetadata, type PublicSeoPath } from "./public-pages";
 
-// app/sitemap.ts (production platform, including the product pages) plus /status, the one other indexable page.
+// app/sitemap.ts (production platform, including the product pages) plus /status, which keeps its own
+// description for shared links but is noindex since P3 (see lib/seo/status-page.test.ts).
 const INDEXABLE_PAGES = [
   "/about", "/help", "/privacy", "/accessibility", "/terms", "/support", "/status",
   "/online-math-prep", "/math-games", "/math-games/math-tug-of-war", "/homework-pdfs", "/quiz-pdfs"

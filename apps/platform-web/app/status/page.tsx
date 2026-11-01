@@ -6,8 +6,13 @@ import type { Metadata } from "next";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { publicPageMetadata } from "@/lib/seo/public-pages";
 
+/**
+ * An operational page, not a destination: it stays reachable for the owner and
+ * for monitoring, but is kept out of search results (P3). robots.txt must keep
+ * allowing it, or crawlers would never see this noindex.
+ */
 export function generateMetadata(): Metadata {
-  return isProductionPlatformMode() ? publicPageMetadata("/status") : { title: "Status" };
+  return isProductionPlatformMode() ? { ...publicPageMetadata("/status"), robots: { index: false, follow: true } } : { title: "Status" };
 }
 
 /**
