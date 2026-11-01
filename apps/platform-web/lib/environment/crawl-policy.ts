@@ -13,8 +13,9 @@ import { isProductionPublicMode } from "./production-public";
  *
  * This module only DESCRIBES configuration. It never changes indexing: the
  * "*" rules below are the same ones robots.txt already served, and the private
- * prefixes stay denied. The one addition (owner decision, 2026-11-01) is a
- * separate group that opts AI model-training crawlers out of the whole site.
+ * prefixes stay denied. Two owner decisions (2026-11-01) add to them: a
+ * separate group that opts AI model-training crawlers out of the whole site,
+ * and an Allow that keeps /accessibility crawlable (PLATFORM_CRAWL_ALLOW).
  */
 
 type EnvironmentSource = Readonly<Record<string, string | undefined>>;
@@ -40,6 +41,14 @@ export const PLATFORM_CRAWL_DISALLOW = [
   "/admin",
   "/api"
 ] as const;
+
+/**
+ * Public pages that a deny entry above would otherwise catch. robots.txt
+ * rules are prefix matches, so "/access" also matched "/accessibility", a
+ * sitemap page, and hid it from every search engine. Crawlers apply the
+ * longest matching rule (RFC 9309), so this Allow wins for that page only.
+ */
+export const PLATFORM_CRAWL_ALLOW = ["/", "/accessibility"] as const;
 
 /** The public marketing site only hides the pre-launch placeholder. */
 export const PUBLIC_SITE_CRAWL_DISALLOW = ["/not-launched"] as const;
@@ -68,7 +77,7 @@ export const AI_TRAINING_CRAWLERS = [
 export const CRAWL_SITEMAP_URL = "https://mathnexa.com/sitemap.xml" as const;
 
 /** One robots.txt group; `userAgent` may name several crawlers. */
-export type CrawlRule = { userAgent: string | string[]; allow?: string; disallow?: string | string[] };
+export type CrawlRule = { userAgent: string | string[]; allow?: string | string[]; disallow?: string | string[] };
 
 export type PublicCrawlPolicy = Readonly<{
   /** Which published surface this deployment is. */
@@ -96,7 +105,7 @@ export function getPublicCrawlPolicy(source: EnvironmentSource = process.env): P
     return Object.freeze({
       surface: "platform",
       publicIndexing: "enabled",
-      rules: [{ userAgent: "*", allow: "/", disallow: [...PLATFORM_CRAWL_DISALLOW] }, aiTrainingRule()],
+      rules: [{ userAgent: "*", allow: [...PLATFORM_CRAWL_ALLOW], disallow: [...PLATFORM_CRAWL_DISALLOW] }, aiTrainingRule()],
       sitemap: CRAWL_SITEMAP_URL
     });
   }

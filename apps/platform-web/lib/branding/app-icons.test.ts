@@ -162,7 +162,7 @@ describe("icon crawlability", () => {
       const disallow = rule?.disallow;
       const blocked = typeof disallow === "string" ? [disallow] : (disallow ?? []);
 
-      expect(rule?.allow).toBe("/");
+      expect([rule?.allow].flat()).toContain("/");
       for (const path of iconPaths) {
         for (const prefix of blocked) {
           // robots.txt matching is a path prefix, so an icon is only blocked if
