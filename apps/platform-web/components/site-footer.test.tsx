@@ -30,6 +30,17 @@ describe("platform footer", () => {
     ]);
   });
 
+  it("sends the cancellation and refund link to the public Terms section, not to sign-in", async () => {
+    render(await SiteFooter());
+    const legal = within(screen.getByRole("navigation", { name: "Legal" })).getAllByRole("link");
+    expect(legal.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+      ["Accessibility", "/accessibility"],
+      ["Cancellation and refunds", "/terms#terms-cancellation"]
+    ]);
+  });
+
   it("keeps the positioning sentence and describes access to every resource", async () => {
     const { container } = render(await SiteFooter());
     const tagline = container.querySelector(".footer-brand p:not(.brand-name)")?.textContent ?? "";

@@ -42,8 +42,11 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
           <Link href="/privacy">{legalLabels.get("/privacy")}</Link>
           <Link href="/terms">{legalLabels.get("/terms")}</Link>
           <Link href="/accessibility">{legalLabels.get("/accessibility")}</Link>
-          <Link href="/cancellation">{legalLabels.get("/cancellation")}</Link>
-          <Link href="/refunds">{legalLabels.get("/refunds")}</Link>
+          {/* /cancellation and /refunds are signed-in account flows, so these
+              links sent signed-out visitors to sign-in. One public link to the
+              Terms section instead; subscribers still reach both flows from
+              Subscription and Support. */}
+          <Link href="/terms#terms-cancellation">Cancellation and refunds</Link>
         </nav>
       </Container>
       <Container className="footer-meta">
@@ -59,7 +62,7 @@ function PlatformFooter({ legalLabels }: Readonly<{ legalLabels: ReadonlyMap<str
 export async function SiteFooter() {
   const publicProduction = isProductionPublicMode();
   const productionPlatform = isProductionPlatformMode();
-  const managed=productionPlatform?await loadPublishedCmsDocument("footer"):null;const allowed=new Map([["/privacy","Privacy"],["/accessibility","Accessibility"],["/terms","Terms"],["/cancellation","Cancellation"],["/refunds","Refunds"],["/support","Support"],["/play","Game access"]]);for(const block of managed?.content.blocks??[])for(const item of block.items??[])if(item.href&&allowed.has(item.href))allowed.set(item.href,item.title);
+  const managed=productionPlatform?await loadPublishedCmsDocument("footer"):null;const allowed=new Map([["/privacy","Privacy"],["/accessibility","Accessibility"],["/terms","Terms"],["/support","Support"],["/play","Game access"]]);for(const block of managed?.content.blocks??[])for(const item of block.items??[])if(item.href&&allowed.has(item.href))allowed.set(item.href,item.title);
   if (productionPlatform) return <PlatformFooter legalLabels={allowed} />;
   return (
     <footer className="site-footer">
