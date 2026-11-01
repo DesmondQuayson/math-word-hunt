@@ -12,8 +12,9 @@ import { isProductionPublicMode } from "./production-public";
  * policy because nothing connected the two.
  *
  * This module only DESCRIBES configuration. It never changes indexing: the
- * rules below are the same ones robots.txt already served, and the private
- * prefixes stay denied.
+ * "*" rules below are the same ones robots.txt already served, and the private
+ * prefixes stay denied. The one addition (owner decision, 2026-11-01) is a
+ * separate group that opts AI model-training crawlers out of the whole site.
  */
 
 type EnvironmentSource = Readonly<Record<string, string | undefined>>;
@@ -43,23 +44,51 @@ export const PLATFORM_CRAWL_DISALLOW = [
 /** The public marketing site only hides the pre-launch placeholder. */
 export const PUBLIC_SITE_CRAWL_DISALLOW = ["/not-launched"] as const;
 
+/**
+ * Crawlers that collect pages to train AI models, opted out of every page.
+ * Only training tokens are named: search engines and AI search or answer
+ * crawlers (Googlebot, Bingbot, Applebot, DuckDuckBot, OAI-SearchBot,
+ * Claude-SearchBot, PerplexityBot and the like) stay under "*", so search and
+ * AI-search visibility does not change. Google-Extended is deliberately absent:
+ * it also decides whether the Gemini apps may cite MathNexa, which the owner
+ * chose to keep. robots.txt is advisory; the sign-in wall, not this list, keeps
+ * learning content private.
+ */
+export const AI_TRAINING_CRAWLERS = [
+  "GPTBot",
+  "ClaudeBot",
+  "CCBot",
+  "Applebot-Extended",
+  "meta-externalagent",
+  "MistralAI-Training",
+  "Amazonbot",
+  "Bytespider"
+] as const;
+
 export const CRAWL_SITEMAP_URL = "https://mathnexa.com/sitemap.xml" as const;
+
+/** One robots.txt group; `userAgent` may name several crawlers. */
+export type CrawlRule = { userAgent: string | string[]; allow?: string; disallow?: string | string[] };
 
 export type PublicCrawlPolicy = Readonly<{
   /** Which published surface this deployment is. */
   surface: "public-site" | "platform" | "restricted";
   /** Whether the PUBLIC pages of this deployment may be crawled and indexed. */
   publicIndexing: "enabled" | "blocked";
-  rules: { userAgent: string; allow?: string; disallow?: string | string[] };
+  rules: CrawlRule[];
   sitemap?: string;
 }>;
+
+function aiTrainingRule(): CrawlRule {
+  return { userAgent: [...AI_TRAINING_CRAWLERS], disallow: "/" };
+}
 
 export function getPublicCrawlPolicy(source: EnvironmentSource = process.env): PublicCrawlPolicy {
   if (isProductionPublicMode(source)) {
     return Object.freeze({
       surface: "public-site",
       publicIndexing: "enabled",
-      rules: { userAgent: "*", allow: "/", disallow: [...PUBLIC_SITE_CRAWL_DISALLOW] },
+      rules: [{ userAgent: "*", allow: "/", disallow: [...PUBLIC_SITE_CRAWL_DISALLOW] }, aiTrainingRule()],
       sitemap: CRAWL_SITEMAP_URL
     });
   }
@@ -67,11 +96,11 @@ export function getPublicCrawlPolicy(source: EnvironmentSource = process.env): P
     return Object.freeze({
       surface: "platform",
       publicIndexing: "enabled",
-      rules: { userAgent: "*", allow: "/", disallow: [...PLATFORM_CRAWL_DISALLOW] },
+      rules: [{ userAgent: "*", allow: "/", disallow: [...PLATFORM_CRAWL_DISALLOW] }, aiTrainingRule()],
       sitemap: CRAWL_SITEMAP_URL
     });
   }
   // Previews, local development and any deployment without a recognised public
   // identity stay fully blocked, which is what robots.txt already returned.
-  return Object.freeze({ surface: "restricted", publicIndexing: "blocked", rules: { userAgent: "*", disallow: "/" } });
+  return Object.freeze({ surface: "restricted", publicIndexing: "blocked", rules: [{ userAgent: "*", disallow: "/" }] });
 }
