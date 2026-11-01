@@ -57,7 +57,7 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
     config?.checkoutEnabled === true;
   const manageSubscription = context.status === "active" && !access.decision.allowed && liveSubscription;
   return <Container width="compact" className="page-stack">
-    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly game subscription. No annual plan and no permanent free gameplay tier." />
+    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly subscription for every MathNexa resource. No annual plan. Math Tug of War is free with any MathNexa account." />
     {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {billing === "unavailable" ? <Notice label="Billing status" tone="warning" live><strong>Billing is temporarily unavailable.</strong><p>No access or subscription change was made. Try again later.</p></Notice> : null}
     {consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}
