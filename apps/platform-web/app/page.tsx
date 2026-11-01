@@ -67,7 +67,7 @@ export async function generateMetadata():Promise<Metadata>{
     title:{absolute:PLATFORM_HOMEPAGE_TITLE},
     description:PLATFORM_HOMEPAGE_DESCRIPTION,
     openGraph:{...PLATFORM_OPEN_GRAPH,title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION,url:"https://mathnexa.com"},
-    twitter:{card:"summary",title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION}
+    twitter:{card:"summary_large_image",title:PLATFORM_HOMEPAGE_TITLE,description:PLATFORM_HOMEPAGE_DESCRIPTION}
   };
   const managed=await loadPublishedCmsDocument("homepage");if(!managed)return{};return{title:managed.content.seoTitle||managed.content.title,description:managed.content.seoDescription||managed.content.description,openGraph:{title:managed.content.socialTitle||managed.content.title,description:managed.content.socialDescription||managed.content.description}}
 }

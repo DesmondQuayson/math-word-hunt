@@ -26,10 +26,10 @@ export const metadata: Metadata = {
   description: productionPlatform
     ? PLATFORM_HOMEPAGE_DESCRIPTION
     : "A teacher-led classroom game for building fluency with the language of mathematics.",
-  // Every MathNexa page shares the app icon as its social preview; it is
-  // square, so the card stays the small "summary" layout (no crop).
+  // Every MathNexa page shares the 1200x630 link-preview card
+  // (SOCIAL_PREVIEW_IMAGE), so the card uses the large image layout.
   openGraph: mathNexa ? PLATFORM_OPEN_GRAPH : undefined,
-  twitter: mathNexa ? { card: "summary" } : undefined,
+  twitter: mathNexa ? { card: "summary_large_image" } : undefined,
   robots: publicProduction || productionPlatform
     ? { index: true, follow: true }
     : { index: false, follow: false, noarchive: true, nocache: true }

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
 
-import { MATHNEXA_LOGO } from "./structured-data";
-
 /**
  * Search and social metadata for the indexable public pages of the production
  * platform (the sitemap routes and /status). Before this, every one of them
@@ -24,15 +22,16 @@ export const MONTHLY_PRICE_LABEL = `${new Intl.NumberFormat("en-US", { style: "c
 export const TRIAL_HOURS = COMMERCIAL_POLICY.trialSeconds / 3600;
 
 /**
- * The social preview image for every page: the MathNexa app icon, an existing
- * approved asset. It is square, so cards use the small "summary" layout and
- * nothing is cropped.
+ * The social preview image for every page: a 1200x630 card built by
+ * scripts/build-share-image.mjs from the approved app icon art and the
+ * homepage's own headline, so link previews use the large layout. The
+ * structured-data logo stays the square app icon (MATHNEXA_LOGO).
  */
 export const SOCIAL_PREVIEW_IMAGE = Object.freeze({
-  url: MATHNEXA_LOGO.path,
-  width: MATHNEXA_LOGO.width,
-  height: MATHNEXA_LOGO.height,
-  alt: "MathNexa"
+  url: "/media/social/mathnexa-share.png",
+  width: 1200,
+  height: 630,
+  alt: "MathNexa: online math prep that shows the thinking, not just the answer"
 });
 
 export const PLATFORM_OPEN_GRAPH = Object.freeze({

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "./platform-positioning";
@@ -52,6 +55,18 @@ describe("public page search metadata", () => {
       expect(metadata.description).toBe(PUBLIC_PAGE_SEO[path].description);
       expect(metadata.openGraph).toMatchObject({ siteName: "MathNexa", type: "website", url: path, images: [SOCIAL_PREVIEW_IMAGE] });
     }
-    expect(PLATFORM_OPEN_GRAPH.images).toEqual([{ url: "/icon1.png", width: 512, height: 512, alt: "MathNexa" }]);
+    expect(PLATFORM_OPEN_GRAPH.images).toEqual([{
+      url: "/media/social/mathnexa-share.png",
+      width: 1200,
+      height: 630,
+      alt: "MathNexa: online math prep that shows the thinking, not just the answer"
+    }]);
+  });
+
+  it("ships the share card at the size the metadata declares", () => {
+    const bytes = readFileSync(resolve(process.cwd(), "public", SOCIAL_PREVIEW_IMAGE.url.slice(1)));
+    // PNG signature, then the IHDR width and height.
+    expect(bytes.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([SOCIAL_PREVIEW_IMAGE.width, SOCIAL_PREVIEW_IMAGE.height]);
   });
 });
