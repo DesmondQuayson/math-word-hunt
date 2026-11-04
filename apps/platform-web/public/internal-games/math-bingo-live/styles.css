@@ -360,6 +360,8 @@ body.bingo {
   width: min(calc(100vw - 24px), 760px); padding: 16px 20px; border-radius: 24px; text-align: center;
   background: linear-gradient(135deg, var(--navy-700), var(--navy-800)); border: 2px solid var(--turquoise);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); overflow: hidden; animation: banner-in 260ms ease-out;
+  /* Announcements never block a tap on the card underneath. */
+  pointer-events: none;
 }
 .banner[hidden] { display: none; }
 .banner.tone-free { border-color: var(--pink); background: linear-gradient(135deg, #3d1847, var(--navy-800)); }

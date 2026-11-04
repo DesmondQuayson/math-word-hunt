@@ -11,6 +11,7 @@
  *   node scripts/run-math-bingo-live.mjs load                 run scripts/math-bingo-live-load.mjs against it
  *   node scripts/run-math-bingo-live.mjs thumbnail            capture the catalog artwork from a real game
  *   add --production to serve `next start` from a fresh `next build` instead of `next dev`
+ *   add --reuse-build (with --production) to serve the existing build without rebuilding
  *
  * Local-only by construction: refuses any non-loopback Supabase, and the
  * preview flag is honoured by the app only on a loopback origin.
@@ -36,7 +37,8 @@ export const DEMO_TEACHER = Object.freeze({ email: "bingo-teacher@example.test",
 
 const [mode = "demo", ...rest] = process.argv.slice(2);
 const production = rest.includes("--production");
-const passThrough = rest.filter(argument => argument !== "--production");
+const reuseBuild = production && rest.includes("--reuse-build");
+const passThrough = rest.filter(argument => argument !== "--production" && argument !== "--reuse-build");
 if (!["demo", "e2e", "load", "thumbnail"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
 const cli = resolve("node_modules/supabase/dist/supabase.js");
@@ -127,9 +129,9 @@ const environment = {
   STRIPE_PORTAL_CONFIGURATION_ID: "bpc_mathnexa123"
 };
 
-await cleanPlatformGeneratedNextState();
+if (!reuseBuild) await cleanPlatformGeneratedNextState();
 const next = resolve("node_modules/next/dist/bin/next");
-if (production) {
+if (production && !reuseBuild) {
   execFileSync(process.execPath, [next, "build", resolve("apps/platform-web")], { env: { ...environment, NODE_ENV: "production" }, stdio: "inherit" });
 }
 const app = spawn(process.execPath, [next, production ? "start" : "dev", resolve("apps/platform-web"), "--hostname", "127.0.0.1", "--port", String(port)], {

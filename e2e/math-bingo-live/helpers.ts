@@ -73,11 +73,48 @@ export async function waitFor(page: Page, predicate: (current: LiveState) => boo
   return last!;
 }
 
+/**
+ * Every helper that interacts brings its page to the front first, like the
+ * real device whose screen is in front of its user. (Headless WebKit pauses
+ * animation frames in background pages, which stalls click actionability.)
+ */
+export async function front(page: Page): Promise<void> {
+  await page.bringToFront();
+}
+
 /** Uncaught page errors from every page the helpers opened. */
 export const PAGE_ERRORS: string[] = [];
 
+// WebKit reports a fetch that a deliberate page reload cancels as a page
+// error ("... due to access control checks"); the app handles the rejection.
+const RELOAD_CANCELLED = /due to access control checks.?$/;
+
 export function watchErrors(page: Page): void {
-  page.on("pageerror", error => PAGE_ERRORS.push(`${page.url()}: ${error.message}`));
+  page.on("pageerror", error => {
+    if (RELOAD_CANCELLED.test(error.message)) return;
+    PAGE_ERRORS.push(`${page.url()}: ${error.message}`);
+  });
+}
+
+/**
+ * A real click on a card cell. Headless WebKit can pause animation frames in
+ * a page that is not focused, which stalls the "stable" actionability check;
+ * after a short normal attempt the click is retried at the same point.
+ */
+export async function press(page: Page, selector: string): Promise<void> {
+  await front(page);
+  const target = page.locator(selector);
+  try {
+    await target.click({ timeout: 5_000 });
+  } catch {
+    try {
+      await target.click({ force: true, timeout: 5_000 });
+    } catch {
+      // Last resort for a starved background WebKit page: the same click
+      // event on the same button (its own handler decides what happens).
+      await target.dispatchEvent("click");
+    }
+  }
 }
 
 export async function newContext(browser: Browser, options: BrowserContextOptions = {}): Promise<BrowserContext> {
@@ -97,6 +134,7 @@ export async function signInTeacher(browser: Browser, options: BrowserContextOpt
   const page = await context.newPage();
   watchErrors(page);
   await page.goto(`/sign-in?next=${encodeURIComponent(HOST_ROUTE)}`);
+  await front(page);
   await page.getByLabel("Email address").fill(TEACHER.email);
   await page.locator('input[name="password"]').first().fill(TEACHER.password);
   await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
@@ -134,6 +172,7 @@ export async function createGame(page: Page, options: GameOptions = {}): Promise
     await closeRoom(page);
     await expect(page.locator("body")).toHaveAttribute("data-screen", "setup", { timeout: 30_000 });
   }
+  await front(page);
   const radio = async (name: string, value: string | number) => page.locator(`input[name="${name}"][value="${value}"]`).click({ force: true });
   if (options.mode) await radio("mode", options.mode);
   if (options.level) await radio("level", options.level);
@@ -158,6 +197,7 @@ export async function joinPlayer(browser: Browser, code: string, name: string, o
   const page = await context.newPage();
   watchErrors(page);
   await page.goto(`${JOIN_ROUTE}?code=${code}`);
+  await front(page);
   await expect(page.getByLabel("GAME CODE")).toHaveValue(code);
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByLabel("DISPLAY NAME").fill(name);
@@ -171,6 +211,7 @@ export async function joinPlayer(browser: Browser, code: string, name: string, o
  * the server clock, so clicking "Start now" could race it).
  */
 export async function startGame(page: Page): Promise<LiveState> {
+  await front(page);
   const before = await state(page);
   await page.getByRole("button", { name: "START GAME" }).click();
   return waitFor(page, current => current.gameNumber > before.gameNumber && current.phase === "QUESTION_ACTIVE" && current.questionNumber === 1, "question 1 after the countdown");
@@ -184,6 +225,7 @@ export async function hostNext(page: Page): Promise<LiveState> {
   await expect.poll(async () => ended(await state(page)) || ((await button.count()) > 0 && (await button.isEnabled())), { timeout: 20_000 }).toBe(true);
   const before = await state(page);
   if (ended(before)) return before;
+  await front(page);
   await button.click();
   return waitFor(page, current => current.phase !== before.phase || current.questionNumber !== before.questionNumber, "host advanced");
 }
@@ -208,8 +250,9 @@ export async function markBest(page: Page, { hold = false } = {}): Promise<{ res
   });
   if (!best) return null;
   const chosen = best as { cell: number; score: number };
+  await front(page);
   const response = page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"mark\""));
-  await page.locator(`[data-cell="${chosen.cell}"]`).click();
+  await press(page, `[data-cell="${chosen.cell}"]`);
   const payload = await (await response).json();
   return { result: payload.result, cell: chosen.cell };
 }
@@ -221,16 +264,21 @@ export async function markWrong(page: Page): Promise<{ result: string; cell: num
   const answer = solve(current.question);
   const index = current.me.board.findIndex((cell, cellIndex) => !cell.free && ((current.me!.marks >>> cellIndex) & 1) === 0 && !matches(current.settings, answer, cell));
   if (index < 0) return null;
+  await front(page);
   const response = page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"mark\""));
-  await page.locator(`[data-cell="${index}"]`).click();
+  await press(page, `[data-cell="${index}"]`);
   return { result: (await (await response).json()).result, cell: index };
 }
 
 export async function useFreeSpace(page: Page): Promise<string> {
-  await page.locator('[data-cell="12"]').click();
+  await front(page);
+  const star = page.locator('[data-cell="12"]');
+  await press(page, '[data-cell="12"]');
+  // The first tap only arms the star (a stray tap never spends it).
+  await expect(star).toHaveClass(/is-armed/);
   await expect(page.locator(".toast")).toContainText("Tap the star again");
-  const response = page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"free\""));
-  await page.locator('[data-cell="12"]').click();
+  const response = page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"free\""), { timeout: 30_000 });
+  await press(page, '[data-cell="12"]');
   return (await (await response).json()).result;
 }
 

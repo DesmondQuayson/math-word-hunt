@@ -57,6 +57,7 @@ test("Fraction Bingo: symbolic question, visual models, exact match, reveal with
           && cell.n * answer.d === answer.n * cell.d && !(cell.n === answer.n && cell.d === answer.d));
         if (index >= 0) {
           const reply = ava.page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/play") && (response.request().postData() ?? "").includes("\"mark\""));
+          await ava.page.bringToFront();
           await ava.page.locator(`[data-cell="${index}"]`).click();
           expect((await (await reply).json()).result).toBe("incorrect");
           await expect(ava.page.locator(".toast")).toContainText(`That square shows ${seen.me!.board![index].n}/${seen.me!.board![index].d}`);
@@ -78,10 +79,12 @@ test("Fraction Bingo: symbolic question, visual models, exact match, reveal with
       // History keeps every called fraction, current highlighted; nothing future.
       const live = await waitFor(ava.page, player => player.questionNumber === advanced.questionNumber && player.phase === "ANSWER_REVEAL", "Ava reveal");
       expect(live.called.map(item => item.text)).toEqual(calledSoFar);
+      await ava.page.bringToFront();
       await ava.page.locator(".called-toggle").click();
       await expect(ava.page.locator(".called-toggle")).toContainText(`Called Fractions (${calledSoFar.length})`);
       await expect(ava.page.locator(".called-item")).toHaveCount(calledSoFar.length);
       await expect(ava.page.locator(".called-item.is-current .called-text")).toHaveText(calledSoFar[calledSoFar.length - 1]);
+      await ava.page.bringToFront();
       await ava.page.locator(".called-toggle").click();
       await expect(host.page.locator(".side-called .called-item")).toHaveCount(calledSoFar.length);
     }
@@ -112,6 +115,7 @@ test("Equivalent Fractions (host setting): any equal-value model counts, by rati
         && cell.n * answer.d === answer.n * cell.d && !(cell.n === answer.n && cell.d === answer.d));
       if (index >= 0) {
         const reply = ava.page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/play") && (response.request().postData() ?? "").includes("\"mark\""));
+        await ava.page.bringToFront();
         await ava.page.locator(`[data-cell="${index}"]`).click();
         expect((await (await reply).json()).result).toBe("correct");
         acceptedEquivalent = true;

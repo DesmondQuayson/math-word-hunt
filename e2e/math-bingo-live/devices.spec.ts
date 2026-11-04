@@ -76,6 +76,7 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
       const answer = current.question!.text.split("/").map(Number);
       const index = current.me!.board!.findIndex(item => !item.free && item.n === answer[0] && item.d === answer[1]);
       const reply = page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/play") && (response.request().postData() ?? "").includes("\"mark\""));
+      await page.bringToFront();
       await page.locator(`[data-cell="${index}"]`).tap();
       expect((await (await reply).json()).result, `${player.name} tap`).toBe("correct");
     } else {
@@ -141,6 +142,7 @@ test("keyboard, screen reader labels, reduced motion and forced colours", async 
   for (let step = 0; step < column; step += 1) await ava.page.keyboard.press("ArrowRight");
   await expect(ava.page.locator(`[data-cell="${target}"]`)).toBeFocused();
   const reply = ava.page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/play") && (response.request().postData() ?? "").includes("\"mark\""));
+  await ava.page.bringToFront();
   await ava.page.keyboard.press("Enter");
   expect((await (await reply).json()).result).toBe("correct");
   await expect(ava.page.locator(`[data-cell="${target}"]`)).toHaveAttribute("aria-pressed", "true");

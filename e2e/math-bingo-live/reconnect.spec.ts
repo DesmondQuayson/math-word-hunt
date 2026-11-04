@@ -36,6 +36,7 @@ test("refresh restores the same player, card, marks, Free Space and win; host re
   await hostNext(host.page);
   await hostNext(host.page);
   await waitFor(zion.page, current => current.phase === "QUESTION_ACTIVE" && current.questionNumber === 2, "question 2");
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "Pause" }).click();
   await waitFor(zion.page, current => current.phase === "PAUSED", "paused");
   await expect(zion.page.locator(".phase-overlay")).toContainText("PAUSED");
@@ -46,6 +47,7 @@ test("refresh restores the same player, card, marks, Free Space and win; host re
     return (await reply.json()).result;
   });
   expect(pausedTap).toBe("paused");
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "Resume" }).click();
   await waitFor(zion.page, current => current.phase === "QUESTION_ACTIVE", "resumed");
 
@@ -78,6 +80,7 @@ test("refresh restores the same player, card, marks, Free Space and win; host re
   await waitFor(second, current => current.code === created.code, "second window controls the room");
   await expect(host.page.getByText("This game is open in another window")).toBeVisible({ timeout: 15_000 });
   const tokenBefore = await host.page.evaluate(() => sessionStorage.getItem("mathnexa:math-bingo-live:host-token"));
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "Take control here" }).click();
   await expect.poll(() => host.page.evaluate(() => sessionStorage.getItem("mathnexa:math-bingo-live:host-token"))).not.toBe(tokenBefore);
   await expect(host.page.locator("body")).toHaveAttribute("data-screen", "host-game");
@@ -106,8 +109,11 @@ test("refresh restores the same player, card, marks, Free Space and win; host re
   expect((await state(host.page)).phase).not.toBe("LOBBY");
 
   // Removing a player: they are told, and leave the roster.
+  await host.page.bringToFront();
   await host.page.locator(".controls").getByRole("button", { name: /Players/ }).click();
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "Remove Zion" }).click();
+  await host.page.bringToFront();
   await host.page.getByRole("dialog", { name: "Remove Zion?" }).getByRole("button", { name: "Remove", exact: true }).click();
   await expect(zion.page.locator(".ended-title")).toHaveText("You're no longer in this game", { timeout: 15_000 });
   await expect(zion.page.locator(".ended-text")).toHaveText("Your teacher removed you from this game.");

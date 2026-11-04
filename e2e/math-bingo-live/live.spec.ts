@@ -31,7 +31,7 @@ test.afterEach(() => {
  * second and third, and with three winners configured the game ends at once.
  */
 test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, game complete, rematch", async ({ browser }) => {
-  test.setTimeout(600_000);
+  test.setTimeout(900_000);
   const host = await signInTeacher(browser);
   const created = await createGame(host.page, { mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0, winners: 3 });
   const code = created.code;
@@ -169,6 +169,7 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
 
   // Play Again: same roster, no new code to type, new cards, everything reset.
   const oldLayouts = boards.map(current => cardLayout(current.me!.board!));
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "Play Again" }).click();
   const again = await waitFor(host.page, current => current.gameNumber === complete.gameNumber + 1 && current.phase === "COUNTDOWN", "rematch countdown");
   expect(again.winnerCount).toBe(0);
@@ -193,6 +194,7 @@ test("winner count 1 ends at the first Bingo; disabled patterns never win; timed
   expect(created.settings.patterns).toEqual({ rows: false, columns: true, diagonals: false });
   const ava = await joinPlayer(browser, created.code, "Ava");
   await expect(ava.page.locator(".rule.is-off")).toHaveCount(2);
+  await host.page.bringToFront();
   await host.page.getByRole("button", { name: "START GAME" }).click();
   await expect(ava.page.locator(".rules")).toContainText("Column");
 

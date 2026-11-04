@@ -116,11 +116,15 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 - No names reach analytics; the documents set `noindex` and `no-store`.
 - No chat. No profanity filter was added (MathNexa has no existing moderation mechanism); the teacher removes a player and can lock joining.
 
+**Known limitation (by design of anonymous joining):** a determined student could open several extra seats and use their wrong-tap attempts to probe the answer. Extra seats are visible to the teacher as extra names in the roster and the live player count; the teacher can remove them and lock joining once the class is in. Successful joins are not rate-limited because a whole class shares one school address.
+
 ## Security
 
 - Tables: RLS forced, no grants to `anon`/`authenticated`; every function is `SECURITY DEFINER`, `search_path=''`, EXECUTE for `service_role` only (pgTAP proves it).
 - APIs: same-origin only (custom header + Fetch Metadata / Origin), JSON only, 1–4 KB bodies, `no-store`; integers range-checked; unknown actions refused.
-- Hidden answers: the deck and pool never leave the server; the current question's answer is sent only after the room reveals it; future questions are never sent (only 1..current). Token and owner hashes never leave the database.
+- Hidden answers: the deck and pool never leave the server; the current question's answer is sent only after the room reveals it; future questions are never sent (only 1..current). A Bingo's five winning cells (which include the open question's answer) are sent only once that question is revealed. Token and owner hashes never leave the database.
+- Unpredictable decks: each game is built from 128 secret random bits through a generator with a 128-bit state (sfc32 seeded by cyrb128), so the deck cannot be recovered by trying seeds even though a student knows the settings, the pool (their own card) and the questions asked so far. It is not a cryptographic generator; its strength is the secret seed and the state size.
+- Lock discipline: every function locks the room row before any participant row (no deadlocks); refusals that can no longer change (already won, mark used, attempts spent, Free Space used) are answered without the room lock, so one spamming client cannot queue the room.
 - Names are rendered with `textContent` only and refused if they contain markup characters; duplicate names become "Ava 2".
 - Limits: 60 players per room; 12 room creations per teacher per 10 min; 40 failed joins per address per 10 min (classmates behind one school address are not limited for successful joins); one live room per teacher.
 - Room isolation: a participant token locates exactly one participant row; host tokens are domain-separated from player tokens.

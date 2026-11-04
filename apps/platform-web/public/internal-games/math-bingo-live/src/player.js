@@ -34,6 +34,8 @@ import {
 const SEAT_KEY = "mathnexa:math-bingo-live:seat";
 const RECENT_KEY = "mathnexa:math-bingo-live:recent-seat";
 const RECENT_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+/** How long the first tap on the star waits for the confirming second tap. */
+const FREE_CONFIRM_MS = 8000;
 const ACTIVE_PHASES = new Set(["COUNTDOWN", "QUESTION_ACTIVE", "ANSWER_REVEAL", "LEADERBOARD_UPDATE", "WINNER_REVEAL", "PAUSED"]);
 
 const app = document.getElementById("app");
@@ -549,10 +551,10 @@ async function tapFree(index) {
   if (state.phase !== "QUESTION_ACTIVE") return showToast(state.phase === "PAUSED" ? FEEDBACK.paused : "Use your Free Space while a question is live.");
   // Two steps, so a stray tap never spends the one Free Space.
   if (Date.now() >= freeArmedUntil) {
-    freeArmedUntil = Date.now() + 3500;
+    freeArmedUntil = Date.now() + FREE_CONFIRM_MS;
     showToast("Tap the star again to use your Free Space.");
     updateGame();
-    window.setTimeout(updateGame, 3600);
+    window.setTimeout(updateGame, FREE_CONFIRM_MS + 100);
     return;
   }
   freeArmedUntil = 0;
