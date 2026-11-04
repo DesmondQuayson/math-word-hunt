@@ -159,7 +159,7 @@ See `owner-review/math-bingo-live-owner-review-2026-11-03.md` for the run-by-run
 
 - `lib/games/math-bingo-live/engine.test.ts` — every mode/level, 60 seeds × free space on/off × exact/equivalent: pools, decks, passes, adjacency; tens of thousands of questions and fraction cells; every model's equal areas; 50k sampled masks × 5 pattern sets; 60 distinct cards per game.
 - `lib/games/math-bingo-live/server.test.ts`, `document.test.ts` — payload whitelisting (no seed/pool/deck/answer), preview gate, codes, tokens, CSP, runtime scan.
-- `supabase/tests/database/37_math_bingo_live.test.sql` — 144 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close.
+- `supabase/tests/database/37_math_bingo_live.test.sql` — 163 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close (lobby and in-game), "everyone" completion, the 60-player cap.
 - `scripts/math-bingo-live-simulation.mjs` — 40 seeded students through the real database functions, invariants after every question, rematch, identical replay.
 - `scripts/math-bingo-live-load.mjs` — 1 room × 50 HTTP players and 3 concurrent rooms × 20.
 - `e2e/math-bingo-live/*.spec.ts` — Chromium and WebKit: host + Ava/Zion/Omar, Fraction Bingo, reconnect/recovery/pause/removal, security and free access, every target viewport, keyboard/screen-reader/reduced-motion/forced-colours.

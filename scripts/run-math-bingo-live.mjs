@@ -10,8 +10,10 @@
  *   node scripts/run-math-bingo-live.mjs e2e [playwright args] run e2e/math-bingo-live, then stop
  *   node scripts/run-math-bingo-live.mjs load                 run scripts/math-bingo-live-load.mjs against it
  *   node scripts/run-math-bingo-live.mjs thumbnail            capture the catalog artwork from a real game
- *   add --production to serve `next start` from a fresh `next build` instead of `next dev`
- *   add --reuse-build (with --production) to serve the existing build without rebuilding
+ *
+ * It always serves `next dev`: the production-platform rehearsal refuses a
+ * loopback Supabase under NODE_ENV=production (by design), so `next start`
+ * cannot run it locally. Verify the production build with `npm run build`.
  *
  * Local-only by construction: refuses any non-loopback Supabase, and the
  * preview flag is honoured by the app only on a loopback origin.
@@ -36,9 +38,7 @@ process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 export const DEMO_TEACHER = Object.freeze({ email: "bingo-teacher@example.test", password: "BingoTeacher42!" });
 
 const [mode = "demo", ...rest] = process.argv.slice(2);
-const production = rest.includes("--production");
-const reuseBuild = production && rest.includes("--reuse-build");
-const passThrough = rest.filter(argument => argument !== "--production" && argument !== "--reuse-build");
+const passThrough = rest;
 if (!["demo", "e2e", "load", "thumbnail"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
 const cli = resolve("node_modules/supabase/dist/supabase.js");
@@ -129,13 +129,10 @@ const environment = {
   STRIPE_PORTAL_CONFIGURATION_ID: "bpc_mathnexa123"
 };
 
-if (!reuseBuild) await cleanPlatformGeneratedNextState();
+await cleanPlatformGeneratedNextState();
 const next = resolve("node_modules/next/dist/bin/next");
-if (production && !reuseBuild) {
-  execFileSync(process.execPath, [next, "build", resolve("apps/platform-web")], { env: { ...environment, NODE_ENV: "production" }, stdio: "inherit" });
-}
-const app = spawn(process.execPath, [next, production ? "start" : "dev", resolve("apps/platform-web"), "--hostname", "127.0.0.1", "--port", String(port)], {
-  env: production ? { ...environment, NODE_ENV: "production" } : environment,
+const app = spawn(process.execPath, [next, "dev", resolve("apps/platform-web"), "--hostname", "127.0.0.1", "--port", String(port)], {
+  env: environment,
   stdio: ["ignore", "inherit", "inherit"]
 });
 registerVerificationNextProcess(app);

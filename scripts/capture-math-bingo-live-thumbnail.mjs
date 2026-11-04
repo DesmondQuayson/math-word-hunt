@@ -66,7 +66,7 @@ try {
     await host.reload();
     await host.waitForFunction(() => document.body.dataset.screen === "setup");
   }
-  for (const [name, value] of [["mode", "multiplication"], ["level", "x0-10"], ["questionSeconds", "0"], ["revealSeconds", "0"], ["winners", "3"]]) {
+  for (const [name, value] of [["mode", "multiplication"], ["level", "x0-10"], ["questionSeconds", "60"], ["revealSeconds", "0"], ["winners", "3"]]) {
     await host.locator(`input[name="${name}"][value="${value}"]`).click({ force: true });
   }
   await host.getByRole("button", { name: "CREATE GAME" }).click();
