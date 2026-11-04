@@ -50,6 +50,8 @@ let viewKey = "";
 let lastTickSecond = null;
 let busy = false;
 let banner = null;
+/** Dialogs owned by the current view; removed when the view changes. */
+let viewDialogs = [];
 const oneAway = [];
 
 const audio = new GameAudio(preferences, () => {
@@ -212,9 +214,8 @@ function settingsForm(initial, { submitLabel, onSubmit, onCancel = null, joinLoc
 }
 
 function renderSetup(message = "") {
+  resetView();
   setScreen("setup");
-  view = null;
-  viewKey = "";
   const form = settingsForm(lastSettings(), {
     submitLabel: "CREATE GAME",
     onSubmit: (settings, joinLock, error) => createRoom(settings, joinLock, error)
@@ -313,7 +314,16 @@ async function boot() {
   }
 }
 
+/** Leave the current view: the next state rebuilds a fresh one. */
+function resetView() {
+  view = null;
+  viewKey = "";
+  for (const dialog of viewDialogs) dialog.remove();
+  viewDialogs = [];
+}
+
 function renderTakenOver() {
+  resetView();
   setScreen("notice");
   fill(app, h("main", { id: "main", class: "setup-screen" },
     h("div", { class: "notice-card", role: "status" },
@@ -332,6 +342,7 @@ function renderTakenOver() {
 }
 
 function renderSignedOut() {
+  resetView();
   setScreen("notice");
   fill(app, h("main", { id: "main", class: "setup-screen" },
     h("div", { class: "notice-card", role: "status" },
@@ -374,6 +385,8 @@ function render() {
   const key = state.phase === "LOBBY" ? "lobby" : state.phase === "GAME_COMPLETE" ? "complete" : "game";
   if (key !== viewKey) {
     viewKey = key;
+    for (const dialog of viewDialogs) dialog.remove();
+    viewDialogs = [];
     view = key === "lobby" ? buildLobby() : key === "complete" ? buildComplete() : buildGame();
   }
   view.update();
@@ -403,6 +416,7 @@ function playersDialog() {
       : h("li", { class: "player-admin-empty", text: "No players yet." }));
   };
   document.body.append(dialog);
+  viewDialogs.push(dialog);
   return { dialog, update };
 }
 
@@ -638,7 +652,7 @@ function buildGame() {
       const paused = state.phase === "PAUSED";
       pauseButton.replaceChildren(icon(paused ? "play" : "pause"), h("span", { text: paused ? "Resume" : "Pause" }));
       pauseButton.disabled = !["COUNTDOWN", "QUESTION_ACTIVE", "ANSWER_REVEAL", "LEADERBOARD_UPDATE", "PAUSED"].includes(state.phase);
-      pauseButton.onclick = () => command(paused ? "resume" : "pause");
+      pauseButton.onclick = () => command(paused ? "unpause" : "pause");
       const nextLabel = { COUNTDOWN: "Start now", QUESTION_ACTIVE: "Reveal answer", ANSWER_REVEAL: "Next question", LEADERBOARD_UPDATE: "Next question" }[state.phase];
       nextButton.replaceChildren(icon("next"), h("span", { text: nextLabel ?? "Next question" }));
       nextButton.disabled = !nextLabel;

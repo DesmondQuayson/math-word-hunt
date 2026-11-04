@@ -12,7 +12,7 @@ export const RECONNECTING_AFTER_MS = 4000;
 export const MESSAGES = Object.freeze({
   "invalid-code": "Check the game code. It has 6 numbers.",
   "room-not-found": "No game was found with that code. Check the code on your teacher's screen.",
-  "seat-not-found": "This game has ended.",
+  "seat-not-found": "Thanks for playing! Ask your teacher for a new code to play again.",
   "room-expired": "That game has expired. Ask your teacher for a new code.",
   "room-closed": "Your teacher has ended this game.",
   "room-locked": "Joining is locked for this game. Ask your teacher.",

@@ -251,7 +251,7 @@ body.bingo {
 @keyframes glow { from { box-shadow: 0 0 0 3px var(--gold), 0 0 10px rgba(255, 200, 61, 0.5); } to { box-shadow: 0 0 0 3px var(--gold), 0 0 30px rgba(255, 200, 61, 0.95); } }
 @keyframes pending { from { opacity: 1; } to { opacity: 0.6; } }
 @keyframes wrong { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-@keyframes armed { from { transform: scale(1); } to { transform: scale(1.05); } }
+@keyframes armed { from { box-shadow: 0 0 0 2px var(--gold); } to { box-shadow: 0 0 0 6px var(--gold), 0 0 22px rgba(255, 200, 61, 0.8); } }
 
 /* ------------------------------------------------------------ player game */
 
@@ -470,8 +470,8 @@ body.bingo {
 
 /* -------------------------------------------------------------- host game */
 
-.host-game { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
-.host-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 460px); gap: 18px; padding: 16px 20px 0; min-height: 0; }
+.host-game { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.host-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 460px); gap: 16px; padding: 12px 20px 0; min-height: 0; overflow: hidden; }
 .stage-column { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .stage-label { margin: 0; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.6rem); }
 .stage-wrap {
@@ -510,7 +510,7 @@ body.bingo {
 .called-current-value { color: var(--turquoise); }
 .side .called-item { font-size: clamp(0.95rem, 1.1vw, 1.3rem); }
 
-.controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 14px 20px 18px; }
+.controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 10px 20px 12px; }
 .button-control { min-height: 54px; padding: 0 22px; font-size: 1.02rem; }
 
 .complete-host { min-height: 100dvh; display: flex; flex-direction: column; }

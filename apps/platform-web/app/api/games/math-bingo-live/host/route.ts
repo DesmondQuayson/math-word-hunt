@@ -36,7 +36,8 @@ const ERRORS: Readonly<Record<string, [string, number]>> = Object.freeze({
   "invalid-request": ["invalid-request", 400]
 });
 
-const COMMANDS = new Set(["pause", "resume", "next", "end", "change-settings", "close", "lock", "unlock", "remove", "settings", "audio", "code"]);
+// "resume" is host recovery (above); resuming a paused game is "unpause".
+const COMMANDS = new Set(["pause", "unpause", "next", "end", "change-settings", "close", "lock", "unlock", "remove", "settings", "audio", "code"]);
 
 export async function POST(request: Request): Promise<Response> {
   const body = await readJsonBody(request, MAX_BODY_BYTES);
@@ -145,7 +146,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     return refused("live-unavailable", 503);
   }
-  return roomReply(await call("bingo_host_command", { ...seat, p_command: action, p_args: args }));
+  return roomReply(await call("bingo_host_command", { ...seat, p_command: action === "unpause" ? "resume" : action, p_args: args }));
 }
 
 export function GET(): Response {

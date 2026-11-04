@@ -227,7 +227,7 @@ function ended(error) {
   setScreen("ended");
   fill(app, h("main", { id: "main", class: "join-screen" }, brandHeader(),
     h("div", { class: "join-card ended-card", role: "status" },
-      h("p", { class: "ended-title", text: error.code === "removed" ? "You left this game" : "This game has ended" }),
+      h("p", { class: "ended-title", text: error.code === "removed" ? "You're no longer in this game" : "This game has ended" }),
       h("p", { class: "ended-text", text: error.message }),
       h("a", { class: "button button-primary button-wide", href: "/join", text: "Join a game" }))));
 }
@@ -491,8 +491,9 @@ function showToast(message, tone = "info") {
   game.toast.textContent = message;
   game.toast.className = `toast tone-${tone} is-visible`;
   window.clearTimeout(showToast.timer);
+  const toast = game.toast;
   showToast.timer = window.setTimeout(() => {
-    game.toast.className = `toast tone-${tone}`;
+    toast.className = `toast tone-${tone}`;
   }, 2600);
 }
 
