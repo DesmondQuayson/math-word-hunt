@@ -6,7 +6,7 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
-import { POST_AUTH_DESTINATION, isFreeGameDestination } from "@/lib/auth/access-intent";
+import { POST_AUTH_DESTINATION, destinationLabel, isFreeGameDestination } from "@/lib/auth/access-intent";
 import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import type { Metadata } from "next";
 
@@ -24,7 +24,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   // choices, including "Create account" (not the trial onboarding).
   const freeGame = isFreeGameDestination(nextDestination);
   return <Container className="page-stack" width="compact">
-    <PageHeader eyebrow={consumerMode ? "MathNexa account" : "Local teacher accounts"} title="Sign in" description={freeGame ? "Sign in or create a free MathNexa account to play Math Tug of War. No subscription is needed." : consumerMode ? "Sign in to view your account and server-verified game-access status." : "Open locally saved classes and activity drafts. The current v7 game remains available without an account."} />
+    <PageHeader eyebrow={consumerMode ? "MathNexa account" : "Local teacher accounts"} title="Sign in" description={freeGame ? `Sign in or create a free MathNexa account to play ${destinationLabel(nextDestination)}. No subscription is needed.` : consumerMode ? "Sign in to view your account and server-verified game-access status." : "Open locally saved classes and activity drafts. The current v7 game remains available without an account."} />
     {params.signedOut === "1" ? <Notice label="Signed out" tone="success" live><strong>You are signed out.</strong><p>{consumerMode ? "Account and game access are no longer available in this browser session." : "Protected teacher data is no longer available in this browser session."}</p></Notice> : null}
     <Notice label={consumerMode ? "Account privacy" : "Restricted pilot authentication"} tone="information"><strong>{consumerMode ? "General public account." : "Teacher-only access."}</strong><p>{consumerMode ? "Sign-in errors do not reveal whether an account exists. No educational profile or gameplay progress is collected." : "Only approved adult teachers may use an active controlled pilot. Sign-in errors do not reveal whether an account exists."}</p></Notice>
     <AuthEmailStatus label="Confirmation and recovery delivery" />

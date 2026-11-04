@@ -105,6 +105,16 @@ test("free access: a free teacher hosts Bingo but still cannot open protected ga
   const hostAnonymous = await request.get("/games/math-bingo-live/host", { failOnStatusCode: false, maxRedirects: 0 });
   expect(hostAnonymous.status()).toBe(307);
   expect(hostAnonymous.headers().location).toContain("/access?next=/games/math-bingo-live/host");
+  // The account pages name the game the teacher picked, not another free game.
+  for (const [path, copy] of [
+    ["/access?next=/games/math-bingo-live/host", "Continue to Math Bingo Live"],
+    ["/sign-in?next=/games/math-bingo-live/host", "Sign in or create a free MathNexa account to play Math Bingo Live."],
+    ["/sign-up?next=/games/math-bingo-live/host", "Create a free MathNexa account to play Math Bingo Live."]
+  ]) {
+    const page = await (await request.get(path)).text();
+    expect(page, path).toContain(copy);
+    expect(page, path).not.toContain("Tug of War");
+  }
   for (const path of ["/games/number-logic/play", "/games/number-cross/play", "/games/crosscalc/play", "/play"]) {
     const response = await request.get(path, { failOnStatusCode: false, maxRedirects: 0 });
     expect([303, 307, 308, 404], path).toContain(response.status());
@@ -112,6 +122,7 @@ test("free access: a free teacher hosts Bingo but still cannot open protected ga
 
   // The free teacher: hosts Bingo, but the entitled games still redirect.
   const host = await signInTeacher(browser);
+  expect(await (await host.page.request.get("/access?next=/games/math-bingo-live/host")).text()).toContain("You are signed in. Math Bingo Live is free with your MathNexa account.");
   for (const path of ["/games/number-logic/play", "/games/number-cross/play", "/games/crosscalc/play"]) {
     const response = await host.page.request.get(path, { failOnStatusCode: false, maxRedirects: 0 });
     expect(response.status(), path).not.toBe(200);

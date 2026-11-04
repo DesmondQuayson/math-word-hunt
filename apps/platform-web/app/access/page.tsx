@@ -38,7 +38,7 @@ export default async function AccessIntentPage({
       eyebrow={freeGame ? "Free with a MathNexa account" : "Your MathNexa path"}
       title={`Continue to ${destinationLabel(destination)}`}
       description={freeGame
-        ? signedIn ? "You are signed in. Math Tug of War is free with your MathNexa account." : "Sign in or create a free MathNexa account to play. No subscription is needed, and you will come straight back to the game."
+        ? signedIn ? `You are signed in. ${destinationLabel(destination)} is free with your MathNexa account.` : "Sign in or create a free MathNexa account to play. No subscription is needed, and you will come straight back to the game."
         : signedIn
           ? "Continue with your MathNexa account."
           : "Create an account or sign in. After confirmation, MathNexa will return you to the resource you selected."}
