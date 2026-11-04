@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FREE_GAME_DESTINATIONS, POST_AUTH_DESTINATION, destinationLabel, isFreeGameDestination, safeAccessIntentDestination, safeProductDestination } from "@/lib/auth/access-intent";
 import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 
-import { MATH_TUG_OF_WAR_PLAY_ROUTE, freeGameKeyForSlug, freeGamePlayRoute, gameAccessPolicy, isFreeToPlayGame } from "./access-policy";
+import { MATH_BINGO_LIVE_HOST_ROUTE, MATH_TUG_OF_WAR_PLAY_ROUTE, freeGameKeyForSlug, freeGamePlayRoute, gameAccessPolicy, isFreeToPlayGame } from "./access-policy";
 import { internalGameKeys } from "./internal-registry";
 
 const mocks = vi.hoisted(() => ({
@@ -48,9 +48,11 @@ beforeEach(() => {
 });
 
 describe("game access classification", () => {
-  it("only Math Tug of War is authenticated-free; every other game (and anything unknown) stays entitled", () => {
+  it("only Math Tug of War and Math Bingo Live are authenticated-free; every other game (and anything unknown) stays entitled", () => {
     expect(gameAccessPolicy("math-tug-of-war")).toBe("authenticated-free");
-    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war"), "math-vocabulary-hunt", "unknown", "__proto__", "constructor"]) {
+    expect(gameAccessPolicy("math-bingo-live")).toBe("authenticated-free");
+    expect(freeGamePlayRoute("math-bingo-live")).toBe(MATH_BINGO_LIVE_HOST_ROUTE);
+    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war"), "math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "unknown", "__proto__", "constructor"]) {
       expect(gameAccessPolicy(key), key).toBe("entitled");
       expect(isFreeToPlayGame(key), key).toBe(false);
       expect(freeGameKeyForSlug(key), key).toBeNull();
@@ -60,7 +62,10 @@ describe("game access classification", () => {
   });
 
   it("the free game's route is an exact server-owned return destination, but never a product/subscription destination", () => {
-    expect(FREE_GAME_DESTINATIONS).toEqual([MATH_TUG_OF_WAR_PLAY_ROUTE]);
+    expect(FREE_GAME_DESTINATIONS).toEqual([MATH_TUG_OF_WAR_PLAY_ROUTE, MATH_BINGO_LIVE_HOST_ROUTE]);
+    expect(safeAccessIntentDestination(MATH_BINGO_LIVE_HOST_ROUTE)).toBe(MATH_BINGO_LIVE_HOST_ROUTE);
+    expect(destinationLabel(MATH_BINGO_LIVE_HOST_ROUTE)).toBe("Math Bingo Live");
+    expect(safeProductDestination(MATH_BINGO_LIVE_HOST_ROUTE)).toBe("/games");
     expect(isFreeGameDestination(MATH_TUG_OF_WAR_PLAY_ROUTE)).toBe(true);
     expect(safeAccessIntentDestination(MATH_TUG_OF_WAR_PLAY_ROUTE)).toBe(MATH_TUG_OF_WAR_PLAY_ROUTE);
     expect(safeInternalRedirect(MATH_TUG_OF_WAR_PLAY_ROUTE)).toBe(MATH_TUG_OF_WAR_PLAY_ROUTE);

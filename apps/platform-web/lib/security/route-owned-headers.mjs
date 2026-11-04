@@ -38,6 +38,9 @@ export const ROUTE_OWNED_HEADER_SOURCES = Object.freeze([
   // Internal game documents: CrossCalc, Number Cross, Number Logic, Math Tug of War.
   "/games/:resourceId/play",
   "/games/crosscalc/v2/preview",
+  // Math Bingo Live host and join documents (absolute asset URLs, connect-src 'self').
+  "/games/math-bingo-live/host",
+  "/join",
   "/admin/games/catalog/:catalogId/preview",
   // Game-package assets (ticketed public play and Admin preview, Admin thumbnail).
   "/games/:resourceId/runtime/assets/:ticket/:asset*",
@@ -50,4 +53,4 @@ export const ROUTE_OWNED_HEADER_SOURCES = Object.freeze([
  * ROUTE_OWNED_HEADER_SOURCES (the parity test proves the two agree).
  */
 export const DEVELOPMENT_PLATFORM_HEADER_SOURCE =
-  "/:path((?!games/[^/]+/play$|games/crosscalc/v2/preview$|admin/games/catalog/[^/]+/preview$|games/[^/]+/runtime/assets/[^/]+/.+|admin/games/[^/]+/preview/assets/[^/]+/.+|admin/games/[^/]+/thumbnail$).*)";
+  "/:path((?!games/[^/]+/play$|games/crosscalc/v2/preview$|games/math-bingo-live/host$|join$|admin/games/catalog/[^/]+/preview$|games/[^/]+/runtime/assets/[^/]+/.+|admin/games/[^/]+/preview/assets/[^/]+/.+|admin/games/[^/]+/thumbnail$).*)";

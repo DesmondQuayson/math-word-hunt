@@ -273,7 +273,7 @@ async function subject(secret: string, scope: ConsumerAuthScope, identifier: str
  * and only its leftmost entry — a caller can prepend entries to that header, so
  * treating any other position as the client would be trusting attacker input.
  */
-function clientAddress(requestHeaders: Headers): string {
+export function clientAddress(requestHeaders: Headers): string {
   // Each candidate must actually parse as an IP address. Without that check any
   // string a caller puts in `x-forwarded-for` became a bucket key of its own, so
   // varying it minted unlimited budgets — the same defect the user agent had,

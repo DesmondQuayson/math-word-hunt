@@ -106,6 +106,15 @@ function internalGameHeaders(registration: Pick<InternalGameRegistration, "conne
   });
 }
 
+/**
+ * A same-origin game document under the internal-game headers (strict CSP,
+ * no framing, no caching, noindex). For game documents that are not a
+ * catalog /play route, such as the Math Bingo Live host and join pages.
+ */
+export function createInternalDocumentResponse(html: string, connectSource: InternalGameRegistration["connectSource"]): Response {
+  return new Response(html, { status: 200, headers: internalGameHeaders({ connectSource }) });
+}
+
 export function createInternalGameResponse(stableKey: string, version?: string, options?: InternalGameDocumentOptions): Response {
   const registration = getInternalGameRegistration(stableKey);
   if (!registration) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "no-store" } });

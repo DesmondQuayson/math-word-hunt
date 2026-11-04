@@ -29,10 +29,11 @@ import { buildContentSecurityPolicy, buildSecurityHeaders } from "@/lib/security
 import { DEVELOPMENT_PLATFORM_HEADER_SOURCE, ROUTE_OWNED_HEADER_SOURCES } from "@/lib/security/route-owned-headers.mjs";
 import {
   createCrossCalcV2PreviewResponse,
-  createInternalGameResponse,
+  createInternalDocumentResponse, createInternalGameResponse,
   getInternalGameRegistration,
   internalGameKeys
 } from "@/lib/games/internal-registry";
+import { renderMathBingoLiveHostDocument, renderMathBingoLivePlayerDocument } from "@/features/games/math-bingo-live/document";
 
 type HeaderRule = { source: string; headers: { key: string; value: string }[] };
 
@@ -216,6 +217,14 @@ describe("internal game documents: next dev serves what Vercel serves", () => {
     await expectParity("/games/crosscalc/play", createInternalGameResponse("crosscalc", "0.2.0").headers, "crosscalc 0.2.0");
   });
 
+  it("serves the Math Bingo Live host and join documents with their own headers", async () => {
+    for (const [pathname, html] of [["/games/math-bingo-live/host", renderMathBingoLiveHostDocument()], ["/join", renderMathBingoLivePlayerDocument()]] as const) {
+      const { local } = await expectParity(pathname, createInternalDocumentResponse(html, "'self'").headers, pathname);
+      expect(local.get(CSP), pathname).toContain("connect-src 'self'");
+      expect(local.get("x-frame-options"), pathname).toBe("DENY");
+    }
+  });
+
   it("serves the CrossCalc V2 preview and every Admin catalog preview with their own headers", async () => {
     await expectParity("/games/crosscalc/v2/preview", createCrossCalcV2PreviewResponse().headers, "crosscalc v2 preview");
     for (const key of internalGameKeys()) {
@@ -227,7 +236,7 @@ describe("internal game documents: next dev serves what Vercel serves", () => {
 describe("coverage", () => {
   it("leaves every route that serves its own game document or package asset to its route headers", () => {
     const owning = routeFiles(resolve(appRoot, "app"))
-      .filter((file) => /createInternalGameResponse|createCrossCalcV2PreviewResponse|deliverPrivateGameAsset/.test(readFileSync(file, "utf8")))
+      .filter((file) => /createInternalGameResponse|createInternalDocumentResponse|createCrossCalcV2PreviewResponse|deliverPrivateGameAsset/.test(readFileSync(file, "utf8")))
       .map(routeSource)
       .sort();
     expect(owning.length).toBeGreaterThanOrEqual(5);
