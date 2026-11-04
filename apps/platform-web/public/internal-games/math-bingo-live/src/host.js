@@ -54,9 +54,12 @@ let banner = null;
 let viewDialogs = [];
 const oneAway = [];
 
+// The host device plays music unless the room says Off; before a room
+// exists the remembered choice applies, so the teacher's first click starts
+// it inside a real gesture (the Safari/iPad rule).
 const audio = new GameAudio(preferences, () => {
-  const target = state?.settings?.music ?? DEFAULT_SETTINGS.music;
-  return target !== "off" && state?.status === "open";
+  if (!state) return lastSettings().music !== "off";
+  return state.settings?.music !== "off" && state.status === "open";
 });
 attachAudioLifecycle(audio);
 

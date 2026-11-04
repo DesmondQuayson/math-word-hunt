@@ -10,6 +10,7 @@ export type ModelGeometry = Readonly<{ shape: FractionShape; n: number; d: numbe
 
 export const SHAPES: readonly FractionShape[];
 export const GRID_LAYOUTS: Readonly<Record<number, readonly [number, number]>>;
+export const SHAPE_MAX_PARTS: Readonly<Record<FractionShape, number>>;
 
 export function gcd(a: number, b: number): number;
 export function isFraction(value: unknown): value is Fraction;

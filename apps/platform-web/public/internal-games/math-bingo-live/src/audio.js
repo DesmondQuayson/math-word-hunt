@@ -56,6 +56,7 @@ export class GameAudio {
     this.disposed = false;
     this.unlocked = false;
     this.lastEffect = null;
+    this.effects = [];
   }
 
   ensureContext() {
@@ -103,6 +104,8 @@ export class GameAudio {
 
   record(name) {
     this.lastEffect = { name, at: Date.now() };
+    this.effects.push(name);
+    if (this.effects.length > 50) this.effects.shift();
   }
 
   /** Correct mark: a bright rising two-note "pop". */
@@ -212,6 +215,7 @@ export class GameAudio {
       playAttempts: this.playAttempts,
       contextState: this.context?.state ?? "uninitialized",
       lastEffect: this.lastEffect,
+      effects: this.effects.slice(),
       error: this.lastError,
       disposed: this.disposed
     });

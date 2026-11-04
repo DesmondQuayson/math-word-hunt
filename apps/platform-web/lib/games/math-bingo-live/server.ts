@@ -237,15 +237,20 @@ function common(record: Json) {
       cap: Number.isInteger(event.cap) ? (event.cap as number) : null,
       participant: text(event.participant)
     }))),
-    winners: Object.freeze(list(record.winners).map((winner) => Object.freeze({
-      participant: text(winner.id),
-      name: text(winner.name),
-      placement: int(winner.placement),
-      line: text(winner.line),
-      lineType: text(winner.lineType),
-      mask: int(winner.mask),
-      cells: Object.freeze(list(winner.cells).map(cleanCell).filter((cell): cell is Cell => cell !== null))
-    }))),
+    winners: Object.freeze(list(record.winners).map((winner) => {
+      // The five winning cells include the answer to the question the Bingo
+      // happened on, so they are sent only once that question is revealed.
+      const shown = int(winner.question) < questionNumber || revealedNow;
+      return Object.freeze({
+        participant: text(winner.id),
+        name: text(winner.name),
+        placement: int(winner.placement),
+        line: text(winner.line),
+        lineType: text(winner.lineType),
+        mask: shown ? int(winner.mask) : 0,
+        cells: shown ? Object.freeze(list(winner.cells).map(cleanCell).filter((cell): cell is Cell => cell !== null)) : Object.freeze([])
+      });
+    })),
     leaderboard: Object.freeze(list(record.leaderboard).map((row) => Object.freeze({
       participant: text(row.id),
       rank: int(row.rank),

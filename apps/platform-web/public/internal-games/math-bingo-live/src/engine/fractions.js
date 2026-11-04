@@ -55,10 +55,12 @@ export function equivalentsOf(value, denominators) {
   return properFractions(denominators).filter(candidate => equalValue(candidate, value));
 }
 
+/** Most parts each shape may have and still be easy to count on a 320 px phone. */
+export const SHAPE_MAX_PARTS = Object.freeze({ circle: 12, bar: 6, rect: 5, grid: 12 });
+
 export function allowedShapes(denominator) {
-  return Object.prototype.hasOwnProperty.call(GRID_LAYOUTS, denominator)
-    ? SHAPES
-    : SHAPES.filter(shape => shape !== "grid");
+  return SHAPES.filter(shape => denominator <= SHAPE_MAX_PARTS[shape]
+    && (shape !== "grid" || Object.prototype.hasOwnProperty.call(GRID_LAYOUTS, denominator)));
 }
 
 export function fractionText(value) {

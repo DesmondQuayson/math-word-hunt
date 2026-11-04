@@ -9,6 +9,7 @@
  *   node scripts/run-math-bingo-live.mjs demo                 keep the app running for the owner demo
  *   node scripts/run-math-bingo-live.mjs e2e [playwright args] run e2e/math-bingo-live, then stop
  *   node scripts/run-math-bingo-live.mjs load                 run scripts/math-bingo-live-load.mjs against it
+ *   node scripts/run-math-bingo-live.mjs thumbnail            capture the catalog artwork from a real game
  *   add --production to serve `next start` from a fresh `next build` instead of `next dev`
  *
  * Local-only by construction: refuses any non-loopback Supabase, and the
@@ -36,7 +37,7 @@ export const DEMO_TEACHER = Object.freeze({ email: "bingo-teacher@example.test",
 const [mode = "demo", ...rest] = process.argv.slice(2);
 const production = rest.includes("--production");
 const passThrough = rest.filter(argument => argument !== "--production");
-if (!["demo", "e2e", "load"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
+if (!["demo", "e2e", "load", "thumbnail"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
 const cli = resolve("node_modules/supabase/dist/supabase.js");
 const status = JSON.parse(execFileSync(process.execPath, [cli, "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
@@ -176,7 +177,7 @@ try {
   } else {
     const command = mode === "e2e"
       ? [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.math-bingo-live.config.mjs", ...passThrough]
-      : [resolve("scripts/math-bingo-live-load.mjs"), ...passThrough];
+      : [resolve(mode === "load" ? "scripts/math-bingo-live-load.mjs" : "scripts/capture-math-bingo-live-thumbnail.mjs"), ...passThrough];
     const child = spawn(process.execPath, command, { env: shared, stdio: "inherit" });
     [exitCode] = await once(child, "exit");
   }

@@ -294,6 +294,8 @@ function buildGame() {
   } });
   const calledPanel = h("div", { id: "called-panel", class: "called-panel", hidden: true });
   const rules = h("div", { class: "rules-holder" });
+  // Wide screens (tablet landscape, desktop) also show the top three.
+  const leaders = h("section", { class: "mini-leaders", "aria-label": "Top of the leaderboard" });
   const overlay = h("div", { class: "phase-overlay", hidden: true });
   const soundButton = iconButton("Sound effects", preferences.sound ? "sound" : "mute", () => {
     preferences.sound = !preferences.sound;
@@ -305,12 +307,13 @@ function buildGame() {
     h("header", { class: "status-strip" }, strip.name, strip.rank, strip.best, timer.element, soundButton),
     winnerRibbon,
     band,
+    leaders,
     h("div", { class: "card-holder" }, card.element, overlay),
     toast,
     h("footer", { class: "play-footer" }, rules, calledButton, calledPanel));
   fill(app, main);
   const banner = createBanner(document.body);
-  game = { card, timer, strip, band, toast, winnerRibbon, calledButton, calledPanel, rules, overlay, banner, rulesKey: "" };
+  game = { card, timer, strip, band, toast, winnerRibbon, calledButton, calledPanel, rules, leaders, overlay, banner, rulesKey: "", leadersKey: "" };
   tick();
 }
 
@@ -365,6 +368,11 @@ function updateGame() {
   game.card.element.classList.toggle("is-locked", !canMark());
 
   updateBand();
+  const leadersKey = JSON.stringify(state.leaderboard.slice(0, 3));
+  if (leadersKey !== game.leadersKey) {
+    game.leadersKey = leadersKey;
+    fill(game.leaders, leaderboardList(state.leaderboard, { limit: 3, highlightYou: true }));
+  }
   updateCalled(fractions);
   updateOverlay();
 }

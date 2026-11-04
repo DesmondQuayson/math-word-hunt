@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, waitFor } from "./helpers";
+import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, waitFor, startGame } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -51,9 +51,8 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
   }
   await host.page.screenshot({ path: resolve(shots, `${engine}-host-lobby-1920x1080.png`) });
 
-  await host.page.getByRole("button", { name: "START GAME" }).click();
+  await startGame(host.page);
   for (const player of players) await waitFor(player.page, current => Boolean(current.me?.board), `${player.name} card`);
-  await hostNext(host.page);
   for (const player of players) await waitFor(player.page, current => current.phase === "QUESTION_ACTIVE", `${player.name} question`);
 
   for (const player of players) {
@@ -120,10 +119,8 @@ test("keyboard, screen reader labels, reduced motion and forced colours", async 
   const room = await createGame(host.page, { mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0 });
   const ava = await joinPlayer(browser, room.code, "Ava", { reducedMotion: "reduce" });
   const zion = await joinPlayer(browser, room.code, "Zion", { forcedColors: "active", colorScheme: "light" });
-  await host.page.getByRole("button", { name: "START GAME" }).click();
-  await waitFor(ava.page, current => Boolean(current.me?.board), "card");
-  await hostNext(host.page);
-  const live = await waitFor(ava.page, current => current.phase === "QUESTION_ACTIVE", "question");
+  await startGame(host.page);
+  const live = await waitFor(ava.page, current => Boolean(current.me?.board) && current.phase === "QUESTION_ACTIVE", "question");
 
   // Screen-reader structure: labelled card, labelled cells, live regions, timer.
   await expect(ava.page.getByRole("group", { name: /Your Bingo card/ })).toBeVisible();

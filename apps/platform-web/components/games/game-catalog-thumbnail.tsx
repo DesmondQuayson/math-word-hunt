@@ -21,6 +21,11 @@ const PREMIUM_THUMBNAILS = Object.freeze({
   "math-tug-of-war": Object.freeze({
     webp: "/media/games/math-tug-of-war.webp",
     avif: "/media/games/math-tug-of-war.avif"
+  }),
+  // Captured from a real game: scripts/capture-math-bingo-live-thumbnail.mjs.
+  "math-bingo-live": Object.freeze({
+    webp: "/media/games/math-bingo-live.webp",
+    avif: "/media/games/math-bingo-live.avif"
   })
 } satisfies Record<string, CatalogThumbnail>);
 

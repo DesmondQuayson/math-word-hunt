@@ -130,6 +130,32 @@ describe("Math Bingo Live settings", () => {
   });
 });
 
+describe("seeded generator", () => {
+  it("has a 128-bit state: seeds that collide in a 32-bit hash still give different games", async () => {
+    const { createRandom, hash128, hashSeed } = await import("@/public/internal-games/math-bingo-live/src/engine/random.js");
+    const words = new Set<string>();
+    for (let index = 0; index < 5_000; index += 1) words.add(hash128(`seed-${index}`).join(","));
+    expect(words.size).toBe(5_000);
+    // Find two inputs with the same 32-bit FNV hash; the 128-bit streams must still differ.
+    const seen = new Map<number, string>();
+    let pair: [string, string] | null = null;
+    for (let index = 0; index < 200_000 && !pair; index += 1) {
+      const text = `collide-${index}`;
+      const key = hashSeed(text) & 0xffff;
+      if (seen.has(key)) pair = [seen.get(key)!, text];
+      else seen.set(key, text);
+    }
+    expect(pair).not.toBeNull();
+    const [a, b] = [createRandom(pair![0]), createRandom(pair![1])];
+    expect(Array.from({ length: 8 }, () => a.next())).not.toEqual(Array.from({ length: 8 }, () => b.next()));
+    // Output is well spread.
+    const random = createRandom("spread");
+    const buckets = new Array(10).fill(0);
+    for (let index = 0; index < 100_000; index += 1) buckets[Math.floor(random.next() * 10)] += 1;
+    for (const count of buckets) expect(Math.abs(count - 10_000)).toBeLessThan(500);
+  });
+});
+
 describe("display names", () => {
   it("trims, collapses spaces and enforces 2-20 characters", () => {
     expect(sanitizeDisplayName("  Ava   Lee ")).toEqual({ ok: true, name: "Ava Lee" });

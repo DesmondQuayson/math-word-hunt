@@ -39,7 +39,7 @@ function record(overrides: Record<string, unknown> = {}) {
     questionStartedAt: 1_000,
     phaseStartedAt: 1_000,
     phaseDeadline: 16_000,
-    winners: [{ id: "11111111-1111-4111-8111-111111111111", name: "Zion", placement: 1, line: "row-1", lineType: "row", mask: 31, cells: board.slice(0, 5) }],
+    winners: [{ id: "11111111-1111-4111-8111-111111111111", name: "Zion", placement: 1, line: "row-1", lineType: "row", mask: 31, cells: board.slice(0, 5), question: 2 }],
     winnerCount: 1,
     events: [{ seq: 4, type: "bingo", name: "Zion", participant: "11111111-1111-4111-8111-111111111111", placement: 1, lineType: "row", cap: 3 }],
     eventSeq: 4,
@@ -130,6 +130,15 @@ describe("browser payloads", () => {
     ] as const) {
       expect(answerRevealed({ phase, pausedPhase }), `${phase}/${pausedPhase}`).toBe(revealed);
       expect(toPlayerState(record({ phase, pausedPhase })).question?.reveal !== null, phase).toBe(revealed);
+    }
+  });
+
+  it("a Bingo's winning cells (which include the open question's answer) are sent only after that question is revealed", () => {
+    for (const toState of [toPlayerState, toHostState]) {
+      expect(toState(record()).winners[0].cells).toHaveLength(0);
+      expect(toState(record()).winners[0].mask).toBe(0);
+      expect(toState(record({ phase: "ANSWER_REVEAL" })).winners[0].cells).toHaveLength(5);
+      expect(toState(record({ questionNumber: 3, called: buildGame(DEFAULT_SETTINGS, SEED).deck.slice(0, 3) })).winners[0].cells).toHaveLength(5);
     }
   });
 

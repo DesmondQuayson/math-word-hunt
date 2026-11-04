@@ -6,4 +6,5 @@ export type BingoRandom = Readonly<{
 }>;
 
 export function hashSeed(text: string): number;
+export function hash128(text: string): [number, number, number, number];
 export function createRandom(seed: number | string): BingoRandom;

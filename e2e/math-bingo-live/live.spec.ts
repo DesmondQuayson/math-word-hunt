@@ -11,6 +11,7 @@ import {
   markBest,
   markWrong,
   signInTeacher,
+  startGame,
   state,
   useFreeSpace,
   waitFor,
@@ -48,8 +49,7 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
   await expect(ava.page.locator(".youre-in-name")).toHaveText("Ava");
   await expect(ava.page.getByText("Waiting for your teacher to start.")).toBeVisible();
 
-  await host.page.getByRole("button", { name: "START GAME" }).click();
-  await waitFor(host.page, current => current.phase === "COUNTDOWN", "countdown");
+  await startGame(host.page);
 
   // Same answer multiset for everyone; a different arrangement for each.
   const boards = await Promise.all(Object.values(players).map(page => waitFor(page, current => Boolean(current.me?.board), "card dealt")));
@@ -63,7 +63,6 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
   }
   await expect(ava.page.locator(".card-cell")).toHaveCount(25);
 
-  await hostNext(host.page);
   const first = await waitFor(host.page, current => current.phase === "QUESTION_ACTIVE", "question 1");
   // Every participant sees the same current question.
   for (const page of Object.values(players)) {
@@ -140,6 +139,15 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
   // Bingo broadcast and the winner's own result.
   await expect(ava.page.locator(".winner-ribbon")).toHaveText(/BINGO! You finished 1st/);
   await expect(zion.page.locator(".winner-ribbon")).toHaveText(/You finished 2nd/);
+
+  // Audio: the shared track plays on the host only (default), and the Bingo
+  // fanfare is a host celebration by default.
+  const hostAudio = await host.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { source: string | null; lastEffect: { name: string } | null } } }).__MATH_BINGO_LIVE__.audio());
+  expect(hostAudio.source).toBe("/media/audio/cosmic-candy-catchers.mp3");
+  const avaAudio = await ava.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { source: string | null; lastEffect: { name: string } | null } } }).__MATH_BINGO_LIVE__.audio());
+  expect(avaAudio.source).toBeNull();
+  expect(avaAudio.lastEffect?.name).not.toBe("bingo");
+  expect((await host.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { effects: string[] } } }).__MATH_BINGO_LIVE__.audio())).effects).toEqual(expect.arrayContaining(["bingo", "free-space"]));
 
   // Exactly at the configured number: complete, no further question.
   const complete = await waitFor(host.page, current => current.phase === "GAME_COMPLETE", "game complete", 15_000);

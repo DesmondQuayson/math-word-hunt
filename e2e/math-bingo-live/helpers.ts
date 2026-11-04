@@ -129,12 +129,9 @@ async function setCheckbox(page: Page, name: string, value: boolean) {
 export async function createGame(page: Page, options: GameOptions = {}): Promise<LiveState> {
   // A previous test may have left a live room: end it to start from setup.
   if ((await page.locator("body").getAttribute("data-screen")) !== "setup") {
-    await page.evaluate(async () => {
-      const token = sessionStorage.getItem("mathnexa:math-bingo-live:host-token");
-      if (token) await fetch("/api/games/math-bingo-live/host", { method: "POST", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" }, referrerPolicy: "same-origin", body: JSON.stringify({ action: "close", hostToken: token }) });
-      sessionStorage.clear();
-    });
-    await page.reload();
+    // Closing the room returns the host screen to setup on its own (no reload,
+    // which would cancel in-flight polls).
+    await closeRoom(page);
     await expect(page.locator("body")).toHaveAttribute("data-screen", "setup", { timeout: 30_000 });
   }
   const radio = async (name: string, value: string | number) => page.locator(`input[name="${name}"][value="${value}"]`).click({ force: true });
@@ -169,11 +166,24 @@ export async function joinPlayer(browser: Browser, code: string, name: string, o
   return { context, page };
 }
 
+/**
+ * Press START GAME and wait for question 1 (the 3 s countdown advances on
+ * the server clock, so clicking "Start now" could race it).
+ */
+export async function startGame(page: Page): Promise<LiveState> {
+  const before = await state(page);
+  await page.getByRole("button", { name: "START GAME" }).click();
+  return waitFor(page, current => current.gameNumber > before.gameNumber && current.phase === "QUESTION_ACTIVE" && current.questionNumber === 1, "question 1 after the countdown");
+}
+
 /** Press the host's main control (Start now / Reveal answer / Next question). */
 export async function hostNext(page: Page): Promise<LiveState> {
-  const before = await state(page);
   const button = page.locator(".controls .button-primary");
-  await expect(button).toBeEnabled();
+  const ended = (current: LiveState) => current.phase === "WINNER_REVEAL" || current.phase === "GAME_COMPLETE";
+  // A Bingo can end the game between a player's mark and the host's poll.
+  await expect.poll(async () => ended(await state(page)) || ((await button.count()) > 0 && (await button.isEnabled())), { timeout: 20_000 }).toBe(true);
+  const before = await state(page);
+  if (ended(before)) return before;
   await button.click();
   return waitFor(page, current => current.phase !== before.phase || current.questionNumber !== before.questionNumber, "host advanced");
 }

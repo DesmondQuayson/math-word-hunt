@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
-import { BASE_URL, PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, signInTeacher, state, waitFor } from "./helpers";
+import { BASE_URL, PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, signInTeacher, state, waitFor, startGame } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -58,10 +58,8 @@ test("names are escaped text, hidden answers stay hidden, rooms are isolated, co
   expect((duplicate.json.state as { me: { name: string } }).me.name).toBe("o'brien-lee 2");
   const extraToken = duplicate.json.token as string;
 
-  await host.page.getByRole("button", { name: "START GAME" }).click();
-  await waitFor(player.page, current => Boolean(current.me?.board), "card");
-  await hostNext(host.page);
-  await waitFor(player.page, current => current.phase === "QUESTION_ACTIVE", "question");
+  await startGame(host.page);
+  await waitFor(player.page, current => Boolean(current.me?.board) && current.phase === "QUESTION_ACTIVE", "question");
 
   // During a question, no payload carries its answer, the seed, the pool or the deck.
   const live = await post(request, PLAY, { action: "state", token: extraToken });

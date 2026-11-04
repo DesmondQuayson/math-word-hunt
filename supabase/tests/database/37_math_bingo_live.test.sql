@@ -151,6 +151,7 @@ select is(pg_temp.next(),'ok','q4 reveal'); select is(pg_temp.next(),'ok','q5');
 select is(pg_temp.mark(:ava,4)->'me'->>'placement','1','Ava completes row 1: FIRST BINGO');
 select is(((pg_temp.room()).events->-1)->>'type','bingo','Bingo is broadcast');
 select is(((pg_temp.room()).winners->0)->>'line','row-1','the winning line is recorded');
+select is(((pg_temp.room()).winners->0)->>'question','5','the question of the Bingo is recorded (its cells stay hidden until it is revealed)');
 select is((pg_temp.room()).phase,'QUESTION_ACTIVE','one of two winners: the game continues');
 select is(((pg_temp.room()).leaderboard->0)->>'name','Ava','the winner leads the leaderboard');
 select is(pg_temp.mark(:ava,5)->>'result','already-won','a winner cannot mark again');
@@ -225,6 +226,34 @@ select is(public.bingo_host_command(repeat('1',64),repeat('7',64),'close','{}')-
 select is((select count(*)::integer from public.bingo_participants where token_hash in (:ava,:zion,:omar)),0,'closing deletes every participant name and card');
 select is(public.bingo_player_state(:ava,null,null)->>'result','not-found','a closed room seat is gone');
 select is(public.bingo_join_room('482391','Ava',:ava,:subject)->>'result','not-found','a closed code can no longer be joined');
+
+-- A room closed in the lobby, before any game.
+select is(public.bingo_create_room('500002',repeat('3',64),repeat('9',64),pg_temp.settings(1,0))->>'result','created','another host creates a room');
+select is(public.bingo_join_room('500002','Ivy',repeat('e',64),:subject)->>'result','joined','a player joins the lobby');
+select is(public.bingo_host_command(repeat('3',64),repeat('9',64),'close','{}')->>'status','closed','a lobby room can be ended before any game');
+select is(public.bingo_player_state(repeat('e',64),null,null)->>'result','not-found','its players are deleted too');
+
+-- "Everyone can win": when the last player without a Bingo is removed, the game ends.
+select is(public.bingo_create_room('500004',repeat('c',64),repeat('d',64),jsonb_set(pg_temp.settings(0,0),'{winners}','0'))->>'result','created','an everyone-wins room');
+select is(public.bingo_join_room('500004','Win',repeat('f',60)||'0001',repeat('5',64))->>'result','joined','winner-to-be joins');
+select is(public.bingo_join_room('500004','Wait',repeat('f',60)||'0002',repeat('5',64))->>'result','joined','second player joins');
+select is(public.bingo_host_start(repeat('c',64),repeat('d',64),'start',jsonb_set(pg_temp.settings(0,0),'{winners}','0'),repeat('a',32),pg_temp.pool(),pg_temp.deck())->>'result','started','everyone game starts');
+select is(public.bingo_set_board(repeat('f',60)||'0001',1,pg_temp.card_ava())->>'result','ok','card');
+update public.bingo_rooms set phase_deadline=statement_timestamp()-interval '1 second' where code='500004' and status='open';
+select is(public.bingo_free_space(repeat('f',60)||'0001',1,1)->>'result','free-space','Free Space on question 1');
+update public.bingo_participants set marks=31744 & ~(1<<10), mark_question=0 where token_hash=repeat('f',60)||'0001';
+select is(public.bingo_mark(repeat('f',60)||'0001',1,1,10)->>'result','incorrect','a wrong cell for question 1 is refused');
+select is(public.bingo_mark(repeat('f',60)||'0001',1,1,0)->'me'->>'hasWon','false','marking value 1 does not complete row 3');
+update public.bingo_participants set marks=31744 & ~(1<<11) where token_hash=repeat('f',60)||'0001';
+update public.bingo_rooms set phase='QUESTION_ACTIVE', question_number=12, phase_deadline=null where code='500004' and status='open';
+select is(public.bingo_mark(repeat('f',60)||'0001',1,12,11)->'me'->>'placement','1','completing row 3 is a Bingo');
+select is((select phase from public.bingo_rooms where code='500004' and status='open'),'QUESTION_ACTIVE','one of two has won: the everyone game goes on');
+select is(public.bingo_host_command(repeat('c',64),repeat('d',64),'remove',jsonb_build_object('participant',(select id from public.bingo_participants where token_hash=repeat('f',60)||'0002')))->>'phase','WINNER_REVEAL','removing the last player without a Bingo ends the game');
+
+-- Participant cap: 60 active players per room.
+select is(public.bingo_create_room('500003',repeat('4',64),repeat('8',64),pg_temp.settings(1,0))->>'result','created','a host opens a big room');
+select is((select count(*)::integer from (select public.bingo_join_room('500003','Kid '||g,repeat('7',60)||lpad(g::text,4,'0'),repeat('5',64))->>'result' as r from generate_series(1,60) g) s where r='joined'),60,'60 players join');
+select is(public.bingo_join_room('500003','Kid 61',repeat('6',60)||'0061',repeat('5',64))->>'result','full','the 61st is refused');
 
 select * from finish();
 rollback;

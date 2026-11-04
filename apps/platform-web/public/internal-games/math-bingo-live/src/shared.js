@@ -63,12 +63,16 @@ export function createTimer(className = "") {
       element.classList.toggle("is-paused", paused);
       element.classList.toggle("is-manual", manual);
       if (manual) {
+        element.classList.remove("is-low");
+        lastText = "";
         number.textContent = "∞";
         progress.style.strokeDashoffset = "0";
         element.setAttribute("aria-label", "No time limit");
         return;
       }
       if (remaining === null || !total) {
+        element.classList.remove("is-low");
+        lastText = "";
         number.textContent = "";
         progress.style.strokeDashoffset = String(circumference);
         return;

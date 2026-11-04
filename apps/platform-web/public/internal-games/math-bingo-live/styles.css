@@ -258,8 +258,8 @@ body.bingo {
 .play-screen {
   min-height: 100dvh; display: grid; gap: 10px; padding: 10px var(--gutter) 14px;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "strip" "ribbon" "band" "card" "toast" "footer";
-  grid-template-rows: auto auto auto 1fr auto auto;
+  grid-template-areas: "strip" "ribbon" "band" "leaders" "card" "toast" "footer";
+  grid-template-rows: auto auto auto auto 1fr auto auto;
   max-width: 760px; margin: 0 auto;
 }
 .status-strip {
@@ -282,6 +282,8 @@ body.bingo {
 .band-label { margin: 0; width: 100%; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
 .band-ready { margin: 0; font-size: clamp(1.4rem, 6vw, 2rem); font-weight: 900; }
 .question-band .leaderboard { width: 100%; }
+.mini-leaders { grid-area: leaders; display: none; }
+.mini-leaders .leader { padding: 6px 12px; }
 .card-holder { grid-area: card; position: relative; display: flex; align-items: flex-start; justify-content: center; min-height: 0; }
 .card-holder .card { width: min(100%, calc(100dvh - 300px), 640px); min-width: 260px; }
 .toast {
@@ -562,13 +564,17 @@ body.is-reconnecting::after {
   body[data-role="player"] .play-screen {
     max-width: 1280px; height: 100dvh; min-height: 0; overflow: hidden;
     grid-template-columns: minmax(0, auto) minmax(260px, 1fr);
-    grid-template-areas: "card strip" "card ribbon" "card band" "card toast" "card footer";
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-areas: "card strip" "card ribbon" "card band" "card leaders" "card toast" "card footer";
+    grid-template-rows: auto auto 1fr auto auto auto;
     align-items: start;
   }
   body[data-role="player"] .card-holder { height: 100%; align-items: center; }
   body[data-role="player"] .card-holder .card { width: min(calc(100dvh - 84px), 62vw); }
   body[data-role="player"] .question-band { min-height: 0; height: 100%; }
+}
+
+@media (orientation: landscape) and (min-width: 900px) and (min-height: 600px) {
+  body[data-role="player"] .mini-leaders { display: block; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {

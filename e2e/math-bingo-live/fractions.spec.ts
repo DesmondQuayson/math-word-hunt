@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, solve, state, waitFor } from "./helpers";
+import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, solve, state, waitFor, startGame } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -19,7 +19,7 @@ test("Fraction Bingo: symbolic question, visual models, exact match, reveal with
   const ava = await joinPlayer(browser, created.code, "Ava");
   const zion = await joinPlayer(browser, created.code, "Zion");
   await expect(ava.page.getByText("Find the model with that many equal parts shaded.")).toBeVisible();
-  await host.page.getByRole("button", { name: "START GAME" }).click();
+  await startGame(host.page);
 
   const card = await waitFor(ava.page, current => Boolean(current.me?.board), "card");
   // Every normal cell is an original SVG model with an exact description.
@@ -39,7 +39,6 @@ test("Fraction Bingo: symbolic question, visual models, exact match, reveal with
   const shapes = new Set([...card.me!.board!, ...zionCard.me!.board!].filter(cell => !cell.free).map(cell => cell.shape));
   expect(shapes.size).toBeGreaterThanOrEqual(3);
 
-  await hostNext(host.page);
   let exactRefusalChecked = false;
   const calledSoFar: string[] = [];
   for (let guard = 0; guard < 160; guard += 1) {
@@ -100,9 +99,8 @@ test("Equivalent Fractions (host setting): any equal-value model counts, by rati
   const created = await createGame(host.page, { mode: "fractions", level: "to-eighths", questionSeconds: 0, revealSeconds: 0, winners: 1, equivalentFractions: true });
   expect(created.settings.equivalentFractions).toBe(true);
   const ava = await joinPlayer(browser, created.code, "Ava");
-  await host.page.getByRole("button", { name: "START GAME" }).click();
+  await startGame(host.page);
   await waitFor(ava.page, current => Boolean(current.me?.board), "card");
-  await hostNext(host.page);
   let acceptedEquivalent = false;
   for (let guard = 0; guard < 140 && !acceptedEquivalent; guard += 1) {
     const current = await state(host.page);

@@ -15,6 +15,7 @@ The current Production Supabase project is in `us-east-2`; district allowlists s
 - Catalog thumbnails, JavaScript, CSS, icons, and **Cosmic Candy Catchers** music are same-origin assets.
 - OpenGameArt and SoundImage are attribution/provenance sources only; normal runtime makes no request to either site.
 - WebSockets are not required for active puzzle play.
+- Math Bingo Live (draft, owner review) is live multiplayer without WebSockets: every screen polls `https://mathnexa.com` over ordinary HTTPS about once a second. Students need only `https://mathnexa.com` (no account, no Supabase request from the student device). See `docs/math-bingo-live-v1.md`.
 - Stripe is not contacted by a game board. Billing/account flows are separate from game runtime.
 - Core puzzle interactions continue when optional analytics or synthesized audio are unavailable. Authentication or entitlement failures still fail closed.
 - The current games use HTTPS, first-party cookies for the signed-in session, and browser storage for local preferences/progress. Blocking all cookies or all site storage can prevent sign-in or persistence.

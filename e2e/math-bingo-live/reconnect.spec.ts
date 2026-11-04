@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { PAGE_ERRORS, cardLayout, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, useFreeSpace, waitFor } from "./helpers";
+import { PAGE_ERRORS, cardLayout, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, useFreeSpace, waitFor, startGame } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -14,10 +14,8 @@ test("refresh restores the same player, card, marks, Free Space and win; host re
   const created = await createGame(host.page, { mode: "subtraction", level: "facts-20", questionSeconds: 0, revealSeconds: 0, winners: 2 });
   const ava = await joinPlayer(browser, created.code, "Ava");
   const zion = await joinPlayer(browser, created.code, "Zion");
-  await host.page.getByRole("button", { name: "START GAME" }).click();
-  await waitFor(ava.page, current => Boolean(current.me?.board), "card");
-  await hostNext(host.page);
-  await waitFor(ava.page, current => current.phase === "QUESTION_ACTIVE", "question");
+  await startGame(host.page);
+  await waitFor(ava.page, current => Boolean(current.me?.board) && current.phase === "QUESTION_ACTIVE", "question");
   expect(await useFreeSpace(ava.page)).toBe("free-space");
   expect((await markBest(ava.page))?.result).toBe("correct");
   const before = await state(ava.page);

@@ -143,7 +143,7 @@ create table public.bingo_rooms (
   question_started_at timestamptz,
   phase_started_at timestamptz not null default statement_timestamp(),
   phase_deadline timestamptz,
-  winner_count integer not null default 0 check (winner_count between 0 and 60),
+  winner_count integer not null default 0 check (winner_count between 0 and 10000),
   winners jsonb not null default '[]'::jsonb check (jsonb_typeof(winners)='array'),
   events jsonb not null default '[]'::jsonb check (jsonb_typeof(events)='array'),
   event_seq bigint not null default 0,
@@ -187,7 +187,7 @@ create table public.bingo_participants (
   correct_count integer not null default 0 check (correct_count >= 0),
   response_ms bigint not null default 0 check (response_ms >= 0),
   has_won boolean not null default false,
-  placement integer check (placement is null or placement between 1 and 60),
+  placement integer check (placement is null or placement between 1 and 10000),
   win_line text,
   best_count smallint not null default 0 check (best_count between 0 and 5),
   best_type text check (best_type is null or best_type in ('row','column','diagonal')),
@@ -419,7 +419,8 @@ begin
     v_placement := v_count_winners;
     select jsonb_agg(me.board->i order by i) into v_cells from generate_series(0,24) i where ((v_win_mask >> i) & 1) = 1;
     v_winners := v_winners || jsonb_build_array(jsonb_build_object(
-      'id',me.id,'name',me.display_name,'placement',v_placement,'line',v_win_id,'lineType',v_win_type,'mask',v_win_mask,'cells',v_cells));
+      'id',me.id,'name',me.display_name,'placement',v_placement,'line',v_win_id,'lineType',v_win_type,'mask',v_win_mask,'cells',v_cells,
+      'question',p_room.question_number));
     v_seq := v_seq + 1;
     v_events := private.bingo_event(v_events, v_seq, jsonb_build_object(
       'type','bingo','name',me.display_name,'participant',me.id,'placement',v_placement,'line',v_win_id,'lineType',v_win_type,'cap',v_cap));
@@ -454,6 +455,27 @@ begin
 end
 $$;
 revoke all on function private.bingo_apply_progress(public.bingo_rooms,public.bingo_participants,boolean) from public,anon,authenticated;
+
+-- "Everyone can win": when the last active player without a Bingo leaves or
+-- is removed, the game ends exactly as if they had been the final winner.
+create or replace function private.bingo_check_everyone(p_room public.bingo_rooms)
+returns public.bingo_rooms language plpgsql set search_path=''
+as $$
+declare
+  r public.bingo_rooms := p_room;
+begin
+  if r.status='open' and (r.settings->>'winners')::integer = 0 and r.winner_count > 0
+     and r.phase in ('COUNTDOWN','QUESTION_ACTIVE','ANSWER_REVEAL','LEADERBOARD_UPDATE','PAUSED')
+     and not exists (select 1 from public.bingo_participants p where p.room_id=r.id and p.status='active' and not p.has_won) then
+    update public.bingo_rooms set phase='WINNER_REVEAL', paused_phase=null, paused_remaining_ms=null,
+      phase_started_at=statement_timestamp(), phase_deadline=statement_timestamp()+interval '5 seconds',
+      completed_reason='everyone', version=version+1, updated_at=statement_timestamp()
+      where id=r.id returning * into r;
+  end if;
+  return r;
+end
+$$;
+revoke all on function private.bingo_check_everyone(public.bingo_rooms) from public,anon,authenticated;
 
 -- ---------------------------------------------------------------- views
 -- Everything returned goes to the trusted application server only. The
@@ -555,14 +577,21 @@ begin
   if exists (select 1 from public.bingo_rooms where code=p_code and status='open') then
     return jsonb_build_object('result','code-taken');
   end if;
-  -- One live room per host: an older open room is closed and its players removed.
+  -- One live room per host: an older open room is closed and its players
+  -- removed. Room rows are locked before participant rows, the lock order
+  -- every other function uses, so this can never deadlock with a mark.
+  perform 1 from public.bingo_rooms where host_owner_hash=p_owner_hash and status='open' order by id for update;
   delete from public.bingo_participants where room_id in
     (select id from public.bingo_rooms where host_owner_hash=p_owner_hash and status='open');
   update public.bingo_rooms set status='closed', version=version+1, updated_at=statement_timestamp()
     where host_owner_hash=p_owner_hash and status='open';
-  insert into public.bingo_rooms(code,host_owner_hash,host_token_hash,settings,expires_at)
-    values(p_code,p_owner_hash,p_host_token_hash,p_settings,statement_timestamp()+interval '4 hours')
-    returning * into r;
+  begin
+    insert into public.bingo_rooms(code,host_owner_hash,host_token_hash,settings,expires_at)
+      values(p_code,p_owner_hash,p_host_token_hash,p_settings,statement_timestamp()+interval '4 hours')
+      returning * into r;
+  exception when unique_violation then
+    return jsonb_build_object('result','code-taken');
+  end;
   return private.bingo_host_view(r,'created');
 end
 $$;
@@ -752,6 +781,7 @@ begin
         from jsonb_array_elements(events) e),
       leaderboard=private.bingo_leaderboard(r.id), version=version+1, updated_at=statement_timestamp()
       where id=r.id returning * into r;
+    r := private.bingo_check_everyone(r);
 
   elsif p_command='code' then
     if r.phase<>'LOBBY' or r.game_number<>0 then return private.bingo_host_view(r,'stale'); end if;
@@ -759,12 +789,18 @@ begin
     if exists (select 1 from public.bingo_rooms where code=p_args->>'code' and status='open') then
       return private.bingo_host_view(r,'code-taken');
     end if;
-    update public.bingo_rooms set code=p_args->>'code', version=version+1, updated_at=statement_timestamp()
-      where id=r.id returning * into r;
+    begin
+      update public.bingo_rooms set code=p_args->>'code', version=version+1, updated_at=statement_timestamp()
+        where id=r.id returning * into r;
+    exception when unique_violation then
+      return private.bingo_host_view(r,'code-taken');
+    end;
 
   elsif p_command='close' then
     delete from public.bingo_participants where room_id=r.id;
-    update public.bingo_rooms set status='closed', phase='GAME_COMPLETE', paused_phase=null, paused_remaining_ms=null,
+    -- A room closed before its first game stays LOBBY (no game ever ran).
+    update public.bingo_rooms set status='closed', phase=case when game_number=0 then 'LOBBY' else 'GAME_COMPLETE' end,
+      paused_phase=null, paused_remaining_ms=null,
       phase_deadline=null, pool=null, deck=null, game_seed=null, winners='[]'::jsonb, events='[]'::jsonb,
       leaderboard='[]'::jsonb, version=version+1, updated_at=statement_timestamp()
       where id=r.id returning * into r;
@@ -946,6 +982,23 @@ declare
   attempts_now integer;
   correct boolean;
 begin
+  -- Fast path, no locks: these refusals are final for this question (they
+  -- only ever become more true), so one spamming client cannot queue the
+  -- whole room behind its requests.
+  select * into located from private.bingo_locate_player(p_token_hash);
+  if (located.me).id is not null and (located.r).id is not null and (located.me).status='active' and (located.r).status='open'
+     and (located.r).game_number=p_game and (located.r).question_number=p_question and (located.r).phase='QUESTION_ACTIVE'
+     and ((located.r).phase_deadline is null or (located.r).phase_deadline > statement_timestamp()) then
+    if (located.me).has_won then return private.bingo_player_view(located.r,located.me,'already-won'); end if;
+    -- Same precedence as the locked path: only for a valid, unmarked, non-Free-Space cell.
+    if p_cell between 0 and 24 and not ((located.r).settings->'freeSpace'='true' and p_cell=12)
+       and (((located.me).marks >> p_cell) & 1)=0 then
+      if (located.me).mark_question=p_question then return private.bingo_player_view(located.r,located.me,'mark-used'); end if;
+      if (located.me).attempt_question=p_question and (located.me).attempts >= 2 then
+        return private.bingo_player_view(located.r,located.me,'out-of-attempts');
+      end if;
+    end if;
+  end if;
   select * into located from private.bingo_lock_player(p_token_hash);
   me := located.me; r := located.r;
   if me.id is null or r.id is null then return jsonb_build_object('result','not-found'); end if;
@@ -994,6 +1047,14 @@ declare
   r public.bingo_rooms;
   me public.bingo_participants;
 begin
+  -- Fast path, no locks: a used Free Space or a won card cannot change.
+  select * into located from private.bingo_locate_player(p_token_hash);
+  if (located.me).id is not null and (located.r).id is not null and (located.me).status='active' and (located.r).status='open'
+     and (located.r).game_number=p_game and (located.r).question_number=p_question and (located.r).phase='QUESTION_ACTIVE'
+     and ((located.r).phase_deadline is null or (located.r).phase_deadline > statement_timestamp()) then
+    if (located.me).has_won then return private.bingo_player_view(located.r,located.me,'already-won'); end if;
+    if (located.me).free_used then return private.bingo_player_view(located.r,located.me,'free-used'); end if;
+  end if;
   select * into located from private.bingo_lock_player(p_token_hash);
   me := located.me; r := located.r;
   if me.id is null or r.id is null then return jsonb_build_object('result','not-found'); end if;
@@ -1023,13 +1084,15 @@ returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare
   located record;
+  room public.bingo_rooms;
 begin
   select * into located from private.bingo_lock_player(p_token_hash);
   if (located.me).id is null then return jsonb_build_object('result','left'); end if;
   delete from public.bingo_participants where id=(located.me).id;
   if (located.r).status='open' then
     update public.bingo_rooms set leaderboard=private.bingo_leaderboard((located.r).id), version=version+1, updated_at=statement_timestamp()
-      where id=(located.r).id;
+      where id=(located.r).id returning * into room;
+    perform private.bingo_check_everyone(room);
   end if;
   return jsonb_build_object('result','left');
 end
