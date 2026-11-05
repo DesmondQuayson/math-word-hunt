@@ -175,6 +175,9 @@ try {
   ok(anonymousJoin.status === 200 && (anonymousJoin.headers.get("content-security-policy") ?? "").includes("connect-src 'self'"), `staging /join serves the student page with its CSP (${anonymousJoin.status})`);
   const anonymousHost = await fetch(`${origin}${HOST}`, { headers: bypassHeaders, redirect: "manual" });
   ok(anonymousHost.status === 307 && (anonymousHost.headers.get("location") ?? "").includes(`/access?next=${HOST}`), `anonymous host screen goes to sign-in (${anonymousHost.status})`);
+  // The catalog registration: /games/math-bingo-live/play only points at the host screen.
+  const playAddress = await fetch(`${origin}/games/math-bingo-live/play`, { headers: bypassHeaders, redirect: "manual" });
+  ok(playAddress.status === 307 && new URL(playAddress.headers.get("location") ?? "/", origin).pathname === HOST, `/games/math-bingo-live/play points at the host screen (${playAddress.status})`);
 
   const chrome = await chromium.launch();
   const safari = await webkit.launch();

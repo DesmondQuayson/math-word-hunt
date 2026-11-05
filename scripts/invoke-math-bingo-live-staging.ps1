@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'migrate', 'smoke', 'review')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'smoke', 'review', 'load')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
@@ -14,12 +14,13 @@ param(
 #   -Stage migrate   owner-approved: apply ONLY 20261103100000 (draft catalog row, new tables) and verify it
 #   -Stage smoke     room contract through the service-role functions (synthetic, cleaned up)
 #   -Stage review    real browsers against -Origin <staging preview URL> (synthetic free teacher, deleted)
+#   -Stage load      50 virtual students + a real host screen against -Origin (synthetic, deleted)
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-bingo-live-staging.ps1 -Stage identify
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable.' }
-if ($Stage -eq 'review' -and [string]::IsNullOrWhiteSpace($Origin)) { throw 'The review stage needs -Origin <staging preview URL>.' }
+if ($Stage -in @('review', 'load') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
   $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
@@ -31,6 +32,7 @@ $stagingNames = switch ($Stage) {
   'migrate' { @('SUPABASE_DB_PASSWORD') }
   'smoke' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'load' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   default { @('SUPABASE_DB_PASSWORD') }
 }
 try {
@@ -45,10 +47,11 @@ try {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) { throw "The staging entry $name is not in the vault." }
   }
   Set-Location $repositoryRoot
-  if ($Stage -eq 'review') {
+  if ($Stage -in @('review', 'load')) {
     $env:STAGING_ORIGIN = $Origin
     $env:EXPECT_COMMIT = $ExpectCommit
-    & node scripts/review-math-bingo-live-staging.mjs
+    $script = if ($Stage -eq 'load') { 'scripts/load-math-bingo-live-staging.mjs' } else { 'scripts/review-math-bingo-live-staging.mjs' }
+    & node $script
     exit $LASTEXITCODE
   }
   & node scripts/run-math-bingo-live-staging.mjs "--stage=$Stage"
