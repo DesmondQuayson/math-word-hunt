@@ -89,10 +89,14 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
     await host.page.setViewportSize({ width: viewport.width, height: viewport.height });
     await host.page.waitForTimeout(300);
     await noHorizontalScroll(host.page, viewport.name);
-    // Readable from the back of the room: the question is huge, the timer and leaderboard are on screen.
+    // The board never scrolls as a page.
+    const overflow = await host.page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+    expect(overflow, `${viewport.name}: vertical page scroll`).toBeLessThanOrEqual(1);
+    // Readable from the back of the room: the question is the biggest thing on the board (it now shares
+    // the screen with the standings and the called list), and every panel and control is on screen.
     const fontSize = await host.page.locator(".stage .frac").evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize));
-    expect(fontSize, `${viewport.name} question size`).toBeGreaterThanOrEqual(viewport.width >= 1900 ? 180 : 120);
-    for (const selector of [".timer-giant", ".side-leaderboard", ".side-rules", ".controls", ".join-chip"]) {
+    expect(fontSize, `${viewport.name} question size`).toBeGreaterThanOrEqual(viewport.width >= 1900 ? 160 : 110);
+    for (const selector of [".host-timer", ".panel-standings", ".panel-winners", ".panel-called", ".ways-strip", ".controls", ".head-join"]) {
       const box = await host.page.locator(selector).boundingBox();
       expect(box, `${viewport.name} ${selector}`).not.toBeNull();
       expect(box!.y + box!.height, `${viewport.name} ${selector} on screen`).toBeLessThanOrEqual(viewport.height + 1);

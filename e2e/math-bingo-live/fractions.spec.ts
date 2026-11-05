@@ -86,7 +86,7 @@ test("Fraction Bingo: symbolic question, visual models, exact match, reveal with
       await expect(ava.page.locator(".called-item.is-current .called-text")).toHaveText(calledSoFar[calledSoFar.length - 1]);
       await ava.page.bringToFront();
       await ava.page.locator(".called-toggle").click();
-      await expect(host.page.locator(".side-called .called-item")).toHaveCount(calledSoFar.length);
+      await expect(host.page.locator(".panel-called .called-item")).toHaveCount(calledSoFar.length);
     }
   }
   expect(exactRefusalChecked, "an equal-value model in a different form was refused under exact match").toBe(true);

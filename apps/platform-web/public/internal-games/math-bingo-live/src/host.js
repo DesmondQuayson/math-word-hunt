@@ -1,7 +1,8 @@
 // Math Bingo Live — the teacher's screen (Smart Board first).
 //
 // Setup -> lobby (JOIN mathnexa.com/join, CODE 482391, live roster) -> live
-// game (giant question, timer, reveal, leaderboard, rules, winners) -> Math
+// board (winning ways; standings and Bingo winners on the left; question,
+// timer and reveal top right; called questions below; controls) -> Math
 // Bingo Complete. The host is a signed-in MathNexa account; every command is
 // checked against that session AND the room's host token on the server.
 
@@ -17,11 +18,11 @@ import {
   createBanner,
   createTimer,
   iconButton,
-  leaderboardList,
   medal,
   ordinal,
   phaseTotalMs,
   placeWord,
+  progressText,
   questionFace,
   remainingMs,
   revealFace,
@@ -568,36 +569,113 @@ function buildLobby() {
 
 // ------------------------------------------------------------------ game
 
+/** Winners so far, e.g. "Winners 2 / 3" (or just the count when everyone can win). */
+function winnersText(settings) {
+  return settings.winners === 0 ? `Winners ${state.winnerCount}` : `Winners ${state.winnerCount} / ${settings.winners}`;
+}
+
+/** One compact row per player, however many there are. */
+function standingsList(rows) {
+  if (!rows.length) return h("p", { class: "panel-empty", text: "Waiting for players…" });
+  return h("ol", { class: "standings-list", "aria-label": "Standings" }, rows.map(row => h("li", {
+    class: `standing${row.won ? " is-winner" : ""}${!row.won && row.best === 4 ? " is-close" : ""}`
+  },
+  h("span", { class: "standing-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : String(row.rank) }),
+  h("span", { class: "standing-name", text: row.name }),
+  h("span", { class: "standing-progress", text: progressText(row) }),
+  h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, rank ${row.rank}, best line ${row.best} of 5` }))));
+}
+
+/** Confirmed winners in placement order; they stay listed for the rest of the game. */
+function winnersList(winners) {
+  if (!winners.length) return h("p", { class: "panel-empty", text: "Waiting for the first Bingo…" });
+  return h("ol", { class: "winners-list", "aria-label": "Bingo winners" }, winners.map(winner => h("li", { class: "winner-row" },
+    h("span", { class: "winner-medal", "aria-hidden": "true", text: medal(winner.placement) || ordinal(winner.placement) }),
+    h("span", { class: "winner-name", text: winner.name }),
+    h("span", { class: "winner-line", text: winner.placement === 1 ? "FIRST BINGO" : `${LINE_LABEL[winner.lineType] ?? ""} Bingo`.trim() }),
+    h("span", { class: "sr-only", text: `, ${ordinal(winner.placement)} place, ${LINE_LABEL[winner.lineType] ?? ""} Bingo` }))));
+}
+
+/** A titled dashboard panel whose list scrolls inside it (never the page). */
+function panel(id, className, title, ...extra) {
+  const heading = h("h2", { id, class: "panel-title", text: title });
+  const meta = h("p", { class: "panel-meta" });
+  const content = h("div", { class: "panel-scroll", tabindex: "0", role: "region", "aria-labelledby": id });
+  const element = h("section", { class: `panel ${className}`, "aria-labelledby": id },
+    h("div", { class: "panel-head" }, heading, meta), ...extra, content);
+  return { element, heading, meta, content };
+}
+
+/*
+ * The live classroom board (desktop, projector, Smart Board):
+ *   header: title, mode, JOIN + CODE, winners so far, sound and full screen
+ *   winning ways: always visible, from the room's own settings
+ *   left: STANDINGS (one compact row per player) over BINGO WINNERS
+ *   right: the current question and its timer (the answer reveal replaces it
+ *          in place) over CALLED / CALLED FRACTIONS
+ *   bottom: Pause, Next, Players, Lock join, End game
+ * Only the panels scroll, so nothing pushes the controls off the screen.
+ */
 function buildGame() {
   setScreen("host-game");
   const players = playersDialog();
-  const timer = createTimer("timer-giant");
-  const stage = h("section", { class: "stage", "aria-live": "off" });
+  const timer = createTimer("host-timer");
+  const stage = h("div", { class: "stage", "aria-live": "off" });
   const stageLabel = h("p", { class: "stage-label" });
-  const leaderboard = h("div", { class: "side-leaderboard" });
-  const winnersInfo = h("p", { class: "winners-count" });
-  const rules = h("div", { class: "side-rules" });
-  const called = h("div", { class: "side-called" });
+  const overlay = h("div", { class: "stage-overlay", hidden: true });
+  const ways = h("div", { class: "ways-strip" });
   const ticker = h("p", { class: "one-away", "aria-live": "polite" });
-  const joinChip = h("p", { class: "join-chip" });
+  const standings = panel("standings-title", "panel-standings", "STANDINGS", ticker);
+  const winners = panel("winners-title", "panel-winners", "BINGO WINNERS");
+  const called = panel("called-title", "panel-called", "CALLED");
+  const boardLeft = h("div", { class: "board-left" }, standings.element, winners.element);
+  // Free Space and Bingo announcements appear over the left column for a few
+  // seconds, so the winning ways and the question stay in view.
+  const celebration = createBanner(boardLeft);
+
+  const modeChip = h("p", { class: "head-mode" });
+  const joinChip = h("p", { class: "head-join" });
+  const winnersChip = h("p", { class: "head-winners", "aria-live": "polite" });
+  const musicButton = iconButton("Music", "music", () => {
+    preferences.music = !preferences.music;
+    writePreferences(preferences);
+    musicButton.setAttribute("aria-pressed", String(preferences.music));
+    audio.syncMusic();
+  }, { attributes: { "aria-pressed": String(preferences.music) } });
+  const soundButton = iconButton("Sound effects", preferences.sound ? "sound" : "mute", () => {
+    preferences.sound = !preferences.sound;
+    writePreferences(preferences);
+    soundButton.replaceChildren(icon(preferences.sound ? "sound" : "mute"));
+    soundButton.setAttribute("aria-pressed", String(preferences.sound));
+  }, { attributes: { "aria-pressed": String(preferences.sound) } });
+  const fullscreen = iconButton("Full screen", "expand", () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+
   const pauseButton = h("button", { type: "button", class: "button button-control" });
   const nextButton = h("button", { type: "button", class: "button button-control button-primary" });
+  const playersButton = h("button", { type: "button", class: "button button-control button-ghost", onclick: () => { players.update(); players.dialog.showModal(); } }, icon("users"), h("span", { class: "players-count" }));
+  const lockButton = h("button", { type: "button", class: "button button-control button-ghost" });
   const endButton = h("button", { type: "button", class: "button button-control button-ghost", onclick: () => confirmDialog({
     title: "End this game?", text: "The game finishes now and the winners so far are shown.", confirm: "End game", onConfirm: () => command("end")
   }) }, icon("stop"), h("span", { text: "End game" }));
-  const playersButton = h("button", { type: "button", class: "button button-control button-ghost", onclick: () => { players.update(); players.dialog.showModal(); } }, icon("users"), h("span", { class: "players-count" }));
-  const lockButton = h("button", { type: "button", class: "button button-control button-ghost" });
-  const overlay = h("div", { class: "stage-overlay", hidden: true });
 
   const main = h("main", { id: "main", class: "host-game" },
-    topBar([joinChip]),
-    h("div", { class: "host-layout" },
-      h("div", { class: "stage-column" }, stageLabel, h("div", { class: "stage-wrap" }, stage, timer.element, overlay)),
-      h("aside", { class: "side", "aria-label": "Game status" },
-        h("section", { class: "side-card" }, h("h2", { class: "side-title", text: "LEADERBOARD" }), leaderboard, ticker),
-        h("section", { class: "side-card" }, winnersInfo, rules),
-        h("section", { class: "side-card side-called-card" }, called))),
-    h("nav", { class: "controls", "aria-label": "Game controls" }, pauseButton, nextButton, endButton, playersButton, lockButton));
+    h("header", { class: "host-head" },
+      h("p", { class: "host-title" }, h("img", { src: "/brand/mathnexa-mark.png", alt: "MathNexa", class: "brand-mark", width: "28", height: "28" }),
+        h("span", { class: "title-math", text: " Math " }), h("span", { class: "title-bingo", text: "Bingo" }), h("span", { class: "title-live", text: " Live" })),
+      modeChip, joinChip, winnersChip,
+      h("div", { class: "host-bar-tools" }, musicButton, soundButton, fullscreen)),
+    ways,
+    h("div", { class: "host-board" },
+      boardLeft,
+      h("div", { class: "board-right" },
+        h("section", { class: "panel panel-question", "aria-labelledby": "question-title" },
+          h("h2", { id: "question-title", class: "sr-only", text: "Current question" }),
+          stageLabel, timer.element, stage, overlay),
+        called.element)),
+    h("nav", { class: "controls", "aria-label": "Game controls" }, pauseButton, nextButton, playersButton, lockButton, endButton));
   fill(app, main);
 
   let stageKey = "";
@@ -608,47 +686,91 @@ function buildGame() {
     const question = state.question;
     const phase = state.phase === "PAUSED" ? state.pausedPhase : state.phase;
     body.dataset.phase = state.phase;
+    stage.dataset.face = "";
     if (state.phase === "COUNTDOWN") {
-      stageLabel.textContent = state.gameNumber > 1 ? `Game ${state.gameNumber}` : "Get ready";
+      stageLabel.textContent = state.gameNumber > 1 ? `GAME ${state.gameNumber}` : "GET READY";
+      stage.dataset.face = "ready";
       fill(stage, h("p", { class: "stage-ready", text: "GET READY!" }), h("p", { class: "stage-mode", text: state.modeLabel }));
     } else if (phase === "QUESTION_ACTIVE" && question) {
-      stageLabel.textContent = `Question ${question.number}`;
+      stageLabel.textContent = `QUESTION ${question.number}`;
+      stage.dataset.face = question.kind === "fraction" ? "fraction" : "question";
+      // Shorter questions get bigger type; the stylesheet sizes by length.
+      stage.style.setProperty("--q-len", String(question.text.length));
       fill(stage, questionFace(question, { className: "is-giant" }));
       if (state.phase === "QUESTION_ACTIVE") {
         lastTickSecond = null;
         audio.question();
         announce(`Question ${question.number}: ${question.spoken}.`);
       }
-    } else if ((phase === "ANSWER_REVEAL" || phase === "WINNER_REVEAL") && question?.reveal) {
-      stageLabel.textContent = phase === "WINNER_REVEAL" ? "Bingo!" : `Answer ${question.number}`;
+    } else if (["ANSWER_REVEAL", "LEADERBOARD_UPDATE", "WINNER_REVEAL"].includes(phase) && question?.reveal) {
+      // The answer replaces the question in the same place.
+      stageLabel.textContent = phase === "WINNER_REVEAL" ? "BINGO!" : `ANSWER · QUESTION ${question.number}`;
+      stage.dataset.face = question.kind === "fraction" ? "reveal-fraction" : "reveal";
+      stage.style.setProperty("--r-len", String((question.reveal.text ?? question.text).length));
       fill(stage, revealFace(question));
       if (phase === "ANSWER_REVEAL" && state.phase === "ANSWER_REVEAL") announce(`The answer: ${question.kind === "fraction" ? `${question.text}, ${question.reveal.description}` : question.reveal.text}.`);
-    } else if (phase === "LEADERBOARD_UPDATE") {
-      stageLabel.textContent = "Standings";
-      fill(stage, leaderboardList(state.leaderboard, { limit: 5 }));
     } else {
       stageLabel.textContent = "";
       clear(stage);
     }
   };
 
+  // Lists are rebuilt only when what they show changes, so a teacher's scroll
+  // position and keyboard focus survive the once-a-second refresh.
+  let standingsKey = null;
+  let winnersKey = null;
+  let calledKey = null;
+  let waysKey = null;
   return {
     timer,
+    banner: celebration,
     updatePresence: () => players.update(),
     update() {
       updateStage();
       const settings = state.settings;
       const fractions = settings.mode === "fractions";
-      fill(joinChip, h("span", { text: state.joinLocked ? "Joining locked" : `Join: ${joinHost()}/join · ` }), state.joinLocked ? null : codeDisplay(state.code));
-      fill(leaderboard, leaderboardList(state.leaderboard, { limit: 8 }));
+      modeChip.textContent = state.modeLabel;
+      fill(joinChip, state.joinLocked
+        ? h("span", { class: "head-locked" }, icon("lock"), h("span", { text: "JOINING LOCKED" }))
+        : [h("span", { class: "head-label", text: "JOIN" }), h("span", { class: "head-url", text: `${joinHost()}/join` }),
+           h("span", { class: "head-label", text: "CODE" }), codeDisplay(state.code, "head-code")]);
+      winnersChip.textContent = winnersText(settings);
+
+      const patterns = JSON.stringify(settings.patterns);
+      if (patterns !== waysKey) {
+        waysKey = patterns;
+        fill(ways, rulesStrip(settings.patterns, { title: "WINNING WAYS", className: "is-board" }));
+      }
+
+      const nextStandings = JSON.stringify(state.leaderboard);
+      if (nextStandings !== standingsKey) {
+        standingsKey = nextStandings;
+        fill(standings.content, standingsList(state.leaderboard));
+      }
+      standings.meta.textContent = `${state.players.length} player${state.players.length === 1 ? "" : "s"}`;
       ticker.textContent = oneAway.length ? oneAway.slice(-2).map(name => `${name} is one away!`).join("  ·  ") : "";
-      winnersInfo.textContent = settings.winners === 0 ? `Winners: ${state.winnerCount}` : `Winners: ${state.winnerCount} / ${settings.winners}`;
-      fill(rules, rulesStrip(settings.patterns));
+
+      const nextWinners = JSON.stringify(state.winners.map(winner => [winner.placement, winner.name, winner.lineType]));
+      if (nextWinners !== winnersKey) {
+        winnersKey = nextWinners;
+        fill(winners.content, winnersList(state.winners));
+      }
+      winners.meta.textContent = winnersText(settings);
+
       const shown = state.called.filter(item => item.reveal || (state.question && item.number === state.question.number));
-      fill(called,
-        h("h2", { class: "side-title", text: fractions ? "CALLED FRACTIONS" : "CALLED" }),
-        fractions && state.question ? h("p", { class: "called-current" }, h("span", { class: "called-current-label", text: "CURRENT: " }), h("span", { class: "called-current-value", text: state.question.text })) : null,
-        calledList(fractions ? shown : shown.slice(-8), state.question, { fractions }));
+      called.heading.textContent = fractions ? "CALLED FRACTIONS" : "CALLED";
+      called.meta.textContent = shown.length ? `${shown.length} called` : "";
+      const nextCalled = JSON.stringify([fractions, state.question?.number ?? 0, shown.map(item => [item.number, item.reveal ? 1 : 0])]);
+      if (nextCalled !== calledKey) {
+        const grew = calledKey === null || shown.length !== JSON.parse(calledKey)[2].length;
+        calledKey = nextCalled;
+        fill(called.content, shown.length
+          ? calledList(shown, state.question, { fractions })
+          : h("p", { class: "panel-empty", text: "Questions appear here as they are called." }));
+        // Keep the newest question in view as the list grows.
+        if (grew) called.content.scrollTop = called.content.scrollHeight;
+      }
+
       players.update();
       playersButton.querySelector(".players-count").textContent = `Players — ${state.players.length}`;
 
@@ -719,12 +841,12 @@ function processEvents() {
     if (event.seq <= lastEventSeq) continue;
     lastEventSeq = event.seq;
     if (event.type === "free-space") {
-      banner.show({ tone: "free", duration: 2400, children: [h("p", { class: "banner-title", text: `\u{1F389} ${upperName(event.name)} USED FREE SPACE!` })] });
+      (view?.banner ?? banner).show({ tone: "free", duration: 2400, children: [h("p", { class: "banner-title", text: `\u{1F389} ${upperName(event.name)} USED FREE SPACE!` })] });
       audio.freeSpace();
       announce(`${event.name} used Free Space.`, { assertive: true });
     } else if (event.type === "bingo") {
       const winner = state.winners.find(item => item.placement === event.placement);
-      banner.show({ tone: "bingo", duration: 4200, children: bingoBannerChildren(event, winner) });
+      (view?.banner ?? banner).show({ tone: "bingo", duration: 4200, children: bingoBannerChildren(event, winner) });
       if (state.settings.celebration !== "off") audio.bingo();
       announce(`${event.name}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo${event.cap > 0 ? `, ${event.placement} of ${event.cap}` : ""}.`, { assertive: true });
     } else if (event.type === "one-away") {

@@ -74,7 +74,9 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
 
   // Omar spends his Free Space; every screen is told.
   expect(await useFreeSpace(omar.page)).toBe("free-space");
-  for (const page of [host.page, ava.page, zion.page]) await expect(page.locator(".banner")).toContainText("OMAR USED FREE SPACE!");
+  for (const page of [host.page, ava.page, zion.page]) await expect(page.locator(".banner:not([hidden])")).toContainText("OMAR USED FREE SPACE!");
+  // On the host the announcement sits over the left column, clear of the winning ways and the question.
+  await expect(host.page.locator(".board-left > .banner")).toContainText("OMAR USED FREE SPACE!");
   await expect(omar.page.locator('[data-cell="12"]')).toHaveAttribute("aria-pressed", "true");
 
   // A wrong tap is private feedback, never a mark.
@@ -122,6 +124,11 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
       const after = await waitFor(host.page, current => current.winnerCount === order.length, "host sees the winners");
       if (avaWonAt === 0 && after.winners.some(winner => winner.name === "Ava")) avaWonAt = after.questionNumber;
       if (zionWonAt === 0 && after.winners.some(winner => winner.name === "Zion")) zionWonAt = after.questionNumber;
+      if (order.length > 0 && order.length < 3) {
+        // The host board keeps every confirmed winner listed in Bingo Winners, in order.
+        await expect(host.page.locator(".panel-winners .winner-name")).toHaveText(order);
+        await expect(host.page.locator(".panel-winners .panel-meta")).toHaveText(`Winners ${order.length} / 3`);
+      }
       if (!sawOneAway && (await host.page.locator(".one-away").textContent())?.includes("is one away!")) sawOneAway = true;
       if (after.phase === "WINNER_REVEAL" || after.phase === "GAME_COMPLETE") break;
     }

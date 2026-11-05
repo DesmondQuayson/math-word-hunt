@@ -250,6 +250,30 @@ select is(public.bingo_mark(repeat('f',60)||'0001',1,12,11)->'me'->>'placement',
 select is((select phase from public.bingo_rooms where code='500004' and status='open'),'QUESTION_ACTIVE','one of two has won: the everyone game goes on');
 select is(public.bingo_host_command(repeat('c',64),repeat('d',64),'remove',jsonb_build_object('participant',(select id from public.bingo_participants where token_hash=repeat('f',60)||'0002')))->>'phase','WINNER_REVEAL','removing the last player without a Bingo ends the game');
 
+-- Winning ways: only the room's own patterns can win. bingo_lines is the
+-- list bingo_apply_progress checks a card against, for each of the five setups.
+select is((select string_agg(distinct line_type, ',' order by line_type) from private.bingo_lines('{"rows":true,"columns":false,"diagonals":false}')),'row','rows only: only the 5 rows count');
+select is((select string_agg(distinct line_type, ',' order by line_type) from private.bingo_lines('{"rows":false,"columns":true,"diagonals":false}')),'column','columns only: only the 5 columns count');
+select is((select string_agg(distinct line_type, ',' order by line_type) from private.bingo_lines('{"rows":false,"columns":false,"diagonals":true}')),'diagonal','diagonals only: only the 2 diagonals count');
+select is((select string_agg(distinct line_type, ',' order by line_type) from private.bingo_lines('{"rows":true,"columns":true,"diagonals":false}')),'column,row','rows + columns: no diagonal counts');
+select is((select count(*)::integer from private.bingo_lines('{"rows":true,"columns":true,"diagonals":true}')),12,'all three: all 12 lines count');
+-- Rows + columns: a completed diagonal is not a Bingo; a completed column is.
+select is(public.bingo_create_room('500005',repeat('b',64),repeat('0',64),jsonb_set(pg_temp.settings(1,0),'{patterns}','{"rows":true,"columns":true,"diagonals":false}'))->>'result','created','a rows + columns room');
+select is(public.bingo_join_room('500005','Dia',repeat('8',60)||'0001',repeat('5',64))->>'result','joined','a player joins');
+select is(public.bingo_host_start(repeat('b',64),repeat('0',64),'start',jsonb_set(pg_temp.settings(1,0),'{patterns}','{"rows":true,"columns":true,"diagonals":false}'),repeat('b',32),pg_temp.pool(),pg_temp.deck())->>'result','started','rows + columns game starts');
+select is(public.bingo_set_board(repeat('8',60)||'0001',1,pg_temp.card_ava())->>'result','ok','card');
+-- Diagonal 0-6-12-18-24 marked except cell 24 (value 24); question 24 asks for 24.
+update public.bingo_participants set marks=17043521 & ~(1<<24), mark_question=0 where token_hash=repeat('8',60)||'0001';
+update public.bingo_rooms set phase='QUESTION_ACTIVE', question_number=24, phase_deadline=null where code='500005' and status='open';
+select is(public.bingo_mark(repeat('8',60)||'0001',1,24,24)->>'result','correct','the last diagonal cell is a correct mark');
+select is((select (marks & 17043521) = 17043521 and not has_won from public.bingo_participants where token_hash=repeat('8',60)||'0001'),true,'a completed diagonal is not a Bingo when diagonals are off');
+select is((select winner_count from public.bingo_rooms where code='500005' and status='open'),0,'no winner is recorded for it');
+-- Column 0-5-10-15-20: cell 0 is already marked; 5, 10 and 15 are added; question 20 asks for 20 (cell 20).
+update public.bingo_participants set marks=marks | (1<<5) | (1<<10) | (1<<15) where token_hash=repeat('8',60)||'0001';
+update public.bingo_rooms set question_number=20 where code='500005' and status='open';
+select is(public.bingo_mark(repeat('8',60)||'0001',1,20,20)->'me'->>'placement','1','completing column 1 is a Bingo');
+select is((select win_line from public.bingo_participants where token_hash=repeat('8',60)||'0001'),'column-1','the Bingo is recorded as column 1, not the diagonal');
+
 -- Participant cap: 60 active players per room.
 select is(public.bingo_create_room('500003',repeat('4',64),repeat('8',64),pg_temp.settings(1,0))->>'result','created','a host opens a big room');
 select is((select count(*)::integer from (select public.bingo_join_room('500003','Kid '||g,repeat('7',60)||lpad(g::text,4,'0'),repeat('5',64))->>'result' as r from generate_series(1,60) g) s where r='joined'),60,'60 players join');

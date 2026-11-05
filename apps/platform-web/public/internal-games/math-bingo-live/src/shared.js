@@ -116,16 +116,20 @@ function svgRing(progress) {
   return svg;
 }
 
-/** WIN WITH ✓ Row ✓ Column ○ Diagonal — state shown by symbol and words, not colour alone. */
-export function rulesStrip(patterns, { compact = false } = {}) {
+/**
+ * WIN WITH ✓ Row ✓ Column ○ Diagonal — state shown by symbol and words, not
+ * colour alone. Always drawn from the room's own settings (the server's
+ * copy), never from what was picked on the setup form.
+ */
+export function rulesStrip(patterns, { compact = false, title = "WIN WITH", className = "" } = {}) {
   const items = [["rows", "Row"], ["columns", "Column"], ["diagonals", "Diagonal"]];
-  return h("div", { class: `rules${compact ? " is-compact" : ""}`, role: "group", "aria-label": "Ways to win" },
-    h("span", { class: "rules-title", text: "WIN WITH" }),
+  return h("div", { class: `rules${compact ? " is-compact" : ""} ${className}`.trim(), role: "group", "aria-label": "Ways to win" },
+    h("span", { class: "rules-title", "aria-hidden": "true", text: title }),
     h("ul", { class: "rules-list" }, items.map(([key, label]) => {
       const on = patterns?.[key] === true;
-      return h("li", { class: `rule ${on ? "is-on" : "is-off"}`, "aria-label": `${label}: ${on ? "counts" : "does not count"}` },
+      return h("li", { class: `rule ${on ? "is-on" : "is-off"}`, dataset: { pattern: key }, "aria-label": `${label} wins ${on ? "enabled" : "disabled"}` },
         h("span", { class: "rule-mark", "aria-hidden": "true", text: on ? "✓" : "○" }),
-        h("span", { class: "rule-label", text: label }));
+        h("span", { class: "rule-label", "aria-hidden": "true", text: label }));
     })));
 }
 
@@ -202,7 +206,8 @@ export function createBanner(root) {
       return;
     }
     showing = true;
-    element.replaceChildren(...next.children);
+    // Optional parts (the count, the winning cells) may be absent: skip them, never print "null".
+    element.replaceChildren(...next.children.filter(Boolean));
     element.className = `banner tone-${next.tone}`;
     element.hidden = false;
     if (next.tone === "bingo" && !prefersReducedMotion()) confetti(element);

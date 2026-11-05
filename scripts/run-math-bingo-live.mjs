@@ -10,6 +10,7 @@
  *   node scripts/run-math-bingo-live.mjs e2e [playwright args] run e2e/math-bingo-live, then stop
  *   node scripts/run-math-bingo-live.mjs load                 run scripts/math-bingo-live-load.mjs against it
  *   node scripts/run-math-bingo-live.mjs thumbnail            capture the catalog artwork from a real game
+ *   node scripts/run-math-bingo-live.mjs layout               check the host board at 1280x720 to 1920x1080
  *
  * It always serves `next dev`: the production-platform rehearsal refuses a
  * loopback Supabase under NODE_ENV=production (by design), so `next start`
@@ -39,7 +40,7 @@ export const DEMO_TEACHER = Object.freeze({ email: "bingo-teacher@example.test",
 
 const [mode = "demo", ...rest] = process.argv.slice(2);
 const passThrough = rest;
-if (!["demo", "e2e", "load", "thumbnail"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
+if (!["demo", "e2e", "load", "thumbnail", "layout"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
 const cli = resolve("node_modules/supabase/dist/supabase.js");
 const status = JSON.parse(execFileSync(process.execPath, [cli, "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
@@ -176,7 +177,7 @@ try {
   } else {
     const command = mode === "e2e"
       ? [resolve("node_modules/@playwright/test/cli.js"), "test", "--config=playwright.math-bingo-live.config.mjs", ...passThrough]
-      : [resolve(mode === "load" ? "scripts/math-bingo-live-load.mjs" : "scripts/capture-math-bingo-live-thumbnail.mjs"), ...passThrough];
+      : [resolve({ load: "scripts/math-bingo-live-load.mjs", layout: "scripts/math-bingo-live-host-layout.mjs" }[mode] ?? "scripts/capture-math-bingo-live-thumbnail.mjs"), ...passThrough];
     const child = spawn(process.execPath, command, { env: shared, stdio: "inherit" });
     [exitCode] = await once(child, "exit");
   }

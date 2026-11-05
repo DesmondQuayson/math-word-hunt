@@ -25,12 +25,32 @@ Suggested walkthrough (three student windows: Ava, Zion, Omar — use separate b
 1. Host: sign in → setup (MATH / PACE / WINNING / CLASSROOM) → **CREATE GAME**. Lobby shows `JOIN …/join` and the 6-digit `CODE`.
 2. Students: open `/join`, type the code, then a name → "You're in!". Names appear live on the host lobby (× removes a player; Lock joining; New code).
 3. **START GAME** → 3-second countdown → question. Students tap the matching square (one per question; two wrong taps lock the card for that question). Tap the centre star twice to use Free Space → every screen shows "🎉 OMAR USED FREE SPACE!".
-4. Watch the host leaderboard (`4/5 · Row`, "Ava is one away!"), then a Bingo banner on every screen (`🎉 AVA — BINGO!`, `FIRST BINGO`, `1 / 3`, `ROW BINGO`, the five winning cells glow once that question is revealed) and the host fanfare.
+4. Watch the host board: STANDINGS on the left (`4/5 · Row`, "Ava is one away!"), BINGO WINNERS under it, the question top right, CALLED under it, WINNING WAYS across the top. Then a Bingo banner on every screen (on the host, over the left column) (`🎉 AVA — BINGO!`, `FIRST BINGO`, `1 / 3`, `ROW BINGO`, the five winning cells glow once that question is revealed) and the host fanfare.
 5. With 3 winners the game ends at the third Bingo: `MATH BINGO COMPLETE` 🥇🥈🥉 → **Play Again** (same players, new cards), **Change Settings**, **End Room**.
-6. Fraction Bingo: choose *Fraction Bingo*; the question is `2/3`, the cards show models; open `Called Fractions (n) ▾` on a phone; the host side panel shows CURRENT/CALLED. Try *Allow Equivalent Fractions*.
+6. Fraction Bingo: choose *Fraction Bingo*; the question is `2/3`, the cards show models; open `Called Fractions (n) ▾` on a phone; the host board shows CALLED FRACTIONS lower right, the current one highlighted. Try *Allow Equivalent Fractions*.
 7. Refresh a student mid-game (same card, marks, Free Space, rank); refresh the host; open the host in a second window (the first says "open in another window" → Take control here); Pause/Resume.
 
-The e2e, load and thumbnail runs use the same runner: `node scripts/run-math-bingo-live.mjs e2e`, `… load`, `… thumbnail` (always `next dev`; the production build is checked with `npm run build`).
+The e2e, load, thumbnail and host-board layout runs use the same runner: `node scripts/run-math-bingo-live.mjs e2e`, `… load`, `… thumbnail`, `… layout` (always `next dev`; the production build is checked with `npm run build`).
+
+## Host board revision (owner request, 2026-11-04)
+
+The live teacher screen is now one fixed board that never scrolls as a page:
+
+- **Top:** a thin header (Math Bingo Live · mode and level · `JOIN …/join CODE 537 636` · `Winners 1 / 3` · music, sound, full screen), then a slim **WINNING WAYS** strip (`✓ ROW ✓ COLUMN ○ DIAGONAL`) that is always on screen.
+- **Left:** **STANDINGS**: one compact row per player (rank or medal, name, `4/5 · Row`), scrolling inside the panel for big classes. Under it, **BINGO WINNERS**: `Waiting for the first Bingo…`, then 🥇 Ava FIRST BINGO, 🥈 Zion, 🥉 Omar with `Winners 2 / 3`.
+- **Top right:** the current question (the biggest thing on the screen) with its timer beside it; the answer reveal (`ANSWER · QUESTION 8`, `9 + 9 = 18`, or the fraction with its large model and caption) replaces it in the same place.
+- **Lower right:** **CALLED** / **CALLED FRACTIONS**: wrapping chips, the current one highlighted, scrolling inside the panel.
+- **Bottom:** Pause · Next · Players — n · Lock join · End game.
+- The Bingo and Free Space announcements cover the left column for a few seconds, never the winning ways or the question.
+
+Checked with `node scripts/run-math-bingo-live.mjs layout` (or `scripts/math-bingo-live-host-layout.mjs` against a running app) at 1280×720, 1366×768, 1440×900 and 1920×1080. It covers 1, 5, 10, 30 and 50 players; 0, 1 and 3 winners; long arithmetic and Fraction histories; question, reveal, paused and celebration states; and the five winning-ways setups on the host and a student phone. Result: **PASS, 50 board checks, 5 setups**. Screenshots are in `qa-artifacts/math-bingo-live/host-layout/`.
+
+| Screen | Page scroll | Standings rows fully visible (50 players) | Question type (arithmetic / fraction) |
+| --- | --- | --- | --- |
+| 1280×720 | none | 9 | 137 px / 115 px |
+| 1366×768 | none | 9–10 | 148 px / 124 px |
+| 1440×900 | none | 11 | 162 px / 155 px |
+| 1920×1080 | none | 9–10 (larger names) | 216 px / 182 px |
 
 ## Results
 
@@ -88,7 +108,7 @@ The e2e, load and thumbnail runs use the same runner: `node scripts/run-math-bin
 | 50 | Race conditions | Row-locked marks, deterministic placement, consistent lock order, deadline/pause/stale/simultaneous paths tested |
 | 51 | Server-authoritative validation | The database validates phase, question, deadline, cell, value, attempts and wins |
 | 52 | Privacy | No student account, email or birthday; names deleted on close/expiry; hashed identifiers only |
-| 53 | RLS/security | RLS forced, no anon/authenticated grants, service_role-only functions; pgTAP 163/163; e2e security 3/3; independent review findings fixed |
+| 53 | RLS/security | RLS forced, no anon/authenticated grants, service_role-only functions; pgTAP 177/177 (163 + 14 winning-ways checks, 2026-11-04); e2e security 3/3; independent review findings fixed |
 | 54 | Music | Shared same-origin Cosmic Candy Catchers; one element, started inside a gesture |
 | 55 | Host-only music default | Yes — players play no music unless "All devices" (asserted in e2e) |
 | 56 | Audio attribution | "Cosmic Candy Catchers (Looping)" — Eric Matyas, soundimage.org, CC BY 3.0 (credited on the host setup screen) |

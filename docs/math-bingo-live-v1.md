@@ -89,7 +89,7 @@ Symbols: `+ − × ÷` (U+2212, U+00D7, U+00F7).
 - Models are original SVG geometry (`engine/fractions.js`): circle sectors, horizontal bars, vertical rectangles, square grids (2×2, 2×3, 2×4, 3×3…). Every part is exactly equal (tests check every area and angle), the first *n* parts are shaded as one connected run, every part is outlined, and each model has a text description: "Fraction model: 2 of 3 equal parts shaded." Shapes with many thin parts are limited (bars ≤ 6 parts, rectangles ≤ 5) so they stay countable on a 320 px phone.
 - **Exact match is the default**: `1/2` accepts only a 1-of-2 model; a 2/4 model is refused ("That square shows 2/4"). The host may turn on **Allow Equivalent Fractions** (default OFF); then any model of equal value counts, decided by cross-multiplication of integers (`a·d = c·b`), never floating point.
 - Validation uses the cell's stored rational value only — never the shape, an SVG id or a file name.
-- **Called Fractions** keeps every fraction called in this game: a side panel on the host screen (CURRENT + CALLED), and a collapsed `Called Fractions (7) ▾` disclosure on phones/iPads so it never costs card space. Only past questions plus the current one are ever sent; it resets with a new game, rematch or room.
+- **Called Fractions** keeps every fraction called in this game: the lower-right panel of the host board (the current one highlighted, older ones kept, scrolling inside the panel), and a collapsed `Called Fractions (7) ▾` disclosure on phones/iPads so it never costs card space. Only past questions plus the current one are ever sent; it resets with a new game, rematch or room.
 - The reveal shows the fraction, an enlarged correct model and "2 of 3 equal parts shaded".
 
 ## Winner rules
@@ -135,11 +135,32 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 
 `isMathBingoLiveAvailable()` serves the host page, `/join`, room creation and joining only if the catalog entry is `published`, **or** it is `draft` and the local owner preview is on: `MVH_MATH_BINGO_LIVE_PREVIEW=local-owner-review`, a loopback application origin (`http://127.0.0.1` / `http://localhost`), and no Vercel deployment variables. A hosted environment can therefore never expose the draft, whatever its variables.
 
+## Host board (teacher laptop, projector, Smart Board)
+
+The live host screen is one fixed board that never scrolls as a page (owner layout, 2026-11-04):
+
+```
+| header: Math Bingo Live · mode · JOIN mathnexa.com/join CODE 537 636 · Winners 1 / 3 · sound |
+| WINNING WAYS  ✓ ROW  ✓ COLUMN  ○ DIAGONAL                                                    |
+| STANDINGS (≈36 % wide, ≈68 % high)  | QUESTION n + timer (≈64 % wide, ≈62 % high);          |
+|   one compact row per player        |   the answer reveal replaces it in place              |
+| BINGO WINNERS (≈32 % high)          | CALLED / CALLED FRACTIONS (≈38 % high)                |
+| Pause | Next | Players — n | Lock join | End game                                            |
+```
+
+- Standings: one row per player (rank or medal, name, `4/5 · Row`), 9–10 rows fully visible at 1280×720 and 1366×768, 11 at 1440×900 and 9–10 at 1920×1080 (where the names are larger); larger classes scroll inside the panel with the heading fixed. "Ava is one away!" sits under the heading.
+- Bingo Winners: `Waiting for the first Bingo…`, then 🥇 Ava (FIRST BINGO), 🥈 Zion, 🥉 Omar, … with `Winners 2 / 3`; winners stay listed for the rest of the game. The Free Space and Bingo announcements appear for a few seconds over the left column only, so the winning ways, the question and the controls stay in view.
+- Winning ways: drawn from the room settings the server returns (`state.settings.patterns`), the same values the database checks lines against (`private.bingo_lines`); there is no second copy. Players keep their compact `WIN WITH ✓ Row ✓ Column ○ Diagonal` strip.
+- Question: the strongest element; the type is sized to the panel (container query units, shorter questions bigger) with a viewport fallback for browsers without container queries; the ring timer sits beside it.
+- Only Standings, Bingo Winners and Called scroll (keyboard-focusable regions). Scales with `--u` = min(1 vw, 1.78 vh), so 1280×720 through 1920×1080 keep the same layout; below 900 px wide the board stacks and the page may scroll.
+- `scripts/math-bingo-live-host-layout.mjs` (runner mode `layout`) checks 1/5/10/30/50 players, 0/1/3 winners, long arithmetic and fraction histories, question/reveal/paused/celebration and the five winning-ways setups at 1280×720, 1366×768, 1440×900 and 1920×1080.
+
 ## Accessibility (WCAG 2.2 AA target)
 
 - Card: a labelled group of 25 real buttons; arrow keys/Home/End move between squares (roving tabindex); Enter/Space mark. Each square's label says row, column letter, value (or the fraction-model description) and state ("Marked."). `aria-pressed` reflects marks; unusable squares are `aria-disabled` but stay focusable.
 - Marked = colour + check badge + heavy border + diagonal stripes; winning line = gold glow + outline; forced-colours mode uses a double border and system colours; fraction parts keep outlines.
 - Live regions: polite (new question with its spoken form, "10 seconds left", "5 seconds left", "Time's up. 9 + 9 = 18", roster joins) and assertive (Free Space, Bingo). Timer has `role="timer"` and a spoken label.
+- Winning ways never rely on colour: ✓ / ○, words, strike-through and dashed borders, and labels such as "Row wins enabled" / "Diagonal wins disabled". Host board panels are labelled sections with headings; their scrolling lists are focusable regions.
 - Dialogs are native `<dialog>` with titles; focus is visible (3–4 px gold outline); reduced motion removes all animation and confetti.
 
 ## District network requirements
@@ -159,12 +180,13 @@ See `owner-review/math-bingo-live-owner-review-2026-11-03.md` for the run-by-run
 
 - `lib/games/math-bingo-live/engine.test.ts` — every mode/level, 60 seeds × free space on/off × exact/equivalent: pools, decks, passes, adjacency; tens of thousands of questions and fraction cells; every model's equal areas; 50k sampled masks × 5 pattern sets; 60 distinct cards per game.
 - `lib/games/math-bingo-live/server.test.ts`, `document.test.ts` — payload whitelisting (no seed/pool/deck/answer), preview gate, codes, tokens, CSP, runtime scan.
-- `supabase/tests/database/37_math_bingo_live.test.sql` — 163 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close (lobby and in-game), "everyone" completion, the 60-player cap.
+- `supabase/tests/database/37_math_bingo_live.test.sql` — 177 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close (lobby and in-game), "everyone" completion, the 60-player cap, and the five winning-ways setups (a completed diagonal is not a Bingo when diagonals are off).
 - `scripts/math-bingo-live-simulation.mjs` — 40 seeded students through the real database functions, invariants after every question, rematch, identical replay.
 - `scripts/math-bingo-live-load.mjs` — 1 room × 50 HTTP players and 3 concurrent rooms × 20.
+- `scripts/math-bingo-live-host-layout.mjs` — the host board at four screen sizes across 1–50 players and every board state; winning ways on host and student screens against the room settings.
 - `e2e/math-bingo-live/*.spec.ts` — Chromium and WebKit: host + Ava/Zion/Omar, Fraction Bingo, reconnect/recovery/pause/removal, security and free access, every target viewport, keyboard/screen-reader/reduced-motion/forced-colours.
 
-Run locally: `node scripts/run-math-bingo-live.mjs e2e`, `node scripts/run-math-bingo-live.mjs load`, `node scripts/math-bingo-live-simulation.mjs`.
+Run locally: `node scripts/run-math-bingo-live.mjs e2e`, `node scripts/run-math-bingo-live.mjs load`, `node scripts/run-math-bingo-live.mjs layout`, `node scripts/math-bingo-live-simulation.mjs`.
 
 ## Release and rollback plan (requires owner approval)
 
