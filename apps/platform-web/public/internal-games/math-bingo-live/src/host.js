@@ -267,7 +267,8 @@ function startSession(initialState) {
   session = createLiveSession({
     endpoint: HOST_ENDPOINT,
     credentials: () => ({ hostToken }),
-    since: current => (current ? { since: current.version } : {}),
+    // Room version + player progress: ordinary taps change only the progress.
+    since: current => (current ? { since: current.version, sinceProgress: current.progress } : {}),
     intervalFor: current => (current && ACTIVE_PHASES.has(current.phase) ? 800 : 1500),
     onState: next => {
       state = next;

@@ -301,6 +301,8 @@ export function toHostState(record: Json) {
   const base = common(record);
   return Object.freeze({
     ...base,
+    /** Sum of the players' row versions: with `version`, the host's unchanged check. */
+    progress: int(record.progress),
     players: Object.freeze(list(record.players).map((player) => Object.freeze({
       id: text(player.id),
       name: text(player.name),

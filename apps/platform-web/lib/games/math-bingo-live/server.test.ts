@@ -179,6 +179,13 @@ describe("browser payloads", () => {
     }
   });
 
+  it("the host payload carries the progress number for its unchanged check; players never see it", () => {
+    expect(toHostState(record({ progress: 57 })).progress).toBe(57);
+    expect(toHostState(record({ progress: "57" })).progress).toBe(0);
+    expect(toHostState(record()).progress).toBe(0);
+    expect("progress" in toPlayerState(record({ progress: 57 }))).toBe(false);
+  });
+
   it("players see only their own card, the top of the leaderboard, and no other player ids", () => {
     const state = toPlayerState(record());
     const text = JSON.stringify(state);

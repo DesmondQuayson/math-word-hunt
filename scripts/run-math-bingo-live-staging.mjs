@@ -6,11 +6,13 @@
  *
  *   --stage=identify read-only: the pooler database is the staging project,
  *                    and which local migrations staging has not applied yet.
- *   --stage=migrate  applies supabase/migrations/20261103100000_math_bingo_live.sql
- *                    to the staging project (refuses if any OTHER migration is
- *                    pending there), then verifies the tables, RLS, grants,
- *                    functions and the DRAFT catalog row, and that unrelated
- *                    row counts did not move.
+ *   --stage=migrate  applies the ONE pending Math Bingo Live migration
+ *                    (20261103100000_math_bingo_live.sql, then
+ *                    20261106100000_math_bingo_live_room_speed.sql) to the
+ *                    staging project (refuses if anything else is pending
+ *                    there), then verifies the tables, RLS, grants, functions
+ *                    and the catalog row, and that unrelated row counts did not
+ *                    move.
  *   --stage=smoke    create/join/state/close through the service-role
  *                    functions with synthetic tokens; a browser key cannot
  *                    reach rooms; the synthetic room is closed and deleted.
@@ -29,7 +31,9 @@ import { join, resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
-const MIGRATION = "20261103100000";
+// Bingo migrations in order; `migrate` applies whichever single one is pending.
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000"]);
+const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
 // main yet). The CLI refuses to push while the remote has a version the local
 // folder lacks, so its file is placed in the temporary push folder only; it is
@@ -124,8 +128,11 @@ async function migrate() {
   evidence.pendingBefore = pending;
   check(remoteOnly.every((version) => STAGING_ONLY[version]), `refusing: staging has unknown migrations this branch does not: ${JSON.stringify(remoteOnly)}`);
   evidence.stagingOnlyRecorded = remoteOnly;
-  check(pending.length === 1 && pending[0] === MIGRATION, `refusing: pending migrations are ${JSON.stringify(pending)}`);
+  check(pending.length === 1 && BINGO_MIGRATIONS.includes(pending[0]), `refusing: pending migrations are ${JSON.stringify(pending)}`);
+  const MIGRATION = pending[0];
+  evidence.applying = MIGRATION;
   const before = counts(sql);
+  const catalogBefore = sql("select status, lock_version from public.game_catalog_entries where stable_key='math-bingo-live'")[0] ?? null;
 
   const workRoot = mkdtempSync(join(tmpdir(), "mathnexa-bingo-staging-"));
   try {
@@ -143,7 +150,7 @@ async function migrate() {
     check(evidence.dryRun.length === 1 && evidence.dryRun[0] === MIGRATION, "refusing: dry run would apply other migrations");
     const pushed = cli(["db", "push", "--db-url", url, "--include-all"], workRoot);
     check(pushed.ok, `push-failed:${redact(pushed.output).slice(-600)}`);
-    evidence.pushOutput = redact(pushed.output).split("\n").filter((line) => /20261103|Applying|Finished|up to date/i.test(line)).slice(-6);
+    evidence.pushOutput = redact(pushed.output).split("\n").filter((line) => /2026110|Applying|Finished|up to date/i.test(line)).slice(-6);
   } finally {
     rmSync(workRoot, { recursive: true, force: true });
   }
@@ -153,7 +160,8 @@ async function migrate() {
   check(evidence.latestVersionsAfter[0] === MIGRATION, "migration-version-not-recorded");
   const catalog = sql("select stable_key, status, launch_type, recommended_grade_min, recommended_grade_max from public.game_catalog_entries where stable_key='math-bingo-live'");
   evidence.catalog = catalog[0];
-  check(catalog[0]?.status === "draft", "catalog-row-missing-or-not-draft");
+  if (MIGRATION === FIRST_MIGRATION) check(catalog[0]?.status === "draft", "catalog-row-missing-or-not-draft");
+  else check(catalogBefore && catalog[0]?.status === catalogBefore.status, "catalog-row-changed");
   const tables = sql("select relname, relrowsecurity, relforcerowsecurity, has_table_privilege('anon', oid, 'SELECT') as anon_select, has_table_privilege('authenticated', oid, 'SELECT') as authenticated_select from pg_class where relname in ('bingo_rooms','bingo_participants','bingo_join_failures') and relnamespace='public'::regnamespace order by relname");
   evidence.tables = tables;
   check(tables.length === 3 && tables.every((row) => row.relrowsecurity && row.relforcerowsecurity && !row.anon_select && !row.authenticated_select), "bingo-tables-not-locked-down");
@@ -162,7 +170,11 @@ async function migrate() {
   check(functions.length >= 10 && functions.every((row) => row.prosecdef && !row.anon_execute && !row.browser_execute && row.server_execute), "bingo-functions-not-locked-down");
   evidence.rowCountsBefore = before;
   evidence.rowCountsAfter = after;
-  check(after.catalog - before.catalog === 1, "catalog-row-count-changed-unexpectedly");
+  check(after.catalog - before.catalog === (MIGRATION === FIRST_MIGRATION ? 1 : 0), "catalog-row-count-changed-unexpectedly");
+  if (MIGRATION !== FIRST_MIGRATION) {
+    evidence.speedFunctions = sql("select (to_regprocedure('public.bingo_host_state(text,text,bigint,bigint)') is not null) as host_state_with_progress, (to_regprocedure('private.bingo_progress(uuid)') is not null) as progress_helper, has_function_privilege('anon','private.bingo_progress(uuid)','EXECUTE') or has_function_privilege('authenticated','private.bingo_progress(uuid)','EXECUTE') as progress_browser_execute")[0];
+    check(evidence.speedFunctions.host_state_with_progress && evidence.speedFunctions.progress_helper && !evidence.speedFunctions.progress_browser_execute, "room-speed-functions-missing-or-open");
+  }
   check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.subscriptions === before.subscriptions
     && after.other_games === before.other_games, "unrelated-rows-changed");
 }

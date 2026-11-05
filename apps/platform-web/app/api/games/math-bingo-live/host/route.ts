@@ -97,15 +97,19 @@ export async function POST(request: Request): Promise<Response> {
 
   if (action === "state") {
     const since = isInteger(body.since, 0, Number.MAX_SAFE_INTEGER) ? body.since : null;
-    const data = await call("bingo_host_state", { ...seat, p_since_version: since });
+    const sinceProgress = isInteger(body.sinceProgress, 0, Number.MAX_SAFE_INTEGER) ? body.sinceProgress : null;
+    const data = await call("bingo_host_state", { ...seat, p_since_version: since, p_since_progress: sinceProgress });
     if (data?.result === "unchanged") {
-      return reply({ result: "unchanged", version: data.version, serverNow: data.serverNow, presence: Array.isArray(data.players) ? data.players : [] });
+      return reply({
+        result: "unchanged", version: data.version, progress: data.progress, serverNow: data.serverNow,
+        presence: Array.isArray(data.players) ? data.players : []
+      });
     }
     return roomReply(data);
   }
 
   if (action === "start" || action === "again") {
-    const current = await call("bingo_host_state", { ...seat, p_since_version: null });
+    const current = await call("bingo_host_state", { ...seat, p_since_version: null, p_since_progress: null });
     if (!current || !isRoomRecord(current)) return roomReply(current);
     const settings = normalizeSettings(current.settings);
     if (!settings.ok) return refused("invalid-settings", 400);

@@ -11,7 +11,7 @@ param(
 # invoke-math-tug-of-war-staging.ps1.
 #
 #   -Stage identify  read-only: pooler database == staging, pending migrations
-#   -Stage migrate   owner-approved: apply ONLY 20261103100000 (draft catalog row, new tables) and verify it
+#   -Stage migrate   owner-approved: apply the ONE pending Bingo migration (20261103100000, then 20261106100000) and verify it
 #   -Stage smoke     room contract through the service-role functions (synthetic, cleaned up)
 #   -Stage review    real browsers against -Origin <staging preview URL> (synthetic free teacher, deleted)
 #   -Stage load      50 virtual students + a real host screen against -Origin (synthetic, deleted)
