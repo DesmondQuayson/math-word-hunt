@@ -1,5 +1,5 @@
 import { clientAddress, resolveLimiterSecret } from "@/lib/auth/rate-limit";
-import { isInteger, readJsonBody, refused, reply, type Json } from "@/lib/games/math-bingo-live/http";
+import { isInteger, readJsonBody, refused, reply, startTiming, timed, withServerTiming, type Json, type RequestTiming } from "@/lib/games/math-bingo-live/http";
 import {
   cellLabel,
   dealFor,
@@ -37,6 +37,11 @@ const ERRORS: Readonly<Record<string, [string, number]>> = Object.freeze({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  const timing = startTiming();
+  return withServerTiming(await handle(request, timing), timing);
+}
+
+async function handle(request: Request, timing: RequestTiming): Promise<Response> {
   const body = await readJsonBody(request, MAX_BODY_BYTES);
   if (body instanceof Response) return body;
 
@@ -44,7 +49,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!client) return refused("live-unavailable", 503);
 
   const call = async (fn: string, args: Json): Promise<Json | null> => {
-    const { data, error } = await client.rpc(fn, args);
+    const { data, error } = await timed(timing, "db", () => client.rpc(fn, args));
     if (error || !data || typeof data !== "object") return null;
     return data as Json;
   };

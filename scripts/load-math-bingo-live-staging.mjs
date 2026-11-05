@@ -64,6 +64,15 @@ const jitter = (min, max) => min + Math.random() * (max - min);
 
 /** Every request: action, HTTP status (0 = network error), milliseconds, and the API result word. */
 const samples = [];
+/** Server-Timing from the game API: db (database calls), access (host sign-in check), app (whole handler). */
+function serverTiming(header) {
+  const out = {};
+  for (const part of String(header ?? "").split(",")) {
+    const match = /^s*(db|access|app);dur=([0-9.]+)/.exec(part);
+    if (match) out[match[1]] = Number(match[2]);
+  }
+  return out;
+}
 async function post(body) {
   const started = performance.now();
   try {
@@ -71,7 +80,7 @@ async function post(body) {
     const text = await response.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* an HTML error page */ }
-    samples.push({ who: "player", action: body.action, status: response.status, ms: performance.now() - started, result: json?.result ?? json?.error ?? null, at: Date.now() });
+    samples.push({ who: "player", action: body.action, status: response.status, ms: performance.now() - started, result: json?.result ?? json?.error ?? null, at: Date.now(), ...serverTiming(response.headers.get("server-timing")) });
     return { status: response.status, json };
   } catch (error) {
     samples.push({ who: "player", action: body.action, status: 0, ms: performance.now() - started, result: String(error?.cause?.code ?? error?.message ?? error), at: Date.now() });
@@ -136,9 +145,10 @@ function student(index, code) {
   return me;
 }
 
-function stats(list) {
+function stats(list, key = "ms") {
+  list = list.filter((sample) => typeof sample[key] === "number");
   if (!list.length) return { n: 0 };
-  const ms = list.map((sample) => sample.ms).sort((a, b) => a - b);
+  const ms = list.map((sample) => sample[key]).sort((a, b) => a - b);
   const at = (q) => Math.round(ms[Math.min(ms.length - 1, Math.floor(q * ms.length))]);
   return { n: ms.length, p50: at(0.5), p95: at(0.95), p99: at(0.99), max: Math.round(ms[ms.length - 1]) };
 }
@@ -178,7 +188,7 @@ try {
   page.on("requestfinished", async (request) => {
     if (!hostSamples.has(request)) return;
     const response = await request.response().catch(() => null);
-    samples.push({ who: "host", action: "host", status: response?.status() ?? 0, ms: performance.now() - hostSamples.get(request), result: null, at: Date.now() });
+    samples.push({ who: "host", action: "host", status: response?.status() ?? 0, ms: performance.now() - hostSamples.get(request), result: null, at: Date.now(), ...serverTiming(response?.headers()["server-timing"]) });
     hostSamples.delete(request);
   });
   page.on("requestfailed", (request) => { if (hostSamples.has(request)) { samples.push({ who: "host", action: "host", status: 0, ms: 0, result: request.failure()?.errorText ?? "failed", at: Date.now() }); hostSamples.delete(request); } });
@@ -300,6 +310,14 @@ try {
     worstCoverage: Math.round(Math.min(...coverage) * 1000) / 10,
     boardsDealt: students.filter((one) => one.boardDealt).length,
     networkBaseline,
+    // Where the time went (Server-Timing): inside the handler (app), in database calls (db),
+    // in the host's sign-in check (access), and outside the handler (client total minus app:
+    // network, the platform's routing and queueing, the proxy).
+    serverTiming: Object.fromEntries(["state", "mark", "free", "host"].map((action) => {
+      const list = by((sample) => (action === "host" ? sample.who === "host" : sample.action === action) && typeof sample.app === "number")
+        .map((sample) => ({ ...sample, outside: sample.ms - sample.app }));
+      return [action, { app: stats(list, "app"), db: stats(list, "db"), access: stats(list, "access"), outside: stats(list, "outside") }];
+    })),
     healthDuringPlay: { ...stats(healthDuringPlay), failed: healthDuringPlay.filter((sample) => sample.status !== 200).length },
     notOk: samples.filter((sample) => sample.status !== 200).map(({ who, action, status, result, at }) => ({ who, action, status, result, secondsIntoPlay: Math.round((at - playStarted) / 1000) }))
   };

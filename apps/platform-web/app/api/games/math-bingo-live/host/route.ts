@@ -1,7 +1,7 @@
 import { canPlayGame } from "@/lib/access/server";
 import { resolveLimiterSecret } from "@/lib/auth/rate-limit";
 import { getGameAccessView } from "@/lib/game-access/server";
-import { isInteger, readJsonBody, refused, reply, type Json } from "@/lib/games/math-bingo-live/http";
+import { isInteger, readJsonBody, refused, reply, startTiming, timed, withServerTiming, type Json, type RequestTiming } from "@/lib/games/math-bingo-live/http";
 import {
   GAME_KEY,
   buildGame,
@@ -40,10 +40,15 @@ const ERRORS: Readonly<Record<string, [string, number]>> = Object.freeze({
 const COMMANDS = new Set(["pause", "unpause", "next", "end", "change-settings", "close", "lock", "unlock", "remove", "settings", "audio", "code"]);
 
 export async function POST(request: Request): Promise<Response> {
+  const timing = startTiming();
+  return withServerTiming(await handle(request, timing), timing);
+}
+
+async function handle(request: Request, timing: RequestTiming): Promise<Response> {
   const body = await readJsonBody(request, MAX_BODY_BYTES);
   if (body instanceof Response) return body;
 
-  const access = await getGameAccessView();
+  const access = await timed(timing, "access", () => getGameAccessView());
   if (!canPlayGame(access, GAME_KEY) || !access.principal) return refused("host-sign-in-required", 401);
 
   const client = createServiceSupabaseClient();
@@ -51,7 +56,7 @@ export async function POST(request: Request): Promise<Response> {
   const owner = ownerHash(resolveLimiterSecret(), access.principal);
 
   const call = async (fn: string, args: Json): Promise<Json | null> => {
-    const { data, error } = await client.rpc(fn, args);
+    const { data, error } = await timed(timing, "db", () => client.rpc(fn, args));
     if (error || !data || typeof data !== "object") return null;
     return data as Json;
   };
