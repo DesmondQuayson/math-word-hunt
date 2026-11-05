@@ -12,7 +12,7 @@ param(
 # invoke-math-tug-of-war-production.ps1.
 #
 #   -Stage audit    READ ONLY production identity + migration plan + baseline
-#   -Stage migrate  apply the ONE pending Bingo migration in order (20261103100000, then 20261106100000); refuses otherwise
+#   -Stage migrate  apply the pending Bingo migrations in order (20261103100000, 20261106100000, 20261106110000); refuses anything else
 #   -Stage verify   tables, RLS, grants, functions, catalog row, other games
 #   -Stage smoke    service-role room contract with synthetic hashes (no account; cleaned up)
 #   -Stage publish  owner-instructed: draft -> published via the Super Admin publish function

@@ -1,6 +1,7 @@
--- Rollback for 20261106100000_math_bingo_live_room_speed.sql.
--- Restores the v1.2.35 bodies of bingo_core, bingo_host_view, bingo_host_state(text,text,bigint)
--- and bingo_mark verbatim from 20261103100000_math_bingo_live.sql, and drops the
+-- Rollback for 20261106100000_math_bingo_live_room_speed.sql and
+-- 20261106110000_math_bingo_live_player_payload.sql.
+-- Restores the v1.2.35 bodies of bingo_core, bingo_host_view, bingo_player_view,
+-- bingo_host_state(text,text,bigint) and bingo_mark verbatim from 20261103100000_math_bingo_live.sql, and drops the
 -- four-argument bingo_host_state and bingo_progress. Run it only together with a
 -- rollback of the application to a build that calls the three-argument bingo_host_state
 -- (v1.2.35 or earlier): the newer application needs the four-argument function.
@@ -147,5 +148,24 @@ revoke all on function public.bingo_host_state(text,text,bigint) from public,ano
 revoke all on function public.bingo_mark(text,integer,integer,integer) from public,anon,authenticated;
 grant execute on function public.bingo_host_state(text,text,bigint) to service_role;
 grant execute on function public.bingo_mark(text,integer,integer,integer) to service_role;
+create or replace function private.bingo_player_view(p_room public.bingo_rooms, p_me public.bingo_participants, p_result text)
+returns jsonb language sql stable set search_path=''
+as $
+  select private.bingo_core(p_room, p_result) || jsonb_build_object(
+    'me',jsonb_build_object(
+      'id',p_me.id,'name',p_me.display_name,'status',p_me.status,'gameNumber',p_me.game_number,
+      'board',case when p_me.game_number=p_room.game_number then p_me.board else null end,
+      'marks',p_me.marks,'freeUsed',p_me.free_used,'markQuestion',p_me.mark_question,
+      'attemptQuestion',p_me.attempt_question,'attempts',p_me.attempts,'correct',p_me.correct_count,
+      'hasWon',p_me.has_won,'placement',p_me.placement,'winLine',p_me.win_line,
+      'best',p_me.best_count,'bestType',p_me.best_type,'version',p_me.version
+    ),
+    'needsBoard',(p_me.status='active' and p_room.status='open' and p_room.game_number>0 and p_room.pool is not null
+      and p_room.phase not in ('LOBBY','GAME_COMPLETE') and (p_me.board is null or p_me.game_number<>p_room.game_number)),
+    'seed',p_room.game_seed,
+    'pool',p_room.pool
+  )
+$;
+revoke all on function private.bingo_player_view(public.bingo_rooms,public.bingo_participants,text) from public,anon,authenticated;
 commit;
 
