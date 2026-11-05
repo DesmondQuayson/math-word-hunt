@@ -11,8 +11,15 @@ import {
 } from "./internal-registry";
 
 describe("trusted internal game registry", () => {
-  it("registers the source-owned CrossCalc, Number Cross, Number Logic and Math Tug of War keys and routes only", () => {
-    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic", "math-tug-of-war"]);
+  it("registers the source-owned CrossCalc, Number Cross, Number Logic, Math Tug of War and Math Bingo Live keys and routes only", () => {
+    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic", "math-tug-of-war", "math-bingo-live"]);
+    expect(getInternalGameRegistration("math-bingo-live")).toMatchObject({
+      stableKey: "math-bingo-live",
+      route: "/games/math-bingo-live/host",
+      assetBase: "/internal-games/math-bingo-live/",
+      connectSource: "'self'"
+    });
+    expect(isInternalGameRegistered("math-bingo-live")).toBe(true);
     expect(getInternalGameRegistration("crosscalc")).toMatchObject({
       stableKey: "crosscalc",
       route: "/games/crosscalc/play",
@@ -112,6 +119,17 @@ describe("trusted internal game registry", () => {
     expect(body).toContain('<script type="module" src="./src/app.js"');
     expect(body).not.toContain("number-cross.vercel.app");
     expect(body).not.toContain("launch=");
+  });
+
+  it("renders the Math Bingo Live host screen (never the student page) for its registration", async () => {
+    const response = createInternalGameResponse("math-bingo-live");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    const body = await response.text();
+    expect(body).toContain('data-role="host"');
+    expect(body).toContain('src="/internal-games/math-bingo-live/src/host.js?v=');
+    expect(body).not.toContain("player.js");
   });
 
   it("fails closed for unregistered internal keys", () => {

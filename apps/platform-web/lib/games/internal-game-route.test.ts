@@ -145,6 +145,17 @@ describe("native internal game authorization routes", () => {
     }
   });
 
+  it("Math Bingo Live (registered, normally reached at /host) is never served as a Draft through the generic play route", async () => {
+    const bingo = (status: InternalGameLaunchRecord["status"]) => ({ ...numberCross(status, "math-bingo-live"), slug: "math-bingo-live" });
+    for (const status of ["draft", "archived"] as const) {
+      mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(bingo(status));
+      const response = await playerPlay(new Request("https://mathnexa.com/games/math-bingo-live/play"), { params: Promise.resolve({ resourceId: "math-bingo-live" }) });
+      expect(response.status, status).toBe(404);
+    }
+    expect(mocks.requireGamePlayAccess).toHaveBeenCalledWith("math-bingo-live");
+    expect(mocks.requireProductAccess).not.toHaveBeenCalled();
+  });
+
   it("uses the MathNexa maintenance experience and renders a Published game in place", async () => {
     mocks.loadInternalGameLaunchRecord.mockResolvedValueOnce(numberCross("maintenance"));
     const maintenance = await playerPlay(new Request("https://mathnexa.com/games/number-cross/play"), {

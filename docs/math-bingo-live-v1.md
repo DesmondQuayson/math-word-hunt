@@ -135,7 +135,16 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 
 `isMathBingoLiveAvailable()` serves the host page, `/join`, room creation and joining only if the catalog entry is `published`, **or** it is `draft` and the local owner preview is on: `MVH_MATH_BINGO_LIVE_PREVIEW=local-owner-review`, a loopback application origin (`http://127.0.0.1` / `http://localhost`), and no Vercel deployment variables. A hosted environment can therefore never expose the draft through the local preview, whatever its variables.
 
-For the owner's **staging review** only, `isStagingOwnerPreview()` also serves the draft when all of these hold: `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review` (passed per deployment with `vercel deploy --env`, never stored as a project variable), `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` are the isolated staging Supabase project (`gcmuhzxkwvfireyrearl`), the application origin is not mathnexa.com, and the deployment is a staging Preview (behind Vercel Deployment Protection) or enforces the staging access gate. Production fails every condition. Staging tooling: `scripts/invoke-math-bingo-live-staging.ps1 -Stage identify|migrate|smoke|review` (vault-loaded, staging-only).
+For the owner's **staging review** only, `isStagingOwnerPreview()` also serves the draft when all of these hold: `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review` (passed per deployment with `vercel deploy --env`, never stored as a project variable), `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` are the isolated staging Supabase project (`gcmuhzxkwvfireyrearl`), the application origin is not mathnexa.com, and the deployment is a staging Preview (behind Vercel Deployment Protection) or enforces the staging access gate. Production fails every condition. Staging tooling: `scripts/invoke-math-bingo-live-staging.ps1 -Stage identify|migrate|smoke|review|load` (vault-loaded, staging-only).
+
+## Catalog registration
+
+Math Bingo Live is a registered internal game (`lib/games/internal-registry.ts`, key `math-bingo-live`), like the other MathNexa games, so the shared catalog machinery treats it the same way:
+
+- The Games catalog (`/games`) and the public games list (`/math-games`) show it **only while the catalog entry is `published`** (`loadPublicGameCatalog` reads published rows only); a draft is never listed. The card opens the host screen, `/games/math-bingo-live/host` (the registration's route).
+- Super Admin → Games can publish, put into maintenance and archive it (the status route refuses internal games that are not registered).
+- `/games/math-bingo-live` and `/games/math-bingo-live/play` only point at the host screen (307); the host route is the one place that applies the account and availability rules. The generic `/games/<slug>/play` route would refuse a draft or archived entry anyway.
+- A Super Admin catalog preview renders the host screen's document under the same headers; starting a room from it still needs a signed-in MathNexa account and an available game.
 
 ## Host board (teacher laptop, projector, Smart Board)
 
@@ -185,6 +194,7 @@ See `owner-review/math-bingo-live-owner-review-2026-11-03.md` for the run-by-run
 - `supabase/tests/database/37_math_bingo_live.test.sql` — 177 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close (lobby and in-game), "everyone" completion, the 60-player cap, and the five winning-ways setups (a completed diagonal is not a Bingo when diagonals are off).
 - `scripts/math-bingo-live-simulation.mjs` — 40 seeded students through the real database functions, invariants after every question, rematch, identical replay.
 - `scripts/math-bingo-live-load.mjs` — 1 room × 50 HTTP players and 3 concurrent rooms × 20.
+- `scripts/load-math-bingo-live-staging.mjs` (`invoke-math-bingo-live-staging.ps1 -Stage load -Origin <staging preview>`) — a real host screen and 50 virtual students on a hosted staging preview, all from one address (a class behind one school connection), polling at the student page's pace for several timed games: latency, status codes, rate limits, question coverage.
 - `scripts/math-bingo-live-host-layout.mjs` — the host board at four screen sizes across 1–50 players and every board state; winning ways on host and student screens against the room settings.
 - `e2e/math-bingo-live/*.spec.ts` — Chromium and WebKit: host + Ava/Zion/Omar, Fraction Bingo, reconnect/recovery/pause/removal, security and free access, every target viewport, keyboard/screen-reader/reduced-motion/forced-colours.
 
@@ -195,5 +205,5 @@ Run locally: `node scripts/run-math-bingo-live.mjs e2e`, `node scripts/run-math-
 1. Owner review on this branch (local demo: `node scripts/run-math-bingo-live.mjs demo`).
 2. Merge to `main` with the catalog entry still DRAFT; deploy; apply the migration to staging, then production (additive: new tables and functions only, one draft catalog row).
 3. Staging verification with real devices on a school network.
-4. Publish by a follow-up migration that sets the catalog entry to `published` (and adds the card copy to the Free Games presentation).
+4. Publish with Super Admin → Games → Publish (the registered internal game passes the status route's registry check), or by a follow-up migration that sets the catalog entry to `published`.
 5. Rollback: set the entry to `archived` (routes stop serving new rooms; existing rooms expire within hours), or redeploy the previous build. The tables can stay; nothing else depends on them. The migration does not alter any existing table.

@@ -52,7 +52,8 @@ describe("game access classification", () => {
     expect(gameAccessPolicy("math-tug-of-war")).toBe("authenticated-free");
     expect(gameAccessPolicy("math-bingo-live")).toBe("authenticated-free");
     expect(freeGamePlayRoute("math-bingo-live")).toBe(MATH_BINGO_LIVE_HOST_ROUTE);
-    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war"), "math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "unknown", "__proto__", "constructor"]) {
+    expect(internalGameKeys()).toContain("math-bingo-live");
+    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war" && key !== "math-bingo-live"), "math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "unknown", "__proto__", "constructor"]) {
       expect(gameAccessPolicy(key), key).toBe("entitled");
       expect(isFreeToPlayGame(key), key).toBe(false);
       expect(freeGameKeyForSlug(key), key).toBeNull();

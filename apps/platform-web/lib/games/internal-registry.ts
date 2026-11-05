@@ -2,6 +2,7 @@ import "server-only";
 
 import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
 import { renderCrossCalcV2Document, renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
+import { renderMathBingoLiveHostDocument } from "@/features/games/math-bingo-live/document";
 import { renderMathTugOfWarDocument } from "@/features/games/math-tug-of-war/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
@@ -14,7 +15,8 @@ export type InternalGameDocumentOptions = Readonly<{
 
 export type InternalGameRegistration = Readonly<{
   stableKey: string;
-  route: `/games/${string}/play`;
+  /** Where the catalog opens the game: a /play document, or a live game's /host screen. */
+  route: `/games/${string}/play` | `/games/${string}/host`;
   assetBase: `/internal-games/${string}/`;
   connectSource: "'none'" | "'self'";
   renderDocument: (options?: InternalGameDocumentOptions) => string;
@@ -49,6 +51,16 @@ const INTERNAL_GAMES = Object.freeze({
     assetBase: "/internal-games/math-tug-of-war/",
     connectSource: "'self'",
     renderDocument: renderMathTugOfWarDocument
+  }),
+  // A live classroom game: the catalog opens the teacher's host screen, whose
+  // route (app/games/math-bingo-live/host) applies the account and catalog
+  // availability rules. Students never use the catalog; they join at /join.
+  "math-bingo-live": Object.freeze({
+    stableKey: "math-bingo-live",
+    route: "/games/math-bingo-live/host",
+    assetBase: "/internal-games/math-bingo-live/",
+    connectSource: "'self'",
+    renderDocument: renderMathBingoLiveHostDocument
   })
 } satisfies Record<string, InternalGameRegistration>);
 

@@ -251,7 +251,7 @@ describe("coverage", () => {
       const registration = getInternalGameRegistration(key)!;
       if ((await createInternalGameResponse(key).text()).includes(`<base href="${registration.assetBase}"`)) withBase.push(key);
     }
-    // Math Tug of War uses absolute asset URLs and no <base>; the others depend on it.
+    // Math Tug of War and Math Bingo Live use absolute asset URLs and no <base>; the others depend on it.
     expect(withBase.sort()).toEqual(["crosscalc", "number-cross", "number-logic"]);
   });
 });
