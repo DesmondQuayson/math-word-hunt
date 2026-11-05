@@ -41,7 +41,8 @@ const out = resolve(process.env.REVIEW_OUT ?? "qa-artifacts/math-bingo-live/stag
 mkdirSync(out, { recursive: true });
 
 const bypassHeaders = { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" };
-const apiHeaders = { ...bypassHeaders, "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" };
+// What the real student page sends: the game header plus Fetch Metadata and Origin (the API refuses anything else).
+const apiHeaders = { ...bypassHeaders, "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live", "Sec-Fetch-Site": "same-origin", Origin: origin };
 const PLAY = `${origin}/api/games/math-bingo-live/play`;
 const HOST = "/games/math-bingo-live/host";
 const ACTIVE = new Set(["COUNTDOWN", "QUESTION_ACTIVE", "ANSWER_REVEAL", "LEADERBOARD_UPDATE", "WINNER_REVEAL"]);
@@ -146,9 +147,18 @@ const browsers = [];
 const students = [];
 const startedAt = Date.now();
 let report = null;
+let networkBaseline = null;
 try {
   const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
+  // Network baseline: this machine to the deployment and back, for a request that does no database work.
+  const baseline = [];
+  for (let index = 0; index < 10; index += 1) {
+    const started = performance.now();
+    await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.text()).catch(() => null);
+    baseline.push({ ms: performance.now() - started });
+  }
+  networkBaseline = stats(baseline.slice(2));
 
   // The synthetic free teacher signs in and creates a timed room: 10 s questions, 3 s reveal, 10 winners.
   const email = `bingo-load-${run}-teacher@example.invalid`;
@@ -191,7 +201,10 @@ try {
   for (let index = 0; index < PLAYERS; index += 1) students.push(student(index, room.code));
   const joinStarted = performance.now();
   const joined = await Promise.all(students.map((one) => one.join()));
-  ok(joined.every(Boolean), `${joined.filter(Boolean).length}/${PLAYERS} students joined (${Math.round(performance.now() - joinStarted)} ms for the class)`);
+  if (!ok(joined.every(Boolean), `${joined.filter(Boolean).length}/${PLAYERS} students joined (${Math.round(performance.now() - joinStarted)} ms for the class)`)) {
+    const refusals = samples.filter((sample) => sample.action === "join" && sample.status !== 200).map((sample) => `${sample.status} ${sample.result}`);
+    throw new Error(`joins refused: ${[...new Set(refusals)].join("; ")}`);
+  }
   const loops = students.filter((one) => one.joined).map((one) => one.loop());
   await page.waitForFunction((count) => (window.__MATH_BINGO_LIVE__?.state?.players?.length ?? 0) === count, joined.filter(Boolean).length, { timeout: 30_000 })
     .catch(() => ok(false, "the host lobby did not list every student"));
@@ -262,9 +275,11 @@ try {
       host: stats(by((sample) => sample.who === "host"))
     },
     worstCoverage: Math.round(Math.min(...coverage) * 1000) / 10,
-    boardsDealt: students.filter((one) => one.boardDealt).length
+    boardsDealt: students.filter((one) => one.boardDealt).length,
+    networkBaseline,
+    notOk: samples.filter((sample) => sample.status !== 200).map(({ who, action, status, result, at }) => ({ who, action, status, result, secondsIntoPlay: Math.round((at - playStarted) / 1000) }))
   };
-  writeFileSync(resolve(out, "load-report.json"), JSON.stringify(report, null, 2));
+  writeFileSync(resolve(out, `load-report-${PLAYERS}.json`), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 
   const serverErrors = samples.filter((sample) => sample.status >= 500 || sample.status === 0);
