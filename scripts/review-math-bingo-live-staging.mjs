@@ -166,9 +166,10 @@ try {
   const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
 
-  // Production does not serve the draft (read-only).
+  // Production (read-only): the game was published there with v1.2.35 (2026-11-05),
+  // so /join is served; 404 would mean it was archived or rolled back.
   const productionJoin = await fetch("https://mathnexa.com/join", { redirect: "manual" });
-  ok(productionJoin.status === 404, `production /join is not served (status ${productionJoin.status})`);
+  ok(productionJoin.status === 200, `production /join serves the published game (status ${productionJoin.status})`);
 
   // Anonymous: /join is open (code + name only); the host screen asks for an account.
   const anonymousJoin = await fetch(`${origin}/join`, { headers: bypassHeaders, redirect: "manual" });
