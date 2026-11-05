@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('audit', 'migrate', 'verify', 'smoke')] [string]$Stage = 'audit',
+  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'publish', 'archive')] [string]$Stage = 'audit',
   [string]$EvidenceDir = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
@@ -15,6 +15,8 @@ param(
 #   -Stage migrate  apply ONLY 20261103100000 (refuses otherwise); catalog row stays DRAFT
 #   -Stage verify   tables, RLS, grants, functions, catalog row, other games
 #   -Stage smoke    service-role room contract with synthetic hashes (no account; cleaned up)
+#   -Stage publish  owner-instructed: draft -> published via the Super Admin publish function
+#   -Stage archive  owner-instructed: -> archived the same way (game-only rollback)
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-bingo-live-production.ps1 -Stage audit
 $ErrorActionPreference = 'Stop'
@@ -28,7 +30,7 @@ function Open-SecureValue {
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
 }
 $names = @('SUPABASE_PRODUCTION_PROJECT_REF', 'SUPABASE_PRODUCTION_SECRET_KEY')
-if ($Stage -in @('audit', 'migrate', 'verify')) { $names += 'SUPABASE_PRODUCTION_DB_PASSWORD' }
+if ($Stage -in @('audit', 'migrate', 'verify', 'publish', 'archive')) { $names += 'SUPABASE_PRODUCTION_DB_PASSWORD' }
 $optional = @()
 if ($Stage -eq 'smoke') { $optional += 'SUPABASE_PRODUCTION_PUBLISHABLE_KEY' }
 $vault = Import-Clixml -LiteralPath $VaultPath

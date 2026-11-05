@@ -24,6 +24,13 @@
  *                    unknown code, host view, a stranger's host view, player
  *                    view, close. A browser key cannot reach rooms. Every
  *                    synthetic row is deleted afterwards.
+ *   --stage=publish  Owner-instructed. draft → published through
+ *                    transition_game_catalog_entry (the function behind Super
+ *                    Admin's Publish button), with the only active admin as
+ *                    the actor; checks the lock, the version history, the
+ *                    audit event and that nothing else moved.
+ *   --stage=archive  Owner-instructed rollback for the game only: → archived
+ *                    the same way (new rooms and joins are refused).
  *
  * Mirrors scripts/run-math-tug-of-war-production.mjs (v1.2.21 release) and
  * scripts/run-math-bingo-live-staging.mjs. The database is reached through the
@@ -253,6 +260,49 @@ async function verify() {
   evidence.snapshot = sql(SNAPSHOT_SQL)[0];
 }
 
+/**
+ * Publish (draft → published) or archive the catalog entry through the same
+ * database function Super Admin's Publish/Archive buttons call
+ * (transition_game_catalog_entry), so the lock version, the catalog version
+ * history and the admin audit event ("admin.game.publish" / "admin.game.archive")
+ * are recorded exactly as for a click. The function requires an admin actor;
+ * the only active, MFA-enrolled admin (the owner) is used, and the stage
+ * refuses if there is not exactly one. Owner-instructed only.
+ */
+async function transition(target) {
+  const url = connect();
+  const sql = sqlFor(url);
+  await identify(sql);
+  verifyApplied(sql);
+  const before = sql(SNAPSHOT_SQL)[0];
+  const row = sql(`select id, status, lock_version from public.game_catalog_entries where stable_key='${GAME_KEY}'`)[0];
+  const allowedFrom = target === "published" ? ["draft", "maintenance"] : ["draft", "published", "maintenance"];
+  check(row && allowedFrom.includes(row.status), `refusing: catalog status is ${row?.status}, cannot move to ${target}`);
+  const admins = sql("select id from public.admin_users where revoked_at is null and mfa_enrolled");
+  check(admins.length === 1, `refusing: expected exactly one active MFA-enrolled admin, found ${admins.length}`);
+  const actor = String(admins[0].id);
+  secrets.push(actor);
+  const lock = Number(row.lock_version);
+  evidence.transition = { from: row.status, to: target, lockBefore: lock, actor: "the only active admin (owner)" };
+  const { data, error } = await api().rpc("transition_game_catalog_entry", {
+    p_actor_admin_id: actor, p_catalog_entry_id: row.id, p_expected_lock_version: lock, p_status: target
+  });
+  check(!error, `transition-failed:${redact(error?.message)}`);
+  evidence.transition.lockAfter = Number(data);
+  const after = sql(SNAPSHOT_SQL)[0];
+  evidence.snapshotBefore = before;
+  evidence.snapshotAfter = after;
+  check(Number(data) === lock + 1, "lock-version-not-advanced-by-one");
+  check(after.catalog === before.catalog && after.catalog_versions === before.catalog_versions + 1, "catalog-version-history-not-exactly-one-row");
+  check(after.other_games === before.other_games && after.history_digest === before.history_digest && after.history === before.history, "other-games-or-history-changed");
+  for (const key of ["accounts", "entitlements", "subscriptions", "resources", "auth_users"]) check(after[key] === before[key], `unrelated-row-count-changed:${key}`);
+  const action = target === "published" ? "admin.game.publish" : "admin.game.archive";
+  evidence.audit = sql(`select action, created_at, metadata->>'status' as status from public.admin_audit_log
+    where target='${row.id}' and action='${action}' and created_at > now() - interval '10 minutes' order by created_at desc limit 1`)[0] ?? null;
+  check(evidence.audit?.status === target, "admin-audit-event-missing");
+  verifyApplied(sql, { expectStatus: target });
+}
+
 async function smoke() {
   const client = api();
   const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -328,7 +378,9 @@ try {
   else if (stage === "migrate") await migrate();
   else if (stage === "verify") await verify();
   else if (stage === "smoke") await smoke();
-  else throw new Error("usage: --stage=audit|migrate|verify|smoke");
+  else if (stage === "publish") await transition("published");
+  else if (stage === "archive") await transition("archived");
+  else throw new Error("usage: --stage=audit|migrate|verify|smoke|publish|archive");
   evidence.result = "PASS";
 } catch (error) {
   evidence.result = "FAIL";
