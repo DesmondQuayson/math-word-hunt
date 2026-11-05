@@ -179,6 +179,10 @@ let networkBaseline = null;
 // The same no-database request, sampled every 2 s DURING play: if it slows down
 // with the game requests, the delay is the platform or network, not the game.
 const healthDuringPlay = [];
+// A trivial Supabase read (one catalog row through the REST API) from this
+// machine every 2 s during play: is the Supabase API slow for everything, or
+// only for the game's calls?
+const supabaseDuringPlay = [];
 try {
   const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
@@ -270,6 +274,9 @@ try {
       const started = performance.now();
       const status = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then(async (response) => { await response.text(); return response.status; }).catch(() => 0);
       healthDuringPlay.push({ ms: performance.now() - started, status, at: Date.now() });
+      const readStarted = performance.now();
+      const read = await admin.from("game_catalog_entries").select("stable_key").limit(1).then((result) => (result.error ? 0 : 200), () => 0);
+      supabaseDuringPlay.push({ ms: performance.now() - readStarted, status: read, at: Date.now() });
       await sleep(2000);
     }
   })();
@@ -337,6 +344,15 @@ try {
       return [action, { app: stats(list, "app"), db: stats(list, "db"), access: stats(list, "access"), outside: stats(list, "outside") }];
     })),
     healthDuringPlay: { ...stats(healthDuringPlay), failed: healthDuringPlay.filter((sample) => sample.status !== 200).length },
+    supabaseDuringPlay: { ...stats(supabaseDuringPlay), failed: supabaseDuringPlay.filter((sample) => sample.status !== 200).length },
+    // Poll latency per 10 s of play (p50/p95/max, with the trivial Supabase read's max in the same window).
+    timeline: Array.from({ length: Math.ceil(playSeconds / 10) }, (_, window) => {
+      const from = playStarted + window * 10_000;
+      const inWindow = (sample) => sample.at >= from && sample.at < from + 10_000;
+      const polls = stats(by((sample) => sample.action === "state" && inWindow(sample)));
+      const reads = stats(supabaseDuringPlay.filter(inWindow));
+      return { second: window * 10, polls: polls.n, p50: polls.p50, p95: polls.p95, max: polls.max, supabaseReadMax: reads.max ?? null };
+    }),
     notOk: samples.filter((sample) => sample.status !== 200).map(({ who, action, status, result, at }) => ({ who, action, status, result, secondsIntoPlay: Math.round((at - playStarted) / 1000) }))
   };
   writeFileSync(resolve(out, `load-report-${PLAYERS}.json`), JSON.stringify(report, null, 2));
