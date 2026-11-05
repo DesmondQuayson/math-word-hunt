@@ -59,6 +59,30 @@ Checked with `node scripts/run-math-bingo-live.mjs layout` (or `scripts/math-bin
 - `-Stage review` **43/43**: build identity; production `/join` still 404; a free staging account hosts; three students (WebKit iPhone with real taps, Chromium phone, Chromium tablet) join with code + name; identical answer sets on different cards; winning ways (rows + columns, no diagonals) match on host and student; the host board at 1280×720 and 1920×1080 never scrolls and has every panel in place; Bingo Winners `Winners 1 / 3`; winners Ava → Zion → Omar, all rows/columns; MATH BINGO COMPLETE. The synthetic account and room were deleted.
 - Production: not modified (no migration, no deploy, no env).
 
+## Pre-release steps (owner approved 2026-11-04)
+
+- **Registry fix** (`f3dc9a3`): Math Bingo Live was missing from the internal game registry, so after publishing it would never have appeared in the Games catalog or the public games list, and Super Admin could not have published or archived it. It is now registered with the host screen as its catalog address; `/games/math-bingo-live/play` points at the host screen; a draft is still never listed or served. 11 new or updated unit tests.
+- **Staging recheck**: preview `dpl_LQ5WXz5AgQpTWMhBSESognzwF7sT` (build e0c92a7, same staging gate, alias untouched). `-Stage review` **40/40**, including the new check that `/games/math-bingo-live/play` points at the host screen. The check count changes with game length (one per tap); no check failed.
+- **Hosted load test** (`-Stage load`, staging preview, staging database; a real host screen plus virtual students that poll at the student page's own pace; every request from one machine, as a class behind one school address would be; 10 s questions, 3 s reveal, 10 winners, 6 minutes of play; network baseline from this machine 126–139 ms p50):
+
+| Class size | Joined | Errors / 429 | Questions seen (worst student) | Room polls p50 / p95 / p99 | Marks p50 / p95 / p99 | Host screen p50 / p95 / max |
+| --- | --- | --- | --- | --- | --- | --- |
+| 30 | 30/30 | 0 / 0 | 100 % | 217 / 380 / 664 ms | 242 / 415 / 553 ms | 591 / 897 / 1,912 ms |
+| 50 (run 1) | 50/50 | 0 / 0 | 95.7 % | 410 / 1,570 / 2,615 ms | 736 / 2,555 / 3,995 ms | 1,087 / 3,623 / 8,203 ms |
+| 50 (run 2) | 50/50 | 0 / 0 | 100 % | 362 / 1,431 / 2,938 ms | 707 / 2,196 / 3,904 ms | 974 / 3,143 / 12,630 ms |
+
+  Every game finished with 10 winners in distinct places, every student got a card, and no request failed or was rate-limited (the one 404 per run is the host page's "no room to resume" check before a room exists). **At 30 students everything is well inside the targets (1 s polls, 1.5 s marks and host). At 50 the game stays correct, but replies are about 4× slower:** a mark is confirmed within 2.2–2.6 s for 95 % of taps, and the teacher's screen can trail by about 3 s (worst 8–13 s). The cause is that every mark locks the room row and bumps its version, so most polls then need a full reply; the host's full-room reply is the heaviest. The staging database's compute size may also differ from production's.
+- **Release gates** (local, app code of f3dc9a3; later commits change only scripts and docs):
+
+| Check | Result |
+| --- | --- |
+| Typecheck / lint / build | Clean / 0 errors (8 pre-existing warnings) / pass |
+| Unit core / web | 245/245; 1,126 passed, 1 skipped (11 more than before the registry fix) |
+| `test:security` | Baseline 322/322; platform bundle and Number Cross audits pass; bypass tests 7/7 |
+| pgTAP | 1,103/1,104. The one failure is the suite-cleanup check counting rows left in the local database by earlier local runs (six `bingo-*@example.test` runner accounts and 13 local billing webhook events), not by the tests |
+| Math Bingo Live e2e (Chromium + WebKit) | 15 passed; WebKit's full three-Bingo game hit its 15-minute limit (headless WebKit takes about 4 s per click on this machine, as before), so its follow-on test did not run |
+| Phase 9 / school access / Tug of War free access | 30/30 / 21/21 / 8/8 |
+
 ## Results
 
 | # | Item | Result |
@@ -159,7 +183,7 @@ Every room ended with exactly 3 unique placements; no request failed.
 - QR code not implemented: MathNexa has no same-origin QR library and a hand-written encoder could not be independently verified with local tools; joining is by URL + 6-digit code.
 - No profanity filter (MathNexa has no moderation mechanism); the teacher removes players and locks joining.
 - A student opening several extra seats could use wrong-tap attempts to probe an answer; extra seats are visible in the roster and count (remove + lock joining).
-- Polling, not push: events reach screens within about 1 s. When a whole class taps at the same instant the room lock serializes the marks (≈1.5 s p50 on the local dev stack); production latency must be measured on staging.
+- Polling, not push: events reach screens within about 1 s. When a whole class taps at the same instant the room lock serializes the marks (≈1.5 s p50 on the local dev stack). Measured on hosted staging (see Pre-release steps): fast at 30 students, about 4× slower but still correct at 50.
 - Local `next start` cannot run the production-platform rehearsal (by design), so e2e and load ran on `next dev`; the production build was verified with `next build` and the bundle audit.
 - WebKit e2e needed harness accommodations: each device's page is brought to front, background-page frame pausing in headless WebKit is tolerated, and WebKit's report of fetches cancelled by deliberate reloads is ignored.
 - Host takeover from a second window works per sign-in; with a shared school-access session, anyone signed in to that same session could take over.
