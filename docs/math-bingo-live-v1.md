@@ -133,7 +133,9 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 
 ## Availability gate
 
-`isMathBingoLiveAvailable()` serves the host page, `/join`, room creation and joining only if the catalog entry is `published`, **or** it is `draft` and the local owner preview is on: `MVH_MATH_BINGO_LIVE_PREVIEW=local-owner-review`, a loopback application origin (`http://127.0.0.1` / `http://localhost`), and no Vercel deployment variables. A hosted environment can therefore never expose the draft, whatever its variables.
+`isMathBingoLiveAvailable()` serves the host page, `/join`, room creation and joining only if the catalog entry is `published`, **or** it is `draft` and the local owner preview is on: `MVH_MATH_BINGO_LIVE_PREVIEW=local-owner-review`, a loopback application origin (`http://127.0.0.1` / `http://localhost`), and no Vercel deployment variables. A hosted environment can therefore never expose the draft through the local preview, whatever its variables.
+
+For the owner's **staging review** only, `isStagingOwnerPreview()` also serves the draft when all of these hold: `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review` (passed per deployment with `vercel deploy --env`, never stored as a project variable), `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` are the isolated staging Supabase project (`gcmuhzxkwvfireyrearl`), the application origin is not mathnexa.com, and the deployment is a staging Preview (behind Vercel Deployment Protection) or enforces the staging access gate. Production fails every condition. Staging tooling: `scripts/invoke-math-bingo-live-staging.ps1 -Stage identify|migrate|smoke|review` (vault-loaded, staging-only).
 
 ## Host board (teacher laptop, projector, Smart Board)
 

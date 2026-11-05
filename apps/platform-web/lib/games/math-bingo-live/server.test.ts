@@ -10,6 +10,7 @@ import {
   generateRoomCode,
   hashToken,
   isLocalOwnerPreview,
+  isStagingOwnerPreview,
   isToken,
   newGameSeed,
   newToken,
@@ -98,6 +99,42 @@ describe("local owner preview gate", () => {
     expect(isLocalOwnerPreview({ ...base, VERCEL: "1" })).toBe(false);
     expect(isLocalOwnerPreview({ ...base, VERCEL_ENV: "preview" })).toBe(false);
     expect(isLocalOwnerPreview({ ...base, VERCEL_URL: "x.vercel.app" })).toBe(false);
+  });
+});
+
+describe("staging owner preview gate", () => {
+  const staging = "https://gcmuhzxkwvfireyrearl.supabase.co";
+  const preview = {
+    MVH_MATH_BINGO_LIVE_PREVIEW: "staging-owner-review",
+    SUPABASE_URL: staging,
+    NEXT_PUBLIC_SUPABASE_URL: staging,
+    MVH_APPLICATION_ORIGIN: "https://mathnexa-platform-staging.vercel.app",
+    MVH_APP_ENVIRONMENT: "production-platform",
+    VERCEL: "1",
+    VERCEL_ENV: "preview"
+  };
+  const gatedAlias = { ...preview, VERCEL_ENV: "production", MVH_STAGING_ACCESS_TOKEN: "a".repeat(43) };
+  it("serves the draft on a staging Preview or the gated staging alias", () => {
+    expect(isStagingOwnerPreview(preview)).toBe(true);
+    expect(isStagingOwnerPreview(gatedAlias)).toBe(true);
+  });
+  it("needs the exact staging flag, set per deployment", () => {
+    expect(isStagingOwnerPreview({ ...preview, MVH_MATH_BINGO_LIVE_PREVIEW: undefined })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, MVH_MATH_BINGO_LIVE_PREVIEW: "local-owner-review" })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, MVH_MATH_BINGO_LIVE_PREVIEW: "true" })).toBe(false);
+  });
+  it("is never on with production data, the production origin, or an open non-preview deployment", () => {
+    const production = "https://abcdefghijklmnopqrst.supabase.co";
+    expect(isStagingOwnerPreview({ ...preview, SUPABASE_URL: production })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, NEXT_PUBLIC_SUPABASE_URL: production })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, SUPABASE_URL: "https://gcmuhzxkwvfireyrearl.supabase.co.evil.example" })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: "https://mathnexa.com" })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: "https://www.mathnexa.com" })).toBe(false);
+    expect(isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: undefined })).toBe(false);
+    // A production-target deployment with no staging gate (production carries no staging token).
+    expect(isStagingOwnerPreview({ ...preview, VERCEL_ENV: "production" })).toBe(false);
+    // The staging alias opened deliberately (MVH_STAGING_ACCESS_REQUIRED=false) is not gated any more.
+    expect(isStagingOwnerPreview({ ...gatedAlias, MVH_STAGING_ACCESS_REQUIRED: "false" })).toBe(false);
   });
 });
 
