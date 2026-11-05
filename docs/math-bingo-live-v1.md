@@ -30,7 +30,7 @@ student browser ── /join (document) ── player.js ───────�
 ```
 
 - **Engine** (`src/engine/*.js`, shared by browser, server and tests): settings, question generators, fraction rationals and model geometry, cards and the 12 line masks.
-- **Database** owns time, phases, mark validation, Free Space, winner placement, leaderboard and events. Every rule a student could try to break is enforced there, under the room row lock.
+- **Database** owns time, phases, mark validation, Free Space, winner placement, leaderboard and events. Every rule a student could try to break is enforced there: wins, broadcasts and phase changes under the room row lock, ordinary taps under the player's own row (see "Room speed" below).
 - **Server** does what SQL is poor at: builds the deck/pool from a fresh 128-bit seed per game, deals cards (the database refuses any card that is not exactly the room's pool), and shapes responses.
 - **Browsers** render and send intents (tap cell 7 for question 12). They never decide correctness, timing or winners.
 
@@ -39,7 +39,7 @@ student browser ── /join (document) ── player.js ───────�
 MathNexa has no Supabase Realtime (it is disabled in `supabase/config.toml`, and no game opens a WebSocket). Math Bingo Live therefore uses the established MathNexa pattern: **same-origin HTTPS polling**, which is also the district-network fallback by construction.
 
 - Players poll every 1 s while a game is live (2 s in the lobby, 2.5 s while the tab is hidden); the host polls every 0.8 s.
-- Each poll sends the last room/player version; an unchanged room answers `{"result":"unchanged"}` (a few dozen bytes).
+- Each poll sends the last room/player version; an unchanged room answers `{"result":"unchanged"}` (a few dozen bytes). The host also sends a progress number (the sum of the players' row versions), because ordinary taps change only the players' rows, not the room version.
 - Every client also schedules a poll for the exact moment the current phase ends (from the server deadline), so all screens flip together.
 - Countdowns render from server deadlines and a server-clock offset estimated from low-latency round trips; the device clock is never trusted.
 - No transient event is pushed: Free Space, Bingo and "one away" are appended to a capped (20) event list on the room row and picked up by the next poll.
@@ -124,7 +124,8 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 - APIs: same-origin only (custom header + Fetch Metadata / Origin), JSON only, 1–4 KB bodies, `no-store`; integers range-checked; unknown actions refused.
 - Hidden answers: the deck and pool never leave the server; the current question's answer is sent only after the room reveals it; future questions are never sent (only 1..current). A Bingo's five winning cells (which include the open question's answer) are sent only once that question is revealed. Token and owner hashes never leave the database.
 - Unpredictable decks: each game is built from 128 secret random bits through a generator with a 128-bit state (sfc32 seeded by cyrb128), so the deck cannot be recovered by trying seeds even though a student knows the settings, the pool (their own card) and the questions asked so far. It is not a cryptographic generator; its strength is the secret seed and the state size.
-- Lock discipline: every function locks the room row before any participant row (no deadlocks); refusals that can no longer change (already won, mark used, attempts spent, Free Space used) are answered without the room lock, so one spamming client cannot queue the room.
+- Lock discipline: every function that locks the room row locks it before any participant row (no deadlocks); refusals that can no longer change (already won, invalid cell, the Free Space cell, already marked, mark used, attempts spent, Free Space used) are answered without the room lock, so one spamming client cannot queue the room.
+- Room speed (migration `20261106100000`): a wrong tap, or a correct tap that neither completes a winning line nor makes the player "one away" for the first time, changes nothing the whole room sees, so it updates only the player's row, guarded by that row's version (a concurrent change to the player — Play Again, Change Settings, removal, a second tap — sends it down the locked path, which re-validates everything). It is checked against the room as it was when the tap arrived: the question, its server deadline and the pause state. Bingos, a first "one away" and Free Space are broadcasts and keep the locked path, so placements stay strictly ordered and the cap exact. Replies compute the leaderboard when they are built. Before this change every correct tap took the room lock and bumped the room version, which at 50 students queued taps and turned most polls into full replies.
 - Names are rendered with `textContent` only and refused if they contain markup characters; duplicate names become "Ava 2".
 - Limits: 60 players per room; 12 room creations per teacher per 10 min; 40 failed joins per address per 10 min (classmates behind one school address are not limited for successful joins); one live room per teacher.
 - Room isolation: a participant token locates exactly one participant row; host tokens are domain-separated from player tokens.

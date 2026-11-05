@@ -8,14 +8,16 @@
  *
  *   --stage=audit    READ ONLY. Proves the target is production with several
  *                    independent signals, lists the migration history, proves
- *                    that exactly 20261103100000 is pending (nothing else, no
- *                    remote-only versions), that no Math Bingo Live object
- *                    exists yet, and snapshots the catalog, history and row
- *                    counts as the rollback baseline.
+ *                    that exactly ONE Bingo migration is pending, in order
+ *                    (20261103100000, then 20261106100000), nothing else and no
+ *                    remote-only versions, that the Bingo objects are absent
+ *                    (first migration) or present (later ones), and snapshots
+ *                    the catalog, history and row counts as the rollback baseline.
  *   --stage=migrate  Re-runs every audit check, dry-runs `supabase db push`
- *                    (must list exactly the one file), applies it with the CLI
+ *                    (must list exactly that one file), applies it with the CLI
  *                    (which records the history row itself), then checks the
- *                    history, the DRAFT catalog row and every unrelated count.
+ *                    history, the catalog row (created as DRAFT by the first
+ *                    migration; untouched by later ones) and every unrelated count.
  *   --stage=verify   Tables (RLS forced, no browser grants), functions
  *                    (SECURITY DEFINER, service_role only), the catalog row
  *                    (draft or published) and the other games, unchanged.
@@ -46,8 +48,13 @@ import { join, resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
-const MIGRATION = "20261103100000";
-const MIGRATION_FILE = "20261103100000_math_bingo_live.sql";
+// Bingo migrations in order. audit/migrate handle whichever ONE is pending.
+const MIGRATIONS = Object.freeze([
+  Object.freeze({ version: "20261103100000", file: "20261103100000_math_bingo_live.sql" }),
+  Object.freeze({ version: "20261106100000", file: "20261106100000_math_bingo_live_room_speed.sql" })
+]);
+const BINGO_VERSIONS = MIGRATIONS.map((migration) => migration.version);
+const SPEED_MIGRATION = "20261106100000";
 const GAME_KEY = "math-bingo-live";
 // Grade 6 quizzes published to PRODUCTION on 2026-09-26 (v1.2.13); staging holds different ids.
 const PRODUCTION_QUIZ_ID_PREFIXES = Object.freeze(["83d9252f", "42215d2a", "5b8bdc39", "1d80b325", "e01a72e2", "3e25faa1", "339aa712", "7654e5e9"]);
@@ -130,7 +137,7 @@ const SNAPSHOT_SQL = `select
   (select count(*) from public.content_resources)::int as resources,
   (select count(*) from auth.users)::int as auth_users,
   (select count(*) from supabase_migrations.schema_migrations)::int as history,
-  (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations where version <> '${MIGRATION}') as history_digest,
+  (select string_agg(version || ':' || coalesce(array_length(statements,1),0), ',' order by version) from supabase_migrations.schema_migrations where version not in (${BINGO_VERSIONS.map((version) => `'${version}'`).join(",")})) as history_digest,
   (select string_agg(stable_key || ':' || status || ':' || coalesce(display_order::text,'-') || ':' || version || ':' || lock_version, ',' order by stable_key) from public.game_catalog_entries where stable_key <> '${GAME_KEY}') as other_games`;
 
 /**
@@ -179,7 +186,8 @@ const bingoObjects = (sql) => sql(`select (to_regclass('public.bingo_rooms') is 
   (to_regclass('public.bingo_participants') is not null) as bingo_participants,
   (to_regclass('public.bingo_join_failures') is not null) as bingo_join_failures,
   (select count(*) from pg_proc where proname like 'bingo!_%' escape '!')::int as bingo_functions,
-  exists(select 1 from public.game_catalog_entries where stable_key='${GAME_KEY}' or slug='${GAME_KEY}') as catalog_row`)[0];
+  exists(select 1 from public.game_catalog_entries where stable_key='${GAME_KEY}' or slug='${GAME_KEY}') as catalog_row,
+  (to_regprocedure('public.bingo_host_state(text,text,bigint,bigint)') is not null) as host_state_with_progress`)[0];
 
 async function audit() {
   const url = connect();
@@ -189,20 +197,27 @@ async function audit() {
   evidence.bingoObjects = bingoObjects(sql);
   evidence.catalogBefore = sql("select stable_key, slug, status, display_order, version, lock_version, launch_type from public.game_catalog_entries order by display_order nulls last, stable_key");
   evidence.snapshotBefore = sql(SNAPSHOT_SQL)[0];
+  const index = MIGRATIONS.findIndex((migration) => migration.version === plan.pending[0]);
+  const next = MIGRATIONS[index] ?? null;
+  evidence.applying = next?.version ?? null;
+  const objects = evidence.bingoObjects;
   evidence.checks = {
-    exactlyTheReleaseMigrationPending: JSON.stringify(plan.pending) === JSON.stringify([MIGRATION]),
+    exactlyOneBingoMigrationPending: plan.pending.length === 1 && next !== null,
     noRemoteOnlyMigrations: plan.remoteOnly.length === 0,
-    releaseNewerThanRemoteHead: plan.remote.every((version) => version < MIGRATION),
-    bingoObjectsAbsent: !evidence.bingoObjects.bingo_rooms && !evidence.bingoObjects.bingo_participants && !evidence.bingoObjects.bingo_join_failures
-      && evidence.bingoObjects.bingo_functions === 0 && !evidence.bingoObjects.catalog_row
+    releaseNewerThanRemoteHead: next !== null && plan.remote.every((version) => version < next.version),
+    earlierBingoMigrationsApplied: next !== null && MIGRATIONS.slice(0, index).every((migration) => plan.remote.includes(migration.version)),
+    bingoObjectsAsExpected: index === 0
+      ? !objects.bingo_rooms && !objects.bingo_participants && !objects.bingo_join_failures && objects.bingo_functions === 0 && !objects.catalog_row
+      : objects.bingo_rooms && objects.bingo_participants && objects.bingo_join_failures && objects.catalog_row && !objects.host_state_with_progress
   };
   check(Object.values(evidence.checks).every(Boolean), `audit-refused:${Object.entries(evidence.checks).filter(([, value]) => !value).map(([key]) => key).join(",")}`);
-  return { url, sql };
+  return { url, sql, next, first: index === 0 };
 }
 
 async function migrate() {
-  const { url, sql } = await audit();
+  const { url, sql, next, first } = await audit();
   const before = evidence.snapshotBefore;
+  const catalogBefore = evidence.catalogBefore.find((row) => row.stable_key === GAME_KEY) ?? null;
   const workRoot = mkdtempSync(join(tmpdir(), "mathnexa-bingo-production-"));
   try {
     cpSync(resolve("supabase"), join(workRoot, "supabase"), { recursive: true });
@@ -210,29 +225,38 @@ async function migrate() {
     check(dry.ok, `dry-run-failed:${redact(dry.output).slice(-600)}`);
     const listed = [...new Set(redact(dry.output).match(/\d{14}_[a-z0-9_]+\.sql/g) ?? [])];
     evidence.dryRunWouldApply = listed;
-    check(JSON.stringify(listed) === JSON.stringify([MIGRATION_FILE]), "refusing: the dry run would apply something other than the release migration");
+    check(JSON.stringify(listed) === JSON.stringify([next.file]), "refusing: the dry run would apply something other than the release migration");
     const pushed = cli(["db", "push", "--db-url", url], workRoot);
-    evidence.pushOutput = redact(pushed.output).split("\n").map((line) => line.trim()).filter((line) => /20261103|Applying|Finished|up to date|error/i.test(line)).slice(-8);
+    evidence.pushOutput = redact(pushed.output).split("\n").map((line) => line.trim()).filter((line) => /2026110|Applying|Finished|up to date|error/i.test(line)).slice(-8);
     check(pushed.ok, `push-failed:${redact(pushed.output).slice(-800)}`);
   } finally {
     rmSync(workRoot, { recursive: true, force: true });
   }
   const after = sql(SNAPSHOT_SQL)[0];
   evidence.snapshotAfter = after;
-  evidence.recorded = sql(`select version, name, coalesce(array_length(statements,1),0) as statements from supabase_migrations.schema_migrations where version='${MIGRATION}'`);
+  evidence.recorded = sql(`select version, name, coalesce(array_length(statements,1),0) as statements from supabase_migrations.schema_migrations where version='${next.version}'`);
   check(evidence.recorded.length === 1 && evidence.recorded[0].statements > 0, "history-row-missing");
   check(after.history === before.history + 1 && after.history_digest === before.history_digest, "other-history-rows-changed");
   check(after.other_games === before.other_games, "existing-games-changed");
-  check(after.catalog === before.catalog + 1 && after.catalog_versions === before.catalog_versions + 1, "catalog-delta-not-exactly-one-card");
+  if (first) check(after.catalog === before.catalog + 1 && after.catalog_versions === before.catalog_versions + 1, "catalog-delta-not-exactly-one-card");
+  else check(after.catalog === before.catalog && after.catalog_versions === before.catalog_versions, "catalog-changed-by-a-functions-only-migration");
   for (const key of ["accounts", "entitlements", "subscriptions", "resources", "auth_users"]) check(after[key] === before[key], `unrelated-row-count-changed:${key}`);
   evidence.unrelatedDataUnchanged = true;
-  verifyApplied(sql, { expectStatus: "draft" });
+  verifyApplied(sql, { expectStatus: first ? "draft" : catalogBefore?.status });
 }
 
 function verifyApplied(sql, { expectStatus } = {}) {
-  const recorded = sql(`select version from supabase_migrations.schema_migrations where version='${MIGRATION}'`).map((row) => String(row.version));
+  const recorded = sql(`select version from supabase_migrations.schema_migrations where version in (${BINGO_VERSIONS.map((version) => `'${version}'`).join(",")}) order by version`).map((row) => String(row.version));
   evidence.releaseRecorded = recorded;
-  check(JSON.stringify(recorded) === JSON.stringify([MIGRATION]), "release-migration-not-recorded");
+  check(recorded.length > 0 && JSON.stringify(recorded) === JSON.stringify(BINGO_VERSIONS.slice(0, recorded.length)), "bingo-migrations-not-recorded-in-order");
+  if (recorded.includes(SPEED_MIGRATION)) {
+    evidence.speedFunctions = sql(`select
+      (select prosecdef and not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE') and has_function_privilege('service_role', oid, 'EXECUTE')
+        from pg_proc where oid=to_regprocedure('public.bingo_host_state(text,text,bigint,bigint)')) as host_state_with_progress_locked,
+      (select not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE')
+        from pg_proc where oid=to_regprocedure('private.bingo_progress(uuid)')) as progress_helper_locked`)[0];
+    check(evidence.speedFunctions.host_state_with_progress_locked === true && evidence.speedFunctions.progress_helper_locked === true, "room-speed-functions-missing-or-open");
+  }
   evidence.catalog = sql(`select stable_key, slug, title, status, version, display_order, launch_type, thumbnail_reference, recommended_grade_min, recommended_grade_max,
     publication_metadata->>'internal_route' as internal_route,
     (select count(*) from public.game_catalog_entries g where g.stable_key='${GAME_KEY}' or g.slug='${GAME_KEY}')::int as identities
