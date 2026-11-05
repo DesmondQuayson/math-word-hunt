@@ -5,7 +5,7 @@
 // marks, Free Space and win (never a duplicate player). The card is the
 // largest thing on the screen; every tap is checked by the server.
 
-import { PLAY_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, readStored, writeStored } from "./api.js";
+import { PLAY_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pollInterval, readStored, writeStored } from "./api.js";
 import { GameAudio, attachAudioLifecycle, readPreferences, writePreferences } from "./audio.js";
 import { createCard, isFree } from "./cells.js";
 import { announce, clear, fill, h, icon } from "./dom.js";
@@ -190,7 +190,7 @@ function startSession(initialState) {
     endpoint: PLAY_ENDPOINT,
     credentials: () => ({ token: seat.token }),
     since: current => (current ? { since: current.version, sinceMe: current.me.version } : {}),
-    intervalFor: current => (current && ACTIVE_PHASES.has(current.phase) ? 1000 : 2000),
+    intervalFor: current => (current && ACTIVE_PHASES.has(current.phase) ? pollInterval(1000, current.playerCount) : 2000),
     onState: next => {
       state = next;
       render();

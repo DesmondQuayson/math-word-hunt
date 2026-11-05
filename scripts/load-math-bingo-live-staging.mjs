@@ -26,6 +26,9 @@ import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+// The student page's own polling rule, so the virtual class polls exactly like phones do.
+import { DEADLINE_SPREAD_MS, pollInterval } from "../apps/platform-web/public/internal-games/math-bingo-live/src/api.js";
+
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const origin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
 if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
@@ -68,7 +71,7 @@ const samples = [];
 function serverTiming(header) {
   const out = {};
   for (const part of String(header ?? "").split(",")) {
-    const match = /^s*(db|access|app);dur=([0-9.]+)/.exec(part);
+    const match = /^\s*(db|access|app);dur=([0-9.]+)/.exec(part);
     if (match) out[match[1]] = Number(match[2]);
   }
   return out;
@@ -133,13 +136,28 @@ function student(index, code) {
       if (right) apply((await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex })).json);
     }, jitter(1500, 8000));
   };
+  // Like api.js createLiveSession: the room-size interval, or the phase deadline
+  // (+120 ms and a random spread) when that comes first, on the server clock.
+  let clockOffset = 0;
+  const learnClock = (json) => {
+    const serverNow = json?.serverNow ?? json?.state?.timing?.serverNow;
+    if (typeof serverNow === "number") clockOffset = serverNow - Date.now();
+  };
   me.loop = async () => {
     while (!me.stop) {
       const s = me.state;
       const reply = await post({ action: "state", token: me.token, ...(s ? { since: s.version, sinceMe: s.me?.version } : {}) });
+      learnClock(reply.json);
       apply(reply.json);
       await me.act();
-      await sleep(me.state && ACTIVE.has(me.state.phase) ? 1000 : 2000);
+      const current = me.state;
+      let wait = current && ACTIVE.has(current.phase) ? pollInterval(1000, current.playerCount) : 2000;
+      const deadline = current?.timing?.phaseDeadline;
+      if (typeof deadline === "number") {
+        const untilDeadline = deadline - (Date.now() + clockOffset) + 120 + Math.random() * DEADLINE_SPREAD_MS;
+        if (untilDeadline > 0 && untilDeadline < wait) wait = untilDeadline;
+      }
+      await sleep(Math.max(150, wait));
     }
   };
   return me;

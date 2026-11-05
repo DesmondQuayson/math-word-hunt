@@ -99,6 +99,21 @@ export function createClock() {
 const FATAL = new Set(["room-not-found", "seat-not-found", "room-expired", "room-closed", "removed", "host-sign-in-required"]);
 
 /**
+ * Polling interval for a room of this size. Up to 30 players poll at the base
+ * rate; a larger class polls proportionally less often (up to twice the base
+ * at 60), so a whole class makes about as many requests as 30 players do.
+ * Timed phase changes do not wait for this: every client also polls at the
+ * phase deadline (see DEADLINE_SPREAD_MS).
+ */
+export function pollInterval(base, playerCount) {
+  const size = Number.isFinite(playerCount) ? playerCount : 0;
+  return Math.round(base * Math.min(2, Math.max(1, size / 30)));
+}
+
+/** Deadline polls are spread over this window so a class does not arrive in one burst. */
+export const DEADLINE_SPREAD_MS = 300;
+
+/**
  * A live seat (host or player): polls, sends actions, reports state.
  *   credentials()   -> extra body fields ({ token } or { hostToken })
  *   since(state)    -> version fields for the unchanged check
@@ -139,7 +154,7 @@ export function createLiveSession({ endpoint, credentials, since, intervalFor, o
     let wait = document.hidden ? 2500 : intervalFor(state);
     const deadline = state?.timing?.phaseDeadline;
     if (typeof deadline === "number") {
-      const untilDeadline = deadline - clock.now() + 120;
+      const untilDeadline = deadline - clock.now() + 120 + Math.random() * DEADLINE_SPREAD_MS;
       if (untilDeadline > 0 && untilDeadline < wait) wait = untilDeadline;
     }
     timer = setTimeout(poll, Math.max(150, wait));

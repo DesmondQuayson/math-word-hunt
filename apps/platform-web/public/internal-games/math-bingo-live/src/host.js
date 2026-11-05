@@ -6,7 +6,7 @@
 // Bingo Complete. The host is a signed-in MathNexa account; every command is
 // checked against that session AND the room's host token on the server.
 
-import { HOST_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest } from "./api.js";
+import { HOST_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pollInterval } from "./api.js";
 import { GameAudio, MUSIC_TRACK, attachAudioLifecycle, readPreferences, writePreferences } from "./audio.js";
 import { announce, clear, fill, h, icon } from "./dom.js";
 import { AUDIO_TARGETS, DEFAULT_SETTINGS, MAX_WINNERS, MODES, QUESTION_SECONDS, REVEAL_SECONDS, WINNER_PRESETS, getMode } from "./engine/settings.js";
@@ -269,7 +269,7 @@ function startSession(initialState) {
     credentials: () => ({ hostToken }),
     // Room version + player progress: ordinary taps change only the progress.
     since: current => (current ? { since: current.version, sinceProgress: current.progress } : {}),
-    intervalFor: current => (current && ACTIVE_PHASES.has(current.phase) ? 800 : 1500),
+    intervalFor: current => (current && ACTIVE_PHASES.has(current.phase) ? pollInterval(800, current.playerCount) : 1500),
     onState: next => {
       state = next;
       presence = new Map(next.players.map(player => [player.id, player.connected]));
