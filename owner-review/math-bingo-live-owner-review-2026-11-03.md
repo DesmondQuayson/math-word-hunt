@@ -52,6 +52,13 @@ Checked with `node scripts/run-math-bingo-live.mjs layout` (or `scripts/math-bin
 | 1440×900 | none | 11 | 162 px / 155 px |
 | 1920×1080 | none | 9–10 (larger names) | 216 px / 182 px |
 
+## Staging (owner approved 2026-11-04)
+
+- Staging database (`gcmuhzxkwvfireyrearl`): migration `20261103100000` applied with `scripts/invoke-math-bingo-live-staging.ps1 -Stage migrate`. Result: 3 tables with forced RLS and no browser grants, 11 functions callable by the server only, one **DRAFT** catalog row, and every other row count unchanged. `-Stage smoke` PASS (create/join/state/close; a browser key is refused).
+- Staging preview `dpl_5pnYwTMrYMkW3acyWYXDakEWGaDe`: https://mathnexa-platform-staging-apx635wo3-bright-path-ed-tech.vercel.app (build b1a6260, deployed from a clean worktree with `--env MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`). This was not `--prod`, so the shared staging alias was not moved. The preview sits behind Vercel Deployment Protection (team sign-in or a Vercel share link).
+- `-Stage review` **43/43**: build identity; production `/join` still 404; a free staging account hosts; three students (WebKit iPhone with real taps, Chromium phone, Chromium tablet) join with code + name; identical answer sets on different cards; winning ways (rows + columns, no diagonals) match on host and student; the host board at 1280×720 and 1920×1080 never scrolls and has every panel in place; Bingo Winners `Winners 1 / 3`; winners Ava → Zion → Omar, all rows/columns; MATH BINGO COMPLETE. The synthetic account and room were deleted.
+- Production: not modified (no migration, no deploy, no env).
+
 ## Results
 
 | # | Item | Result |
