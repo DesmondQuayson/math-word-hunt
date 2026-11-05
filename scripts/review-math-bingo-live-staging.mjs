@@ -75,6 +75,7 @@ async function until(page, want, label, timeout = 45_000) {
     if (want.question !== undefined && s.questionNumber !== want.question) return false;
     if (want.minWinners !== undefined && s.winnerCount < want.minWinners) return false;
     if (want.board && !s.me?.board) return false;
+    if (want.players !== undefined && (s.players?.length ?? -1) !== want.players) return false;
     return true;
   }, want, { timeout }).catch(() => ok(false, `timeout: ${label}`));
   return state(page);
@@ -212,7 +213,7 @@ try {
   const ava = await join(safari, "Ava", { viewport: { width: 390, height: 844 }, hasTouch: true });
   const zion = await join(chrome, "Zion", { viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
   const omar = await join(chrome, "Omar", { viewport: { width: 1024, height: 768 } });
-  const lobby = await until(host.page, { phase: "LOBBY" }, "lobby");
+  const lobby = await until(host.page, { phase: "LOBBY", players: 3 }, "lobby with three players");
   ok(lobby.players.map((player) => player.name).sort().join(",") === "Ava,Omar,Zion", "the host lobby lists Ava, Zion and Omar");
   await host.page.screenshot({ path: resolve(out, "host-lobby-1366x768.png") });
 
