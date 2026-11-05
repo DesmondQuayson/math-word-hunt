@@ -9,8 +9,9 @@ the pre-release steps, and answered "Release as is" after the 50-player staging 
 account, there is no chat, the room code only lets a student join (host authority is the teacher's signed-in session),
 and future questions and answers never reach a student's browser.
 
-**Release state.** The code and the database are live; the catalog entry is **draft**, so every Bingo address is hidden
-(`/join` and the game API answer 404) until the owner presses Publish in Super Admin. See "Publish" below.
+**Release state.** Live and **published** since 2026-11-05 11:43:58 UTC. The code and database went live at
+10:19–10:26 UTC with the catalog entry as a draft (every Bingo address hidden); it was published at the owner's
+instruction once the deploy had been verified. See "Publish" below.
 
 | | |
 | --- | --- |
@@ -86,16 +87,44 @@ Evidence JSON: `qa-artifacts/math-bingo-live/production/` (git-ignored).
 | Game hidden while draft | `GET /join` 404; `POST /api/games/math-bingo-live/play` (join and state, same-origin headers) 404 `{"error":"not-available"}` |
 | Runtime logs for `dpl_AGfpNRez…` since promotion | 5xx, error, fatal: 0, 0, 0 |
 
-## Publish (owner)
+## Publish (2026-11-05 11:43:58 UTC, owner instruction)
 
-Pending the owner's click: Super Admin → Games → Math Bingo Live → Publish. After it, `/join` serves the join page,
-signed-in teachers can host, and the game appears in the subscriber catalog (`/games`) and the public games list
-(`/math-games`, 5 → 6 games). Free teachers reach it by direct link (no product page or homepage card in this release).
+Two attempts from Super Admin did not reach production: the catalog stayed `draft`, and the production admin tables
+showed no Super Admin session since 2026-10-07 and no admin action that day. The owner then said "Publish it for me".
+
+`scripts/invoke-math-bingo-live-production.ps1 -Stage publish` called `transition_game_catalog_entry`, the database
+function behind Super Admin's Publish button, with the only active MFA-enrolled admin (the owner) as the actor. The
+result is the same as a click:
+
+| Check | Result |
+| --- | --- |
+| Catalog entry | `draft` → `published`, lock version 1 → 2 |
+| Catalog version history | 13 → 14 (one row) |
+| Super Admin audit log | `admin.game.publish` at 11:43:58Z, status `published` |
+| Everything else | The five other games, migration history, accounts (37), auth users, entitlements, subscriptions and content resources unchanged |
+
+Live checks afterwards (anonymous, read only):
+
+| Check | Result |
+| --- | --- |
+| `/join` | 200 "Join Math Bingo Live · MathNexa", `noindex, nofollow`, `Cache-Control: private, no-store`, `X-Frame-Options: DENY`, CSP `connect-src 'self'`, `frame-ancestors 'none'`. At 375 px the code screen renders and every game file loads (200). |
+| `/math-games` | Lists 6 games; Math Bingo Live is the sixth |
+| 32 public routes vs the capture taken while draft | 29 identical; only `/join`, `/join?code=…` (404 → 200) and the `/math-games` text (the new card) changed. Sitemap and `robots.txt` unchanged. |
+| Game API (`POST /api/games/math-bingo-live/play`) | Unknown code → 404 `room-not-found`; no seat → 404 `seat-not-found`; a cross-site request without the game header → 403 `forbidden` |
+| Host | `/games/math-bingo-live/host` signed out → 307 to `/access?next=/games/math-bingo-live/host`; host API signed out → 401 `host-sign-in-required` |
+| Runtime logs for `dpl_AGfpNRez…` | 5xx, error, fatal: 0, 0, 0 |
+
+Not done on production: a full game with a teacher account, because that needs a sign-in to mathnexa.com. The owner's
+first real classroom game (or one hosted from the owner's account) is the end-to-end check.
+
+Students join at `/join`; signed-in teachers host from `/games/math-bingo-live/host` or the subscriber catalog. Free
+teachers cannot open `/games`, so they reach it by direct link (no product page or homepage card in this release).
 
 ## Rollback
 
-- **Game only (no deploy):** Super Admin → Games → Math Bingo Live → Archive. New rooms and joins are refused; open rooms
-  expire within hours.
+- **Game only (no deploy):** Super Admin → Games → Math Bingo Live → Archive, or
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-bingo-live-production.ps1 -Stage archive`
+  (same function, owner's instruction). New rooms and joins are refused; open rooms expire within hours.
 - **Whole app:**
 
   ```powershell
