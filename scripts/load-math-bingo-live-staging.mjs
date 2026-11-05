@@ -148,6 +148,9 @@ const students = [];
 const startedAt = Date.now();
 let report = null;
 let networkBaseline = null;
+// The same no-database request, sampled every 2 s DURING play: if it slows down
+// with the game requests, the delay is the platform or network, not the game.
+const healthDuringPlay = [];
 try {
   const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
@@ -210,9 +213,38 @@ try {
     .catch(() => ok(false, "the host lobby did not list every student"));
   await page.screenshot({ path: resolve(out, "host-lobby.png") });
 
+  // A host command from the page, retried: one dropped connection must not abort the run.
+  const hostCommand = async (action) => {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const outcome = await page.evaluate(async (name) => {
+        try {
+          const response = await fetch("/api/games/math-bingo-live/host", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" }, referrerPolicy: "same-origin",
+            body: JSON.stringify({ action: name, hostToken: sessionStorage.getItem("mathnexa:math-bingo-live:host-token") })
+          });
+          return response.status;
+        } catch {
+          return 0;
+        }
+      }, action).catch(() => 0);
+      if (outcome === 200) return true;
+      await sleep(1000);
+    }
+    return false;
+  };
+
   // Play games until the time budget is used.
   await page.getByRole("button", { name: "START GAME" }).click();
   const playStarted = Date.now();
+  let probing = true;
+  const prober = (async () => {
+    while (probing) {
+      const started = performance.now();
+      const status = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then(async (response) => { await response.text(); return response.status; }).catch(() => 0);
+      healthDuringPlay.push({ ms: performance.now() - started, status, at: Date.now() });
+      await sleep(2000);
+    }
+  })();
   const games = [];
   const hostQuestions = new Set();
   let lastGame = 0;
@@ -225,24 +257,15 @@ try {
       await page.screenshot({ path: resolve(out, `host-complete-game-${s.gameNumber}.png`) });
       if (Date.now() - playStarted > (LOAD_SECONDS - 45) * 1000) break;
       await sleep(5000);
-      await page.evaluate(async () => {
-        await fetch("/api/games/math-bingo-live/host", {
-          method: "POST", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" }, referrerPolicy: "same-origin",
-          body: JSON.stringify({ action: "again", hostToken: sessionStorage.getItem("mathnexa:math-bingo-live:host-token") })
-        });
-      });
+      ok(await hostCommand("again"), `Play Again after game ${s.gameNumber}`);
     }
     await sleep(500);
   }
   const playSeconds = (Date.now() - playStarted) / 1000;
   for (const one of students) one.stop = true;
-  await Promise.all(loops);
-  await page.evaluate(async () => {
-    await fetch("/api/games/math-bingo-live/host", {
-      method: "POST", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" }, referrerPolicy: "same-origin",
-      body: JSON.stringify({ action: "close", hostToken: sessionStorage.getItem("mathnexa:math-bingo-live:host-token") })
-    });
-  });
+  probing = false;
+  await Promise.all([...loops, prober]);
+  await hostCommand("close");
   await context.close();
 
   // Findings.
@@ -277,6 +300,7 @@ try {
     worstCoverage: Math.round(Math.min(...coverage) * 1000) / 10,
     boardsDealt: students.filter((one) => one.boardDealt).length,
     networkBaseline,
+    healthDuringPlay: { ...stats(healthDuringPlay), failed: healthDuringPlay.filter((sample) => sample.status !== 200).length },
     notOk: samples.filter((sample) => sample.status !== 200).map(({ who, action, status, result, at }) => ({ who, action, status, result, secondsIntoPlay: Math.round((at - playStarted) / 1000) }))
   };
   writeFileSync(resolve(out, `load-report-${PLAYERS}.json`), JSON.stringify(report, null, 2));
