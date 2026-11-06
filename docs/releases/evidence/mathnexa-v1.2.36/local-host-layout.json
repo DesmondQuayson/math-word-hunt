@@ -1,0 +1,633 @@
+{
+  "origin": "http://127.0.0.1:3101",
+  "viewports": [
+    "1280x720",
+    "1366x768",
+    "1440x900",
+    "1920x1080"
+  ],
+  "scenarios": [
+    {
+      "scenario": "1 players, question active, no winners",
+      "code": "265610"
+    },
+    {
+      "scenario": "5 players, question active, no winners",
+      "code": "553571"
+    },
+    {
+      "scenario": "10 players, question active, no winners",
+      "code": "938599"
+    },
+    {
+      "scenario": "30 players, question active, no winners",
+      "code": "716953"
+    },
+    {
+      "scenario": "50 players: none, 1 and 3 winners, reveal, pause, celebration, long called history",
+      "code": "595029",
+      "questions": 19,
+      "winners": 3
+    },
+    {
+      "scenario": "Fraction Bingo, long Called Fractions history",
+      "code": "558761",
+      "questions": 22
+    }
+  ],
+  "ways": [
+    {
+      "setup": "rows-only",
+      "room": {
+        "rows": true,
+        "columns": false,
+        "diagonals": false
+      }
+    },
+    {
+      "setup": "columns-only",
+      "room": {
+        "rows": false,
+        "columns": true,
+        "diagonals": false
+      }
+    },
+    {
+      "setup": "diagonals-only",
+      "room": {
+        "rows": false,
+        "columns": false,
+        "diagonals": true
+      }
+    },
+    {
+      "setup": "rows-columns",
+      "room": {
+        "rows": true,
+        "columns": true,
+        "diagonals": false
+      }
+    },
+    {
+      "setup": "all-ways",
+      "room": {
+        "rows": true,
+        "columns": true,
+        "diagonals": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "label": "1-players-question",
+      "viewport": "1280x720",
+      "shot": "1-players-question-1280x720.png",
+      "rows": 1,
+      "visibleRows": 1,
+      "faceFont": 126.653,
+      "faceText": "8 + 10",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "1-players-question",
+      "viewport": "1366x768",
+      "shot": "1-players-question-1366x768.png",
+      "rows": 1,
+      "visibleRows": 1,
+      "faceFont": 135.208,
+      "faceText": "8 + 10",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "1-players-question",
+      "viewport": "1440x900",
+      "shot": "1-players-question-1440x900.png",
+      "rows": 1,
+      "visibleRows": 1,
+      "faceFont": 142.544,
+      "faceText": "8 + 10",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "1-players-question",
+      "viewport": "1920x1080",
+      "shot": "1-players-question-1920x1080.png",
+      "rows": 1,
+      "visibleRows": 1,
+      "faceFont": 190.182,
+      "faceText": "8 + 10",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "5-players-question",
+      "viewport": "1280x720",
+      "shot": "5-players-question-1280x720.png",
+      "rows": 5,
+      "visibleRows": 5,
+      "faceFont": 113.066,
+      "faceText": "10 + 10",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "5-players-question",
+      "viewport": "1366x768",
+      "shot": "5-players-question-1366x768.png",
+      "rows": 5,
+      "visibleRows": 5,
+      "faceFont": 120.703,
+      "faceText": "10 + 10",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "5-players-question",
+      "viewport": "1440x900",
+      "shot": "5-players-question-1440x900.png",
+      "rows": 5,
+      "visibleRows": 5,
+      "faceFont": 127.252,
+      "faceText": "10 + 10",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "5-players-question",
+      "viewport": "1920x1080",
+      "shot": "5-players-question-1920x1080.png",
+      "rows": 5,
+      "visibleRows": 5,
+      "faceFont": 169.779,
+      "faceText": "10 + 10",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "10-players-question",
+      "viewport": "1280x720",
+      "shot": "10-players-question-1280x720.png",
+      "rows": 10,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "7 + 5",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "10-players-question",
+      "viewport": "1366x768",
+      "shot": "10-players-question-1366x768.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 147.891,
+      "faceText": "7 + 5",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "10-players-question",
+      "viewport": "1440x900",
+      "shot": "10-players-question-1440x900.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 162.014,
+      "faceText": "7 + 5",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "10-players-question",
+      "viewport": "1920x1080",
+      "shot": "10-players-question-1920x1080.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 216.158,
+      "faceText": "7 + 5",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "30-players-question",
+      "viewport": "1280x720",
+      "shot": "30-players-question-1280x720.png",
+      "rows": 30,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "5 + 4",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "30-players-question",
+      "viewport": "1366x768",
+      "shot": "30-players-question-1366x768.png",
+      "rows": 30,
+      "visibleRows": 10,
+      "faceFont": 147.891,
+      "faceText": "5 + 4",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "30-players-question",
+      "viewport": "1440x900",
+      "shot": "30-players-question-1440x900.png",
+      "rows": 30,
+      "visibleRows": 11,
+      "faceFont": 162.014,
+      "faceText": "5 + 4",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "30-players-question",
+      "viewport": "1920x1080",
+      "shot": "30-players-question-1920x1080.png",
+      "rows": 30,
+      "visibleRows": 10,
+      "faceFont": 216.158,
+      "faceText": "5 + 4",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "50-players-question-no-winners",
+      "viewport": "1280x720",
+      "shot": "50-players-question-no-winners-1280x720.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "1 + 7",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "50-players-question-no-winners",
+      "viewport": "1366x768",
+      "shot": "50-players-question-no-winners-1366x768.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 147.891,
+      "faceText": "1 + 7",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-question-no-winners",
+      "viewport": "1440x900",
+      "shot": "50-players-question-no-winners-1440x900.png",
+      "rows": 50,
+      "visibleRows": 11,
+      "faceFont": 162.014,
+      "faceText": "1 + 7",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "50-players-question-no-winners",
+      "viewport": "1920x1080",
+      "shot": "50-players-question-no-winners-1920x1080.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 216.158,
+      "faceText": "1 + 7",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "50-players-paused",
+      "viewport": "1280x720",
+      "shot": "50-players-paused-1280x720.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "4 + 9",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "50-players-paused",
+      "viewport": "1366x768",
+      "shot": "50-players-paused-1366x768.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 147.891,
+      "faceText": "4 + 9",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-paused",
+      "viewport": "1440x900",
+      "shot": "50-players-paused-1440x900.png",
+      "rows": 50,
+      "visibleRows": 11,
+      "faceFont": 162.014,
+      "faceText": "4 + 9",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "50-players-paused",
+      "viewport": "1920x1080",
+      "shot": "50-players-paused-1920x1080.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 216.158,
+      "faceText": "4 + 9",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "50-players-answer-reveal",
+      "viewport": "1280x720",
+      "shot": "50-players-answer-reveal-1280x720.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 104.268,
+      "faceText": "4 + 9 = 13",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "50-players-answer-reveal",
+      "viewport": "1366x768",
+      "shot": "50-players-answer-reveal-1366x768.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 112.397,
+      "faceText": "4 + 9 = 13",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-answer-reveal",
+      "viewport": "1440x900",
+      "shot": "50-players-answer-reveal-1440x900.png",
+      "rows": 50,
+      "visibleRows": 11,
+      "faceFont": 118.617,
+      "faceText": "4 + 9 = 13",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "50-players-answer-reveal",
+      "viewport": "1920x1080",
+      "shot": "50-players-answer-reveal-1920x1080.png",
+      "rows": 50,
+      "visibleRows": 10,
+      "faceFont": 158.258,
+      "faceText": "4 + 9 = 13",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "50-players-bingo-celebration",
+      "viewport": "1366x768",
+      "shot": "50-players-bingo-celebration-1366x768.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 147.891,
+      "faceText": "9 + 7",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-1-winner",
+      "viewport": "1280x720",
+      "shot": "50-players-1-winner-1280x720.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "9 + 7",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "50-players-1-winner",
+      "viewport": "1366x768",
+      "shot": "50-players-1-winner-1366x768.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 147.891,
+      "faceText": "9 + 7",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-1-winner",
+      "viewport": "1440x900",
+      "shot": "50-players-1-winner-1440x900.png",
+      "rows": 50,
+      "visibleRows": 11,
+      "faceFont": 162.014,
+      "faceText": "9 + 7",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "50-players-1-winner",
+      "viewport": "1920x1080",
+      "shot": "50-players-1-winner-1920x1080.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 216.158,
+      "faceText": "9 + 7",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "50-players-3-winners-long-history",
+      "viewport": "1280x720",
+      "shot": "50-players-3-winners-long-history-1280x720.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 137.195,
+      "faceText": "6 + 3",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "50-players-3-winners-long-history",
+      "viewport": "1366x768",
+      "shot": "50-players-3-winners-long-history-1366x768.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 147.891,
+      "faceText": "6 + 3",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "50-players-3-winners-long-history",
+      "viewport": "1440x900",
+      "shot": "50-players-3-winners-long-history-1440x900.png",
+      "rows": 50,
+      "visibleRows": 11,
+      "faceFont": 162.014,
+      "faceText": "6 + 3",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "50-players-3-winners-long-history",
+      "viewport": "1920x1080",
+      "shot": "50-players-3-winners-long-history-1920x1080.png",
+      "rows": 50,
+      "visibleRows": 9,
+      "faceFont": 216.158,
+      "faceText": "6 + 3",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "fractions-reveal-long-history",
+      "viewport": "1280x720",
+      "shot": "fractions-reveal-long-history-1280x720.png",
+      "rows": 10,
+      "visibleRows": 9,
+      "faceFont": 74.0855,
+      "faceText": "78",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "fractions-reveal-long-history",
+      "viewport": "1366x768",
+      "shot": "fractions-reveal-long-history-1366x768.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 79.8609,
+      "faceText": "78",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "fractions-reveal-long-history",
+      "viewport": "1440x900",
+      "shot": "fractions-reveal-long-history-1440x900.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 99.6511,
+      "faceText": "78",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "fractions-reveal-long-history",
+      "viewport": "1920x1080",
+      "shot": "fractions-reveal-long-history-1920x1080.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 117.222,
+      "faceText": "78",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "fractions-question-long-history",
+      "viewport": "1280x720",
+      "shot": "fractions-question-long-history-1280x720.png",
+      "rows": 10,
+      "visibleRows": 9,
+      "faceFont": 115.244,
+      "faceText": "14",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "fractions-question-long-history",
+      "viewport": "1366x768",
+      "shot": "fractions-question-long-history-1366x768.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 124.228,
+      "faceText": "14",
+      "standingFont": 18.0226,
+      "page": "1366x768"
+    },
+    {
+      "label": "fractions-question-long-history",
+      "viewport": "1440x900",
+      "shot": "fractions-question-long-history-1440x900.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 155.013,
+      "faceText": "14",
+      "standingFont": 19.008,
+      "page": "1440x900"
+    },
+    {
+      "label": "fractions-question-long-history",
+      "viewport": "1920x1080",
+      "shot": "fractions-question-long-history-1920x1080.png",
+      "rows": 10,
+      "visibleRows": 10,
+      "faceFont": 182.346,
+      "faceText": "14",
+      "standingFont": 25.344,
+      "page": "1920x1080"
+    },
+    {
+      "label": "ways-rows-only",
+      "viewport": "1280x720",
+      "shot": "ways-rows-only-1280x720.png",
+      "rows": 2,
+      "visibleRows": 2,
+      "faceFont": 126.653,
+      "faceText": "6 + 10",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "ways-columns-only",
+      "viewport": "1280x720",
+      "shot": "ways-columns-only-1280x720.png",
+      "rows": 2,
+      "visibleRows": 2,
+      "faceFont": 126.653,
+      "faceText": "10 + 8",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "ways-diagonals-only",
+      "viewport": "1280x720",
+      "shot": "ways-diagonals-only-1280x720.png",
+      "rows": 2,
+      "visibleRows": 2,
+      "faceFont": 137.195,
+      "faceText": "9 + 1",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "ways-rows-columns",
+      "viewport": "1280x720",
+      "shot": "ways-rows-columns-1280x720.png",
+      "rows": 2,
+      "visibleRows": 2,
+      "faceFont": 137.195,
+      "faceText": "5 + 9",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    },
+    {
+      "label": "ways-all-ways",
+      "viewport": "1280x720",
+      "shot": "ways-all-ways-1280x720.png",
+      "rows": 2,
+      "visibleRows": 2,
+      "faceFont": 137.195,
+      "faceText": "2 + 7",
+      "standingFont": 16.896,
+      "page": "1280x720"
+    }
+  ],
+  "failures": []
+}

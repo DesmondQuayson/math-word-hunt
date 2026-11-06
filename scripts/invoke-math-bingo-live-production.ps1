@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'publish', 'archive')] [string]$Stage = 'audit',
+  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'qa', 'publish', 'archive')] [string]$Stage = 'audit',
   [string]$EvidenceDir = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
@@ -15,6 +15,8 @@ param(
 #   -Stage migrate  apply the pending Bingo migrations in order (20261103100000, 20261106100000, 20261106110000, 20261106120000, 20261107100000); refuses anything else
 #   -Stage verify   tables, RLS, grants, functions, catalog row, other games
 #   -Stage smoke    service-role room contract with synthetic hashes (no account; cleaned up)
+#   -Stage qa       post-release gameplay QA: synthetic room via service role, students through the
+#                   public https://mathnexa.com API and two phone browsers (no account; cleaned up)
 #   -Stage publish  owner-instructed: draft -> published via the Super Admin publish function
 #   -Stage archive  owner-instructed: -> archived the same way (game-only rollback)
 #
@@ -49,6 +51,7 @@ try {
   if ($projectRef -eq $stagingProjectRef) { throw 'Refusing: the vault production project ref is the staging project.' }
   if ($EvidenceDir) { $env:RELEASE_EVIDENCE_DIR = $EvidenceDir }
   Set-Location $repositoryRoot
+  if ($Stage -eq 'qa') { & node scripts/qa-math-bingo-live-production.mjs; exit $LASTEXITCODE }
   & node scripts/run-math-bingo-live-production.mjs "--stage=$Stage"
   exit $LASTEXITCODE
 } finally {

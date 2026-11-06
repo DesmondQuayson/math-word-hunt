@@ -58,6 +58,7 @@ const MIGRATIONS = Object.freeze([
 ]);
 const BINGO_VERSIONS = MIGRATIONS.map((migration) => migration.version);
 const SPEED_MIGRATION = "20261106100000";
+const FINAL_GAMEPLAY_MIGRATION = "20261107100000";
 const GAME_KEY = "math-bingo-live";
 // Grade 6 quizzes published to PRODUCTION on 2026-09-26 (v1.2.13); staging holds different ids.
 const PRODUCTION_QUIZ_ID_PREFIXES = Object.freeze(["83d9252f", "42215d2a", "5b8bdc39", "1d80b325", "e01a72e2", "3e25faa1", "339aa712", "7654e5e9"]);
@@ -262,6 +263,19 @@ function verifyApplied(sql, { expectStatus } = {}) {
       (select not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE')
         from pg_proc where oid=to_regprocedure('private.bingo_progress(uuid)')) as progress_helper_locked`)[0];
     check(evidence.speedFunctions.host_state_with_progress_locked === true && evidence.speedFunctions.progress_helper_locked === true, "room-speed-functions-missing-or-open");
+  }
+  if (recorded.includes(FINAL_GAMEPLAY_MIGRATION)) {
+    evidence.finalGameplay = sql(`select
+      exists (select 1 from information_schema.columns where table_schema='public' and table_name='bingo_participants' and column_name='emoji') as emoji_column,
+      exists (select 1 from pg_constraint where conname='bingo_participants_emoji_check') as emoji_check,
+      (select prosecdef and not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE') and has_function_privilege('service_role', oid, 'EXECUTE')
+        from pg_proc where oid=to_regprocedure('public.bingo_join_room(text,text,text,text,text)')) as join_with_emoji_locked,
+      (select not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE')
+        from pg_proc where oid=to_regprocedure('private.bingo_deck_valid(jsonb,jsonb,jsonb)')) as deck_check_locked,
+      (select not has_function_privilege('anon', oid, 'EXECUTE') and not has_function_privilege('authenticated', oid, 'EXECUTE')
+        from pg_proc where oid=to_regprocedure('private.bingo_emoji_valid(text)')) as emoji_check_locked`)[0];
+    const final = evidence.finalGameplay;
+    check(final.emoji_column === true && final.emoji_check === true && final.join_with_emoji_locked === true && final.deck_check_locked === true && final.emoji_check_locked === true, "final-gameplay-functions-missing-or-open");
   }
   evidence.catalog = sql(`select stable_key, slug, title, status, version, display_order, launch_type, thumbnail_reference, recommended_grade_min, recommended_grade_max,
     publication_metadata->>'internal_route' as internal_route,

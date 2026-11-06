@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'migrate', 'smoke', 'review', 'load')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'smoke', 'review', 'load', 'qa')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
@@ -20,7 +20,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable.' }
-if ($Stage -in @('review', 'load') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
+if ($Stage -in @('review', 'load', 'qa') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
   $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
@@ -33,6 +33,7 @@ $stagingNames = switch ($Stage) {
   'smoke' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'load' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'qa' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   default { @('SUPABASE_DB_PASSWORD') }
 }
 try {
@@ -47,6 +48,11 @@ try {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) { throw "The staging entry $name is not in the vault." }
   }
   Set-Location $repositoryRoot
+  if ($Stage -eq 'qa') {
+    $env:STAGING_ORIGIN = $Origin; $env:QA_TARGET = 'staging'
+    & node scripts/qa-math-bingo-live-production.mjs
+    exit $LASTEXITCODE
+  }
   if ($Stage -in @('review', 'load')) {
     $env:STAGING_ORIGIN = $Origin
     $env:EXPECT_COMMIT = $ExpectCommit
@@ -57,7 +63,7 @@ try {
   & node scripts/run-math-bingo-live-staging.mjs "--stage=$Stage"
   exit $LASTEXITCODE
 } finally {
-  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT', 'QA_TARGET')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
   foreach ($entry in $vault.Values.PSObject.Properties) { if ($entry.Value -is [IDisposable]) { $entry.Value.Dispose() } }
   $vault = $null
 }

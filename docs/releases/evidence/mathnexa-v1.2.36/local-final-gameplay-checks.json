@@ -1,0 +1,72 @@
+{
+  "origin": "http://127.0.0.1:3101",
+  "sameAnswer": {
+    "players": 50,
+    "questions": 4,
+    "submissions": 200,
+    "accepted": 200,
+    "refusedValid": 0,
+    "duplicatesCounted": 0,
+    "results": {
+      "correct": 200
+    }
+  },
+  "matches": [
+    {
+      "mode": "addition",
+      "level": "facts-20",
+      "equivalentFractions": false,
+      "questions": 46,
+      "unique": 46,
+      "sharedAnswers": 14
+    },
+    {
+      "mode": "subtraction",
+      "level": "facts-20",
+      "equivalentFractions": false,
+      "questions": 67,
+      "unique": 67,
+      "sharedAnswers": 18
+    },
+    {
+      "mode": "multiplication",
+      "level": "x0-10",
+      "equivalentFractions": false,
+      "questions": 28,
+      "unique": 28,
+      "sharedAnswers": 7
+    },
+    {
+      "mode": "division",
+      "level": "facts-10",
+      "equivalentFractions": false,
+      "questions": 72,
+      "unique": 72,
+      "sharedAnswers": 10
+    },
+    {
+      "mode": "mixed",
+      "level": "core",
+      "equivalentFractions": false,
+      "questions": 60,
+      "unique": 60,
+      "sharedAnswers": 18
+    },
+    {
+      "mode": "fractions",
+      "level": "to-sixths",
+      "equivalentFractions": false,
+      "questions": 15,
+      "unique": 15,
+      "sharedAnswers": 0
+    },
+    {
+      "mode": "fractions",
+      "level": "to-eighths",
+      "equivalentFractions": true,
+      "questions": 22,
+      "unique": 22,
+      "sharedAnswers": 0
+    }
+  ]
+}
