@@ -25,9 +25,14 @@ $$;
 create function pg_temp.pool() returns jsonb language sql as $$
   select jsonb_agg(jsonb_build_object('n',v,'d',1) order by v) from generate_series(1,24) v
 $$;
+-- Question k answers k for k = 1..24 ("k + 0"), then a second pass of
+-- different questions ("(v-1) + 1"): every identity once (20261107100000).
 create function pg_temp.deck() returns jsonb language sql as $$
-  select jsonb_agg(jsonb_build_object('t',v::text||' + 0','s','x','k','arithmetic','n',v,'d',1) order by k)
-  from (select k, ((k-1) % 24) + 1 as v from generate_series(1,48) k) s
+  select jsonb_agg(e order by k) from (
+    select v as k, jsonb_build_object('q','addition:0:'||v,'t',v::text||' + 0','s','x','k','arithmetic','n',v,'d',1) as e from generate_series(1,24) v
+    union all
+    select 23 + v, jsonb_build_object('q','addition:1:'||(v-1),'t',(v-1)::text||' + 1','s','x','k','arithmetic','n',v,'d',1) from generate_series(2,24) v
+  ) s
 $$;
 -- Values 1..12 in cells 0..11, Free Space at 12, 13..24 in cells 13..24.
 create function pg_temp.card() returns jsonb language sql as $$

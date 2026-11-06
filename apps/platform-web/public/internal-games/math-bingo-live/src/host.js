@@ -10,8 +10,10 @@ import { HOST_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pol
 import { GameAudio, MUSIC_TRACK, attachAudioLifecycle, readPreferences, writePreferences } from "./audio.js";
 import { announce, clear, fill, h, icon } from "./dom.js";
 import { AUDIO_TARGETS, DEFAULT_SETTINGS, MAX_WINNERS, MODES, QUESTION_SECONDS, REVEAL_SECONDS, WINNER_PRESETS, getMode } from "./engine/settings.js";
+import { joinHostLabel, joinLink } from "./join-link.js";
 import {
   LINE_LABEL,
+  announcedName,
   bingoBannerChildren,
   brandMark,
   calledList,
@@ -22,13 +24,15 @@ import {
   ordinal,
   phaseTotalMs,
   placeWord,
+  playerName,
   progressText,
+  qrCode,
   questionFace,
   remainingMs,
   revealFace,
   rulesStrip,
-  tutorial,
-  upperName
+  spokenName,
+  tutorial
 } from "./shared.js";
 
 const TOKEN_KEY = "mathnexa:math-bingo-live:host-token";
@@ -68,8 +72,33 @@ function setScreen(name) {
   body.dataset.screen = name;
 }
 
+/** "mathnexa.com" in production, this screen's own host elsewhere (see join-link.js). */
 function joinHost() {
-  return location.host === "mathnexa.com" || location.host === "www.mathnexa.com" ? "mathnexa.com" : location.host;
+  return joinHostLabel(location);
+}
+
+/** The QR for this room: this screen's own origin + /join?code=, drawn locally. */
+function joinQr(code, className) {
+  const link = joinLink(code, location);
+  return link ? qrCode(link, { className, label: `QR code to join Math Bingo Live, game code ${code.split("").join(" ")}` }) : null;
+}
+
+/** The join QR as large as the screen allows, for students who arrive late. */
+function showJoinQr() {
+  if (!state || state.joinLocked) return;
+  const dialog = h("dialog", { class: "dialog qr-dialog", "aria-labelledby": "qr-title" },
+    h("div", { class: "dialog-head" }, h("h2", { id: "qr-title", class: "dialog-title", text: "JOIN MATH BINGO LIVE" }), iconButton("Close", "close", () => dialog.close())),
+    h("div", { class: "qr-dialog-body" },
+      joinQr(state.code, "is-dialog"),
+      h("div", { class: "qr-dialog-text" },
+        h("p", { class: "join-or", text: "OR" }),
+        h("p", { class: "join-url", text: `${joinHost()}/join` }),
+        h("p", { class: "join-step", text: "CODE" }),
+        codeDisplay(state.code, "is-large"))));
+  dialog.addEventListener("close", () => dialog.remove());
+  document.body.append(dialog);
+  viewDialogs.push(dialog);
+  dialog.showModal();
 }
 
 function readToken() {
@@ -415,9 +444,9 @@ function playersDialog() {
     lockButton.onclick = () => command(state.joinLocked ? "unlock" : "lock");
     fill(list, state.players.length ? state.players.map(player => h("li", { class: "player-admin" },
       h("span", { class: `presence ${presence.get(player.id) ? "is-on" : "is-off"}`, "aria-label": presence.get(player.id) ? "Connected" : "Away" }),
-      h("span", { class: "player-admin-name", text: player.name }),
+      h("span", { class: "player-admin-name", text: playerName(player) }),
       h("span", { class: "player-admin-progress", text: player.hasWon ? `${medal(player.placement) || ordinal(player.placement)} BINGO` : `${player.best}/5` }),
-      h("button", { type: "button", class: "button button-ghost button-small", "aria-label": `Remove ${player.name}`, text: "Remove", onclick: () => confirmRemove(player) })))
+      h("button", { type: "button", class: "button button-ghost button-small", "aria-label": `Remove ${spokenName(player)}`, text: "Remove", onclick: () => confirmRemove(player) })))
       : h("li", { class: "player-admin-empty", text: "No players yet." }));
   };
   document.body.append(dialog);
@@ -442,7 +471,7 @@ function confirmDialog({ title, text, confirm, onConfirm, danger = false }) {
 
 function confirmRemove(player) {
   confirmDialog({
-    title: `Remove ${player.name}?`,
+    title: `Remove ${playerName(player)}?`,
     text: "They leave this game and their name is deleted. Lock joining to stop them coming back.",
     confirm: "Remove",
     danger: true,
@@ -509,6 +538,18 @@ function buildLobby() {
   setScreen("lobby");
   const players = playersDialog();
   const codeHolder = h("div", { class: "join-code" });
+  const qrHolder = h("div", { class: "join-qr" });
+  const openJoin = h("div", { class: "join-body" },
+    qrHolder,
+    h("div", { class: "join-text" },
+      h("p", { class: "join-or", text: "OR" }),
+      h("p", { class: "join-url", text: `${joinHost()}/join` }),
+      h("p", { class: "join-step", text: "CODE" }),
+      codeHolder,
+      h("p", { class: "join-note", text: "No account needed — just the code and a first name or nickname." })));
+  const lockedJoin = h("div", { class: "join-locked", role: "status" },
+    icon("lock"), h("p", { class: "join-locked-title", text: "JOINING LOCKED" }),
+    h("p", { class: "join-note", text: "Unlock joining to let more students in." }));
   const count = h("h2", { class: "roster-title" });
   const roster = h("ul", { class: "roster", "aria-live": "polite", "aria-relevant": "additions" });
   const summary = h("div", { class: "lobby-summary" });
@@ -517,11 +558,9 @@ function buildLobby() {
   const main = h("main", { id: "main", class: "lobby-host" },
     topBar([h("button", { type: "button", class: "button button-ghost button-small", onclick: () => { players.update(); players.dialog.showModal(); } }, icon("users"), h("span", { text: "Players" }))]),
     h("section", { class: "join-panel", "aria-label": "How to join" },
-      h("p", { class: "join-step", text: "JOIN" }),
-      h("p", { class: "join-url", text: `${joinHost()}/join` }),
-      h("p", { class: "join-step", text: "CODE" }),
-      codeHolder,
-      h("p", { class: "join-note", text: "No account needed — just the code and a first name or nickname." })),
+      h("p", { class: "join-heading", text: "JOIN MATH BINGO LIVE" }),
+      openJoin,
+      lockedJoin),
     h("section", { class: "roster-panel", "aria-labelledby": "roster-title" }, count, roster),
     h("section", { class: "lobby-actions" }, summary,
       h("div", { class: "lobby-buttons" },
@@ -532,6 +571,7 @@ function buildLobby() {
         h("button", { type: "button", class: "button button-ghost", text: "End room", onclick: confirmEndRoom }))));
   fill(app, main);
   let rosterKey = null;
+  let qrKey = null;
   const updatePresence = () => {
     for (const item of roster.querySelectorAll("[data-player]")) item.classList.toggle("is-away", presence.get(item.dataset.player) === false);
     players.update();
@@ -539,19 +579,26 @@ function buildLobby() {
   return {
     updatePresence,
     update() {
-      fill(codeHolder, codeDisplay(state.code, "is-giant"));
+      // While joining is open: the QR (the room already in it), the address and the code.
+      openJoin.hidden = state.joinLocked;
+      lockedJoin.hidden = !state.joinLocked;
+      if (state.code !== qrKey) {
+        qrKey = state.code;
+        fill(qrHolder, joinQr(state.code, "is-lobby"));
+        fill(codeHolder, codeDisplay(state.code, "is-giant"));
+      }
       count.id = "roster-title";
       count.textContent = `PLAYERS — ${state.players.length}`;
-      const key = state.players.map(player => `${player.id}:${player.name}`).join("|");
+      const key = state.players.map(player => `${player.id}:${player.name}:${player.emoji ?? ""}`).join("|");
       if (key !== rosterKey) {
         rosterKey = key;
         fill(roster, state.players.length
           ? state.players.map(player => h("li", { class: "roster-name", dataset: { player: player.id } },
-              h("span", { text: player.name }),
-              h("button", { type: "button", class: "roster-remove", "aria-label": `Remove ${player.name}`, onclick: () => confirmRemove(player) }, icon("close"))))
+              h("span", { text: playerName(player) }),
+              h("button", { type: "button", class: "roster-remove", "aria-label": `Remove ${spokenName(player)}`, onclick: () => confirmRemove(player) }, icon("close"))))
           : h("li", { class: "roster-empty", text: "Waiting for players…" }));
         const newest = state.players[state.players.length - 1];
-        if (newest) announce(`${newest.name} joined. ${state.players.length} players.`);
+        if (newest) announce(`${spokenName(newest)} joined. ${state.players.length} players.`);
       }
       updatePresence();
       const settings = state.settings;
@@ -582,7 +629,7 @@ function standingsList(rows) {
     class: `standing${row.won ? " is-winner" : ""}${!row.won && row.best === 4 ? " is-close" : ""}`
   },
   h("span", { class: "standing-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : String(row.rank) }),
-  h("span", { class: "standing-name", text: row.name }),
+  h("span", { class: "standing-name", text: playerName(row) }),
   h("span", { class: "standing-progress", text: progressText(row) }),
   h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, rank ${row.rank}, best line ${row.best} of 5` }))));
 }
@@ -592,7 +639,7 @@ function winnersList(winners) {
   if (!winners.length) return h("p", { class: "panel-empty", text: "Waiting for the first Bingo…" });
   return h("ol", { class: "winners-list", "aria-label": "Bingo winners" }, winners.map(winner => h("li", { class: "winner-row" },
     h("span", { class: "winner-medal", "aria-hidden": "true", text: medal(winner.placement) || ordinal(winner.placement) }),
-    h("span", { class: "winner-name", text: winner.name }),
+    h("span", { class: "winner-name", text: playerName(winner) }),
     h("span", { class: "winner-line", text: winner.placement === 1 ? "FIRST BINGO" : `${LINE_LABEL[winner.lineType] ?? ""} Bingo`.trim() }),
     h("span", { class: "sr-only", text: `, ${ordinal(winner.placement)} place, ${LINE_LABEL[winner.lineType] ?? ""} Bingo` }))));
 }
@@ -722,6 +769,7 @@ function buildGame() {
   let winnersKey = null;
   let calledKey = null;
   let waysKey = null;
+  let headJoinKey = null;
   return {
     timer,
     banner: celebration,
@@ -731,10 +779,16 @@ function buildGame() {
       const settings = state.settings;
       const fractions = settings.mode === "fractions";
       modeChip.textContent = state.modeLabel;
-      fill(joinChip, state.joinLocked
-        ? h("span", { class: "head-locked" }, icon("lock"), h("span", { text: "JOINING LOCKED" }))
-        : [h("span", { class: "head-label", text: "JOIN" }), h("span", { class: "head-url", text: `${joinHost()}/join` }),
-           h("span", { class: "head-label", text: "CODE" }), codeDisplay(state.code, "head-code")]);
+      // A compact QR beside the code while joining is open; tapping it shows it large.
+      const joinKey = state.joinLocked ? "locked" : state.code;
+      if (joinKey !== headJoinKey) {
+        headJoinKey = joinKey;
+        fill(joinChip, state.joinLocked
+          ? h("span", { class: "head-locked" }, icon("lock"), h("span", { text: "JOINING LOCKED" }))
+          : [h("button", { type: "button", class: "head-qr", "aria-label": "Show the join QR code large", title: "Show the join QR code large", onclick: showJoinQr }, joinQr(state.code, "is-compact")),
+             h("span", { class: "head-label", text: "JOIN" }), h("span", { class: "head-url", text: `${joinHost()}/join` }),
+             h("span", { class: "head-label", text: "CODE" }), codeDisplay(state.code, "head-code")]);
+      }
       winnersChip.textContent = winnersText(settings);
 
       const patterns = JSON.stringify(settings.patterns);
@@ -751,7 +805,7 @@ function buildGame() {
       standings.meta.textContent = `${state.players.length} player${state.players.length === 1 ? "" : "s"}`;
       ticker.textContent = oneAway.length ? oneAway.slice(-2).map(name => `${name} is one away!`).join("  ·  ") : "";
 
-      const nextWinners = JSON.stringify(state.winners.map(winner => [winner.placement, winner.name, winner.lineType]));
+      const nextWinners = JSON.stringify(state.winners.map(winner => [winner.placement, winner.name, winner.emoji, winner.lineType]));
       if (nextWinners !== winnersKey) {
         winnersKey = nextWinners;
         fill(winners.content, winnersList(state.winners));
@@ -817,12 +871,12 @@ function buildComplete() {
       fill(podium, state.winners.length
         ? state.winners.map(winner => h("li", { class: "podium-place" },
             h("span", { class: "podium-medal", "aria-hidden": "true", text: medal(winner.placement) || ordinal(winner.placement) }),
-            h("span", { class: "podium-name", text: winner.name }),
+            h("span", { class: "podium-name", text: playerName(winner) }),
             h("span", { class: "podium-line", text: `${LINE_LABEL[winner.lineType] ?? ""}` }),
             h("span", { class: "sr-only", text: `, ${ordinal(winner.placement)} place` })))
         : h("li", { class: "podium-empty", text: "No Bingo this time." }));
       note.textContent = state.completedReason === "deck" ? "Every question was called." : state.completedReason === "host" ? "Game ended by the host." : "";
-      const summary = state.winners.map(winner => `${ordinal(winner.placement)}: ${winner.name}`).join(", ");
+      const summary = state.winners.map(winner => `${ordinal(winner.placement)}: ${spokenName(winner)}`).join(", ");
       if (summary !== announced) {
         announced = summary;
         announce(`Math Bingo complete. ${summary || "No Bingo this time."}`);
@@ -842,16 +896,16 @@ function processEvents() {
     if (event.seq <= lastEventSeq) continue;
     lastEventSeq = event.seq;
     if (event.type === "free-space") {
-      (view?.banner ?? banner).show({ tone: "free", duration: 2400, children: [h("p", { class: "banner-title", text: `\u{1F389} ${upperName(event.name)} USED FREE SPACE!` })] });
+      (view?.banner ?? banner).show({ tone: "free", duration: 2400, children: [h("p", { class: "banner-title", text: `${announcedName(event)} USED FREE SPACE!` })] });
       audio.freeSpace();
-      announce(`${event.name} used Free Space.`, { assertive: true });
+      announce(`${spokenName(event)} used Free Space.`, { assertive: true });
     } else if (event.type === "bingo") {
       const winner = state.winners.find(item => item.placement === event.placement);
       (view?.banner ?? banner).show({ tone: "bingo", duration: 4200, children: bingoBannerChildren(event, winner) });
       if (state.settings.celebration !== "off") audio.bingo();
-      announce(`${event.name}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo${event.cap > 0 ? `, ${event.placement} of ${event.cap}` : ""}.`, { assertive: true });
+      announce(`${spokenName(event)}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo${event.cap > 0 ? `, ${event.placement} of ${event.cap}` : ""}.`, { assertive: true });
     } else if (event.type === "one-away") {
-      oneAway.push(event.name);
+      oneAway.push(playerName(event));
     }
   }
 }

@@ -5,9 +5,14 @@
 // for the moment the current phase ends, so every screen flips together.
 // The server decides every outcome; this file only carries requests.
 
+import { ATTEMPTS_PER_QUESTION } from "./engine/settings.js";
+
 export const HOST_ENDPOINT = "/api/games/math-bingo-live/host";
 export const PLAY_ENDPOINT = "/api/games/math-bingo-live/play";
 export const RECONNECTING_AFTER_MS = 4000;
+/** A poll or an action that takes longer than this is given up (and retried by the next poll). */
+export const POLL_TIMEOUT_MS = 10_000;
+export const ACTION_TIMEOUT_MS = 12_000;
 
 export const MESSAGES = Object.freeze({
   "invalid-code": "Check the game code. It has 6 numbers.",
@@ -23,6 +28,7 @@ export const MESSAGES = Object.freeze({
   "name-too-short": "Use at least 2 characters.",
   "name-too-long": "Use 20 characters or fewer.",
   "name-invalid": "Use letters, numbers, spaces, - ' or .",
+  "emoji-invalid": "Choose one of the emoji shown, or no emoji.",
   "host-sign-in-required": "Your MathNexa sign-in has ended. Sign in again to keep hosting.",
   "no-live-room": "You have no live game right now.",
   "not-available": "Math Bingo Live is not available yet.",
@@ -38,35 +44,90 @@ export class LiveError extends Error {
   }
 }
 
-/** One POST to a Math Bingo Live endpoint; resolves with the JSON payload. */
-export async function liveRequest(endpoint, body, { signal } = {}) {
-  let response;
+/**
+ * One POST to a Math Bingo Live endpoint; resolves with the JSON payload.
+ * With `timeoutMs`, a request that has not finished by then fails as
+ * "unavailable" (a stuck request must never freeze a student's card); a
+ * caller's own `signal` still aborts with an AbortError.
+ */
+export async function liveRequest(endpoint, body, { signal, timeoutMs = 0 } = {}) {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  let timedOut = false;
+  const timer = timeoutMs > 0 ? setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs) : null;
   try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      credentials: "same-origin",
-      cache: "no-store",
-      // The documents are served with Referrer-Policy: no-referrer, under which
-      // a POST would carry "Origin: null"; this lets the server see the origin.
-      referrerPolicy: "same-origin",
-      headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" },
-      body: JSON.stringify(body),
-      signal
-    });
-  } catch (error) {
-    if (error?.name === "AbortError") throw error;
-    throw new LiveError("unavailable", 0);
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        // The documents are served with Referrer-Policy: no-referrer, under which
+        // a POST would carry "Origin: null"; this lets the server see the origin.
+        referrerPolicy: "same-origin",
+        headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+    } catch (error) {
+      if (error?.name === "AbortError" && !timedOut) throw error;
+      throw new LiveError("unavailable", 0);
+    }
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      if (error?.name === "AbortError" && !timedOut) throw error;
+      payload = null;
+    }
+    if (!response.ok || !payload || typeof payload !== "object") {
+      throw new LiveError(typeof payload?.error === "string" ? payload.error : "unavailable", response.status);
+    }
+    return payload;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
   }
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-  if (!response.ok || !payload || typeof payload !== "object") {
-    throw new LiveError(typeof payload?.error === "string" ? payload.error : "unavailable", response.status);
-  }
-  return payload;
+}
+
+/** markUsed / attemptsLeft of a seat for the question a state shows. */
+function seatForQuestion(me, questionNumber) {
+  if (!Number.isInteger(me.markQuestion) || !Number.isInteger(me.attemptQuestion) || !Number.isInteger(me.attempts)) return me;
+  const used = me.attemptQuestion === questionNumber ? me.attempts : 0;
+  return {
+    ...me,
+    markUsed: questionNumber > 0 && me.markQuestion === questionNumber,
+    attemptsLeft: Math.max(0, ATTEMPTS_PER_QUESTION - used)
+  };
+}
+
+const newerRoom = (a, b) => a.version > b.version || (a.version === b.version && (a.progress ?? 0) >= (b.progress ?? 0));
+
+/**
+ * Merge a reply into what a screen already shows. Replies can arrive out of
+ * order: a poll that left before a tap can land after the tap's reply. The
+ * room (version) and a student's own seat (me.version) change independently —
+ * ordinary taps change only the seat, other players' Free Space, "one away"
+ * and Bingo change only the room — so the newest of EACH is kept. (Taking a
+ * whole reply because its room was newer once put back a seat from before the
+ * student's own tap: their marked square went blank again and tapping it was
+ * refused "already marked" / "you already marked a square".)
+ */
+export function reconcile(previous, next) {
+  if (!next) return previous;
+  if (!previous || next.gameNumber > previous.gameNumber) return next;
+  if (next.gameNumber < previous.gameNumber) return previous;
+  const room = newerRoom(next, previous) ? next : previous;
+  if (!next.me || !previous.me) return room;
+  const me = next.me.version >= previous.me.version ? next.me : previous.me;
+  if (room === next && me === next.me) return next;
+  if (room === previous && me === previous.me) return previous;
+  return { ...room, me: seatForQuestion(me, room.questionNumber) };
 }
 
 /**
@@ -137,10 +198,11 @@ export function createLiveSession({ endpoint, credentials, since, intervalFor, o
   const accept = (next, extra = {}) => {
     if (!next) return;
     const previous = state;
-    // Never go backwards: an older poll reply can land after a newer action reply.
-    if (previous && next.gameNumber === previous.gameNumber && next.version < previous.version && next.me?.version <= previous.me?.version) return;
-    state = next;
-    onState?.(next, previous, extra);
+    // Never go backwards, for the room or for the student's own seat (see reconcile).
+    const merged = reconcile(previous, next);
+    if (merged === previous) return;
+    state = merged;
+    onState?.(merged, previous, extra);
   };
 
   const succeed = () => {
@@ -160,9 +222,9 @@ export function createLiveSession({ endpoint, credentials, since, intervalFor, o
     timer = setTimeout(poll, Math.max(150, wait));
   };
 
-  async function send(action, extra = {}, { signal } = {}) {
+  async function send(action, extra = {}, { signal, timeoutMs } = {}) {
     const sentAt = Date.now();
-    const payload = await liveRequest(endpoint, { action, ...credentials(), ...extra }, { signal });
+    const payload = await liveRequest(endpoint, { action, ...credentials(), ...extra }, { signal, timeoutMs });
     clock.sample(payload.serverNow ?? payload.state?.timing?.serverNow, sentAt, Date.now());
     succeed();
     return payload;
@@ -172,7 +234,7 @@ export function createLiveSession({ endpoint, credentials, since, intervalFor, o
     if (stopped) return;
     try {
       inFlight = new AbortController();
-      const payload = await send("state", since(state), { signal: inFlight.signal });
+      const payload = await send("state", since(state), { signal: inFlight.signal, timeoutMs: POLL_TIMEOUT_MS });
       if (payload.result === "unchanged") onUnchanged?.(payload);
       else accept(payload.state);
     } catch (error) {
@@ -210,7 +272,7 @@ export function createLiveSession({ endpoint, credentials, since, intervalFor, o
     /** Send an action; the reply's state is applied before it resolves. */
     async act(action, extra = {}) {
       try {
-        const payload = await send(action, extra);
+        const payload = await send(action, extra, { timeoutMs: ACTION_TIMEOUT_MS });
         if (payload.state) accept(payload.state, payload);
         schedule();
         return payload;

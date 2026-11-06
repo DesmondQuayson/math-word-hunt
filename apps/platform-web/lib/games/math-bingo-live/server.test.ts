@@ -229,4 +229,41 @@ describe("browser payloads", () => {
     const raw = record();
     expect(dealFor(raw, "me")).toEqual(raw.me.board);
   });
+
+  it("stores every question with its canonical identity, never twice in a game", () => {
+    for (const mode of ["addition", "subtraction", "multiplication", "division", "mixed", "fractions"] as const) {
+      const level = { addition: "facts-20", subtraction: "facts-20", multiplication: "x0-10", division: "facts-10", mixed: "core", fractions: "to-sixths" }[mode];
+      const game = buildGame({ ...DEFAULT_SETTINGS, mode, level }, SEED);
+      const ids = game.deck.map((question) => question.q);
+      expect(ids.every((id) => /^(addition|subtraction|multiplication|division|fraction):\d+:\d+$/.test(id))).toBe(true);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+    // The identity reaches the screens with the Called list (the answer still does not).
+    const state = toPlayerState(record());
+    expect(state.called[0].id).toMatch(/^addition:\d+:\d+$/);
+    expect(state.question?.reveal).toBeNull();
+  });
+
+  it("passes an emoji only if it is one of the curated choices", () => {
+    const withEmoji = record({
+      leaderboard: [{ ...record().leaderboard[0], emoji: "\u{1F680}" }, { ...record().leaderboard[1], emoji: "<img src=x>" }],
+      winners: [{ ...record().winners[0], emoji: "\u{1F680}" }],
+      events: [{ ...record().events[0], emoji: "javascript:alert(1)" }],
+      players: [{ id: "22222222-2222-4222-8222-222222222222", name: "Ava", emoji: "\u{1F981}", connected: true }],
+      me: { ...record().me, emoji: "\u{1F981}" }
+    });
+    const player = toPlayerState(withEmoji);
+    expect(player.me.emoji).toBe("\u{1F981}");
+    expect(player.leaderboard[0].emoji).toBe("\u{1F680}");
+    expect(player.leaderboard[1].emoji).toBeNull();
+    expect(player.winners[0].emoji).toBe("\u{1F680}");
+    expect(player.events[0].emoji).toBeNull();
+    expect(toHostState(withEmoji).players[0].emoji).toBe("\u{1F981}");
+    expect(JSON.stringify(player)).not.toMatch(/img src|javascript:/);
+  });
+
+  it("gives the page the raw facts behind markUsed / attemptsLeft", () => {
+    const state = toPlayerState(record());
+    expect(state.me).toMatchObject({ markQuestion: 2, attemptQuestion: 2, attempts: 1, markUsed: true, attemptsLeft: 1 });
+  });
 });

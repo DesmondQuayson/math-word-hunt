@@ -22,6 +22,9 @@ export function dealCard(input: Readonly<{
   participantId: string;
   freeSpace: boolean;
   fractions: boolean;
+  classOf?: ((value: Readonly<{ n: number; d: number }>) => string) | null;
+  lineLimit?: ((value: Readonly<{ n: number; d: number }>) => number) | null;
 }>): readonly CardCell[];
+export function maxCopiesInLine(card: readonly CardCell[], classOf: (value: Readonly<{ n: number; d: number }>) => string): number;
 export function cardSignature(card: readonly CardCell[]): string;
 export function isValidCard(card: unknown, freeSpace: boolean): boolean;

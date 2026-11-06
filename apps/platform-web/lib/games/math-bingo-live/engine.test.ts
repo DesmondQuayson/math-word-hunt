@@ -234,7 +234,10 @@ describe("answer pools and decks (thousands of deterministic games)", { timeout:
             expect(buildAnswerPool(settings, seed)).toEqual(pool);
 
             const deck = buildDeck(settings, pool, seed);
-            expect(deck).toHaveLength(pool.length * DECK_PASSES);
+            // At most DECK_PASSES passes, and never the same question twice
+            // (final-gameplay.test.ts covers identities in depth).
+            expect(deck.length).toBeLessThanOrEqual(pool.length * DECK_PASSES);
+            expect(new Set(deck.map(question => question.id)).size).toBe(deck.length);
             for (let index = 0; index < deck.length; index += 1) {
               const question = deck[index];
               expect(question.number).toBe(index + 1);
@@ -246,17 +249,19 @@ describe("answer pools and decks (thousands of deterministic games)", { timeout:
                 expect(question.answer.n).toBeLessThan(question.answer.d);
               }
             }
-            // Every pass calls each pool instance once: a perfect player can
-            // always fill the whole card in one pass, so a winner is reachable.
-            for (let pass = 0; pass < DECK_PASSES; pass += 1) {
-              const slice = deck.slice(pass * pool.length, (pass + 1) * pool.length);
+            if (mode !== "fractions") {
+              // The first pass calls each pool instance once: a perfect player
+              // can always fill the whole card in one pass, so a winner is reachable.
               const remaining = pool.map(value => ({ ...value }));
-              for (const question of slice) {
+              for (const question of deck.slice(0, pool.length)) {
                 const match = remaining.findIndex(value => answerMatches(settings, question.answer, value));
                 expect(match).toBeGreaterThanOrEqual(0);
                 remaining.splice(match, 1);
               }
               expect(remaining).toHaveLength(0);
+            } else {
+              // Fraction Bingo calls each fraction once; every fraction on the card is called.
+              for (const value of pool) expect(deck.some(question => answerMatches(settings, question.answer, value))).toBe(true);
             }
           }
         }
@@ -285,13 +290,19 @@ describe("answer pools and decks (thousands of deterministic games)", { timeout:
     expect(differentQuestions).toBeGreaterThan(SEEDS.length);
   });
 
-  it("generates thousands of distinct questions across modes", () => {
+  it("generates thousands of questions across modes, each identity once per game", () => {
     let total = 0;
+    const identities = new Set<string>();
     for (const { mode, level } of LEVELS) {
       const settings = settingsFor(mode, level);
-      for (const seed of SEEDS.slice(0, 20)) total += buildDeck(settings, buildAnswerPool(settings, seed), seed).length;
+      for (const seed of SEEDS.slice(0, 20)) {
+        const deck = buildDeck(settings, buildAnswerPool(settings, seed), seed);
+        total += deck.length;
+        for (const question of deck) identities.add(question.id);
+      }
     }
-    expect(total).toBeGreaterThan(20_000);
+    expect(total).toBeGreaterThan(15_000);
+    expect(identities.size).toBeGreaterThan(1_500);
   });
 });
 

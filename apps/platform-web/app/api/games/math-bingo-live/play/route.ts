@@ -13,6 +13,7 @@ import {
   toPlayerState
 } from "@/lib/games/math-bingo-live/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { normalizeEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
 import { sanitizeDisplayName } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,8 @@ const ERRORS: Readonly<Record<string, [string, number]>> = Object.freeze({
   "locked": ["room-locked", 423],
   "full": ["room-full", 409],
   "rate-limited": ["rate-limited", 429],
-  "invalid-name": ["name-invalid", 400]
+  "invalid-name": ["name-invalid", 400],
+  "invalid-emoji": ["emoji-invalid", 400]
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -84,13 +86,17 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     if (!code) return refused("invalid-code", 400);
     const name = sanitizeDisplayName(body.name);
     if (!name.ok) return refused(name.error, 400);
+    // Optional and decorative: one of the curated choices exactly, or none.
+    const emoji = normalizeEmoji(body.emoji);
+    if (!emoji.ok) return refused(emoji.error, 400);
     const token = newToken();
     const tokenHash = hashToken("player", token);
     const data = await call("bingo_join_room", {
       p_code: code,
       p_name: name.name,
       p_token_hash: tokenHash,
-      p_subject_hash: subjectHash(resolveLimiterSecret(), clientAddress(request.headers))
+      p_subject_hash: subjectHash(resolveLimiterSecret(), clientAddress(request.headers)),
+      p_emoji: emoji.emoji
     });
     if (!data || !isRoomRecord(data)) return roomReply(data);
     return roomReply(await withCard(data, tokenHash), { token });

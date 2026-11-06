@@ -5,14 +5,17 @@
 // marks, Free Space and win (never a duplicate player). The card is the
 // largest thing on the screen; every tap is checked by the server.
 
-import { PLAY_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pollInterval, readStored, writeStored } from "./api.js";
+import { ACTION_TIMEOUT_MS, PLAY_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pollInterval, readStored, writeStored } from "./api.js";
 import { GameAudio, attachAudioLifecycle, readPreferences, writePreferences } from "./audio.js";
 import { createCard, isFree } from "./cells.js";
 import { announce, clear, fill, h, icon } from "./dom.js";
 import { LINES } from "./engine/board.js";
+import { EMOJI_CHOICES, isAllowedEmoji, withEmoji } from "./engine/emoji.js";
 import { NAME_MAX } from "./engine/settings.js";
+import { codeFromSearch } from "./join-link.js";
 import {
   LINE_LABEL,
+  announcedName,
   bingoBannerChildren,
   calledList,
   createBanner,
@@ -23,12 +26,13 @@ import {
   ordinal,
   phaseTotalMs,
   placeWord,
+  playerName,
   questionFace,
   remainingMs,
   revealFace,
   rulesStrip,
-  tutorial,
-  upperName
+  spokenName,
+  tutorial
 } from "./shared.js";
 
 const SEAT_KEY = "mathnexa:math-bingo-live:seat";
@@ -74,7 +78,7 @@ function saveSeat(next) {
   } catch {
     /* A reload will not restore without storage. */
   }
-  writeStored(RECENT_KEY, next ? { token: next.token, code: next.code, name: next.name, at: Date.now() } : null);
+  writeStored(RECENT_KEY, next ? { token: next.token, code: next.code, name: next.name, emoji: isAllowedEmoji(next.emoji) ? next.emoji : null, at: Date.now() } : null);
 }
 
 function setScreen(name) {
@@ -83,9 +87,9 @@ function setScreen(name) {
 
 // ------------------------------------------------------------------ join
 
+/** The room from a QR code or a shared link (/join?code=537636), or "". */
 function initialCode() {
-  const raw = new URLSearchParams(location.search).get("code") ?? "";
-  return /^\d{6}$/.test(raw) ? raw : "";
+  return codeFromSearch(location.search);
 }
 
 function renderJoinCode(message = "", prefill = initialCode()) {
@@ -118,45 +122,97 @@ function renderJoinCode(message = "", prefill = initialCode()) {
   h("button", { type: "submit", class: "button button-primary button-wide", text: "Next" }),
   canRejoin ? h("button", {
     type: "button", class: "button button-ghost button-wide",
-    onclick: () => resume({ token: recent.token, code: recent.code, name: recent.name }),
-    text: `Rejoin as ${recent.name}`
+    onclick: () => resume({ token: recent.token, code: recent.code, name: recent.name, emoji: recent.emoji }),
+    text: `Rejoin as ${withEmoji(recent.name, recent.emoji)}`
   }) : null);
   fill(app, h("main", { id: "main", class: "join-screen" }, brandHeader(), form));
   input.focus();
 }
 
-function renderJoinName(code, message = "") {
+/** A uniformly random index (crypto when available). */
+function randomIndex(length) {
+  try {
+    const value = new Uint32Array(1);
+    crypto.getRandomValues(value);
+    return value[0] % length;
+  } catch {
+    return Math.floor(Math.random() * length);
+  }
+}
+
+/**
+ * Name + optional emoji, then Join. Reached from the code screen, or
+ * directly from the teacher's QR code (the room is already in the link).
+ */
+function renderJoinName(code, message = "", { name = "", emoji = null } = {}) {
   setScreen("join");
+  let chosen = isAllowedEmoji(emoji) ? emoji : null;
   const input = h("input", {
     id: "name", class: "join-input name-input", type: "text", autocomplete: "nickname", autocapitalize: "words",
-    spellcheck: "false", maxlength: String(NAME_MAX), required: true, "aria-describedby": "name-help name-error"
+    spellcheck: "false", maxlength: String(NAME_MAX), required: true, "aria-describedby": "name-help name-error", value: name
   });
   const error = h("p", { id: "name-error", class: "form-error", role: "alert", text: message });
-  const submit = h("button", { type: "submit", class: "button button-primary button-wide", text: "Join game" });
+  const preview = h("p", { class: "join-preview", "aria-live": "polite" });
+  const updatePreview = () => {
+    const typed = input.value.replace(/\s+/g, " ").trim();
+    preview.textContent = typed.length >= 2 ? `You'll appear as ${withEmoji(typed, chosen)}` : chosen ? `Your emoji: ${chosen}` : "";
+  };
+  input.addEventListener("input", updatePreview);
+  // Native radio buttons in a fieldset: arrow keys move between choices, and
+  // each choice has a spoken name ("Lion"). "No emoji" is the default.
+  const radios = new Map();
+  const options = [{ emoji: null, name: "No emoji" }, ...EMOJI_CHOICES].map((choice, index) => {
+    const id = `emoji-${index}`;
+    const radio = h("input", {
+      id, type: "radio", name: "emoji", class: "emoji-radio", value: choice.emoji ?? "",
+      checked: (choice.emoji ?? null) === chosen ? true : null,
+      onchange: () => {
+        chosen = choice.emoji ?? null;
+        updatePreview();
+      }
+    });
+    radios.set(choice.emoji ?? "", radio);
+    return h("label", { class: `emoji-option${choice.emoji ? "" : " is-none"}`, for: id, title: choice.name },
+      radio,
+      h("span", { class: "emoji-face", "aria-hidden": "true", text: choice.emoji ?? "None" }),
+      h("span", { class: "sr-only", text: choice.name }));
+  });
+  const random = h("button", {
+    type: "button", class: "button button-ghost button-small emoji-random",
+    onclick: () => {
+      // A different emoji every press (never the one already chosen).
+      const others = EMOJI_CHOICES.filter(choice => choice.emoji !== chosen);
+      chosen = others[randomIndex(others.length)].emoji;
+      const radio = radios.get(chosen);
+      if (radio) radio.checked = true;
+      updatePreview();
+    }
+  }, h("span", { "aria-hidden": "true", text: "\u{1F3B2}" }), h("span", { text: "Random" }));
+  const submit = h("button", { type: "submit", class: "button button-primary button-wide", text: "JOIN GAME" });
   const form = h("form", {
     class: "join-card", novalidate: true,
     onsubmit: async event => {
       event.preventDefault();
       audio.activate();
-      const name = input.value.replace(/\s+/g, " ").trim();
-      if (name.length < 2) {
-        error.textContent = name ? MESSAGES["name-too-short"] : MESSAGES["name-required"];
+      const typed = input.value.replace(/\s+/g, " ").trim();
+      if (typed.length < 2) {
+        error.textContent = typed ? MESSAGES["name-too-short"] : MESSAGES["name-required"];
         input.focus();
         return;
       }
       submit.disabled = true;
       submit.textContent = "Joining…";
       try {
-        const payload = await liveRequest(PLAY_ENDPOINT, { action: "join", code, name });
-        seat = { token: payload.token, code, name: payload.state.me.name };
+        const payload = await liveRequest(PLAY_ENDPOINT, { action: "join", code, name: typed, emoji: chosen }, { timeoutMs: ACTION_TIMEOUT_MS });
+        seat = { token: payload.token, code, name: payload.state.me.name, emoji: payload.state.me.emoji };
         saveSeat(seat);
         startSession(payload.state);
       } catch (failure) {
         submit.disabled = false;
-        submit.textContent = "Join game";
-        const code = failure instanceof LiveError ? failure.code : "unavailable";
-        if (["room-not-found", "room-expired", "room-locked", "room-full", "invalid-code"].includes(code)) {
-          renderJoinCode(failure.message);
+        submit.textContent = "JOIN GAME";
+        const failed = failure instanceof LiveError ? failure.code : "unavailable";
+        if (["room-not-found", "room-expired", "room-locked", "room-full", "invalid-code"].includes(failed)) {
+          renderJoinCode(failure.message, failed === "room-not-found" || failed === "invalid-code" ? "" : code);
           return;
         }
         error.textContent = failure.message;
@@ -165,13 +221,19 @@ function renderJoinName(code, message = "") {
     }
   },
   h("p", { class: "join-eyebrow", text: `Game ${code.slice(0, 3)} ${code.slice(3)}` }),
-  h("label", { for: "name", class: "join-label", text: "DISPLAY NAME" }),
+  h("label", { for: "name", class: "join-label", text: "YOUR NAME" }),
   input,
   h("p", { id: "name-help", class: "join-help", text: "Your first name or a nickname. 2–20 characters. Only this game sees it." }),
+  h("fieldset", { class: "emoji-field" },
+    h("legend", { class: "emoji-legend" }, h("span", { class: "join-label", text: "CHOOSE AN EMOJI" }), h("span", { class: "emoji-optional", text: " (optional)" })),
+    random,
+    h("div", { class: "emoji-picker" }, options)),
+  preview,
   error,
   submit,
   h("button", { type: "button", class: "button button-ghost button-wide", text: "Back", onclick: () => renderJoinCode("", code) }));
   fill(app, h("main", { id: "main", class: "join-screen" }, brandHeader(), form));
+  updatePreview();
   input.focus();
 }
 
@@ -209,7 +271,7 @@ function resume(stored) {
   fill(app, h("main", { id: "main", class: "join-screen" }, brandHeader(), h("p", { class: "loading-text", role: "status", text: "Reconnecting to your game…" })));
   liveRequest(PLAY_ENDPOINT, { action: "state", token: stored.token })
     .then(payload => {
-      saveSeat({ ...stored, name: payload.state.me.name });
+      saveSeat({ ...stored, name: payload.state.me.name, emoji: payload.state.me.emoji });
       startSession(payload.state);
     })
     .catch(error => {
@@ -260,7 +322,7 @@ function renderLobby() {
   fill(app, h("main", { id: "main", class: "lobby-screen" },
     h("section", { class: "youre-in", role: "status" },
       h("p", { class: "youre-in-title", text: "You're in!" }),
-      h("p", { class: "youre-in-name", text: state.me.name }),
+      h("p", { class: "youre-in-name", text: withEmoji(state.me.name, state.me.emoji) }),
       h("p", { class: "youre-in-wait", text: "Waiting for your teacher to start." })),
     state.settings ? rulesStrip(state.settings.patterns) : null,
     tutorial(state.settings?.mode),
@@ -336,7 +398,7 @@ function updateGame() {
   const fractions = settings?.mode === "fractions";
   body.classList.toggle("is-fractions", fractions);
 
-  game.strip.name.textContent = me.name;
+  game.strip.name.textContent = withEmoji(me.name, me.emoji);
   game.strip.rank.textContent = me.rank ? `#${me.rank}` : "";
   game.strip.rank.setAttribute("aria-label", me.rank ? `Rank ${me.rank}` : "");
   game.strip.best.textContent = me.hasWon ? "BINGO" : `${me.best}/5${me.bestType ? ` ${LINE_LABEL[me.bestType]}` : ""}`;
@@ -438,7 +500,7 @@ function completeView() {
     winners.length
       ? h("ol", { class: "podium" }, winners.slice(0, 10).map(winner => h("li", { class: `podium-place${winner.you ? " is-you" : ""}` },
           h("span", { class: "podium-medal", "aria-hidden": "true", text: medal(winner.placement) || ordinal(winner.placement) }),
-          h("span", { class: "podium-name", text: winner.name }),
+          h("span", { class: "podium-name", text: playerName(winner) }),
           h("span", { class: "sr-only", text: `, ${ordinal(winner.placement)}` }))))
       : h("p", { class: "complete-text", text: "No Bingo this time — great effort!" }),
     h("p", { class: "complete-text", text: me.hasWon ? `You finished ${ordinal(me.placement)}!` : `Your best line: ${me.best}/5.` }),
@@ -462,13 +524,13 @@ function processEvents() {
       game.banner.show({
         tone: "free",
         duration: 2200,
-        children: [h("p", { class: "banner-title", text: event.you ? "\u{1F389} YOU USED YOUR FREE SPACE!" : `\u{1F389} ${upperName(event.name)} USED FREE SPACE!` })]
+        children: [h("p", { class: "banner-title", text: event.you ? `${isAllowedEmoji(event.emoji) ? event.emoji : "\u{1F389}"} YOU USED YOUR FREE SPACE!` : `${announcedName(event)} USED FREE SPACE!` })]
       });
-      announce(event.you ? "You used your Free Space." : `${event.name} used Free Space.`, { assertive: true });
+      announce(event.you ? "You used your Free Space." : `${spokenName(event)} used Free Space.`, { assertive: true });
     } else if (event.type === "bingo") {
       const winner = state.winners.find(item => item.placement === event.placement);
       game.banner.show({ tone: "bingo", duration: 3600, children: bingoBannerChildren(event, winner) });
-      announce(event.you ? `Bingo! You finished ${ordinal(event.placement)}.` : `${event.name}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo.`, { assertive: true });
+      announce(event.you ? `Bingo! You finished ${ordinal(event.placement)}.` : `${spokenName(event)}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo.`, { assertive: true });
       if (state.settings?.celebration === "all") {
         if (event.you) audio.bingo();
         else audio.winnerAnnouncement();
@@ -486,6 +548,7 @@ const FEEDBACK = Object.freeze({
   "already-marked": "That square is already marked.",
   "too-late": "Time's up for that question.",
   "not-active": "Wait for the next question.",
+  "game-won": "The Bingo winners are in — this game is over.",
   stale: "That question has ended.",
   paused: "Paused — your tap wasn't counted.",
   "already-won": "You already have Bingo! Enjoy the rest of the game.",
@@ -511,6 +574,7 @@ async function tapCell(index) {
   audio.activate();
   if (!state || pendingCell !== null) return;
   if (state.phase === "PAUSED") return showToast(FEEDBACK.paused);
+  if (state.phase === "WINNER_REVEAL") return showToast(FEEDBACK["game-won"]);
   if (state.phase !== "QUESTION_ACTIVE") return showToast(FEEDBACK["not-active"]);
   if (state.me.hasWon) return showToast(FEEDBACK["already-won"]);
   if (((state.me.marks >>> index) & 1) === 1) return showToast(FEEDBACK["already-marked"]);
@@ -531,8 +595,12 @@ async function tapCell(index) {
       const shows = payload.tapped ? ` That square shows ${payload.tapped}.` : "";
       showToast(left > 0 ? `Not quite.${shows} ${left} more try.` : `Not quite.${shows} Wait for the next question.`, "warn");
       shake(index);
+    } else if (payload.result === "not-active" && state.phase === "WINNER_REVEAL") {
+      showToast(FEEDBACK["game-won"]);
     } else {
       showToast(FEEDBACK[payload.result] ?? "That tap wasn't counted.");
+      // A refusal this screen did not expect means it is behind: catch up now.
+      if (payload.result === "already-marked" || payload.result === "mark-used" || payload.result === "stale") session.pollNow();
     }
   } catch (error) {
     pendingCell = null;
@@ -614,6 +682,10 @@ window.__MATH_BINGO_LIVE__ = Object.freeze({
   }
 });
 
+// A seat in this tab is resumed (a refresh keeps the same player, card and
+// emoji). Opening a QR code or link for a DIFFERENT room starts a new join.
 const stored = readSeat();
-if (stored) resume(stored);
+const linked = initialCode();
+if (stored && (!linked || linked === stored.code)) resume(stored);
+else if (linked) renderJoinName(linked);
 else renderJoinCode();

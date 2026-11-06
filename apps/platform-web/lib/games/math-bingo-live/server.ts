@@ -4,7 +4,8 @@ import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 
 import { dealCard } from "@/public/internal-games/math-bingo-live/src/engine/board.js";
 import { describeModel, fractionText } from "@/public/internal-games/math-bingo-live/src/engine/fractions.js";
-import { buildAnswerPool, buildDeck, modeLabel, revealText } from "@/public/internal-games/math-bingo-live/src/engine/questions.js";
+import { isAllowedEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
+import { buildAnswerPool, buildDeck, dealRules, modeLabel, revealText } from "@/public/internal-games/math-bingo-live/src/engine/questions.js";
 import { ATTEMPTS_PER_QUESTION, normalizeSettings, type BingoSettings } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
 import { PRODUCTION_PUBLIC_CANONICAL_HOST, PRODUCTION_PUBLIC_WWW_HOST } from "@/lib/environment/production-public";
 import { isStagingAccessRequired } from "@/lib/staging-access/server";
@@ -147,27 +148,26 @@ export function resetAvailabilityCacheForTests(): void {
 
 // ------------------------------------------------------------------- games
 
-/** Deck entries as stored: text, spoken text, kind and the answer. */
-export type StoredQuestion = Readonly<{ t: string; s: string; k: "arithmetic" | "fraction"; n: number; d: number }>;
+/**
+ * Deck entries as stored: the canonical question identity (q, unique within
+ * the deck; the database refuses a deck that repeats one), text, spoken text,
+ * kind and the answer.
+ */
+export type StoredQuestion = Readonly<{ q: string; t: string; s: string; k: "arithmetic" | "fraction"; n: number; d: number }>;
 
 export function buildGame(settings: BingoSettings, seed: string): Readonly<{ pool: readonly Fraction[]; deck: readonly StoredQuestion[] }> {
   const pool = buildAnswerPool(settings, seed);
   const deck = buildDeck(settings, pool, seed).map((question) => Object.freeze({
-    t: question.text, s: question.spoken, k: question.kind, n: question.answer.n, d: question.answer.d
+    q: question.id, t: question.text, s: question.spoken, k: question.kind, n: question.answer.n, d: question.answer.d
   }));
+  if (new Set(deck.map((question) => question.q)).size !== deck.length) throw new Error("A question would repeat in this game.");
   return Object.freeze({ pool, deck: Object.freeze(deck) });
 }
 
 export function dealFor(record: Json, participantId: string): readonly Cell[] | null {
   const settings = normalizeSettings(record.settings);
   if (!settings.ok || typeof record.seed !== "string" || !Array.isArray(record.pool)) return null;
-  return dealCard({
-    pool: record.pool as Fraction[],
-    seed: record.seed,
-    participantId,
-    freeSpace: settings.settings.freeSpace,
-    fractions: settings.settings.mode === "fractions"
-  });
+  return dealCard({ pool: record.pool as Fraction[], seed: record.seed, participantId, ...dealRules(settings.settings) });
 }
 
 /**
@@ -177,9 +177,10 @@ export function dealFor(record: Json, participantId: string): readonly Cell[] | 
  */
 export function dealBoards(settings: BingoSettings, pool: readonly Fraction[], seed: string, participantIds: readonly unknown[]): Record<string, readonly Cell[]> {
   const boards: Record<string, readonly Cell[]> = {};
+  const rules = dealRules(settings);
   for (const id of participantIds) {
     if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) || id in boards) continue;
-    boards[id] = dealCard({ pool: pool as Fraction[], seed, participantId: id, freeSpace: settings.freeSpace, fractions: settings.mode === "fractions" });
+    boards[id] = dealCard({ pool: pool as Fraction[], seed, participantId: id, ...rules });
   }
   return boards;
 }
@@ -193,6 +194,8 @@ const num = (value: unknown): number | null => (typeof value === "number" && Num
 const int = (value: unknown, fallback = 0): number => (Number.isInteger(value) ? (value as number) : fallback);
 const text = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 const list = (value: unknown): Json[] => (Array.isArray(value) ? value.filter((item): item is Json => Boolean(item) && typeof item === "object") : []);
+/** A player's emoji, only if it is one of the curated choices (never free text). */
+const emoji = (value: unknown): string | null => (isAllowedEmoji(value) ? value : null);
 
 export function isRoomRecord(value: unknown): value is Json {
   if (!value || typeof value !== "object") return false;
@@ -226,6 +229,8 @@ function questionView(entry: Json, number: number, revealed: boolean) {
   const answer = { n: int(entry.n), d: int(entry.d, 1) };
   return Object.freeze({
     number,
+    /** Canonical identity ("addition:5:7"); never repeats within a game. */
+    id: text(entry.q),
     text: text(entry.t),
     spoken: text(entry.s),
     kind,
@@ -278,6 +283,7 @@ function common(record: Json) {
       seq: int(event.seq),
       type: text(event.type),
       name: text(event.name),
+      emoji: emoji(event.emoji),
       placement: Number.isInteger(event.placement) ? (event.placement as number) : null,
       lineType: typeof event.lineType === "string" ? event.lineType : null,
       cap: Number.isInteger(event.cap) ? (event.cap as number) : null,
@@ -290,6 +296,7 @@ function common(record: Json) {
       return Object.freeze({
         participant: text(winner.id),
         name: text(winner.name),
+        emoji: emoji(winner.emoji),
         placement: int(winner.placement),
         line: text(winner.line),
         lineType: text(winner.lineType),
@@ -301,6 +308,7 @@ function common(record: Json) {
       participant: text(row.id),
       rank: int(row.rank),
       name: text(row.name),
+      emoji: emoji(row.emoji),
       won: row.won === true,
       placement: Number.isInteger(row.placement) ? (row.placement as number) : null,
       best: int(row.best),
@@ -320,6 +328,7 @@ export function toHostState(record: Json) {
     players: Object.freeze(list(record.players).map((player) => Object.freeze({
       id: text(player.id),
       name: text(player.name),
+      emoji: emoji(player.emoji),
       connected: player.connected === true,
       hasWon: player.hasWon === true,
       placement: Number.isInteger(player.placement) ? (player.placement as number) : null,
@@ -358,12 +367,18 @@ export function toPlayerState(record: Json) {
     leaderboard: Object.freeze(top.map(strip)),
     me: Object.freeze({
       name: text(me.name),
+      emoji: emoji(me.emoji),
       version: int(me.version),
       board: board && board.every((cell) => cell !== null) ? Object.freeze(board as Cell[]) : null,
       marks: int(me.marks),
       freeUsed: me.freeUsed === true,
       markUsed: int(me.markQuestion) === questionNumber && questionNumber > 0,
       attemptsLeft: Math.max(0, ATTEMPTS_PER_QUESTION - attemptsUsed),
+      // The raw facts behind markUsed / attemptsLeft, so the page can keep its
+      // own newest seat state against a newer room state (see api.js reconcile).
+      markQuestion: int(me.markQuestion),
+      attemptQuestion: int(me.attemptQuestion),
+      attempts: int(me.attempts),
       hasWon: me.hasWon === true,
       placement: Number.isInteger(me.placement) ? (me.placement as number) : null,
       winLine: typeof me.winLine === "string" ? me.winLine : null,

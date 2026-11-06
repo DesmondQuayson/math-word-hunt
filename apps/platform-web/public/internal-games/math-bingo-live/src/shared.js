@@ -4,7 +4,9 @@
 // card cells, never mock-ups).
 
 import { cellFace, fractionSvg, miniCell, winningStrip } from "./cells.js";
-import { h, icon, prefersReducedMotion } from "./dom.js";
+import { h, icon, prefersReducedMotion, s } from "./dom.js";
+import { emojiName, isAllowedEmoji, withEmoji } from "./engine/emoji.js";
+import { encodeQr, qrPath } from "./engine/qr.js";
 
 const PLACE_WORDS = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH", "SIXTH", "SEVENTH", "EIGHTH", "NINTH", "TENTH"];
 const MEDALS = ["\u{1F947}", "\u{1F948}", "\u{1F949}"];
@@ -27,6 +29,35 @@ export const LINE_LABEL = Object.freeze({ row: "Row", column: "Column", diagonal
 
 export function upperName(name) {
   return name.toLocaleUpperCase();
+}
+
+/** "🦁 Ava" (or "Ava"): how a player is shown everywhere. */
+export function playerName(player) {
+  return withEmoji(player?.name ?? "", player?.emoji);
+}
+
+/** "🦁 AVA" for announcements; without an emoji the announcement keeps its 🎉. */
+export function announcedName(player) {
+  return `${isAllowedEmoji(player?.emoji) ? player.emoji : "🎉"} ${upperName(player?.name ?? "")}`;
+}
+
+/** Screen-reader form: "Ava (lion)"; emoji are decoration, the name is what is read. */
+export function spokenName(player) {
+  const name = player?.name ?? "";
+  const label = emojiName(player?.emoji);
+  return label ? `${name} (${label.toLowerCase()})` : name;
+}
+
+/**
+ * A QR code drawn locally as SVG (dark modules on white with the standard
+ * quiet zone). No QR service is contacted.
+ */
+export function qrCode(text, { label, className = "" } = {}) {
+  const code = encodeQr(text);
+  const size = code.size + 8;
+  return s("svg", { viewBox: `0 0 ${size} ${size}`, class: `qr-code ${className}`.trim(), role: "img", "aria-label": label ?? "QR code", "shape-rendering": "crispEdges", focusable: "false" },
+    s("rect", { width: String(size), height: String(size), class: "qr-light" }),
+    s("path", { d: qrPath(code, 4), class: "qr-dark" }));
 }
 
 /** Remaining milliseconds of the current phase by the server clock. */
@@ -146,7 +177,7 @@ export function leaderboardList(rows, { limit = 10, highlightYou = false } = {})
     class: `leader${row.won ? " is-winner" : ""}${highlightYou && row.you ? " is-you" : ""}${!row.won && row.best === 4 ? " is-close" : ""}`
   },
   h("span", { class: "leader-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : String(row.rank) }),
-  h("span", { class: "leader-name", text: row.name }),
+  h("span", { class: "leader-name", text: playerName(row) }),
   h("span", { class: "leader-progress", text: progressText(row) }),
   h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, rank ${row.rank}` }))));
 }
@@ -243,7 +274,7 @@ function confetti(container) {
 
 export function bingoBannerChildren(event, winner) {
   return [
-    h("p", { class: "banner-title", text: `\u{1F389} ${upperName(event.name)} — BINGO!` }),
+    h("p", { class: "banner-title", text: `${announcedName(event)} — BINGO!` }),
     h("p", { class: "banner-subtitle", text: `${placeWord(event.placement)} BINGO` }),
     event.cap > 0 ? h("p", { class: "banner-count", text: `${event.placement} / ${event.cap}` }) : null,
     event.lineType ? h("p", { class: "banner-line", text: `${(LINE_LABEL[event.lineType] ?? "").toUpperCase()} BINGO` }) : null,

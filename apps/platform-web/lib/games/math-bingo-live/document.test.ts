@@ -53,7 +53,9 @@ describe("Math Bingo Live documents", () => {
   it("the runtime never reaches another origin and never builds markup from strings", () => {
     for (const file of runtimeFiles(runtimeRoot)) {
       const source = readFileSync(file, "utf8");
-      expect(source, file).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
+      // The only URL allowed is MathNexa's own canonical origin, which the
+      // teacher's QR code points students to (join-link.js); nothing fetches it.
+      expect(source, file).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg|mathnexa\.com")/);
       expect(source, file).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
       expect(source, file).not.toMatch(/new WebSocket|EventSource/);
     }

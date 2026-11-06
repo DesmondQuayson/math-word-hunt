@@ -4,11 +4,20 @@
 //   1. the ANSWER POOL: the 24 (or 25 without Free Space) values every card
 //      in the room is dealt from, the same multiset for every player;
 //   2. the DECK: for every pool value instance, one question whose answer is
-//      that value, repeated over DECK_PASSES shuffled passes so a player who
+//      that value, over up to DECK_PASSES shuffled passes so a player who
 //      misses a question gets later chances at the same cell.
 // Every fact is generated from whole-number operands, so subtraction is
 // never negative, division is always exact and never by zero, and there is
 // no order-of-operations ambiguity (one operation per question).
+//
+// No question is ever asked twice in one game. Every question has a
+// canonical identity (questionId): "addition:5:7" for both 5 + 7 and 7 + 5
+// (and likewise multiplication), "subtraction:14:6", "division:36:6",
+// "fraction:2:3". The deck uses each identity at most once; when a value has
+// no unused question left, later passes simply skip it, and a game whose deck
+// runs out ends as it always has ("every question was called"). Different
+// questions may share an answer (7 + 5 and 8 + 4 are both 12): that is what
+// makes a second 12 on a card useful.
 
 import { createRandom } from "./random.js";
 import { DECK_PASSES, getLevel, getMode } from "./settings.js";
@@ -21,9 +30,25 @@ export const DIVIDE = "÷";
 const SPOKEN = Object.freeze({ "+": "plus", "-": "minus", "*": "times", "/": "divided by" });
 const SYMBOL = Object.freeze({ "+": "+", "-": MINUS, "*": TIMES, "/": DIVIDE });
 const MAX_COPIES = 3;
+const OPERATION_NAMES = Object.freeze({ "+": "addition", "-": "subtraction", "*": "multiplication", "/": "division" });
+const COMMUTATIVE = new Set(["+", "*"]);
+
+/**
+ * The canonical identity of a question. Addition and multiplication ignore
+ * operand order (5 + 7 is 7 + 5); subtraction and division keep it; a
+ * fraction question is its exact written fraction (2/4 is not 1/2).
+ */
+export function questionId(op, a, b) {
+  if (op === "fraction") return `fraction:${a}:${b}`;
+  const name = OPERATION_NAMES[op];
+  if (!name) throw new Error(`Unknown operation ${op}.`);
+  if (COMMUTATIVE.has(op) && a > b) return `${name}:${b}:${a}`;
+  return `${name}:${a}:${b}`;
+}
 
 function fact(op, a, b, answer) {
   return Object.freeze({
+    id: questionId(op, a, b),
     key: `${op}:${a}:${b}`,
     kind: "arithmetic",
     op,
@@ -157,6 +182,7 @@ export function factsFor(modeId, levelId) {
 
 export function fractionQuestion(value) {
   return Object.freeze({
+    id: questionId("fraction", value.n, value.d),
     key: `fraction:${value.n}/${value.d}`,
     kind: "fraction",
     op: "fraction",
@@ -176,13 +202,31 @@ export function answerMatches(settings, answer, cellValue) {
   return cellValue.d === 1 && answer.d === 1 && cellValue.n === answer.n;
 }
 
-/** Candidate questions for one pool value. */
+/** Candidate questions for one pool value (every written form). */
 function questionsForValue(settings, value) {
   if (settings.mode === "fractions") {
     const forms = settings.equivalentFractions ? equivalentsOf(value, FRACTION_DENOMINATORS[settings.level]) : [value];
     return forms.map(fractionQuestion);
   }
   return factsFor(settings.mode, settings.level).filter(item => item.answer.n === value.n);
+}
+
+/**
+ * The distinct questions (by canonical identity) that answer a value, each
+ * with the written forms it may be shown in (7 + 5 or 5 + 7), in a fixed order.
+ */
+export function questionGroups(settings, value) {
+  const groups = new Map();
+  for (const question of questionsForValue(settings, value)) {
+    if (!groups.has(question.id)) groups.set(question.id, []);
+    groups.get(question.id).push(question);
+  }
+  return [...groups.entries()].map(([id, forms]) => Object.freeze({ id, forms: Object.freeze(forms) }));
+}
+
+/** How many different questions can ever call this value in one game. */
+export function uniqueQuestionCount(settings, value) {
+  return questionGroups(settings, value).length;
 }
 
 export function poolSize(settings) {
@@ -194,15 +238,18 @@ export function poolCandidates(settings) {
   if (settings.mode === "fractions") {
     return properFractions(FRACTION_DENOMINATORS[settings.level]).map(value => ({ value, maxCopies: MAX_COPIES }));
   }
+  // Copies of a value are capped by its DISTINCT questions (5 + 7 and 7 + 5
+  // count once), so every copy on a card can be called by its own question.
   const byValue = new Map();
   for (const item of factsFor(settings.mode, settings.level)) {
     const key = item.answer.n;
-    byValue.set(key, (byValue.get(key) ?? 0) + 1);
+    if (!byValue.has(key)) byValue.set(key, new Set());
+    byValue.get(key).add(item.id);
   }
   return [...byValue.entries()]
     .sort((a, b) => a[0] - b[0])
     // Zero is allowed once at most: "times zero" facts are all alike.
-    .map(([n, count]) => ({ value: Object.freeze({ n, d: 1 }), maxCopies: n === 0 ? 1 : Math.min(MAX_COPIES, count) }));
+    .map(([n, ids]) => ({ value: Object.freeze({ n, d: 1 }), maxCopies: n === 0 ? 1 : Math.min(MAX_COPIES, ids.size) }));
 }
 
 /**
@@ -239,7 +286,7 @@ export function buildAnswerPool(settings, seed) {
 }
 
 /** Values that answer the same questions: equal value in equivalent mode. */
-function answerClass(settings, value) {
+export function answerClass(settings, value) {
   if (settings.mode === "fractions" && settings.equivalentFractions) {
     const divisor = gcdOf(value.n, value.d);
     return `${value.n / divisor}/${value.d / divisor}`;
@@ -281,39 +328,69 @@ function arrangePass(settings, pool, random, previousClass) {
 }
 
 /**
- * The question deck: DECK_PASSES passes over the pool, one question per pool
- * instance per pass. Within a value, the least-used fact is chosen (so 9 + 9
- * and 12 + 6 both appear for two 18s), and the same answer is never asked
- * twice in a row.
+ * The question deck: up to DECK_PASSES passes over the pool. Pass 1 calls
+ * every pool instance once (two 18s get two different questions), so a
+ * perfect player can fill the whole card in one pass and a winner is always
+ * reachable; later passes give second chances with questions not asked yet.
+ * Every question identity appears at most once in the deck: a value whose
+ * questions are used up is not called again, and the deck is simply shorter.
+ * The same answer is never asked twice in a row while another answer can go
+ * between.
  */
 export function buildDeck(settings, pool, seed) {
   const random = createRandom(`${seed}:deck`);
-  const used = new Map();
-  const deck = [];
-  const candidatesByValue = new Map();
+  const instances = new Map();
+  const unused = new Map();
   for (const value of pool) {
-    const key = valueKey(value);
-    if (!candidatesByValue.has(key)) {
-      const list = questionsForValue(settings, value);
-      if (list.length === 0) throw new Error(`No question can produce ${key}.`);
-      candidatesByValue.set(key, list);
+    const key = answerClass(settings, value);
+    if (!instances.has(key)) {
+      const groups = questionGroups(settings, value);
+      if (groups.length === 0) throw new Error(`No question can produce ${valueKey(value)}.`);
+      instances.set(key, []);
+      unused.set(key, random.shuffle(groups));
     }
+    instances.get(key).push(value);
   }
+  const deck = [];
+  const asked = new Set();
   let previousClass = null;
   for (let pass = 0; pass < DECK_PASSES; pass += 1) {
-    for (const value of arrangePass(settings, pool, random, previousClass)) {
-      const candidates = candidatesByValue.get(valueKey(value));
-      const previous = deck[deck.length - 1]?.key;
-      const fresh = candidates.filter(item => item.key !== previous);
-      const pickFrom = fresh.length > 0 ? fresh : candidates;
-      const least = Math.min(...pickFrom.map(item => used.get(item.key) ?? 0));
-      const question = random.pick(pickFrom.filter(item => (used.get(item.key) ?? 0) === least));
-      used.set(question.key, (used.get(question.key) ?? 0) + 1);
-      deck.push(question);
-      previousClass = answerClass(settings, value);
+    // This pass: one call per pool instance whose answer still has an unused question.
+    const callable = [];
+    for (const [key, values] of instances) callable.push(...values.slice(0, Math.min(values.length, unused.get(key).length)));
+    if (callable.length === 0) break;
+    for (const value of arrangePass(settings, callable, random, previousClass)) {
+      const key = answerClass(settings, value);
+      const group = unused.get(key).pop();
+      const form = random.pick(group.forms);
+      if (asked.has(group.id)) throw new Error(`Question ${group.id} would repeat.`);
+      asked.add(group.id);
+      deck.push(form);
+      previousClass = key;
     }
   }
   return Object.freeze(deck.map((question, index) => Object.freeze({ ...question, number: index + 1 })));
+}
+
+/**
+ * Card dealing rules for a game. In Fraction Bingo a fraction can be called
+ * only as often as it has different questions (once, unless Equivalent
+ * Fractions is on), so a card never puts more copies of one value in a line
+ * than can ever be called: every line stays completable.
+ */
+export function dealRules(settings) {
+  if (settings.mode !== "fractions") return Object.freeze({ fractions: false, freeSpace: settings.freeSpace });
+  const limits = new Map();
+  return Object.freeze({
+    fractions: true,
+    freeSpace: settings.freeSpace,
+    classOf: value => answerClass(settings, value),
+    lineLimit: value => {
+      const key = answerClass(settings, value);
+      if (!limits.has(key)) limits.set(key, uniqueQuestionCount(settings, value));
+      return limits.get(key);
+    }
+  });
 }
 
 /** "9 + 9 = 18" for arithmetic; the fraction itself for Fraction Bingo. */
