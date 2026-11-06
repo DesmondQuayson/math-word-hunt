@@ -7,7 +7,7 @@ change, no Supabase change). Nothing pushed or merged.**
 | --- | --- |
 | Branch | `feature/math-bingo-live-final-gameplay` |
 | Base | `4439c14` (`perf/math-bingo-live-50` HEAD: `4ef3a61` deal-every-card-at-Start + its owner-review doc commit) |
-| Staging preview | `dpl_FGkAjVyDarL9ic3CLdxXLmfu7jvP` — https://mathnexa-platform-staging-280c9v0wn-bright-path-ed-tech.vercel.app (build `4a456be`) |
+| Staging preview | `dpl_4pfXr32LH5NaUbW5PxwvPiEA5b6n` — https://mathnexa-platform-staging-69nsaov9z-bright-path-ed-tech.vercel.app (build `4993dee`; later commits change only tests, scripts and docs) |
 | Staging database | `20261103100000`, `20261106100000`, `20261106110000`, `20261106120000`, **`20261107100000` (new)** |
 | Production database | `20261103100000` only (unchanged) |
 
@@ -88,7 +88,57 @@ asked me not to do for a benchmark. Kept as is. The teacher standings read path 
 
 ## Results
 
-RESULTS_PLACEHOLDER
+### Staging load (preview `4993dee`; targets p95: polls ≤ 1.0 s, taps ≤ 1.5 s, teacher ≤ 1.5 s)
+
+Every run now also includes a **same-answer burst**: on question 1 every student taps their own matching square at the
+same server instant and then repeats the tap. Students join with emoji (some shared, some none).
+
+| Run | Students | Polls p95 | Taps p95 (all) | Taps p95 (outside the burst) | Teacher p95 | Burst taps accepted | Burst tap p95 | Repeats counted | Unique questions | Supabase one-row read p95 (same minutes) | Checks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 30 | **0.53 s** | **0.65 s** | — | **0.81 s** | 30/30 | 2.07 s | 0/30 | 12/12 | 0.30 s | **17/17** |
+| 1 | 50 | 1.09 s ✗ | **1.37 s** | — | 1.62 s ✗ | 50/50 | 3.66 s | 0/50 | 12/12 | 0.82 s | 15/17 |
+| 2 | 50 | 1.70 s ✗ | 1.98 s ✗ | — | 3.00 s ✗ | 50/50 | 3.79 s | 0/50 | 13/13 | 1.51 s | 14/17 |
+| 3 | 50 | 1.09 s ✗ | **1.46 s** | — | 1.61 s ✗ | 50/50 | 4.17 s | 0/50 | 11/11 | 0.83 s | 15/17 |
+| 4 | 50 | 2.01 s ✗ | 4.10 s ✗ | 2.96 s ✗ | 3.06 s ✗ | 50/50 | 4.83 s | 0/50 | 11/11 | 2.06 s (max 8.0 s) | 14/17 |
+
+Every run: all students joined, 0 server/network errors, 0 rate-limited, games completed with winners in distinct places,
+every student got a card at Start, every student saw 100% of the questions, standings carried the emoji.
+
+**Reading it.** 30 students: comfortably inside every target. 50 students in normal Supabase conditions (runs 1 and 3):
+polls 1.09 s and teacher 1.61–1.62 s — the same as the previous round (`4ef3a61`: polls 1.06–1.20 s, teacher
+1.60–1.71 s), so the new gameplay costs nothing measurable there; taps 1.37–1.46 s, inside the target but higher than
+`4ef3a61` (0.80–1.13 s) because this test now adds the deliberate 50-way burst (those 50 simultaneous taps alone have
+p95 3.7–4.2 s) and moves the Free Space wave to question 2. Runs 2 and 4 coincided with the Supabase API slowing down for
+everything: the trivial one-row Supabase read sent from the test machine slowed in the same minutes (p95 1.5–2.1 s,
+max 8 s) while Vercel and the network stayed flat (health p95 ~0.17 s). Polls and the teacher view remain about
+0.1 s over target at 50 even on good runs — the open Supabase capacity question is unchanged. The "already-marked"
+counts in the run logs are the test's own deliberate repeats plus its 10% "wrong tap" picking cells that are already
+marked; the server answered every one correctly.
+
+### Correctness (local, real app and database)
+
+- 50 students submitting their own correct square in the **same tick**, four questions in a row: 200/200 accepted,
+  200 repeated submissions all refused (`already-marked`), every card's marks equal its own accepted answers,
+  leaderboard ranks 1–50 once each with matching totals (`scripts/math-bingo-live-final-gameplay.mjs`: 46/46 checks).
+- Full matches, teacher calls every question to the end of the deck, ids in the Called history = unique ids and the
+  stored deck has no repeat: Addition facts-20 45/45 (14 answers asked by different questions), Subtraction facts-20
+  67/67, Multiplication ×0–10 30/30, Division facts-10 72/72, Mixed core 60/60, Fraction Bingo to-sixths 15/15 (each
+  fraction once), to-eighths with equivalents 22/22; never both `a + b` and `b + a` (or `×`).
+- pgTAP suite 39 (75 checks): Start refuses a repeating deck; `1 + 0` after `0 + 1` refused; Ava/Zion/Omar each mark
+  their own 12 for `7 + 5`; Ava's second 12 refused for the same question and accepted for `8 + 4`; 50 players mark the
+  same answer; emoji shared/none/refused/constraint/reconnect/removal.
+
+### Gates on the final branch
+
+| Gate | Result |
+| --- | --- |
+| Unit | platform-core 245/245; platform-web 1,184 passed, 1 skipped (Bingo 165/165, +44 new) |
+| Database (pgTAP) | **1,274/1,275**: all Bingo suites pass (37: 177, 38: 96, 39: 75 new). The one failure is the known local `99_phase7d_suite_cleanup` leftover-data check: 6 `bingo-*@example.test` runner accounts from 2026-11-04 and 14 local billing webhook rows (13 before; billing untouched here) — the same environment check as before, not a Bingo assertion |
+| Security | `test:security` 322/322, platform bundle audit and Number Cross audit pass, protection-bypass tests 7/7 |
+| Typecheck / lint / build | clean / 0 errors (8 pre-existing warnings) / pass (72 pages) |
+| Browser matrix | **19/19** on the final test code: Chromium 9/9, WebKit 6/6, device projects 4/4 (the 17 before + the new QR/emoji test in Chromium and WebKit). Along the way two WebKit-only test-harness races were fixed (the shared Free Space helper could double-tap on a slow click retry; announcements were checked after their few-second window); WebKit coverage was kept, the whole-game QR/emoji test has 25 minutes |
+| Host board layout | PASS: 50 board checks at 1280×720, 1366×768, 1440×900, 1920×1080 (1–50 players, winners, reveal, pause, celebration, long histories, Fraction Bingo), 5 winning-ways setups; compact QR in the header with Winning Ways and every panel on screen |
+| Staging | migration PASS, smoke PASS, review 40/40 (Chromium + WebKit, 1280×720 and 1920×1080 board checks) |
 
 ## Real-phone check on staging
 
