@@ -27,7 +27,7 @@ import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 // The student page's own polling rule, so the virtual class polls exactly like phones do.
-import { DEADLINE_SPREAD_MS, pollInterval } from "../apps/platform-web/public/internal-games/math-bingo-live/src/api.js";
+import { DEADLINE_SPREAD_MS, pollInterval, reconcile } from "../apps/platform-web/public/internal-games/math-bingo-live/src/api.js";
 import { EMOJI_CHOICES } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/emoji.js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
@@ -116,7 +116,8 @@ function student(index, code) {
   const apply = (json) => {
     if (!json) return;
     if (json.result === "unchanged") return;
-    if (json.state) me.state = json.state;
+    // Like the student page: keep the newest room AND the newest own seat (replies arrive out of order).
+    if (json.state) me.state = reconcile(me.state, json.state);
   };
   me.join = async () => {
     await sleep(jitter(0, 10_000));
