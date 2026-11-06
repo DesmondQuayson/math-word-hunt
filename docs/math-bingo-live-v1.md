@@ -7,7 +7,7 @@ Status: **catalog DRAFT, local owner review only.** Nothing is published, listed
 | | |
 | --- | --- |
 | Host | `/games/math-bingo-live/host` (`/games/math-bingo-live` redirects here) |
-| Students | `/join` (optionally `/join?code=482391`) |
+| Students | `/join` (the teacher's QR code opens `/join?code=482391`: the room is already identified) |
 | APIs | `POST /api/games/math-bingo-live/host`, `POST /api/games/math-bingo-live/play` |
 | Store | `supabase/migrations/20261103100000_math_bingo_live.sql` |
 | Runtime | `apps/platform-web/public/internal-games/math-bingo-live/` (vanilla ES modules, like the other internal games) |
@@ -62,9 +62,11 @@ any of COUNTDOWN..LEADERBOARD_UPDATE ⇄ PAUSED (pause / unpause); End Game → 
 
 ## Fairness
 
-- One **answer pool** per game: 24 values (25 with Free Space off), the same multiset for every player, with 2–4 deliberate repeats on large ranges (e.g. two 18s) so choosing which match to mark is real strategy. A value appears at most 3 times; 0 at most once.
+- One **answer pool** per game: 24 values (25 with Free Space off), the same multiset for every player, with 2–4 deliberate repeats on large ranges (e.g. two 18s) so choosing which match to mark is real strategy. A value appears at most 3 times, never more often than it has different questions (so every copy can be called by its own question); 0 at most once.
 - Each card is the pool in that player's own order (seeded by game seed + player id; Fraction Bingo also picks each model's shape). Refresh re-deals the same card; late joiners get the same pool.
-- The **deck** is 3 passes over the pool: each pass calls every pool instance once, in a fresh order where the same answer never comes twice in a row, choosing the least-used fact for repeated values (9 + 9, then 12 + 6). A perfect player can fill the whole card within one pass, so winners are always reachable; 72 questions maximum.
+- **No question is asked twice in a game.** Every question has a canonical identity: `addition:5:7` is both 5 + 7 and 7 + 5 (likewise multiplication), `subtraction:14:6`, `division:36:6` (order kept), `fraction:2:3` (the exact written fraction). Different questions may share an answer: 7 + 5 and 8 + 4 are both 12, which is what makes a second 12 on a card useful.
+- The **deck** is up to 3 passes over the pool. Pass 1 calls every pool instance once (two 18s get two different questions, e.g. 9 + 9 then 12 + 6), so a perfect player can fill the whole card within one pass and winners are always reachable. Later passes are second chances using only questions not asked yet; a value whose questions are used up is not called again, so the deck is simply shorter (arithmetic decks run about 24–75 questions by level). When the deck runs out the game ends as before ("Every question was called"). The same answer never comes twice in a row while another can go between.
+- The application server builds the deck from the game's secret seed; **Start refuses a deck** in which any identity repeats or disagrees with the question it labels (text, operands, canonical order, answer, mode), any question has no matching card value, or any card value can never be called (`private.bingo_deck_valid`, migration `20261107100000`). The Called history every screen shows is the deck up to the current question, so the history and the no-repeat rule are one structure. Play Again builds a new deck, so a question may come back in the next game.
 - **One normal mark per question**, even with two matching cells. Two wrong taps lock the card until the next question (no brute force). Free Space never uses the normal mark.
 - Ranking: confirmed winners (by placement) → best enabled-line progress → correct marks → average response time (tertiary only) → join order.
 
@@ -89,6 +91,7 @@ Symbols: `+ − × ÷` (U+2212, U+00D7, U+00F7).
 - Models are original SVG geometry (`engine/fractions.js`): circle sectors, horizontal bars, vertical rectangles, square grids (2×2, 2×3, 2×4, 3×3…). Every part is exactly equal (tests check every area and angle), the first *n* parts are shaded as one connected run, every part is outlined, and each model has a text description: "Fraction model: 2 of 3 equal parts shaded." Shapes with many thin parts are limited (bars ≤ 6 parts, rectangles ≤ 5) so they stay countable on a 320 px phone.
 - **Exact match is the default**: `1/2` accepts only a 1-of-2 model; a 2/4 model is refused ("That square shows 2/4"). The host may turn on **Allow Equivalent Fractions** (default OFF); then any model of equal value counts, decided by cross-multiplication of integers (`a·d = c·b`), never floating point.
 - Validation uses the cell's stored rational value only — never the shape, an SVG id or a file name.
+- **Each fraction is called once per game** (`fraction:2:3` is one question), so a Fraction Bingo game has as many questions as different fractions on the card: 10 (halves to fifths), 15 (to sixths), 22 (to eighths). A card may still hold two models of 2/3; because 2/3 is called only once, cards are dealt so that no row, column or diagonal holds more copies of a fraction than can ever be called (with Equivalent Fractions on, each equivalent form is its own question, e.g. 1/2 and 2/4), so every line stays completable and picking which copy to mark is real strategy.
 - **Called Fractions** keeps every fraction called in this game: the lower-right panel of the host board (the current one highlighted, older ones kept, scrolling inside the panel), and a collapsed `Called Fractions (7) ▾` disclosure on phones/iPads so it never costs card space. Only past questions plus the current one are ever sent; it resets with a new game, rematch or room.
 - The reveal shows the fraction, an enlarged correct model and "2 of 3 equal parts shaded".
 
@@ -105,12 +108,12 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 
 ## Reconnect and host recovery
 
-- Student: a random 256-bit seat token in `sessionStorage` (refresh restores the same player, card, marks, Free Space, win and rank — never a duplicate). A recent seat is also remembered in `localStorage` and offered as "Rejoin as Ava" on the join screen, never automatically, so a shared iPad does not silently continue someone else's seat.
+- Student: a random 256-bit seat token in `sessionStorage` (refresh restores the same player, card, marks, Free Space, win, rank and emoji — never a duplicate, never asked again). Opening a QR code or link for a different room in the same tab starts a new join instead. A recent seat is also remembered in `localStorage` and offered as "Rejoin as Ava" on the join screen, never automatically, so a shared iPad does not silently continue someone else's seat.
 - Host: the host token lives in `sessionStorage`; a refresh continues. A new window (or device) signed in to the same MathNexa account calls `resume`, which gives it a fresh host token for the newest live room and retires the old one; the old window says "This game is open in another window" and offers "Take control here". A student can never become host: host commands need the teacher's session (matched by a keyed owner hash) **and** the current host token.
 
 ## Privacy
 
-- Students: no account, email, password, birthday or school profile. Stored only for the live game: a random participant id, the token hash, the display name (2–20 characters), the card, marks and connection time.
+- Students: no account, email, password, birthday or school profile. Stored only for the live game: a random participant id, the token hash, the display name (2–20 characters), an optional emoji from a fixed list, the card, marks and connection time. Removing a player clears the name and the emoji.
 - Display names are ephemeral: closing the room deletes every participant row immediately; expired rooms (4 h, extended to 3 h after a start) and closed rooms are deleted with their participants on the next room creation or join. Removed players' names are replaced by "Removed player".
 - The code-guessing limiter stores an HMAC of the caller's address, never the address. The host's account id is stored only as a keyed hash.
 - No names reach analytics; the documents set `noindex` and `no-store`.
@@ -127,6 +130,8 @@ The centre is **not** pre-marked. Each player uses it once, while a question is 
 - Lock discipline: every function that locks the room row locks it before any participant row (no deadlocks); refusals that can no longer change (already won, invalid cell, the Free Space cell, already marked, mark used, attempts spent, Free Space used) are answered without the room lock, so one spamming client cannot queue the room.
 - Room speed (migration `20261106100000`): a wrong tap, or a correct tap that neither completes a winning line nor makes the player "one away" for the first time, changes nothing the whole room sees, so it updates only the player's row, guarded by that row's version (a concurrent change to the player — Play Again, Change Settings, removal, a second tap — sends it down the locked path, which re-validates everything). It is checked against the room as it was when the tap arrived: the question, its server deadline and the pause state. Bingos, a first "one away" and Free Space are broadcasts and keep the locked path, so placements stay strictly ordered and the cap exact. Replies compute the leaderboard when they are built. Before this change every correct tap took the room lock and bumped the room version, which at 50 students queued taps and turned most polls into full replies.
 - Names are rendered with `textContent` only and refused if they contain markup characters; duplicate names become "Ava 2".
+- Emoji: optional, one of 33 curated choices (🐶 🐱 🦁 … 🧩), matched exactly by the server (`engine/emoji.js`) and by the database (`private.bingo_emoji_valid` + a check constraint on the column); anything else is refused (`emoji-invalid`). Decorative only: the participant id identifies a player; two students may share an emoji.
+- Answer independence: every mark is keyed by the player's own row and validated against the player's own card; nothing is unique per room and question. 50 students marking the same answer at the same instant are all accepted (pgTAP suite 39, `scripts/math-bingo-live-final-gameplay.mjs`, and the staging load's same-answer burst). The student page keeps the newest room state and the newest own-seat state separately (`reconcile` in `api.js`), because replies can arrive out of order; requests time out after 10–12 s instead of freezing the card.
 - Limits: 60 players per room; 12 room creations per teacher per 10 min; 40 failed joins per address per 10 min (classmates behind one school address are not limited for successful joins); one live room per teacher.
 - Room isolation: a participant token locates exactly one participant row; host tokens are domain-separated from player tokens.
 - Documents: `default-src 'none'`, `script-src 'self'`, `connect-src 'self'`, no framing, no inline script, no `<base>`, no third-party URL (a unit test scans the runtime).
@@ -152,7 +157,7 @@ Math Bingo Live is a registered internal game (`lib/games/internal-registry.ts`,
 The live host screen is one fixed board that never scrolls as a page (owner layout, 2026-11-04):
 
 ```
-| header: Math Bingo Live · mode · JOIN mathnexa.com/join CODE 537 636 · Winners 1 / 3 · sound |
+| header: Math Bingo Live · mode · [QR] JOIN mathnexa.com/join CODE 537 636 · Winners 1 / 3 · sound |
 | WINNING WAYS  ✓ ROW  ✓ COLUMN  ○ DIAGONAL                                                    |
 | STANDINGS (≈36 % wide, ≈68 % high)  | QUESTION n + timer (≈64 % wide, ≈62 % high);          |
 |   one compact row per player        |   the answer reveal replaces it in place              |
@@ -166,6 +171,13 @@ The live host screen is one fixed board that never scrolls as a page (owner layo
 - Question: the strongest element; the type is sized to the panel (container query units, shorter questions bigger) with a viewport fallback for browsers without container queries; the ring timer sits beside it.
 - Only Standings, Bingo Winners and Called scroll (keyboard-focusable regions). Scales with `--u` = min(1 vw, 1.78 vh), so 1280×720 through 1920×1080 keep the same layout; below 900 px wide the board stacks and the page may scroll.
 - `scripts/math-bingo-live-host-layout.mjs` (runner mode `layout`) checks 1/5/10/30/50 players, 0/1/3 winners, long arithmetic and fraction histories, question/reveal/paused/celebration and the five winning-ways setups at 1280×720, 1366×768, 1440×900 and 1920×1080.
+
+## Joining: QR code and numeric code
+
+- Lobby: **JOIN MATH BINGO LIVE**, a large QR code, **OR** the address and the 6-digit **CODE**. The live board keeps a compact QR beside the code in the header (tap it for a large one) so late students can still join without costing the board any space. When the teacher locks joining, all of it is replaced by **JOINING LOCKED**.
+- The QR encodes this screen's own origin + `/join?code=…` (`join-link.js`): a staging preview's QR opens that preview, a local review the local server, and production always `https://mathnexa.com` (also from www). A hosted screen can never produce a localhost link.
+- The QR is drawn in the browser by a small dependency-free ISO 18004 encoder (`engine/qr.js`, byte mode, level M, versions 1–10); no QR service is contacted, so it works on filtered district networks. Unit tests read every symbol back with an independent reader (format/version tables, Reed–Solomon syndromes, all 8 masks); during development the symbols were also decoded by the separate jsQR library.
+- Scanning opens the join page with the room already identified: the student types a name, optionally picks an emoji (or 🎲 Random, or none) and presses JOIN GAME. Typing the code by hand at `/join` still works while joining is open.
 
 ## Accessibility (WCAG 2.2 AA target)
 
@@ -190,6 +202,9 @@ Students need **only `https://mathnexa.com`** (the documents, scripts, styles, A
 
 See `owner-review/math-bingo-live-owner-review-2026-11-03.md` for the run-by-run results. Suites:
 
+- `lib/games/math-bingo-live/final-gameplay.test.ts` — question identities, no repeats in any mode/level/seed (60 seeds × Free Space × equivalence), canonical addition/multiplication, same answer from different questions, the second-12 strategy, Fraction Bingo line rule, emoji allowlist (and that the database list is identical), join links per environment, the QR reader, and out-of-order replies (`reconcile`).
+- `supabase/tests/database/39_math_bingo_live_final_gameplay.test.sql` — deck check (repeats, canonical order, mismatched identity/answer, uncallable values, operations per mode, fractions), Start refusing a repeating deck, emoji (shared, none, refused, constraint, reconnect, removal), 50 players marking the same answer, one mark per question with two 12s and the second 12 on a later question.
+- `scripts/math-bingo-live-final-gameplay.mjs` — through the real app: 50 students submitting the same answer in the same tick (all accepted, repeats never counted, cards and leaderboard intact) and a full match per mode with unique Called ids.
 - `lib/games/math-bingo-live/engine.test.ts` — every mode/level, 60 seeds × free space on/off × exact/equivalent: pools, decks, passes, adjacency; tens of thousands of questions and fraction cells; every model's equal areas; 50k sampled masks × 5 pattern sets; 60 distinct cards per game.
 - `lib/games/math-bingo-live/server.test.ts`, `document.test.ts` — payload whitelisting (no seed/pool/deck/answer), preview gate, codes, tokens, CSP, runtime scan.
 - `supabase/tests/database/37_math_bingo_live.test.sql` — 177 pgTAP assertions: privileges, lifecycle, marks, attempts, Free Space, wins, caps, pause, deadlines, rematch, removal, recovery, limiter, close (lobby and in-game), "everyone" completion, the 60-player cap, and the five winning-ways setups (a completed diagonal is not a Bingo when diagonals are off).

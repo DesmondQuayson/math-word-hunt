@@ -164,7 +164,7 @@ function renderJoinName(code, message = "", { name = "", emoji = null } = {}) {
   const options = [{ emoji: null, name: "No emoji" }, ...EMOJI_CHOICES].map((choice, index) => {
     const id = `emoji-${index}`;
     const radio = h("input", {
-      id, type: "radio", name: "emoji", class: "emoji-radio", value: choice.emoji ?? "",
+      id, type: "radio", name: "emoji", class: "emoji-radio", value: choice.emoji ?? "", "aria-label": choice.name,
       checked: (choice.emoji ?? null) === chosen ? true : null,
       onchange: () => {
         chosen = choice.emoji ?? null;
