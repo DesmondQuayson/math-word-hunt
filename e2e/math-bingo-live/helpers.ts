@@ -278,12 +278,15 @@ export async function markWrong(page: Page): Promise<{ result: string; cell: num
 export async function useFreeSpace(page: Page): Promise<string> {
   await front(page);
   const star = page.locator('[data-cell="12"]');
-  await press(page, '[data-cell="12"]');
+  // Exactly one click event per tap: press()'s retry after a slow WebKit
+  // "timeout" (the click had already landed) could otherwise tap twice and
+  // spend the Free Space before the armed state is checked.
+  await star.dispatchEvent("click");
   // The first tap only arms the star (a stray tap never spends it).
   await expect(star).toHaveClass(/is-armed/);
   await expect(page.locator(".toast")).toContainText("Tap the star again");
   const response = page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"free\""), { timeout: 30_000 });
-  await press(page, '[data-cell="12"]');
+  await star.dispatchEvent("click");
   return (await (await response).json()).result;
 }
 
