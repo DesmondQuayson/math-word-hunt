@@ -20,7 +20,7 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", testIgnore: ["**/devices.spec.ts"], use: { ...devices["Desktop Chrome"] } },
-    { name: "webkit", testMatch: ["**/live.spec.ts", "**/fractions.spec.ts", "**/reconnect.spec.ts"], use: { ...devices["Desktop Safari"] } },
+    { name: "webkit", testMatch: ["**/live.spec.ts", "**/fractions.spec.ts", "**/reconnect.spec.ts", "**/join-emoji.spec.ts"], use: { ...devices["Desktop Safari"] } },
     { name: "devices-chromium", testMatch: ["**/devices.spec.ts"], use: { ...devices["Desktop Chrome"] } },
     { name: "devices-webkit", testMatch: ["**/devices.spec.ts"], use: { ...devices["Desktop Safari"] } }
   ]

@@ -28,6 +28,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // The student page's own polling rule, so the virtual class polls exactly like phones do.
 import { DEADLINE_SPREAD_MS, pollInterval } from "../apps/platform-web/public/internal-games/math-bingo-live/src/api.js";
+import { EMOJI_CHOICES } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/emoji.js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const origin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
@@ -99,9 +100,19 @@ const value = (question) => {
   return ADD[op]?.(Number(a), Number(b));
 };
 
-/** One virtual student, behaving like the real student page. */
+/**
+ * The same-answer burst: on question 1 of game 1 every student taps their own
+ * matching square at the same server-clock instant (question start + 3 s),
+ * then sends the same tap again. Every first tap must be accepted (nobody
+ * consumes an answer) and no repeat may count.
+ */
+const BURST_KEY = "1:1";
+const burst = { valid: 0, accepted: 0, results: {}, repeats: 0, repeatsCounted: 0, samples: [] };
+
+/** One virtual student, behaving like the real student page (most pick an emoji; some share one, some pick none). */
 function student(index, code) {
-  const me = { name: `Load ${String(index + 1).padStart(2, "0")}`, token: null, state: null, seen: new Set(), marked: new Set(), stop: false, joined: false, boardDealt: false };
+  const emoji = index % 6 === 5 ? null : EMOJI_CHOICES[index % 9].emoji;
+  const me = { name: `Load ${String(index + 1).padStart(2, "0")}`, emoji, token: null, state: null, seen: new Set(), marked: new Set(), stop: false, joined: false, boardDealt: false, clockOffset: 0 };
   const apply = (json) => {
     if (!json) return;
     if (json.result === "unchanged") return;
@@ -109,7 +120,7 @@ function student(index, code) {
   };
   me.join = async () => {
     await sleep(jitter(0, 10_000));
-    const reply = await post({ action: "join", code, name: me.name });
+    const reply = await post({ action: "join", code, name: me.name, emoji: me.emoji });
     me.joined = reply.status === 200 && typeof reply.json?.token === "string";
     if (me.joined) { me.token = reply.json.token; apply(reply.json); }
     return me.joined;
@@ -123,6 +134,29 @@ function student(index, code) {
     if (me.marked.has(key) || s.me.hasWon || s.me.markUsed) return;
     me.marked.add(key);
     const { gameNumber: game, questionNumber: question } = s;
+    if (key === BURST_KEY && typeof s.timing?.questionStartedAt === "number") {
+      const want = value(s.question);
+      const right = s.me.board.map((cell, cellIndex) => ({ cell, cellIndex })).find(({ cell, cellIndex }) => !cell.free && cell.n === want && ((s.me.marks >>> cellIndex) & 1) === 0);
+      if (right) {
+        burst.valid += 1;
+        const fireAt = s.timing.questionStartedAt + 3000 - me.clockOffset;
+        setTimeout(async () => {
+          if (me.stop) return;
+          const started = performance.now();
+          const first = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex });
+          burst.samples.push({ ms: performance.now() - started });
+          const result = first.json?.result ?? first.json?.error ?? String(first.status);
+          burst.results[result] = (burst.results[result] ?? 0) + 1;
+          if (result === "correct") burst.accepted += 1;
+          apply(first.json);
+          const again = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex });
+          burst.repeats += 1;
+          if (again.json?.result === "correct") burst.repeatsCounted += 1;
+          apply(again.json);
+        }, Math.max(0, fireAt - Date.now()));
+        return;
+      }
+    }
     setTimeout(async () => {
       if (me.stop) return;
       if (s.settings?.freeSpace !== false && s.me.board[12]?.free && ((s.me.marks >>> 12) & 1) === 0) {
@@ -144,6 +178,7 @@ function student(index, code) {
   const learnClock = (json) => {
     const serverNow = json?.serverNow ?? json?.state?.timing?.serverNow;
     if (typeof serverNow === "number") clockOffset = serverNow - Date.now();
+    me.clockOffset = clockOffset;
   };
   me.loop = async () => {
     while (!me.stop) {
@@ -284,13 +319,17 @@ try {
   })();
   const games = [];
   const hostQuestions = new Set();
+  let emojiInStandings = 0;
   let lastGame = 0;
   while (Date.now() - playStarted < LOAD_SECONDS * 1000) {
     const s = await hostState();
     if (s?.phase === "QUESTION_ACTIVE") hostQuestions.add(`${s.gameNumber}:${s.questionNumber}`);
     if (s?.phase === "GAME_COMPLETE" && s.gameNumber !== lastGame) {
       lastGame = s.gameNumber;
-      games.push({ game: s.gameNumber, questions: s.questionNumber, winners: s.winners.map((winner) => ({ placement: winner.placement, name: winner.name })) });
+      const calledIds = s.called.map((item) => item.id);
+      emojiInStandings = Math.max(emojiInStandings, s.leaderboard.filter((row) => row.emoji).length);
+      games.push({ game: s.gameNumber, questions: s.questionNumber, calledIds: calledIds.length, uniqueCalledIds: new Set(calledIds).size,
+        winners: s.winners.map((winner) => ({ placement: winner.placement, name: winner.name, emoji: winner.emoji })) });
       await page.screenshot({ path: resolve(out, `host-complete-game-${s.gameNumber}.png`) });
       if (Date.now() - playStarted > (LOAD_SECONDS - 45) * 1000) break;
       await sleep(5000);
@@ -347,6 +386,8 @@ try {
     })),
     // A poll that made two database calls dealt the student's card itself (should be ~0 now that Start deals them).
     pollsThatDealtACard: by((sample) => sample.action === "state" && sample.calls === 2).length,
+    sameAnswerBurst: { valid: burst.valid, accepted: burst.accepted, results: burst.results, repeats: burst.repeats, repeatsCounted: burst.repeatsCounted, latency: stats(burst.samples) },
+    emojiInStandings,
     healthDuringPlay: { ...stats(healthDuringPlay), failed: healthDuringPlay.filter((sample) => sample.status !== 200).length },
     supabaseDuringPlay: { ...stats(supabaseDuringPlay), failed: supabaseDuringPlay.filter((sample) => sample.status !== 200).length },
     // Poll latency per 10 s of play (p50/p95/max, with the trivial Supabase read's max in the same window).
@@ -368,6 +409,10 @@ try {
   ok(limited.length === 0, `no request was rate-limited from one shared address (${limited.length})`);
   ok(games.length >= 1 && games.every((game) => game.winners.length >= 1 && game.winners.length <= 10 && new Set(game.winners.map((winner) => winner.placement)).size === game.winners.length), `${games.length} game(s) completed with 1–10 winners in distinct places`);
   ok(report.boardsDealt === joined.filter(Boolean).length, `every student got a card (${report.boardsDealt})`);
+  ok(burst.valid >= joined.filter(Boolean).length * 0.9 && burst.accepted === burst.valid, `same-answer burst: ${burst.accepted}/${burst.valid} simultaneous taps of the same answer accepted (${Object.entries(burst.results).map(([result, count]) => `${result} ${count}`).join(", ")}; p95 ${report.sameAnswerBurst.latency.p95} ms)`);
+  ok(burst.repeats > 0 && burst.repeatsCounted === 0, `no repeated submission counted (${burst.repeatsCounted}/${burst.repeats})`);
+  ok(games.every((game) => game.calledIds > 0 && game.calledIds === game.uniqueCalledIds), `no question repeated in any game (${games.map((game) => `${game.uniqueCalledIds}/${game.calledIds}`).join(", ")})`);
+  ok(emojiInStandings > 0, `standings carry the students' emoji (${emojiInStandings} rows)`);
   ok(report.worstCoverage >= 95, `every student saw at least 95% of the questions (worst ${report.worstCoverage}%)`);
   ok((report.latency.state.p95 ?? Infinity) <= 1000, `room polls p95 ${report.latency.state.p95} ms (limit 1000)`);
   ok((report.latency.mark.p95 ?? Infinity) <= 1500, `marks p95 ${report.latency.mark.p95} ms (limit 1500)`);

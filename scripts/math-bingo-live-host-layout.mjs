@@ -372,9 +372,11 @@ try {
     const address = "198.19.60.1";
     const room = await openRoom(hostView, 10, settingsFor({ mode: "fractions", level: "to-eighths", winners: 3 }), address);
     let state = room.state;
-    for (let question = 1; question < 26 && state.phase === "QUESTION_ACTIVE"; question += 1) {
+    // Each fraction is called once (22 at "to eighths"): stop one before the end of the deck.
+    const last = Math.min(25, state.deckLength - 1);
+    for (let question = 1; question <= last && state.phase === "QUESTION_ACTIVE"; question += 1) {
       state = (await host("next", { phase: "QUESTION_ACTIVE", question: state.questionNumber })).state;
-      if (question === 25) break;
+      if (question === last) break;
       state = await toQuestion(host);
     }
     await uiSettled(page, { phase: "ANSWER_REVEAL" }, "fraction reveal");

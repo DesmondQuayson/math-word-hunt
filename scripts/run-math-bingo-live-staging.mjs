@@ -32,7 +32,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // Bingo migrations in order; `migrate` applies whichever single one is pending.
-const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000"]);
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000"]);
+const FINAL_GAMEPLAY_MIGRATION = "20261107100000";
 const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
 // main yet). The CLI refuses to push while the remote has a version the local
@@ -174,6 +175,18 @@ async function migrate() {
   if (MIGRATION !== FIRST_MIGRATION) {
     evidence.speedFunctions = sql("select (to_regprocedure('public.bingo_host_state(text,text,bigint,bigint)') is not null) as host_state_with_progress, (to_regprocedure('private.bingo_progress(uuid)') is not null) as progress_helper, has_function_privilege('anon','private.bingo_progress(uuid)','EXECUTE') or has_function_privilege('authenticated','private.bingo_progress(uuid)','EXECUTE') as progress_browser_execute")[0];
     check(evidence.speedFunctions.host_state_with_progress && evidence.speedFunctions.progress_helper && !evidence.speedFunctions.progress_browser_execute, "room-speed-functions-missing-or-open");
+  }
+  if (MIGRATION === FINAL_GAMEPLAY_MIGRATION) {
+    evidence.finalGameplay = sql(`select
+      exists (select 1 from information_schema.columns where table_schema='public' and table_name='bingo_participants' and column_name='emoji') as emoji_column,
+      exists (select 1 from pg_constraint where conname='bingo_participants_emoji_check') as emoji_check,
+      (to_regprocedure('public.bingo_join_room(text,text,text,text,text)') is not null) as join_with_emoji,
+      (to_regprocedure('private.bingo_deck_valid(jsonb,jsonb,jsonb)') is not null) as deck_check,
+      has_function_privilege('anon','private.bingo_deck_valid(jsonb,jsonb,jsonb)','EXECUTE') or has_function_privilege('authenticated','private.bingo_deck_valid(jsonb,jsonb,jsonb)','EXECUTE') as deck_check_browser_execute,
+      has_function_privilege('anon','private.bingo_emoji_valid(text)','EXECUTE') or has_function_privilege('authenticated','private.bingo_emoji_valid(text)','EXECUTE') as emoji_check_browser_execute,
+      (select count(*) from public.bingo_participants where emoji is not null)::integer as rows_with_emoji`)[0];
+    const final = evidence.finalGameplay;
+    check(final.emoji_column && final.emoji_check && final.join_with_emoji && final.deck_check && !final.deck_check_browser_execute && !final.emoji_check_browser_execute, "final-gameplay-functions-missing-or-open");
   }
   check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.subscriptions === before.subscriptions
     && after.other_games === before.other_games, "unrelated-rows-changed");
