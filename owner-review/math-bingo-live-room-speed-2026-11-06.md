@@ -1,8 +1,9 @@
 # Math Bingo Live — 50-student speed (STAGING ONLY, 2026-11-05/06)
 
 **Status: on staging only. Production untouched (v1.2.35, game published). Nothing pushed or merged.**
-Branch `perf/math-bingo-live-50` (from `main` `86beab1`), latest build `7675389` on staging preview
-`dpl_ExcpR7wvQJmy6oZhHTcR8AYieyCR`. Staging database has migrations `20261106100000` and `20261106110000`.
+Branch `perf/math-bingo-live-50` (from `main` `86beab1`), latest build `4ef3a61` on staging preview
+`dpl_5ombzwsgyArmYnsdh5Zm9ikxQq5Y`. Staging database has migrations `20261106100000`, `20261106110000` and
+`20261106120000`.
 
 ## What we found
 
@@ -41,7 +42,13 @@ Supabase compute tier). Production would behave the same way at 50 students.
 4. **The teacher's screen reuses its sign-in check for 15 seconds** on read-only polls (same session cookies, same
    server instance). Every command (start, next, pause, remove, close, …) still checks in full and the host token is
    still required. The sign-in check was ~0.6 s of every teacher poll.
-5. Tooling: `Server-Timing` on the game API (durations only), a load test that polls exactly like the student page and
+5. **Every card is dealt in the teacher's Start / Play Again call** (migration `20261106120000`; owner chose "Fix
+   game-start burst", 2026-11-06). Before, each student's first poll asked the server to deal and store a card (50
+   extra requests in a few seconds, each taking the room lock), which caused the 2–9 s spikes at the start of every
+   game. Now the server deals every joined student's card from the new game's secret seed (the same deal as before)
+   and the database stores each one only if it is exactly the game's pool with the Free Space in place. A refused card
+   or a student who joins after Start falls back to the old path. One request instead of 50.
+6. Tooling: `Server-Timing` on the game API (durations only), a load test that polls exactly like the student page and
    records the timing breakdown, a no-database probe, a trivial Supabase probe and a 10-second timeline; the staging and
    production database runners apply the new migrations in order (production not run). Rollback SQL:
    `supabase/rollback/math_bingo_live_room_speed.sql`.
@@ -56,30 +63,46 @@ Supabase compute tier). Production would behave the same way at 50 students.
 | + big classes poll less (`b166486`), two runs | 50 | 1.03–1.07 s | **0.85–0.96 s** | 1.96–2.01 s | 2 fail |
 | + teacher sign-in reuse, smaller replies (`7675389`), three runs | 50 | 1.65–1.81 s | 2.10–3.81 s | 2.18–3.04 s | 3 fail |
 | `7675389` | 30 | 0.56 s | 0.53 s | 0.91 s | **all 13 pass** |
+| **+ cards dealt at Start (`4ef3a61`), run 1** | 50 | 1.06 s | **0.80 s** | 1.60 s | 2 fail (just over) |
+| **`4ef3a61`, run 2** (Supabase slowdown: the one-row probe hit 3.7 s) | 50 | 1.20 s | **1.13 s** | 1.71 s | 2 fail |
+| **`4ef3a61`** | 30 | 0.56 s | 0.47 s | 0.97 s | **all 13 pass** |
 
 Every run: all students joined, 0 rate-limited, games completed with winners in distinct places, every student saw
 ≥ 95% of the questions. The `7675389` runs came after the `b166486` runs on a busier staging Supabase: the local
 benchmark shows its database work is cheaper, and the trivial Supabase probe shows the whole API slowing down in those
 runs. One run (`7a8e7a7`) had 3 requests fail with "live-unavailable" when the Supabase API timed out.
 
-The 10-second timeline of the last run: between bursts, polls ran at p95 0.8–1.2 s. The worst windows were the first
+On `4ef3a61` no student poll had to deal a card (0 in every run), the worst single poll in run 1 was 2.0 s (it had
+been 9–12 s), and the first 20 seconds of the game ran at poll p95 0.98–1.11 s, the same as the rest of the game.
+The Free Space claims at the first question are now the busiest moment (p95 1.2 s in run 1, 6.6 s in run 2 during
+the Supabase slowdown).
+
+The 10-second timeline of the `7675389` run (before cards were dealt at Start): between bursts, polls ran at p95 0.8–1.2 s. The worst windows were the first
 20 seconds of a game (50 cards dealt, 50 Free Space claims) and the Play Again burst, when even the trivial Supabase
 read took 2–9 s.
 
-## Checks so far
+## Checks
 
 - pgTAP: 1,174/1,175 (both Bingo files pass; the one failure is the local leftover-rows cleanup check, as before).
 - Unit (Bingo): 120/120. Typecheck clean. Lint clean on changed files.
-- Staging review (real browsers): 42/42 on `6e8e5ab` and `b166486`, 43/43 on `7675389`.
-- Not yet run on the final commit: the full release gates (build, all unit suites, security suite, Bingo e2e).
+- Staging review (real browsers): 42/42 on `6e8e5ab` and `b166486`, 43/43 on `7675389`, 34/34 on `4ef3a61` (the count
+  depends on how many questions Ava needs for her Bingo).
+- pgTAP on `4ef3a61`: 1,199/1,200 (the same local cleanup check). Bingo unit tests 121/121.
+- Full release gates on `4ef3a61` (local): typecheck clean; lint 0 errors (8 pre-existing warnings); build pass; unit
+  core 245/245 and web 1,140 passed, 1 skipped; `test:security` 322/322 with the platform bundle and Number Cross
+  audits passing; Math Bingo Live browser tests 17/17 in Chromium, WebKit and the device projects (the WebKit
+  three-Bingo test, which timed out in the v1.2.35 gates, passed in 14 minutes).
 
 ## Options
 
 1. **Larger Supabase compute for production (and staging to verify).** The direct fix: the database is idle and the API
    layer in front of it is what runs out at 50 students. This is a Supabase plan/billing decision.
-2. **One more app change for the game-start burst:** deal every student's card inside the teacher's Start / Play Again
-   call (one request instead of 50), which removes the worst spike. It helps the bursts, not the steady ~1 s.
-3. **Release what is here** as an improvement (30 students comfortably inside the targets; 50 students no worse than
-   v1.2.35 and better on a calm day), and leave the plan question for later.
+2. **Release what is here** (as v1.2.36): 30 students comfortably inside the targets, and 50 students clearly better than
+   v1.2.35 — polls 1.06–1.20 s instead of 1.43–1.57 s, taps 0.80–1.13 s instead of 2.20–2.56 s (inside the target),
+   the teacher's screen 1.60–1.71 s instead of 3.14–3.62 s, and no more multi-second stalls at the start of a game —
+   though polls and the teacher's screen are still 0.1–0.2 s over target. The plan question can follow.
+3. **Two smaller app changes** could close the last ~0.1–0.2 s: make the Free Space announcement not lock the room
+   (it would need its own small events table), and send the teacher's screen a lighter standings list. Each is a
+   database change with its own staging round.
 
 Nothing goes to production without your approval.
