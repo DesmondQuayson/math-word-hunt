@@ -79,14 +79,14 @@ function serverTiming(header) {
   }
   return out;
 }
-async function post(body) {
+async function post(body, tag = null) {
   const started = performance.now();
   try {
     const response = await fetch(PLAY, { method: "POST", headers: apiHeaders, body: JSON.stringify(body) });
     const text = await response.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* an HTML error page */ }
-    samples.push({ who: "player", action: body.action, status: response.status, ms: performance.now() - started, result: json?.result ?? json?.error ?? null, at: Date.now(), ...serverTiming(response.headers.get("server-timing")) });
+    samples.push({ who: "player", action: body.action, tag, status: response.status, ms: performance.now() - started, result: json?.result ?? json?.error ?? null, at: Date.now(), ...serverTiming(response.headers.get("server-timing")) });
     return { status: response.status, json };
   } catch (error) {
     samples.push({ who: "player", action: body.action, status: 0, ms: performance.now() - started, result: String(error?.cause?.code ?? error?.message ?? error), at: Date.now() });
@@ -144,13 +144,13 @@ function student(index, code) {
         setTimeout(async () => {
           if (me.stop) return;
           const started = performance.now();
-          const first = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex });
+          const first = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex }, "burst");
           burst.samples.push({ ms: performance.now() - started });
           const result = first.json?.result ?? first.json?.error ?? String(first.status);
           burst.results[result] = (burst.results[result] ?? 0) + 1;
           if (result === "correct") burst.accepted += 1;
           apply(first.json);
-          const again = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex });
+          const again = await post({ action: "mark", token: me.token, game, question, cell: right.cellIndex }, "burst");
           burst.repeats += 1;
           if (again.json?.result === "correct") burst.repeatsCounted += 1;
           apply(again.json);
@@ -371,6 +371,8 @@ try {
       stateUnchanged: stats(by((sample) => sample.action === "state" && sample.result === "unchanged")),
       stateChanged: stats(by((sample) => sample.action === "state" && sample.result !== "unchanged")),
       mark: stats(by((sample) => sample.action === "mark")),
+      // Taps outside the deliberate same-answer burst (comparable with earlier rounds, which had no burst).
+      markOrdinary: stats(by((sample) => sample.action === "mark" && sample.tag !== "burst")),
       free: stats(by((sample) => sample.action === "free")),
       host: stats(by((sample) => sample.who === "host"))
     },
