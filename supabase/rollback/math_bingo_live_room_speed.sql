@@ -1,11 +1,15 @@
--- Rollback for 20261106100000_math_bingo_live_room_speed.sql and
--- 20261106110000_math_bingo_live_player_payload.sql.
+-- Rollback for 20261106100000_math_bingo_live_room_speed.sql,
+-- 20261106110000_math_bingo_live_player_payload.sql and
+-- 20261106120000_math_bingo_live_deal_at_start.sql (drops the eight-argument
+-- bingo_host_start and bingo_board_valid; the seven-argument one was never changed).
 -- Restores the v1.2.35 bodies of bingo_core, bingo_host_view, bingo_player_view,
 -- bingo_host_state(text,text,bigint) and bingo_mark verbatim from 20261103100000_math_bingo_live.sql, and drops the
 -- four-argument bingo_host_state and bingo_progress. Run it only together with a
 -- rollback of the application to a build that calls the three-argument bingo_host_state
 -- (v1.2.35 or earlier): the newer application needs the four-argument function.
 begin;
+drop function if exists public.bingo_host_start(text,text,text,jsonb,text,jsonb,jsonb,jsonb);
+drop function if exists private.bingo_board_valid(jsonb,jsonb,boolean);
 drop function if exists public.bingo_host_state(text,text,bigint,bigint);
 
 create or replace function private.bingo_core(p_room public.bingo_rooms, p_result text)

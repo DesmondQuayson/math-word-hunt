@@ -170,6 +170,20 @@ export function dealFor(record: Json, participantId: string): readonly Cell[] | 
   });
 }
 
+/**
+ * Every listed player's card for a new game, dealt exactly as dealFor would
+ * deal it once the game has started (same seed, pool and participant id), so
+ * Start can store all cards in one request. Ids that are not UUIDs are skipped.
+ */
+export function dealBoards(settings: BingoSettings, pool: readonly Fraction[], seed: string, participantIds: readonly unknown[]): Record<string, readonly Cell[]> {
+  const boards: Record<string, readonly Cell[]> = {};
+  for (const id of participantIds) {
+    if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) || id in boards) continue;
+    boards[id] = dealCard({ pool: pool as Fraction[], seed, participantId: id, freeSpace: settings.freeSpace, fractions: settings.mode === "fractions" });
+  }
+  return boards;
+}
+
 // ---------------------------------------------------------------- payloads
 
 const REVEALED_PHASES = new Set(["ANSWER_REVEAL", "LEADERBOARD_UPDATE", "WINNER_REVEAL", "GAME_COMPLETE"]);

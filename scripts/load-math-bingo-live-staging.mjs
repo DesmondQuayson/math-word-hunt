@@ -73,6 +73,8 @@ function serverTiming(header) {
   for (const part of String(header ?? "").split(",")) {
     const match = /^\s*(db|access|app);dur=([0-9.]+)/.exec(part);
     if (match) out[match[1]] = Number(match[2]);
+    const calls = /^\s*db;dur=[0-9.]+;desc="(\d+)"/.exec(part);
+    if (calls) out.calls = Number(calls[1]);
   }
   return out;
 }
@@ -343,6 +345,8 @@ try {
         .map((sample) => ({ ...sample, outside: sample.ms - sample.app }));
       return [action, { app: stats(list, "app"), db: stats(list, "db"), access: stats(list, "access"), outside: stats(list, "outside") }];
     })),
+    // A poll that made two database calls dealt the student's card itself (should be ~0 now that Start deals them).
+    pollsThatDealtACard: by((sample) => sample.action === "state" && sample.calls === 2).length,
     healthDuringPlay: { ...stats(healthDuringPlay), failed: healthDuringPlay.filter((sample) => sample.status !== 200).length },
     supabaseDuringPlay: { ...stats(supabaseDuringPlay), failed: supabaseDuringPlay.filter((sample) => sample.status !== 200).length },
     // Poll latency per 10 s of play (p50/p95/max, with the trivial Supabase read's max in the same window).

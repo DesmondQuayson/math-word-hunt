@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from "@/public/internal-games/math-bingo-live/src/en
 import {
   answerRevealed,
   buildGame,
+  dealBoards,
   dealFor,
   generateRoomCode,
   hashToken,
@@ -177,6 +178,18 @@ describe("browser payloads", () => {
       expect(toState(record({ phase: "ANSWER_REVEAL" })).winners[0].cells).toHaveLength(5);
       expect(toState(record({ questionNumber: 3, called: buildGame(DEFAULT_SETTINGS, SEED).deck.slice(0, 3) })).winners[0].cells).toHaveLength(5);
     }
+  });
+
+  it("Start deals every player exactly the card they would be dealt on their first poll", () => {
+    const game = buildGame(DEFAULT_SETTINGS, SEED);
+    const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
+    const boards = dealBoards(DEFAULT_SETTINGS, game.pool, SEED, [...ids, "not-a-uuid", 7, null, ids[0]]);
+    expect(Object.keys(boards)).toEqual(ids);
+    for (const id of ids) {
+      expect(boards[id]).toEqual(dealFor({ settings: DEFAULT_SETTINGS, seed: SEED, pool: game.pool }, id));
+    }
+    expect(boards[ids[0]]).not.toEqual(boards[ids[1]]);
+    expect(dealBoards(DEFAULT_SETTINGS, game.pool, SEED, [])).toEqual({});
   });
 
   it("the host payload carries the progress number for its unchanged check; players never see it", () => {

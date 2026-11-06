@@ -148,5 +148,43 @@ select is((public.bingo_player_state((select token_hash from ranked where rank=7
 select is(jsonb_array_length(public.bingo_player_state((select token_hash from ranked where rank=1),null,null)->'leaderboard'),5,'the leader gets the top five (their row is in it)');
 select is(jsonb_array_length(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard'),7,'the host still gets everyone');
 
+-- Cards dealt with Start (20261106120000) ----------------------------------------------------
+select ok(not has_function_privilege('anon','public.bingo_host_start(text,text,text,jsonb,text,jsonb,jsonb,jsonb)','EXECUTE'), 'anon cannot start with cards');
+select ok(not has_function_privilege('authenticated','public.bingo_host_start(text,text,text,jsonb,text,jsonb,jsonb,jsonb)','EXECUTE'), 'browsers cannot start with cards');
+select ok(has_function_privilege('service_role','public.bingo_host_start(text,text,text,jsonb,text,jsonb,jsonb,jsonb)','EXECUTE'), 'the server starts with cards');
+select ok((select prosecdef from pg_proc where oid='public.bingo_host_start(text,text,text,jsonb,text,jsonb,jsonb,jsonb)'::regprocedure), 'start with cards runs as definer');
+select ok(not has_function_privilege('authenticated','private.bingo_board_valid(jsonb,jsonb,boolean)','EXECUTE'), 'browsers cannot call the card check');
+select ok(private.bingo_board_valid(pg_temp.card(), pg_temp.pool(), true), 'the card check accepts the pool with the Free Space');
+select ok(not private.bingo_board_valid(jsonb_set(pg_temp.card(),'{0}','{"n":99,"d":1}'), pg_temp.pool(), true), 'it refuses a value outside the pool');
+select ok(not private.bingo_board_valid(jsonb_set(pg_temp.card(),'{12}','{"n":1,"d":1}'), pg_temp.pool(), true), 'it refuses a card without the Free Space');
+select ok(not private.bingo_board_valid(jsonb_set(pg_temp.card(),'{3}','7'), pg_temp.pool(), true), 'it refuses a cell that is not an object');
+select ok(not private.bingo_board_valid('[]'::jsonb, pg_temp.pool(), true), 'it refuses a short card');
+
+select is(public.bingo_create_room('612400',repeat('3',64),repeat('4',64),pg_temp.settings())->>'result','created','a room for dealing at Start');
+select is(public.bingo_join_room('612400','Dee',repeat('c',60)||'0001',:subject)->>'result','joined','Dee joins');
+select is(public.bingo_join_room('612400','Eli',repeat('c',60)||'0002',:subject)->>'result','joined','Eli joins');
+select is(public.bingo_join_room('612400','Fay',repeat('c',60)||'0003',:subject)->>'result','joined','Fay joins');
+create temporary table deal_ids as
+  select (select id from public.bingo_participants where token_hash=repeat('c',60)||'0001') as dee,
+         (select id from public.bingo_participants where token_hash=repeat('c',60)||'0002') as eli,
+         (select id from public.bingo_participants where token_hash=repeat('c',60)||'0003') as fay;
+-- Dee gets a valid card, Eli a card that is not the pool, Fay none (as if she joined after the host read the roster).
+select is(public.bingo_host_start(repeat('3',64),repeat('4',64),'start',pg_temp.settings(),repeat('e',32),pg_temp.pool(),pg_temp.deck(),
+  jsonb_build_object((select dee from deal_ids)::text, pg_temp.card(), (select eli from deal_ids)::text, jsonb_set(pg_temp.card(),'{0}','{"n":99,"d":1}')))->>'dealt',
+  '1','Start stores exactly the one valid card');
+select is((public.bingo_player_state(repeat('c',60)||'0001',null,null)->>'needsBoard')::boolean,false,'Dee has her card without asking for it');
+select is(public.bingo_player_state(repeat('c',60)||'0001',null,null)->'me'->'board',pg_temp.card(),'it is the card the server dealt');
+select is(public.bingo_player_state(repeat('c',60)||'0001',null,null)->>'seed',null,'so her reply carries no seed');
+select is((public.bingo_player_state(repeat('c',60)||'0002',null,null)->>'needsBoard')::boolean,true,'Eli''s refused card falls back to dealing on his first poll');
+select is((public.bingo_player_state(repeat('c',60)||'0003',null,null)->>'needsBoard')::boolean,true,'Fay, without a card, is dealt on her first poll');
+select is(public.bingo_set_board(repeat('c',60)||'0003',1,pg_temp.card())->>'result','ok','the fallback still stores a valid card');
+select is(public.bingo_set_board(repeat('c',60)||'0002',1,jsonb_set(pg_temp.card(),'{0}','{"n":99,"d":1}'))->>'result','invalid-board','and still refuses one that is not the pool');
+-- Play Again deals afresh: the old cards are cleared and the new ones stored.
+update public.bingo_rooms set phase='GAME_COMPLETE', phase_deadline=null where host_token_hash=repeat('4',64);
+select is(public.bingo_host_start(repeat('3',64),repeat('4',64),'again',pg_temp.settings(),repeat('f',32),pg_temp.pool(),pg_temp.deck(),
+  jsonb_build_object((select fay from deal_ids)::text, pg_temp.card()))->>'dealt','1','Play Again stores the newly dealt card');
+select is((select count(*)::integer from public.bingo_participants where room_id=(select id from public.bingo_rooms where host_token_hash=repeat('4',64)) and board is not null),1,'and clears every card from the previous game');
+select is(public.bingo_host_start(repeat('3',64),repeat('4',64),'start',pg_temp.settings(),repeat('e',32),pg_temp.pool(),pg_temp.deck(),'{}'::jsonb)->>'result','stale','a stale Start is refused as before');
+
 select * from finish();
 rollback;

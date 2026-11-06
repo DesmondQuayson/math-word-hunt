@@ -32,7 +32,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // Bingo migrations in order; `migrate` applies whichever single one is pending.
-const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000"]);
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000"]);
 const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
 // main yet). The CLI refuses to push while the remote has a version the local

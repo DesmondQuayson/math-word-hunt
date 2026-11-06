@@ -7,6 +7,7 @@ import { isInteger, readJsonBody, refused, reply, startTiming, timed, withServer
 import {
   GAME_KEY,
   buildGame,
+  dealBoards,
   generateRoomCode,
   hashToken,
   isMathBingoLiveAvailable,
@@ -158,13 +159,17 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     if (!settings.ok) return refused("invalid-settings", 400);
     const seed = newGameSeed();
     const game = buildGame(settings.settings, seed);
+    // Deal every joined student's card now, so 50 phones do not each ask for
+    // one in the first seconds of the game (the database checks every card).
+    const players = Array.isArray(current.players) ? (current.players as Json[]).map((player) => player?.id) : [];
     const data = await call("bingo_host_start", {
       ...seat,
       p_kind: action,
       p_settings: settings.settings,
       p_seed: seed,
       p_pool: game.pool,
-      p_deck: game.deck
+      p_deck: game.deck,
+      p_boards: dealBoards(settings.settings, game.pool, seed, players)
     });
     return roomReply(data);
   }
