@@ -13,7 +13,6 @@ import {
   signInTeacher,
   startGame,
   state,
-  useFreeSpace,
   waitFor,
   watchErrors
 } from "./helpers";
@@ -37,7 +36,8 @@ test.afterEach(() => {
 test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async ({ browser }) => {
   test.setTimeout(900_000);
   const host = await signInTeacher(browser);
-  const created = await createGame(host.page, { mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0, winners: 1 });
+  // Two winners: the board stays live after Ava's Bingo (only Ava plays to win), so it can be checked at any speed.
+  const created = await createGame(host.page, { mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0, winners: 2 });
   const code = created.code;
   const link = `${new URL(BASE_URL).origin}${JOIN_ROUTE}?code=${code}`;
 
@@ -108,6 +108,20 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
   await host.page.locator(".lobby-buttons").getByRole("button", { name: "Joining locked" }).click();
   await expect(host.page.locator(".join-qr svg")).toBeVisible();
   await startGame(host.page);
+  // Every announcement any screen shows is recorded as it appears (they last only a few
+  // seconds; slow WebKit must not turn that into a race).
+  const recordBanners = (page: import("@playwright/test").Page) => page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __bannersSeen: string[] }).__bannersSeen = seen;
+    new MutationObserver(() => {
+      for (const element of document.querySelectorAll(".banner:not([hidden]) .banner-title")) {
+        const text = element.textContent ?? "";
+        if (text && !seen.includes(text)) seen.push(text);
+      }
+    }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
+  });
+  const bannersSeen = (page: import("@playwright/test").Page) => page.evaluate(() => (window as unknown as { __bannersSeen?: string[] }).__bannersSeen ?? []);
+  await recordBanners(host.page);
   const headQr = host.page.locator(".head-join .head-qr svg.qr-code");
   await expect(headQr).toBeVisible();
   expect(await headQr.locator("path.qr-dark").getAttribute("d")).toBe(qrPath(encodeQr(link), 4));
@@ -135,12 +149,20 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
   await expect(host.page.locator(".head-locked")).toHaveText("JOINING LOCKED");
   await expect(host.page.locator(".head-qr")).toHaveCount(0);
 
-  // Free Space announcement with Omar's (no emoji) and Mia's (Lion) names.
-  expect(await useFreeSpace(mia.page)).toBe("free-space");
-  await expect(host.page.locator(".board-left > .banner")).toContainText("\u{1F981} MIA USED FREE SPACE!");
-  await expect(ava.page.locator(".banner:not([hidden])")).toContainText("\u{1F981} MIA USED FREE SPACE!");
+  // Free Space announcement with Mia's emoji (Lion), on the host and on Ava's screen.
+  await recordBanners(ava.page);
+  // Two deliberate taps on the star (dispatched, so slow WebKit can never retry a click into a double tap).
+  await front(mia.page);
+  const star = mia.page.locator('[data-cell="12"]');
+  await star.dispatchEvent("click");
+  await expect(star).toHaveClass(/is-armed/);
+  const freeReply = mia.page.waitForResponse(reply => reply.url().endsWith("/api/games/math-bingo-live/play") && (reply.request().postData() ?? "").includes("\"free\""), { timeout: 30_000 });
+  await star.dispatchEvent("click");
+  expect((await (await freeReply).json()).result).toBe("free-space");
+  await expect.poll(() => bannersSeen(host.page), { timeout: 30_000 }).toContain("\u{1F981} MIA USED FREE SPACE!");
+  await expect.poll(() => bannersSeen(ava.page), { timeout: 30_000 }).toContain("\u{1F981} MIA USED FREE SPACE!");
 
-  // Ava plays to Bingo; the others hold so she wins first (winners: 1).
+  // Ava plays to Bingo; Zion holds (never completes a line), the others do not play.
   for (let guard = 0; guard < 40; guard += 1) {
     const current = await waitFor(host.page, now => now.phase === "QUESTION_ACTIVE" || now.phase === "WINNER_REVEAL" || now.phase === "GAME_COMPLETE", "question or end");
     if (current.phase !== "QUESTION_ACTIVE") break;
@@ -159,9 +181,13 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
   expect(won.winners[0].name).toBe("Ava");
   await expect(host.page.locator(".winners-list")).toContainText("\u{1F981} Ava");
   await expect(host.page.locator(".standings-list")).toContainText("\u{1F981} Ava");
-  await expect(host.page.locator(".board-left > .banner")).toContainText("\u{1F981} AVA — BINGO!");
+  await expect.poll(() => bannersSeen(host.page), { timeout: 30_000 }).toContain("\u{1F981} AVA — BINGO!");
+  await expect.poll(() => bannersSeen(ava.page), { timeout: 30_000 }).toContain("\u{1F981} AVA — BINGO!");
 
-  // Final podium (host and student) keeps the emoji.
+  // The teacher ends the game; the final podium (host and student) keeps the emoji.
+  await front(host.page);
+  await host.page.locator(".controls").getByRole("button", { name: "End game" }).click();
+  await host.page.locator("dialog").getByRole("button", { name: "End game" }).click();
   await waitFor(host.page, now => now.phase === "GAME_COMPLETE", "game complete", 60_000);
   await expect(host.page.locator(".podium")).toContainText("\u{1F981} Ava");
   await waitFor(omar.page, now => now.phase === "GAME_COMPLETE", "Omar sees the end", 60_000);
