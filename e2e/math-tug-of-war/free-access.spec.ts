@@ -102,9 +102,10 @@ test("anonymous: homepage features the free game; Play for Free Now and the dire
   await page.goto("/");
   const featured = page.locator(".home-featured-games");
   await expect(featured.getByRole("heading", { name: "Math Tug of War" })).toBeVisible({ timeout: 90_000 });
-  // Math Tug of War is the only featured game (owner, after v1.2.27): Math Vocabulary Hunt is no longer promoted here.
+  // Math Tug of War is featured first, then Math Bingo Live (owner, 2026-11-06); Math Vocabulary Hunt is no longer promoted here.
   const cards = featured.locator("article");
-  await expect(cards).toHaveCount(1);
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(1)).toHaveAttribute("data-game", "math-bingo-live");
   await expect(cards.nth(0)).toHaveAttribute("data-game", "math-tug-of-war");
   await expect(featured).not.toContainText(/Math Vocabulary Hunt|Included with MathNexa access/i);
   await expect(cards.nth(0).getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();

@@ -123,6 +123,16 @@ describe("public product pages", () => {
     expect(within(cards[1]).getByRole("link", { name: "About Math Tug of War" }).getAttribute("href")).toBe("/math-games/math-tug-of-war");
   });
 
+  it("Math Games: the free Math Bingo Live card offers Host a Free Game and Join with a code", async () => {
+    mocks.games.mockResolvedValue({ available: true, games: [...GAMES.games, { stableKey: "math-bingo-live", thumbnailReference: "builtin:math-bingo-live", title: "Math Bingo Live", description: "Solve math questions, mark your card, and race classmates to Bingo.", grades: "Grades 1–6", skills: ["strategy"], freeToPlay: true }] });
+    const { container } = await renderPage(MathGamesPage);
+    const bingo = container.querySelector('article[data-game="math-bingo-live"]') as HTMLElement;
+    expect(bingo.textContent).toContain("Free with a MathNexa account · Grades 1–6");
+    expect(within(bingo).getByRole("link", { name: "Host a Free Game" }).getAttribute("href")).toBe("/games/math-bingo-live/host");
+    expect(within(bingo).getByRole("link", { name: "Join with a code" }).getAttribute("href")).toBe("/join");
+    expect(screen.getByText(/Math Tug of War and Math Bingo Live are free with any MathNexa account/)).toBeTruthy();
+  });
+
   it("Math Games still offers the free game when the catalog cannot be read", async () => {
     mocks.games.mockResolvedValue({ available: false, games: [] });
     const { container } = await renderPage(MathGamesPage);

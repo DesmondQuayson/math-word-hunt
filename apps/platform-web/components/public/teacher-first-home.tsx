@@ -7,7 +7,7 @@ import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
-import { MATH_TUG_OF_WAR_PLAY_ROUTE } from "@/lib/games/access-policy";
+import { MATH_BINGO_LIVE_HOST_ROUTE, MATH_TUG_OF_WAR_PLAY_ROUTE } from "@/lib/games/access-policy";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
   PLATFORM_HERO_AUDIENCE,
@@ -138,13 +138,14 @@ function ProductShelf() {
 }
 
 /**
- * Featured games: Math Tug of War, in the same card language as the Math Games
- * shelf. Math Vocabulary Hunt is no longer promoted here (owner, after v1.2.27);
- * the game itself is unchanged and stays in the Math Games catalog and at its
- * own routes. Math Tug of War is free with
- * a MathNexa account (lib/games/access-policy.ts); its button always points at
- * the game, and the game route itself sends a signed-out visitor through sign
- * in / create account and back. Nothing here decides access.
+ * Featured games: Math Tug of War and Math Bingo Live, in the same card
+ * language as the Math Games shelf. Math Vocabulary Hunt is no longer promoted
+ * here (owner, after v1.2.27); the game itself is unchanged and stays in the
+ * Math Games catalog and at its own routes. Both featured games are free with
+ * a MathNexa account (lib/games/access-policy.ts); their buttons always point
+ * at the games, and the game routes themselves send a signed-out visitor
+ * through sign in / create account and back. Students join Math Bingo Live at
+ * /join with no account. Nothing here decides access.
  */
 function FeaturedGames() {
   return <section className="home-featured-games container" aria-labelledby="featured-games-title">
@@ -169,6 +170,27 @@ function FeaturedGames() {
           <p>Solve the math. Pull the rope. Beat the other side!</p>
           <p className="home-featured-games-detail">Solve quick math problems and pull your opponent across the line. Play against the robot, compete on one device, or challenge another player online.</p>
           <LinkButton href={MATH_TUG_OF_WAR_PLAY_ROUTE}>Play for Free Now</LinkButton>
+        </div>
+      </article>
+      <article data-game="math-bingo-live">
+        <div className="game-card-thumbnail">
+          <Image
+            src="/media/games/math-bingo-live.webp"
+            alt="Math Bingo Live gameplay: a student's 5 by 5 Bingo card with a completed row beside the live question and the class standings"
+            width={1200}
+            height={675}
+            sizes="(max-width: 48rem) 100vw, 50vw"
+          />
+        </div>
+        <div className="game-card-content">
+          <p className="game-path"><span className="game-free-badge">Free</span> to host with a MathNexa account</p>
+          <h3>Math Bingo Live</h3>
+          <p>Solve math questions, mark your card, and race classmates to Bingo.</p>
+          <p className="home-featured-games-detail">Host a live class game on your screen or smart board. Students scan the QR code or type the game code on any device and play with just a name. No student accounts.</p>
+          <div className="button-row">
+            <LinkButton href={MATH_BINGO_LIVE_HOST_ROUTE}>Host a Free Game</LinkButton>
+            <LinkButton href="/join" variant="secondary">Join with a code</LinkButton>
+          </div>
         </div>
       </article>
     </div>

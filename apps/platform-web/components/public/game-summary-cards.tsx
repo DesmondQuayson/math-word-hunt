@@ -1,14 +1,16 @@
 import Link from "next/link";
 
 import { GameCatalogThumbnail } from "@/components/games/game-catalog-thumbnail";
+import { MATH_BINGO_LIVE_HOST_ROUTE } from "@/lib/games/access-policy";
 import type { GameSummary } from "@/lib/seo/catalog-summaries";
 import { PRODUCT_PAGE_PATHS } from "@/lib/seo/product-pages";
 
 /**
  * The published games on the public Math Games page, in the Math Games card
- * style (styles/games.css). Display fields only. No card links into a game:
- * the page's own button opens the gated catalog, and Math Tug of War links to
- * its public page.
+ * style (styles/games.css). Display fields only. The page's own button opens
+ * the gated catalog; Math Tug of War links to its public page, and Math Bingo
+ * Live (free to host) links to its host screen, which sends a signed-out
+ * teacher through sign in and back, and to /join for students (no account).
  */
 export function GameSummaryCards({ games }: Readonly<{ games: readonly GameSummary[] }>) {
   return <div className="game-card-grid product-game-grid">
@@ -26,6 +28,12 @@ export function GameSummaryCards({ games }: Readonly<{ games: readonly GameSumma
         {game.skills.length ? <ul className="game-tag-list" aria-label={`${game.title} skills`}>{game.skills.map((skill) => <li key={skill}>{skill}</li>)}</ul> : null}
         {game.stableKey === "math-tug-of-war"
           ? <Link className="button button-secondary" href={PRODUCT_PAGE_PATHS.mathTugOfWar}>About Math Tug of War</Link>
+          : null}
+        {game.stableKey === "math-bingo-live"
+          ? <div className="button-row">
+              <Link className="button button-primary" href={MATH_BINGO_LIVE_HOST_ROUTE}>Host a Free Game</Link>
+              <Link className="button button-secondary" href="/join">Join with a code</Link>
+            </div>
           : null}
       </div>
     </article>)}

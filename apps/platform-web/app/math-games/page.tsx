@@ -42,7 +42,7 @@ export default async function MathGamesPage() {
     path={PATH}
     eyebrow={label}
     title="Math games for the classroom"
-    description="Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War is free with any MathNexa account."
+    description="Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War and Math Bingo Live are free with any MathNexa account."
     actions={<>
       <LinkButton href="/games">Open {label}</LinkButton>
       <LinkButton href={PRODUCT_PAGE_PATHS.mathTugOfWar} variant="secondary">Math Tug of War</LinkButton>
