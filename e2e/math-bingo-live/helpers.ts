@@ -192,16 +192,21 @@ export async function createGame(page: Page, options: GameOptions = {}): Promise
   return waitFor(page, current => /^[1-9]\d{5}$/.test(current.code), "room code");
 }
 
-export async function joinPlayer(browser: Browser, code: string, name: string, options: BrowserContextOptions = {}): Promise<{ context: BrowserContext; page: Page }> {
+/**
+ * Join through the link in the teacher's QR code (/join?code=…): the room is
+ * already identified, so the student only gives a name (and, optionally, an
+ * emoji by its spoken name, e.g. "Lion") and presses JOIN GAME.
+ */
+export async function joinPlayer(browser: Browser, code: string, name: string, options: BrowserContextOptions = {}, emoji: string | null = null): Promise<{ context: BrowserContext; page: Page }> {
   const context = await newContext(browser, options);
   const page = await context.newPage();
   watchErrors(page);
   await page.goto(`${JOIN_ROUTE}?code=${code}`);
   await front(page);
-  await expect(page.getByLabel("GAME CODE")).toHaveValue(code);
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByLabel("DISPLAY NAME").fill(name);
-  await page.getByRole("button", { name: "Join game" }).click();
+  await expect(page.getByText(`Game ${code.slice(0, 3)} ${code.slice(3)}`)).toBeVisible();
+  await page.getByLabel("YOUR NAME").fill(name);
+  if (emoji) await page.getByLabel(emoji, { exact: true }).check({ force: true });
+  await page.getByRole("button", { name: "JOIN GAME" }).click();
   await expect(page.getByText("You're in!")).toBeVisible();
   return { context, page };
 }

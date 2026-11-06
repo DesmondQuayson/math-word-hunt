@@ -406,9 +406,8 @@ try {
     await hostPage.reload();
     await hostPage.waitForFunction(() => document.body.dataset.screen === "lobby");
     await player.goto(`/join?code=${created.state.code}`);
-    await player.getByRole("button", { name: "Next" }).click();
-    await player.getByLabel("DISPLAY NAME").fill("Ava");
-    await player.getByRole("button", { name: "Join game" }).click();
+    await player.getByLabel("YOUR NAME").fill("Ava");
+    await player.getByRole("button", { name: "JOIN GAME" }).click();
     await player.getByText("You're in!").waitFor();
     await post({ action: "join", code: created.state.code, name: "Zion" }, address);
     await host("start");

@@ -205,12 +205,13 @@ try {
   ok(room.settings.patterns.rows && room.settings.patterns.columns && !room.settings.patterns.diagonals, "the room's winning ways are rows + columns");
 
   // Students: code + name only, in three different browsers and screen sizes.
-  const join = async (engine, name, options) => {
+  const join = async (engine, name, options, emoji = null) => {
     const student = await open(engine, options);
+    // The QR code's link: the room is already identified, so name (+ emoji) and Join.
     await student.page.goto(`${origin}/join?code=${room.code}`);
-    await student.page.getByRole("button", { name: "Next" }).click();
-    await student.page.getByLabel("DISPLAY NAME").fill(name);
-    await student.page.getByRole("button", { name: "Join game" }).click();
+    await student.page.getByLabel("YOUR NAME").fill(name);
+    if (emoji) await student.page.getByLabel(emoji, { exact: true }).check({ force: true });
+    await student.page.getByRole("button", { name: "JOIN GAME" }).click();
     await student.page.getByText("You're in!").waitFor({ timeout: 60_000 });
     return { name, ...student };
   };

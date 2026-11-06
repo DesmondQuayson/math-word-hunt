@@ -75,10 +75,10 @@ try {
   const join = async (name, options = {}) => {
     const context = await browser.newContext({ baseURL: ORIGIN, ...options });
     const page = await context.newPage();
+    // The join link (as in the teacher's QR code) opens the name screen directly.
     await page.goto(`/join?code=${room.code}`);
-    await page.getByRole("button", { name: "Next" }).click();
-    await page.getByLabel("DISPLAY NAME").fill(name);
-    await page.getByRole("button", { name: "Join game" }).click();
+    await page.getByLabel("YOUR NAME").fill(name);
+    await page.getByRole("button", { name: "JOIN GAME" }).click();
     await page.getByText("You're in!").waitFor();
     return page;
   };
