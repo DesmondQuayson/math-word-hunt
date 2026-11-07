@@ -1,0 +1,48 @@
+﻿powershell : (node:8580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of 
+file:///C:/GitHub/mathnexa-bingo-live/apps/platform-web/public/internal-games/math-bingo-live/src/engine/questions.js 
+is not specified and it doesn't parse as CommonJS.
+At line:1 char:302
++ ... tch {} } }; powershell -NoProfile -ExecutionPolicy Bypass -File "C:\G ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:8580) [MO...se as CommonJS.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\GitHub\mathnexa-bingo-live\apps\platform-web\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ok   /join serves this release's game runtime (v=0da28eb369cc30e2)
+ok   the served QR code helper points production at https://mathnexa.com
+ok   a production teacher screen's QR encodes https://mathnexa.com/join?code=… (also from www)
+ok   synthetic room 85···· created (Addition, 2 winners)
+ok   an emoji off the list is refused (400 emoji-invalid)
+ok   a name with markup is refused (400 name-invalid)
+ok   50 students joined with only a code and a name; each kept their emoji (or none), shared emoji allowed
+ok   webkit phone: the QR link opened name + emoji directly (no code to type) and joined as "🦁 QA Phone"
+ok   chromium phone: the QR link opened name + emoji directly (no code to type) and joined as "🚀 QA Droid"
+ok   the numeric code typed by hand still joins
+ok   production Start refuses a deck that repeats a question
+ok   the release deck has 46 questions, none repeated
+ok   Start dealt every card in one request (53/53)
+ok   question 1 is live
+ok   50 students submitted the same answer (10 + 9) at the same instant: 50/50 accepted
+ok   the same 50 submissions repeated: none counted (already-marked)
+ok   webkit phone marked its own square for the same question
+ok   chromium phone marked its own square for the same question
+ok   Free Space announcements carry the students' emoji (🦁 QA 03, 🐸 QA 06, 🐯 QA 04)
+ok   every card holds exactly its own marks (53 cards)
+ok   winners in order with distinct places: 1. 🐱 QA 02, 2. 🦁 QA 01
+ok   a winner cannot win or mark again (already-won)
+ok   the configured limit (2) ended the game (WINNER_REVEAL)
+ok   after the limit, further marks are refused (not-active)
+ok   leaderboard: 53 players listed once, ranks in order (7 distinct, ties shared), winners first
+ok   Called history: 19 questions, all different (never both a + b and b + a)
+ok   reconnect restores the same seat, card and emoji
+ok   Play Again started game 2
+ok   rematch: a new card, a fresh Called history, wins cleared
+ok   webkit phone page had no script errors (0)
+ok   chromium phone page had no script errors (0)
+ok   closing the room ends every seat (404 seat-not-found)
+ok   Fraction Bingo: every fraction called once (22 questions, 22 different), then "every question was called"
+cleanup: 2 synthetic room(s) deleted (participants cascade); 0 remaining
+33/33 production QA checks passed
+qa exit 0
