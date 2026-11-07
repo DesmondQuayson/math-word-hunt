@@ -35,7 +35,8 @@ const ORDINALS = ["1st", "2nd", "3rd"];
  * configured the game ends at once.
  */
 test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced Bingos, game complete, rematch", async ({ browser }) => {
-  test.setTimeout(900_000);
+  // A paced three-winner game is 35+ calls with three players and a host; WebKit drives it in about 20 minutes.
+  test.setTimeout(1_800_000);
   const host = await signInTeacher(browser);
   // Within 50 holds 240 different questions: Bingo pacing allows three winners.
   const created = await createGame(host.page, { mode: "addition", level: "within-50", questionSeconds: 0, revealSeconds: 0, winners: 3 });

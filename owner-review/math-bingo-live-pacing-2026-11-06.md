@@ -5,9 +5,9 @@ migration, no catalog change, no Supabase upgrade). Not promoted, not merged.**
 
 | | |
 | --- | --- |
-| Branch | `feature/math-bingo-live-pacing` — commits `3054af4` (pacing) + `db0fee3` (header chip fix, review assertions) from `main` `eb9bd40` = v1.2.37; not pushed, not merged |
+| Branch | `feature/math-bingo-live-pacing` — commits `3054af4` (pacing), `db0fee3` (header chip fix, review assertions), `298602c` (scheduler urgency, migration 2) from `main` `eb9bd40` = v1.2.37; not pushed, not merged |
 | Staging preview | **`dpl_AAqbivFsTCJUDj16f2isqVYdGQoR`** — https://mathnexa-platform-staging-raou8vviv-bright-path-ed-tech.vercel.app (build `db0fee3`, `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`); NOT promoted. Earlier preview `dpl_BdbBUUtNkGemVSYdXJPW1vPUKyR1` (build `3054af4`) superseded: its header pushed the pacing chip off screen with the long preview hostname |
-| Staging database | `20261103100000` … `20261107100000`, **`20261108100000` applied 2026-11-06 (`-Stage migrate` PASS: universe table, pacing column, scheduler and paced Start present, browsers have no access; row counts unchanged; `-Stage smoke` PASS)** |
+| Staging database | `20261103100000` … `20261107100000`, **`20261108100000` and `20261108110000` applied 2026-11-06 (`-Stage migrate` PASS twice: universe table, pacing column, scheduler with the urgency term, paced Start present, browsers have no access; row counts unchanged; `-Stage smoke` PASS)** |
 | Production database | `20261103100000` … `20261107100000` (unchanged) |
 | Rollback | `supabase/rollback/math_bingo_live_pacing.sql` (restores every function and constraint exactly as `20261107100000` left them; drops the new table, columns and the scheduler whatever its version) |
 | Migrations | `20261108100000_math_bingo_live_pacing.sql` (additive: table, columns, functions) + `20261108110000_math_bingo_live_pacing_tune.sql` (scheduler only: urgency near a gate so a class of three reaches one away by call 15, and a gate-open fallback that builds 3/5 lines) |
@@ -159,11 +159,56 @@ opportunity in 14 calls" → "Bingo opportunity OPEN" at call 15 (green); studen
 
 ### e2e (Playwright)
 
-E2E_RESULTS
+`node scripts/run-math-bingo-live.mjs e2e` (local `next dev` + local Supabase, four projects, one worker):
+
+- Chromium: fractions (symbolic question, models, exact match, Called Fractions; Equivalent Fractions) ✓, QR join /
+  numeric code / Lock Join / late join / emoji ✓, reconnect & host recovery & takeover ✓, security (API boundaries;
+  escaping, hidden answers, isolation, code guessing; free access) ✓, **live paced game ✓** (paced cards of 24 different
+  answers, pacing contract on every screen, chip "First Bingo opportunity in N calls" → "Bingo opportunity OPEN" →
+  "Next Bingo opportunity in N calls", three Bingos at least ten calls apart starting at call 15, winner ribbons by
+  placement, winners cannot mark again, game complete at the third, Play Again resets the pacing) and the one-winner
+  timed columns-only game ✓.
+- WebKit: fractions ✓ ✓, join-emoji ✓, reconnect ✓, live paced game ✓ (22.7 min on the 30-minute budget; same checks as Chromium).
+- Devices (Chromium + WebKit): every target screen (card fits, touch-sized cells, no sideways scroll; paced cards
+  differ, so the host moves on until each player holds the live answer) ✓, keyboard / screen reader / reduced motion /
+  forced colours ✓.
+- First full matrix: 14 passed, 3 failed — the two live runs on the first version of the spec (it expected the room's
+  `maxWinners` to be the 3 configured winners, not the level's capacity of 22) and the free-access security test's
+  "Math Bingo Live is not on /math-games", stale since v1.2.37 put the game on the Math Games page (the test now
+  expects it there). Re-runs: Chromium live ✓ (15 min), free access ✓; WebKit live first ran out of its 15-minute
+  budget mid-game (no assertion failed; a paced three-winner game is 35+ calls) — its timeout is now 30 minutes.
 
 ### Staging
 
-STAGING_RESULTS
+- `-Stage identify` PASS (pending: `20261108100000`), `-Stage migrate` PASS (universe table, pacing column, scheduler, paced
+  Start present; no browser access; row counts unchanged), `-Stage smoke` PASS (room contract through the service-role
+  functions, browser reads/RPC refused), then `-Stage migrate` PASS again for `20261108110000` (scheduler with the urgency term).
+- `-Stage review` (real Chromium + WebKit against the preview, synthetic free teacher, Ava on a WebKit phone 390×844,
+  Zion on an Android-sized Chromium, Omar on a 1024×768 Chromium; Addition within 50, rows + columns, 3 winners, manual
+  pace): on `db0fee3` + tuned scheduler **52/52 checks** — build is `db0fee3`; every card 24 different answers in its
+  own layout; room paced (first Bingo from 15, 10 between, up to 22 winners at this level); host chip and student line
+  count down; **Bingos at calls 16, 26, 36** (Omar, Zion, Ava); "Bingo opportunity OPEN" and "Next Bingo opportunity in
+  N calls" both seen on the chip; Winners 1 / 3; board layouts at 1280×720 and 1920×1080 with every panel on screen;
+  MATH BINGO COMPLETE. Earlier runs on the same preview: 51/51 (Bingos 15, 25, 35) and 47/47 (Bingos 20, 30, 40 — the
+  run that motivated the urgency tune). Screenshots: `qa-artifacts/math-bingo-live/staging-pacing-review-tuned/`.
+- `-Stage load` (50 and 30 virtual students + a real host screen, timed 10 s questions / 3 s reveal, Addition within
+  50, 2 winners): exact p95 (client-measured from this machine, one shared address; Server-Timing db p95 in brackets):
+
+  | Class | Run | Polls (state) | Changed polls | Taps (mark) | Free Space | Teacher (host: Start, Next, Reveal, Play Again, calls) | Same-answer burst | Errors | Pacing |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | 30 | 1 | **689 ms** [559] | 946 ms | **1,001 ms** [844] | 1,147 ms [1,039] | **1,029 ms** [532] | 18/18 accepted, p95 1,946 ms | 0 of 12,190 | Bingos 16 / 26 |
+  | 50 | 1 | 1,319 ms [1,177] | 1,706 ms | 2,166 ms [2,056] | 1,222 ms [1,119] | 1,989 ms [981] | 31/31 accepted, p95 3,214 ms | 6 of 12,713 (4 × 503 live-unavailable polls, 2 aborted host requests) | Bingos 15 / 25 |
+  | 50 | 2 | 1,477 ms [1,346] | 1,656 ms | 1,809 ms [1,683] | 1,391 ms [1,198] | 2,032 ms [1,029] | 31/31 accepted, p95 3,337 ms | 0 of 12,737 | Bingos 15 / 25 |
+
+  Limits in the harness: polls 1,000 ms, taps 1,500 ms, host 1,500 ms, burst 1,500 ms. **30 students: every limit met**
+  (17/18 checks; the burst p95 is the one miss). **50 students: the poll, tap and host limits are missed by 0.3–0.7 s**
+  (13/18 and 14/18) — the same shape as before pacing, and better than the v1.2.36 staging baseline of 2026-11-05 (polls
+  2,005 ms, taps 4,104 ms, host 3,061 ms at 50 students): the staging database itself slows under 50 polling students
+  (an unrelated one-row read from this machine measured p95 1,061–1,245 ms during play, 567 ms with 30). Every
+  functional check passed at both sizes: all students joined (≈10 s for the class) and got a card, every student saw
+  ≥ 95 % of the questions (worst 96.6 %), no rate limiting, no question repeated, every Bingo at call 15 and at 25,
+  Play Again worked, standings carry the emoji. Call generation (the scheduler) is inside the host request: db p95
+  981–1,029 ms at 50 students, 532 ms at 30. Reports: `owner-review/evidence/math-bingo-live-pacing/staging-load-*.json`.
 
 ## Game-logic coherence audit
 

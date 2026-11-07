@@ -129,8 +129,9 @@ test("free access: a free teacher hosts Bingo but still cannot open protected ga
   }
   const games = await host.page.request.get("/games", { failOnStatusCode: false, maxRedirects: 0 });
   expect(games.status()).not.toBe(200);
-  // The draft is not in any catalog.
+  // Since v1.2.37 the public Math Games page features Math Bingo Live for everyone (host and
+  // join buttons); the catalog entry's status gates the game routes above, never that page.
   const catalog = await host.page.request.get("/math-games", { failOnStatusCode: false });
-  expect(await catalog.text()).not.toContain("Math Bingo Live");
+  expect(await catalog.text()).toContain("Math Bingo Live");
   await host.context.close();
 });

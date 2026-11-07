@@ -1,0 +1,655 @@
+{
+  "origin": "https://mathnexa-platform-staging-·····-bright-path-ed-tech.vercel.app",
+  "build": "db0fee3",
+  "players": 30,
+  "playSeconds": 480,
+  "games": [
+    {
+      "game": 1,
+      "questions": 26,
+      "calledIds": 26,
+      "uniqueCalledIds": 26,
+      "winners": [
+        {
+          "placement": 1,
+          "name": "Load 10",
+          "emoji": "🐶",
+          "question": 16
+        },
+        {
+          "placement": 2,
+          "name": "Load 21",
+          "emoji": "🦁",
+          "question": 26
+        }
+      ]
+    }
+  ],
+  "questionsRun": 30,
+  "requests": 12190,
+  "requestsPerSecondDuringPlay": 25.2,
+  "statuses": {
+    "200": 12189,
+    "404": 1
+  },
+  "marks": {
+    "correct": 434,
+    "already-marked": 24,
+    "incorrect": 70,
+    "not-active": 19
+  },
+  "latency": {
+    "join": {
+      "n": 30,
+      "p50": 224,
+      "p95": 432,
+      "p99": 481,
+      "max": 481
+    },
+    "state": {
+      "n": 11170,
+      "p50": 227,
+      "p95": 689,
+      "p99": 1278,
+      "max": 8953
+    },
+    "stateUnchanged": {
+      "n": 7202,
+      "p50": 204,
+      "p95": 456,
+      "p99": 865,
+      "max": 2024
+    },
+    "stateChanged": {
+      "n": 3968,
+      "p50": 365,
+      "p95": 946,
+      "p99": 2034,
+      "max": 8953
+    },
+    "mark": {
+      "n": 547,
+      "p50": 249,
+      "p95": 1001,
+      "p99": 1620,
+      "max": 4032
+    },
+    "markOrdinary": {
+      "n": 511,
+      "p50": 244,
+      "p95": 750,
+      "p99": 1607,
+      "max": 4032
+    },
+    "free": {
+      "n": 60,
+      "p50": 314,
+      "p95": 1147,
+      "p99": 1406,
+      "max": 1406
+    },
+    "host": {
+      "n": 383,
+      "p50": 375,
+      "p95": 1029,
+      "p99": 1651,
+      "max": 9367
+    }
+  },
+  "worstCoverage": 100,
+  "boardsDealt": 30,
+  "networkBaseline": {
+    "n": 8,
+    "p50": 120,
+    "p95": 152,
+    "p99": 152,
+    "max": 152
+  },
+  "serverTiming": {
+    "state": {
+      "app": {
+        "n": 11170,
+        "p50": 117,
+        "p95": 560,
+        "p99": 1149,
+        "max": 8864
+      },
+      "db": {
+        "n": 11170,
+        "p50": 116,
+        "p95": 559,
+        "p99": 1149,
+        "max": 8864
+      },
+      "access": {
+        "n": 0
+      },
+      "outside": {
+        "n": 11170,
+        "p50": 104,
+        "p95": 164,
+        "p99": 304,
+        "max": 1099
+      }
+    },
+    "mark": {
+      "app": {
+        "n": 547,
+        "p50": 142,
+        "p95": 845,
+        "p99": 1521,
+        "max": 3875
+      },
+      "db": {
+        "n": 547,
+        "p50": 141,
+        "p95": 844,
+        "p99": 1521,
+        "max": 3875
+      },
+      "access": {
+        "n": 0
+      },
+      "outside": {
+        "n": 547,
+        "p50": 103,
+        "p95": 152,
+        "p99": 317,
+        "max": 758
+      }
+    },
+    "free": {
+      "app": {
+        "n": 60,
+        "p50": 217,
+        "p95": 1039,
+        "p99": 1239,
+        "max": 1239
+      },
+      "db": {
+        "n": 60,
+        "p50": 217,
+        "p95": 1039,
+        "p99": 1238,
+        "max": 1238
+      },
+      "access": {
+        "n": 0
+      },
+      "outside": {
+        "n": 60,
+        "p50": 101,
+        "p95": 152,
+        "p99": 167,
+        "max": 167
+      }
+    },
+    "host": {
+      "app": {
+        "n": 383,
+        "p50": 184,
+        "p95": 824,
+        "p99": 1491,
+        "max": 7401
+      },
+      "db": {
+        "n": 383,
+        "p50": 118,
+        "p95": 532,
+        "p99": 856,
+        "max": 1240
+      },
+      "access": {
+        "n": 383,
+        "p50": 0,
+        "p95": 645,
+        "p99": 1099,
+        "max": 7226
+      },
+      "outside": {
+        "n": 383,
+        "p50": 165,
+        "p95": 270,
+        "p99": 460,
+        "max": 1966
+      }
+    }
+  },
+  "pollsThatDealtACard": 0,
+  "sameAnswerBurst": {
+    "valid": 18,
+    "accepted": 18,
+    "results": {
+      "correct": 18
+    },
+    "repeats": 18,
+    "repeatsCounted": 0,
+    "latency": {
+      "n": 18,
+      "p50": 769,
+      "p95": 1946,
+      "p99": 1946,
+      "max": 1946
+    }
+  },
+  "emojiInStandings": 25,
+  "healthDuringPlay": {
+    "n": 206,
+    "p50": 104,
+    "p95": 154,
+    "p99": 353,
+    "max": 503,
+    "failed": 0
+  },
+  "supabaseDuringPlay": {
+    "n": 206,
+    "p50": 133,
+    "p95": 567,
+    "p99": 1333,
+    "max": 3130,
+    "failed": 0
+  },
+  "timeline": [
+    {
+      "second": 0,
+      "polls": 194,
+      "p50": 272,
+      "p95": 1000,
+      "max": 1277,
+      "supabaseReadMax": 903
+    },
+    {
+      "second": 10,
+      "polls": 249,
+      "p50": 208,
+      "p95": 514,
+      "max": 636,
+      "supabaseReadMax": 323
+    },
+    {
+      "second": 20,
+      "polls": 242,
+      "p50": 267,
+      "p95": 581,
+      "max": 724,
+      "supabaseReadMax": 529
+    },
+    {
+      "second": 30,
+      "polls": 242,
+      "p50": 212,
+      "p95": 670,
+      "max": 974,
+      "supabaseReadMax": 249
+    },
+    {
+      "second": 40,
+      "polls": 250,
+      "p50": 199,
+      "p95": 489,
+      "max": 606,
+      "supabaseReadMax": 201
+    },
+    {
+      "second": 50,
+      "polls": 241,
+      "p50": 205,
+      "p95": 597,
+      "max": 1040,
+      "supabaseReadMax": 396
+    },
+    {
+      "second": 60,
+      "polls": 240,
+      "p50": 270,
+      "p95": 658,
+      "max": 1006,
+      "supabaseReadMax": 295
+    },
+    {
+      "second": 70,
+      "polls": 235,
+      "p50": 243,
+      "p95": 523,
+      "max": 753,
+      "supabaseReadMax": 647
+    },
+    {
+      "second": 80,
+      "polls": 244,
+      "p50": 233,
+      "p95": 537,
+      "max": 696,
+      "supabaseReadMax": 280
+    },
+    {
+      "second": 90,
+      "polls": 237,
+      "p50": 227,
+      "p95": 667,
+      "max": 777,
+      "supabaseReadMax": 143
+    },
+    {
+      "second": 100,
+      "polls": 245,
+      "p50": 219,
+      "p95": 485,
+      "max": 687,
+      "supabaseReadMax": 272
+    },
+    {
+      "second": 110,
+      "polls": 250,
+      "p50": 222,
+      "p95": 524,
+      "max": 740,
+      "supabaseReadMax": 305
+    },
+    {
+      "second": 120,
+      "polls": 247,
+      "p50": 198,
+      "p95": 396,
+      "max": 555,
+      "supabaseReadMax": 200
+    },
+    {
+      "second": 130,
+      "polls": 253,
+      "p50": 211,
+      "p95": 482,
+      "max": 2024,
+      "supabaseReadMax": 209
+    },
+    {
+      "second": 140,
+      "polls": 249,
+      "p50": 215,
+      "p95": 614,
+      "max": 752,
+      "supabaseReadMax": 234
+    },
+    {
+      "second": 150,
+      "polls": 248,
+      "p50": 205,
+      "p95": 514,
+      "max": 705,
+      "supabaseReadMax": 221
+    },
+    {
+      "second": 160,
+      "polls": 236,
+      "p50": 235,
+      "p95": 630,
+      "max": 708,
+      "supabaseReadMax": 567
+    },
+    {
+      "second": 170,
+      "polls": 252,
+      "p50": 199,
+      "p95": 536,
+      "max": 688,
+      "supabaseReadMax": 365
+    },
+    {
+      "second": 180,
+      "polls": 246,
+      "p50": 211,
+      "p95": 438,
+      "max": 716,
+      "supabaseReadMax": 247
+    },
+    {
+      "second": 190,
+      "polls": 212,
+      "p50": 340,
+      "p95": 1140,
+      "max": 1329,
+      "supabaseReadMax": 271
+    },
+    {
+      "second": 200,
+      "polls": 198,
+      "p50": 416,
+      "p95": 874,
+      "max": 993,
+      "supabaseReadMax": 581
+    },
+    {
+      "second": 210,
+      "polls": 183,
+      "p50": 656,
+      "p95": 1797,
+      "max": 2096,
+      "supabaseReadMax": 948
+    },
+    {
+      "second": 220,
+      "polls": 83,
+      "p50": 1325,
+      "p95": 2972,
+      "max": 3398,
+      "supabaseReadMax": 3130
+    },
+    {
+      "second": 230,
+      "polls": 156,
+      "p50": 716,
+      "p95": 6809,
+      "max": 8953,
+      "supabaseReadMax": 2798
+    },
+    {
+      "second": 240,
+      "polls": 230,
+      "p50": 309,
+      "p95": 1000,
+      "max": 1129,
+      "supabaseReadMax": 531
+    },
+    {
+      "second": 250,
+      "polls": 234,
+      "p50": 219,
+      "p95": 605,
+      "max": 957,
+      "supabaseReadMax": 164
+    },
+    {
+      "second": 260,
+      "polls": 235,
+      "p50": 234,
+      "p95": 640,
+      "max": 790,
+      "supabaseReadMax": 381
+    },
+    {
+      "second": 270,
+      "polls": 237,
+      "p50": 266,
+      "p95": 779,
+      "max": 1163,
+      "supabaseReadMax": 705
+    },
+    {
+      "second": 280,
+      "polls": 245,
+      "p50": 226,
+      "p95": 721,
+      "max": 937,
+      "supabaseReadMax": 230
+    },
+    {
+      "second": 290,
+      "polls": 237,
+      "p50": 225,
+      "p95": 619,
+      "max": 1092,
+      "supabaseReadMax": 210
+    },
+    {
+      "second": 300,
+      "polls": 249,
+      "p50": 215,
+      "p95": 548,
+      "max": 1131,
+      "supabaseReadMax": 374
+    },
+    {
+      "second": 310,
+      "polls": 239,
+      "p50": 227,
+      "p95": 491,
+      "max": 810,
+      "supabaseReadMax": 248
+    },
+    {
+      "second": 320,
+      "polls": 249,
+      "p50": 219,
+      "p95": 508,
+      "max": 726,
+      "supabaseReadMax": 428
+    },
+    {
+      "second": 330,
+      "polls": 249,
+      "p50": 214,
+      "p95": 509,
+      "max": 716,
+      "supabaseReadMax": 148
+    },
+    {
+      "second": 340,
+      "polls": 240,
+      "p50": 212,
+      "p95": 579,
+      "max": 758,
+      "supabaseReadMax": 238
+    },
+    {
+      "second": 350,
+      "polls": 247,
+      "p50": 231,
+      "p95": 525,
+      "max": 655,
+      "supabaseReadMax": 308
+    },
+    {
+      "second": 360,
+      "polls": 245,
+      "p50": 208,
+      "p95": 447,
+      "max": 606,
+      "supabaseReadMax": 232
+    },
+    {
+      "second": 370,
+      "polls": 245,
+      "p50": 241,
+      "p95": 608,
+      "max": 744,
+      "supabaseReadMax": 183
+    },
+    {
+      "second": 380,
+      "polls": 245,
+      "p50": 217,
+      "p95": 609,
+      "max": 876,
+      "supabaseReadMax": 196
+    },
+    {
+      "second": 390,
+      "polls": 240,
+      "p50": 228,
+      "p95": 639,
+      "max": 938,
+      "supabaseReadMax": 438
+    },
+    {
+      "second": 400,
+      "polls": 246,
+      "p50": 236,
+      "p95": 616,
+      "max": 734,
+      "supabaseReadMax": 302
+    },
+    {
+      "second": 410,
+      "polls": 195,
+      "p50": 205,
+      "p95": 537,
+      "max": 739,
+      "supabaseReadMax": 218
+    },
+    {
+      "second": 420,
+      "polls": 195,
+      "p50": 224,
+      "p95": 601,
+      "max": 720,
+      "supabaseReadMax": 159
+    },
+    {
+      "second": 430,
+      "polls": 222,
+      "p50": 269,
+      "p95": 1097,
+      "max": 1496,
+      "supabaseReadMax": 1333
+    },
+    {
+      "second": 440,
+      "polls": 241,
+      "p50": 225,
+      "p95": 445,
+      "max": 566,
+      "supabaseReadMax": 108
+    },
+    {
+      "second": 450,
+      "polls": 252,
+      "p50": 237,
+      "p95": 517,
+      "max": 865,
+      "supabaseReadMax": 197
+    },
+    {
+      "second": 460,
+      "polls": 242,
+      "p50": 206,
+      "p95": 486,
+      "max": 750,
+      "supabaseReadMax": 353
+    },
+    {
+      "second": 470,
+      "polls": 243,
+      "p50": 236,
+      "p95": 567,
+      "max": 819,
+      "supabaseReadMax": 146
+    },
+    {
+      "second": 480,
+      "polls": 6,
+      "p50": 196,
+      "p95": 244,
+      "max": 244,
+      "supabaseReadMax": null
+    }
+  ],
+  "notOk": [
+    {
+      "who": "host",
+      "action": "host",
+      "status": 404,
+      "result": null,
+      "secondsIntoPlay": -13
+    }
+  ]
+}
