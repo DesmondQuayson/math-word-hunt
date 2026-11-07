@@ -400,6 +400,7 @@ body:has(.admin-command-center) > main {
 .admin-provider-grid span,.admin-flag-grid header > span { float: right; padding: .2rem .5rem; border: 1px solid currentColor; color: var(--admin-muted); font: 800 var(--font-size-caption) var(--font-utility); text-transform: uppercase; }
 .admin-provider-grid span[data-tone="healthy"],.admin-flag-grid span[data-tone="healthy"] { color: #6fe0b8; }
 .admin-provider-grid span[data-tone="attention"],.admin-flag-grid span[data-tone="attention"] { color: #ffd75d; }
+.admin-provider-grid span[data-tone="degraded"] { color: #ff8f8f; }
 .admin-provider-grid h3 { margin-top: var(--space-6); }
 .admin-ops-summary dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin-block: var(--space-5); border-top: 1px solid var(--admin-line); border-left: 1px solid var(--admin-line); }
 .admin-ops-summary dl > div { min-width: 0; padding: var(--space-3); border-right: 1px solid var(--admin-line); border-bottom: 1px solid var(--admin-line); }

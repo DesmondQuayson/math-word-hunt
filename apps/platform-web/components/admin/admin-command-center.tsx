@@ -161,9 +161,9 @@ function AdminQuarantineRow({ signal }: Readonly<{ signal: QuarantineSignal }>) 
   const value = signal.count === null ? "Unavailable" : formatAdminNumber(signal.count);
   return <li className="admin-health-row" data-state={signal.severity}>
     <details>
-      <summary><span className="admin-health-name">{signal.label}</span><span className="admin-health-badge" data-tone={signal.severity === "clear" ? "good" : signal.severity === "review" ? "notice" : "warning"}>{value}</span></summary>
+      <summary><span className="admin-health-name">{signal.label}</span><span className="admin-health-badge" data-tone={signal.severity === "clear" ? "good" : signal.severity === "review" ? "notice" : signal.severity === "historical" ? "neutral" : "warning"}>{value}</span></summary>
       <AdminHealthEvidence reason={signal.reason} details={signal.details} action={signal.action} rows={[
-        ["Status", signal.severity === "clear" ? "Clear" : signal.severity === "review" ? "Review when convenient" : "Unavailable"],
+        ["Status", signal.severity === "clear" ? "Clear" : signal.severity === "review" ? "Review when convenient" : signal.severity === "historical" ? "Historical records only (no action needed)" : "Unavailable"],
         ["Last checked", formatAdminDateTime(signal.checkedAt)], ["Newest item", evidenceTime(signal.newestAt)]
       ]} />
     </details>

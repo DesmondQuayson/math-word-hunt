@@ -6,10 +6,13 @@ import { getPublicEnvironmentView } from "@/lib/environment/server";
 import { loadServerFeatureFlags, type ServerFeatureFlag } from "@/lib/operations/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
+import { evaluateEmail, evaluateWebhooks, summarizeWebhookQueue, type HealthSignal } from "./system-health";
+import { loadSystemHealthEvidence } from "./system-health-evidence";
+
 type Row = Record<string, unknown>;
 export type AggregateMetric = Readonly<{ key: string; label: string; value: number | null; detail: string }>;
 export type PopularSignal = Readonly<{ label: string; value: number }>;
-export type ProviderHealth = Readonly<{ provider: string; state: "healthy" | "attention" | "unavailable" | "no-signal"; detail: string }>;
+export type ProviderHealth = Readonly<{ provider: string; state: "healthy" | "attention" | "degraded" | "unavailable" | "no-signal"; detail: string }>;
 export type AdminAuditView = Readonly<{ action: string; target: string | null; createdAt: string }>;
 
 export type AdminAnalyticsOperationsSnapshot = Readonly<{
@@ -20,7 +23,8 @@ export type AdminAnalyticsOperationsSnapshot = Readonly<{
   providers: readonly ProviderHealth[];
   build: Readonly<{ id: string; environment: string; migrationCount: number | null; latestMigration: string | null }>;
   storage: Readonly<{ objects: number | null; bytes: number | null; buckets: number | null }>;
-  webhookQueue: Readonly<{ pending: number | null; failed: number | null }>;
+  /** Open receipts needing action and historical (superseded) manual reviews, in the System health terms. */
+  webhookQueue: Readonly<{ open: number | null; historical: number | null }>;
   flags: readonly ServerFeatureFlag[];
   retention: Readonly<{ completedAt: string; deletedCount: number }> | null;
   audit: readonly AdminAuditView[];
@@ -35,12 +39,22 @@ function top(values: Map<string, number>): PopularSignal[] {
   return [...values.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8).map(([label, value]) => ({ label, value }));
 }
 
+/**
+ * A provider row from a System health signal: the same state and reason as the Overview panel (so the pages cannot
+ * disagree), followed by the selected range's counts. Evidence that could not be read is "unavailable", never healthy.
+ */
+function providerFromSignal(provider: string, signal: HealthSignal | null, quietDetail: string | null, rangeNote: string): ProviderHealth {
+  if (!signal) return { provider, state: "unavailable", detail: `The evidence for this check could not be read, so its health is unknown. ${rangeNote}` };
+  const state: ProviderHealth["state"] = signal.state === "healthy" || signal.state === "attention" || signal.state === "degraded" || signal.state === "unavailable" ? signal.state : "no-signal";
+  return { provider, state, detail: `${state === "no-signal" && quietDetail ? quietDetail : signal.reason} ${rangeNote}` };
+}
+
 export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): Promise<AdminAnalyticsOperationsSnapshot> {
   const client = createServiceSupabaseClient(); const window = inRange(range); const environment = getPublicEnvironmentView();
-  const empty: AdminAnalyticsOperationsSnapshot = { state: "unavailable", range, metrics: [], popular: { grades: [], topics: [], lessons: [] }, providers: [], build: { id: environment.buildId, environment: environment.identity, migrationCount: null, latestMigration: null }, storage: { objects: null, bytes: null, buckets: null }, webhookQueue: { pending: null, failed: null }, flags: [], retention: null, audit: [] };
+  const empty: AdminAnalyticsOperationsSnapshot = { state: "unavailable", range, metrics: [], popular: { grades: [], topics: [], lessons: [] }, providers: [], build: { id: environment.buildId, environment: environment.identity, migrationCount: null, latestMigration: null }, storage: { objects: null, bytes: null, buckets: null }, webhookQueue: { open: null, historical: null }, flags: [], retention: null, audit: [] };
   if (!client) return empty;
 
-  const [accounts, subscriptions, webhooks, launches, downloads, aggregateEvents, audit, flagsResult, retention, storage, migration] = await Promise.all([
+  const [accounts, subscriptions, webhooks, launches, downloads, aggregateEvents, audit, flagsResult, retention, storage, migration, healthEvidence] = await Promise.all([
     client.from("consumer_accounts").select("created_at,trial_redeemed_at").lte("created_at", window.end),
     client.from("billing_subscriptions").select("subscription_status,first_paid_at,canceled_at,last_payment_failed_at,created_at").not("owner_consumer_id", "is", null),
     client.from("billing_webhook_events").select("event_type,processing_state,received_at").gte("received_at", window.start).lte("received_at", window.end),
@@ -51,7 +65,9 @@ export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): 
     loadServerFeatureFlags(),
     client.from("platform_retention_runs").select("completed_at,deleted_event_count").order("completed_at", { ascending: false }).limit(1).maybeSingle(),
     client.rpc("get_platform_storage_usage"),
-    client.rpc("get_platform_migration_status")
+    client.rpc("get_platform_migration_status"),
+    // The same evidence and rules as the Overview System health panel, so the two pages cannot disagree.
+    loadSystemHealthEvidence(client, new Date(), "reachable").catch(() => null)
   ]);
   const queryResults = [accounts, subscriptions, webhooks, launches, downloads, aggregateEvents, audit, retention, storage, migration];
   const partial = queryResults.some((result) => result.error) || flagsResult.state === "unavailable";
@@ -90,9 +106,10 @@ export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): 
   for (const event of signalRows) { const value = Number(event.quantity) || 0; add(gradeCounts, event.grade_number ? `Grade ${event.grade_number}` : "", value); add(topicCounts, str(event.topic_slug), value); add(lessonCounts, str(event.lesson_slug), value); }
   const homeworkDownloads = downloadRows.filter((row) => typeByResource.get(str(row.resource_id))?.startsWith("homework_")).length;
   const quizDownloads = downloadRows.filter((row) => typeByResource.get(str(row.resource_id))?.startsWith("quiz_")).length;
-  const webhookFailed = webhookRows.filter((row) => ["retryable_failure", "manual_review", "failed"].includes(str(row.processing_state))).length;
-  const webhookPending = webhookRows.filter((row) => ["received", "processing", "retryable_failure", "manual_review"].includes(str(row.processing_state))).length;
   const webhookSuccess = webhookRows.filter((row) => ["processed", "ignored"].includes(str(row.processing_state))).length;
+  const emailSignal = healthEvidence ? evaluateEmail(healthEvidence) : null;
+  const webhookSignal = healthEvidence ? evaluateWebhooks(healthEvidence) : null;
+  const webhookQueue = healthEvidence ? summarizeWebhookQueue(healthEvidence) : null;
   const emailSuccess = quantity("email-confirmation-success") + quantity("email-recovery-success");
   const emailFailure = quantity("email-confirmation-failure") + quantity("email-recovery-failure");
   const storageRows = rows(storage.data); const storageObjects = storage.error ? null : storageRows.reduce((sum, row) => sum + (Number(row.object_count) || 0), 0); const storageBytes = storage.error ? null : storageRows.reduce((sum, row) => sum + (Number(row.total_bytes) || 0), 0);
@@ -100,8 +117,8 @@ export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): 
   const vercelErrors = quantity("vercel-error", "failure"); const supabaseErrors = quantity("supabase-error", "failure");
   const providers: ProviderHealth[] = [
     { provider: "Application", state: partial || hierarchyError ? "attention" : "healthy", detail: partial || hierarchyError ? "One or more server-owned signals are unavailable." : "All required server-owned queries completed." },
-    { provider: "Email", state: emailSuccess + emailFailure === 0 ? "no-signal" : emailFailure ? "attention" : "healthy", detail: emailSuccess + emailFailure === 0 ? "No confirmation or recovery delivery signal is available." : `${emailSuccess} successful · ${emailFailure} failed` },
-    { provider: "Stripe webhooks", state: webhookRows.length === 0 ? "no-signal" : webhookFailed ? "attention" : "healthy", detail: webhookRows.length === 0 ? "No webhook event exists in this range." : `${webhookSuccess} processed · ${webhookFailed} require attention` },
+    providerFromSignal("Email", emailSignal, emailSuccess + emailFailure === 0 ? "No confirmation or recovery delivery signal is available." : null, `Selected range: ${emailSuccess} successful, ${emailFailure} recorded as failed.`),
+    providerFromSignal("Stripe webhooks", webhookSignal, null, `Selected range: ${webhookSuccess} of ${webhookRows.length} received events processed.`),
     { provider: "Vercel", state: vercelErrors ? "attention" : "no-signal", detail: vercelErrors ? `${vercelErrors} captured error signals` : "No connected Vercel error feed; absence is not health proof." },
     { provider: "Supabase", state: supabaseErrors ? "attention" : partial ? "unavailable" : "healthy", detail: supabaseErrors ? `${supabaseErrors} captured error signals` : partial ? "Database health could not be fully verified." : "Required database queries completed." },
     { provider: "Storage", state: storageObjects === null ? "unavailable" : "healthy", detail: storageObjects === null ? "Usage could not be read." : `${storageObjects} private objects accounted for.` }
@@ -124,7 +141,7 @@ export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): 
     ],
     popular: { grades: top(gradeCounts), topics: top(topicCounts), lessons: top(lessonCounts) }, providers,
     build: { id: environment.buildId, environment: environment.identity, migrationCount: migrationRow ? Number(migrationRow.applied_count) : null, latestMigration: migrationRow ? str(migrationRow.latest_version) || null : null },
-    storage: { objects: storageObjects, bytes: storageBytes, buckets: storage.error ? null : storageRows.length }, webhookQueue: { pending: webhooks.error ? null : webhookPending, failed: webhooks.error ? null : webhookFailed },
+    storage: { objects: storageObjects, bytes: storageBytes, buckets: storage.error ? null : storageRows.length }, webhookQueue: { open: webhookQueue?.open ?? null, historical: webhookQueue?.historical ?? null },
     flags: flagsResult.flags, retention: retention.data ? { completedAt: retention.data.completed_at, deletedCount: retention.data.deleted_event_count } : null,
     audit: rows(audit.data).map((row) => ({ action: str(row.action), target: str(row.target) || null, createdAt: str(row.created_at) }))
   };

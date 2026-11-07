@@ -17,12 +17,12 @@ const snapshot: AdminDashboardSnapshot = {
   health: evaluateSystemHealth({
     now: new Date("2026-10-07T04:30:00.000Z"),
     database: "reachable",
-    email: { signals: [], confirmations: [] },
+    email: { signals: [], confirmations: [], signups: [] },
     webhooks: { totalEvents: 0, recent: [], lastHandledAt: null, open: [], laterProcessed: [], projections: [] },
     reconciliation: { expected: false, subscriptions: [] },
     storage: { buckets: [...REQUIRED_PRIVATE_BUCKETS] },
     packages: { states: [] },
-    pdfQuarantine: { files: [{ role: "primary_pdf", quarantinedAt: "2026-08-22T19:37:55Z" }] },
+    pdfQuarantine: { files: [{ role: "primary_pdf", quarantinedAt: "2026-08-22T19:37:55Z", resourceState: "draft", replaced: false }] },
     zipQuarantine: { events: [] }
   }),
   recentActions: []
