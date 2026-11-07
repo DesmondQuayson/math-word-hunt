@@ -3,8 +3,10 @@
  *
  * Launched by scripts/invoke-math-tug-of-war-staging.ps1 -Stage review-3d
  * -Origin <staging preview URL> [-ExpectCommit <sha>], which supplies the
- * staging Supabase secret key and the Vercel protection-bypass entry (the
- * value travels only in request headers/cookie and is never printed). The
+ * staging Supabase secret key and the Vercel protection-bypass entry
+ * (scripts/vercel-protection-bypass.mjs sends it once, in a header, to the
+ * preview origin only; browsers ride on Vercel's host-only bypass cookie; the
+ * value never enters a URL and is never printed). The
  * classic review (-Stage review) certifies the game itself; this one proves
  * the 3D layer on the hosted build:
  *
@@ -29,6 +31,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { playerCameraHands } from "../e2e/math-tug-of-war/player-camera-hands.ts";
 import { runtimeHash } from "./math-tug-of-war-runtime-hash.mjs";
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // REVIEW_TARGET=production (scripts/invoke-math-tug-of-war-production.ps1 -Stage review-3d)
@@ -49,8 +52,9 @@ if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const out = resolve(process.env.REVIEW_OUT ?? (isProduction ? "owner-review/math-tug-of-war-3d-v1/production" : "owner-review/math-tug-of-war-3d-v1/staging"));
 mkdirSync(out, { recursive: true });
-const bypassHeaders = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
-const landing = bypass ? `${origin}/?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true` : `${origin}/`;
+// Production has no bypass: the module then adds nothing and install() is a no-op.
+const protection = createProtectionBypass({ origin, secret: bypass || null });
+const landing = `${origin}/`;
 const accountPrefix = isProduction ? "tug-3d-release-review" : "tug-3d-staging";
 const GPU_ARGS = ["--use-gl=angle", "--use-angle=d3d11", "--ignore-gpu-blocklist", "--enable-gpu-rasterization"];
 const ASSET_BASE = "/internal-games/math-tug-of-war/";
@@ -67,7 +71,7 @@ const roomCodes = new Set();
 const reviewStartedAt = new Date(Date.now() - 60_000).toISOString();
 const results = [];
 const evidence = { origin, commit: expectCommit || null, checks: [], measurements: [] };
-const redact = (text) => (bypass ? String(text).split(bypass).join("[hidden]") : String(text));
+const redact = (text) => protection.redact(text);
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   evidence.checks.push({ ok: Boolean(condition), message: redact(message) });
@@ -100,7 +104,8 @@ async function subscriber(label) {
 
 /** A signed-in session; `graphics` is the review override ("3d", "classic" or null for the real device path). */
 async function session(engine, email, viewport, { graphics = "3d", ...options } = {}) {
-  const context = await engine.newContext({ viewport, extraHTTPHeaders: bypassHeaders, ...options });
+  const context = await engine.newContext({ viewport, ...options });
+  await protection.install(context);
   if (graphics) {
     await context.addInitScript((value) => {
       window.__MATHNEXA_GRAPHICS__ = value;
@@ -218,7 +223,7 @@ const software = await chromium.launch();
 const safari = await webkit.launch();
 try {
   // ---- The deployed build is the tested source.
-  const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders });
+  const health = await fetch(`${origin}/api/health`, { headers: protection.headersFor(`${origin}/api/health`), redirect: "manual" });
   const healthText = await health.text();
   ok(health.status === 200, `health 200 (${health.status})`);
   if (expectCommit) ok(healthText.includes(expectCommit.slice(0, 7)), `deployment serves commit ${expectCommit.slice(0, 7)}`);

@@ -14,7 +14,7 @@
 // every script that uses the bypass to the same confinement.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { after, before, describe, it } from "node:test";
 
@@ -424,3 +424,105 @@ for (const { file, contexts, failure } of [
     });
   });
 }
+
+// A failure of the one secret-bearing request must not print the secret:
+// Playwright's call log lists every request header (seen 2026-11-07).
+describe("a failed bootstrap never prints the secret", () => {
+  it("rethrows a refused connection without the header-listing call log", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const refused = createProtectionBypass({ origin: "http://127.0.0.1:9", secret });
+      await assert.rejects(refused.install(context), (error) => {
+        assert.match(error.message, /protection bypass bootstrap request failed/);
+        assert.ok(!error.message.includes(secret), "the secret is not in the message");
+        assert.ok(!/Call log:/.test(error.message), "no call log");
+        return true;
+      });
+    } finally {
+      await browser.close();
+    }
+  });
+  it("redacts the URL-encoded form of the secret too", () => {
+    const tricky = `${secret}+/=`;
+    const protection = createProtectionBypass({ origin: "http://127.0.0.1:9", secret: tricky });
+    assert.equal(protection.redact(`raw ${tricky} encoded ${encodeURIComponent(tricky)}`), "raw [bypass-secret] encoded [bypass-secret]");
+  });
+});
+
+// Scripts added after the 2026-10-07 fix (the Math Bingo Live review, load test
+// and QA, the Math Tug of War 3D review) put the secret in a landing URL and in
+// context-wide headers. They now use the module like the runners above.
+for (const { file, contexts } of [
+  { file: "review-math-bingo-live-staging.mjs", contexts: 1 },
+  { file: "load-math-bingo-live-staging.mjs", contexts: 1 },
+  { file: "review-math-tug-of-war-3d-staging.mjs", contexts: 1 },
+  { file: "qa-math-bingo-live-production.mjs", contexts: 1 }
+]) {
+  describe(`${file} uses the confined bypass`, () => {
+    const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
+    it("never puts the secret in a URL, in context-wide headers or in its own header literal", () => {
+      assert.ok(!/extraHTTPHeaders|setExtraHTTPHeaders/.test(source), "no context-wide headers at all");
+      assert.ok(!/[?&]x-vercel-(?:protection-bypass|set-bypass-cookie)=/.test(source), "no bypass query parameter");
+      assert.ok(!/x-vercel-protection-bypass=\$\{/.test(source), "no bypass value interpolated into a URL");
+      assert.ok(!/["'`]x-vercel-protection-bypass["'`]/.test(source), "the header is only ever built by the module");
+      assert.ok(!/\.route\(/.test(source), "no request interception");
+    });
+    it("installs the module on every browser context, and direct requests never follow a redirect", () => {
+      assert.ok(source.includes('import { createProtectionBypass } from "./vercel-protection-bypass.mjs";'), "imports the module");
+      assert.equal((source.match(/\.newContext\(/g) ?? []).length, contexts, "browser contexts");
+      assert.equal((source.match(/await protection\.install\(context\)/g) ?? []).length, contexts, "every browser context installs the confined bypass");
+      const fetches = calls(source, /(?<![\w.])fetch\(/g);
+      const uses = [...source.matchAll(/\.headersFor\(/g)];
+      assert.ok(uses.length > 0, "direct requests take their header from headersFor()");
+      for (const use of uses) {
+        const call = fetches.find((candidate) => candidate.start < use.index && use.index < candidate.end);
+        assert.ok(call, `headersFor() at offset ${use.index} is used outside a fetch() call`);
+        assert.match(call.text, /redirect:\s*"manual"/, `a fetch() carrying the header follows redirects: ${call.text.slice(0, 120)}`);
+      }
+      assert.match(source, /const redact = \(text\) => protection\.redact\(/, "printed text is redacted by the module");
+    });
+  });
+}
+
+// Every script, Playwright config and end-to-end file in the repository: the
+// secret never in a URL, never in context-wide headers, and a direct request
+// that carries it never follows a redirect.
+describe("no file in the repository leaks the bypass secret by construction", () => {
+  const root = new URL("../", import.meta.url);
+  const listed = (folder, filter) => readdirSync(new URL(folder, root), { recursive: true })
+    .map((name) => String(name).replaceAll("\\", "/"))
+    .filter((name) => !name.includes("node_modules/") && filter(name))
+    .map((name) => ({ name: `${folder}${name}`, url: new URL(`${folder}${name}`, root) }));
+  const files = [
+    ...listed("scripts/", (name) => /\.(?:mjs|cjs|js|ts|ps1)$/.test(name) && !name.endsWith("vercel-protection-bypass.test.mjs")),
+    ...listed("e2e/", (name) => /\.(?:mjs|js|ts)$/.test(name)),
+    ...readdirSync(root).filter((name) => /^playwright.*\.(?:mjs|js|ts)$/.test(name)).map((name) => ({ name, url: new URL(name, root) }))
+  ];
+  const offenders = (check) => files.flatMap(({ name, url }) => check(readFileSync(url, "utf8")).map((problem) => `${name}: ${problem}`));
+  it(`scans ${files.length} files`, () => {
+    assert.ok(files.length > 100, "the scan covers the scripts, end-to-end files and configs");
+  });
+  it("never puts the secret in a URL", () => {
+    assert.deepEqual(offenders((source) => [
+      ...(/[?&]x-vercel-(?:protection-bypass|set-bypass-cookie)=/.test(source) ? ["bypass query parameter"] : []),
+      ...(/x-vercel-protection-bypass=\$\{/.test(source) ? ["bypass value interpolated into a URL"] : [])
+    ]), []);
+  });
+  it("never sends it as a context-wide header", () => {
+    // Comment lines may describe the old construction; only code counts.
+    const code = (source) => source.split("\n").filter((line) => !/^\s*(?:\/\/|\/?\*|#)/.test(line)).join("\n");
+    assert.deepEqual(offenders((source) =>
+      /x-vercel-protection-bypass|VERCEL_AUTOMATION_BYPASS_SECRET/.test(source) && /extraHTTPHeaders|setExtraHTTPHeaders/.test(code(source))
+        ? ["context-wide headers in a file that handles the bypass"] : []), []);
+  });
+  it("never follows a redirect with it on a direct request", () => {
+    const carries = (text) => /x-vercel-protection-bypass|\.headersFor\(|bypassHeaders/.test(text);
+    assert.deepEqual(offenders((source) => [
+      ...calls(source, /(?<![\w.])fetch\(/g).filter((call) => carries(call.text) && !/redirect:\s*"manual"/.test(call.text))
+        .map((call) => `fetch() follows redirects with the header: ${call.text.slice(0, 80)}`),
+      ...calls(source, /\.request\.(?:get|post|put|patch|delete|fetch)\(/g).filter((call) => carries(call.text) && !/maxRedirects:\s*0/.test(call.text))
+        .map((call) => `API request follows redirects with the header: ${call.text.slice(0, 80)}`)
+    ]), []);
+  });
+});

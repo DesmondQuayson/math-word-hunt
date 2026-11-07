@@ -89,7 +89,9 @@ async function signedHostedEvent(input, event) {
       "stripe-signature": signature,
       "x-vercel-protection-bypass": input.bypassSecret
     },
-    body: payload
+    body: payload,
+    // Never follow a redirect: fetch would carry the bypass header to wherever it points.
+    redirect: "manual"
   });
 }
 
@@ -141,7 +143,12 @@ async function verifyBrowserJourney(input, admin, stripe, evidence, resources) {
       headers: {
         Authorization: `Bearer ${input.stagingAccessToken}`,
         "x-vercel-protection-bypass": input.bypassSecret
-      }
+      },
+      // Never follow a redirect with the bypass header and the access token.
+      maxRedirects: 0
+    }).catch((error) => {
+      // Playwright's call log lists every request header; never let it carry the secrets into a report.
+      throw new Error(`staging-browser-bootstrap-request-failed: ${String(error?.message ?? error).split("\nCall log:")[0]}`);
     });
     assert(bootstrap.status() === 204, "staging-browser-bootstrap-failed");
     const stagingCookie = (await context.cookies(PHASE7D_STAGING_ORIGIN)).find((cookie) =>
@@ -477,7 +484,8 @@ async function verifyHostedRenewalLifecycle(input, admin, stripe, evidence, reso
       "stripe-signature": "invalid",
       "x-vercel-protection-bypass": input.bypassSecret
     },
-    body: "{}"
+    body: "{}",
+    redirect: "manual"
   });
   assert(invalid.status === 400, "hosted-invalid-webhook-signature-accepted");
   evidence.invalidSignatureDenied = true;

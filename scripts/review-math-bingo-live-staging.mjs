@@ -4,8 +4,10 @@
  * Launched by scripts/invoke-math-bingo-live-staging.ps1 -Stage review
  * -Origin <staging preview URL>, which supplies the staging Supabase secret
  * key and the Vercel protection-bypass entry (Deployment Protection is not
- * changed; the value travels only in request headers/cookie and is never
- * printed). One synthetic FREE teacher (no subscription) is created on
+ * changed; scripts/vercel-protection-bypass.mjs sends the value once, in a
+ * header, to the preview origin only, and every browser request afterwards
+ * rides on Vercel's host-only bypass cookie; the value never enters a URL and
+ * is never printed). One synthetic FREE teacher (no subscription) is created on
  * STAGING and deleted at the end with every room it opened. Students join
  * with a code and a name only, in separate browsers (Chromium and WebKit),
  * and play a real game to three Bingos under the real route CSP.
@@ -20,6 +22,8 @@ import { resolve } from "node:path";
 import { chromium, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
+
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const origin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
 if (!/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(origin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
@@ -30,8 +34,10 @@ if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const out = resolve(process.env.REVIEW_OUT ?? "qa-artifacts/math-bingo-live/staging");
 mkdirSync(out, { recursive: true });
-const bypassHeaders = { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" };
-const landing = `${origin}/join?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`;
+const protection = createProtectionBypass({ origin, secret: bypass });
+// A direct request to the preview: the bypass header only for its own origin, and no redirect is followed.
+const direct = (url) => fetch(url, { headers: protection.headersFor(url), redirect: "manual" });
+const landing = `${origin}/join`;
 const HOST = "/games/math-bingo-live/host";
 
 const admin = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -40,7 +46,7 @@ const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const users = [];
 const codes = new Set();
 const results = [];
-const redact = (text) => String(text).split(bypass).join("[hidden]");
+const redact = (text) => protection.redact(text);
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   console.log(`${condition ? "ok  " : "FAIL"} ${redact(message)}`);
@@ -57,7 +63,8 @@ async function freeTeacher() {
 }
 
 async function open(engine, options) {
-  const context = await engine.newContext({ extraHTTPHeaders: bypassHeaders, ...options });
+  const context = await engine.newContext(options);
+  await protection.install(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => { if (!/due to access control checks/.test(error.message)) ok(false, `page error: ${error.message}`); });
   await page.goto(landing, { waitUntil: "domcontentloaded" });
@@ -163,7 +170,7 @@ const ways = (page, selector) => page.evaluate((selector) => Object.fromEntries(
 const browsers = [];
 try {
   // Build identity.
-  const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
+  const health = await direct(`${origin}/api/health`).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
 
   // Production (read-only): the game was published there with v1.2.35 (2026-11-05),
@@ -172,12 +179,12 @@ try {
   ok(productionJoin.status === 200, `production /join serves the published game (status ${productionJoin.status})`);
 
   // Anonymous: /join is open (code + name only); the host screen asks for an account.
-  const anonymousJoin = await fetch(`${origin}/join`, { headers: bypassHeaders, redirect: "manual" });
+  const anonymousJoin = await direct(`${origin}/join`);
   ok(anonymousJoin.status === 200 && (anonymousJoin.headers.get("content-security-policy") ?? "").includes("connect-src 'self'"), `staging /join serves the student page with its CSP (${anonymousJoin.status})`);
-  const anonymousHost = await fetch(`${origin}${HOST}`, { headers: bypassHeaders, redirect: "manual" });
+  const anonymousHost = await direct(`${origin}${HOST}`);
   ok(anonymousHost.status === 307 && (anonymousHost.headers.get("location") ?? "").includes(`/access?next=${HOST}`), `anonymous host screen goes to sign-in (${anonymousHost.status})`);
   // The catalog registration: /games/math-bingo-live/play only points at the host screen.
-  const playAddress = await fetch(`${origin}/games/math-bingo-live/play`, { headers: bypassHeaders, redirect: "manual" });
+  const playAddress = await direct(`${origin}/games/math-bingo-live/play`);
   ok(playAddress.status === 307 && new URL(playAddress.headers.get("location") ?? "/", origin).pathname === HOST, `/games/math-bingo-live/play points at the host screen (${playAddress.status})`);
 
   const chrome = await chromium.launch();
@@ -301,7 +308,7 @@ try {
   for (const student of [ava, zion, omar]) await student.context.close();
   await host.context.close();
 } catch (error) {
-  ok(false, `review aborted: ${error instanceof Error ? error.message : String(error)}`);
+  ok(false, `review aborted: ${error instanceof Error ? error.message.split("\nCall log:")[0] : String(error)}`);
 } finally {
   for (const browser of browsers) await browser.close().catch(() => {});
   for (const code of codes) await admin.from("bingo_rooms").delete().eq("code", code);

@@ -8,7 +8,10 @@
 //    cookie (x-vercel-set-bypass-cookie). Every page, fetch, redirect and API
 //    request afterwards is carried by that cookie, which is host-only, so no
 //    other host ever receives the secret or the cookie;
-//  - redact() removes the value from anything that is logged or reported.
+//  - redact() removes the value (raw or URL-encoded) from anything that is
+//    logged or reported, and a failure of the one secret-bearing request is
+//    rethrown without Playwright's call log, which lists every request header
+//    (2026-11-07: a refused connection or timeout otherwise printed the secret).
 // Nothing is added to browser requests: no context-wide header and no request
 // interception. An earlier version re-continued every review-origin request
 // through context.route() to add the non-secret x-vercel-skip-toolbar header;
@@ -28,6 +31,11 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
     } catch {
       return false;
     }
+  };
+  /** The text with every occurrence of the secret (raw or URL-encoded) replaced. */
+  const redact = (text) => {
+    if (!value) return String(text);
+    return String(text).split(value).join("[bypass-secret]").split(encodeURIComponent(value)).join("[bypass-secret]");
   };
   /** Headers for one direct request: the bypass only when its URL is on the trusted origin. */
   const headersFor = (url, { setCookie = false } = {}) => {
@@ -57,7 +65,15 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
     async install(context, { unlock } = {}) {
       const bootstrap = `${trusted}${bootstrapPath}`;
       if (value) {
-        const response = await context.request.get(bootstrap, { headers: headersFor(bootstrap, { setCookie: true }), maxRedirects: 0 });
+        let response;
+        try {
+          response = await context.request.get(bootstrap, { headers: headersFor(bootstrap, { setCookie: true }), maxRedirects: 0 });
+        } catch (error) {
+          // Playwright's call log lists every request header, so a network error or timeout on this one
+          // request would carry the secret in its message. Rethrow without the call log, redacted.
+          const message = error instanceof Error ? error.message.split("\nCall log:")[0] : String(error);
+          throw new Error(`protection bypass bootstrap request failed for the review origin: ${redact(message)}`);
+        }
         // Vercel accepts by answering (often with a 307 back to the same URL)
         // and setting its cookie; it refuses with a 401/403 or a redirect to
         // its SSO page on another host. The redirect is never followed here.
@@ -78,9 +94,6 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
           : `the review origin answered ${verified.status()} for ${bootstrapPath} behind the bypass (an app-level gate in front of this deployment?)`);
       }
     },
-    /** The text with every occurrence of the secret replaced. */
-    redact(text) {
-      return value ? String(text).split(value).join("[bypass-secret]") : String(text);
-    }
+    redact
   });
 }

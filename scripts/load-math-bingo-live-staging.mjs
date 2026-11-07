@@ -3,7 +3,9 @@
  *
  * Launched by scripts/invoke-math-bingo-live-staging.ps1 -Stage load
  * -Origin <staging preview URL>, which supplies the staging Supabase secret
- * key and the Vercel protection-bypass entry (never printed). One synthetic
+ * key and the Vercel protection-bypass entry (never printed, never in a URL:
+ * scripts/vercel-protection-bypass.mjs confines it to the preview origin and
+ * the browser rides on Vercel's host-only bypass cookie). One synthetic
  * FREE teacher is created on STAGING and deleted at the end with every room
  * it opened.
  *
@@ -26,6 +28,8 @@ import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
+
 // The student page's own polling rule, so the virtual class polls exactly like phones do.
 import { DEADLINE_SPREAD_MS, pollInterval, reconcile } from "../apps/platform-web/public/internal-games/math-bingo-live/src/api.js";
 import { EMOJI_CHOICES } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/emoji.js";
@@ -44,9 +48,11 @@ if (!Number.isInteger(PLAYERS) || PLAYERS < 1 || PLAYERS > 60) throw new Error("
 const out = resolve(process.env.REVIEW_OUT ?? "qa-artifacts/math-bingo-live/staging-load");
 mkdirSync(out, { recursive: true });
 
-const bypassHeaders = { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" };
+const protection = createProtectionBypass({ origin, secret: bypass });
+// A direct request to the preview: the bypass header only for its own origin, and no redirect is followed.
+const direct = (url, init = {}) => fetch(url, { ...init, headers: { ...protection.headersFor(url), ...(init.headers ?? {}) }, redirect: "manual" });
 // What the real student page sends: the game header plus Fetch Metadata and Origin (the API refuses anything else).
-const apiHeaders = { ...bypassHeaders, "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live", "Sec-Fetch-Site": "same-origin", Origin: origin };
+const apiHeaders = { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live", "Sec-Fetch-Site": "same-origin", Origin: origin };
 const PLAY = `${origin}/api/games/math-bingo-live/play`;
 const HOST = "/games/math-bingo-live/host";
 const ACTIVE = new Set(["COUNTDOWN", "QUESTION_ACTIVE", "ANSWER_REVEAL", "LEADERBOARD_UPDATE", "WINNER_REVEAL"]);
@@ -57,7 +63,7 @@ const password = `${randomBytes(12).toString("base64url")}Aa1!`;
 const users = [];
 const codes = new Set();
 const results = [];
-const redact = (text) => String(text).split(bypass).join("[hidden]");
+const redact = (text) => protection.redact(text);
 const ok = (condition, message) => {
   results.push(Boolean(condition));
   console.log(`${condition ? "ok  " : "FAIL"} ${redact(message)}`);
@@ -82,7 +88,7 @@ function serverTiming(header) {
 async function post(body, tag = null) {
   const started = performance.now();
   try {
-    const response = await fetch(PLAY, { method: "POST", headers: apiHeaders, body: JSON.stringify(body) });
+    const response = await direct(PLAY, { method: "POST", headers: apiHeaders, body: JSON.stringify(body) });
     const text = await response.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* an HTML error page */ }
@@ -222,13 +228,13 @@ const healthDuringPlay = [];
 // only for the game's calls?
 const supabaseDuringPlay = [];
 try {
-  const health = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.json()).catch(() => null);
+  const health = await direct(`${origin}/api/health`).then((response) => response.json()).catch(() => null);
   ok(health && (!expectCommit || health.build === expectCommit), `staging build ${health?.build ?? "unknown"}${expectCommit ? ` is ${expectCommit}` : ""}`);
   // Network baseline: this machine to the deployment and back, for a request that does no database work.
   const baseline = [];
   for (let index = 0; index < 10; index += 1) {
     const started = performance.now();
-    await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then((response) => response.text()).catch(() => null);
+    await direct(`${origin}/api/health`).then((response) => response.text()).catch(() => null);
     baseline.push({ ms: performance.now() - started });
   }
   networkBaseline = stats(baseline.slice(2));
@@ -242,7 +248,8 @@ try {
 
   const chrome = await chromium.launch();
   browsers.push(chrome);
-  const context = await chrome.newContext({ extraHTTPHeaders: bypassHeaders, viewport: { width: 1366, height: 768 } });
+  const context = await chrome.newContext({ viewport: { width: 1366, height: 768 } });
+  await protection.install(context);
   const page = await context.newPage();
   const hostSamples = new Map();
   page.on("request", (request) => { if (request.url().includes("/api/games/math-bingo-live/host")) hostSamples.set(request, performance.now()); });
@@ -254,7 +261,7 @@ try {
   });
   page.on("requestfailed", (request) => { if (hostSamples.has(request)) { samples.push({ who: "host", action: "host", status: 0, ms: 0, result: request.failure()?.errorText ?? "failed", at: Date.now() }); hostSamples.delete(request); } });
   page.on("pageerror", (error) => ok(false, `host page error: ${error.message}`));
-  await page.goto(`${origin}/join?x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/join`, { waitUntil: "domcontentloaded" });
   await page.goto(`${origin}/sign-in?next=${encodeURIComponent(HOST)}`);
   await page.getByLabel("Email address").fill(email);
   await page.locator('input[name="password"]').first().fill(password);
@@ -311,7 +318,7 @@ try {
   const prober = (async () => {
     while (probing) {
       const started = performance.now();
-      const status = await fetch(`${origin}/api/health`, { headers: bypassHeaders }).then(async (response) => { await response.text(); return response.status; }).catch(() => 0);
+      const status = await direct(`${origin}/api/health`).then(async (response) => { await response.text(); return response.status; }).catch(() => 0);
       healthDuringPlay.push({ ms: performance.now() - started, status, at: Date.now() });
       const readStarted = performance.now();
       const read = await admin.from("game_catalog_entries").select("stable_key").limit(1).then((result) => (result.error ? 0 : 200), () => 0);
@@ -424,7 +431,7 @@ try {
   ok((report.latency.host.p95 ?? Infinity) <= 1500, `host requests p95 ${report.latency.host.p95} ms (limit 1500)`);
   ok((marks.correct ?? 0) > 0 && !Object.keys(marks).some((result) => /unavailable|invalid/.test(result)), `marks: ${Object.entries(marks).map(([result, count]) => `${result} ${count}`).join(", ")}`);
 } catch (error) {
-  ok(false, `load test aborted: ${error instanceof Error ? error.message : String(error)}`);
+  ok(false, `load test aborted: ${error instanceof Error ? error.message.split("\nCall log:")[0] : String(error)}`);
 } finally {
   for (const one of students) one.stop = true;
   for (const browser of browsers) await browser.close().catch(() => {});
