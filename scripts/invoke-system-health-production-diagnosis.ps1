@@ -3,12 +3,16 @@ param(
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 # READ-ONLY launcher for the Super Admin System health diagnosis. Loads exactly
-# the production project ref, database password and service key, plus the
-# RESTRICTED read-only live Stripe key when the vault holds one (never a secret
-# key, never a staging entry). Clears every variable afterwards. No value is
-# printed; the evidence JSON reduces provider and row identifiers to suffixes.
+# the production project ref, database password and service key, plus, when the
+# vault holds them: the RESTRICTED read-only live Stripe key, the Supabase
+# management token and the production Resend key (used for GET requests only, to
+# report whether provider-side email evidence is readable and to read it if so).
+# Never a Stripe secret key, never a staging entry. Clears every variable
+# afterwards. No value is printed; the evidence JSON reduces provider and row
+# identifiers to suffixes and never contains an email address.
 #
 #   .\scripts\invoke-system-health-production-diagnosis.ps1 [-OutFile <path>]
+#   node scripts/system-health-vercel-evidence.mjs --diagnosis <that file>   (request/runtime log evidence)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $stagingProjectRef = 'gcmuhzxkwvfireyrearl'
@@ -20,7 +24,7 @@ function Open-SecureValue {
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
 }
 $required = @('SUPABASE_PRODUCTION_PROJECT_REF', 'SUPABASE_PRODUCTION_SECRET_KEY', 'SUPABASE_PRODUCTION_DB_PASSWORD')
-$optional = @('STRIPE_LIVE_READONLY_KEY')
+$optional = @('STRIPE_LIVE_READONLY_KEY', 'SUPABASE_ACCESS_TOKEN', 'RESEND_PRODUCTION_RUNTIME_API_KEY')
 $vault = Import-Clixml -LiteralPath $VaultPath
 try {
   foreach ($entry in $vault.Values.PSObject.Properties) {

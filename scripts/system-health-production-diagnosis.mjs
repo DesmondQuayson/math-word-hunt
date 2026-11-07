@@ -17,8 +17,24 @@
  * scheduler's freshness and recent admin activity. Provider and row
  * identifiers are reduced to 6-character suffixes; no email address, payload,
  * key, token or full provider id is printed.
+ *
+ * Email delivery (added 2026-11-07 after the System Health investigation):
+ *  - emailLinks: every sign-up of the last 60 days with the SMTP provider's
+ *    acceptance time, whether the emailed link was opened (Supabase issued the
+ *    PKCE auth code) and whether the confirmation is still pending, plus monthly
+ *    confirmation rates. Mailboxes are reduced to a provider class;
+ *  - emailDomain: public DNS of the sending domain (Resend DKIM, SPF and bounce
+ *    MX on send.<domain>, DMARC) - SYSTEM_HEALTH_SENDING_DOMAIN, default
+ *    auth.mathnexa.com;
+ *  - providerAccess: whether the vault's Supabase management token and Resend
+ *    key can read provider-side evidence (status only), and when they can, the
+ *    Auth settings that matter for delivery, 7 days of email-related Auth log
+ *    lines and the Resend status of the emails sent to the unconfirmed sign-ups
+ *    (matched in memory, never printed).
+ * Request/runtime-log evidence: scripts/system-health-vercel-evidence.mjs.
  */
 import { spawnSync } from "node:child_process";
+import { Resolver } from "node:dns/promises";
 import { resolve } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
@@ -47,6 +63,13 @@ function check(condition, message) {
 function required(name, pattern) {
   const value = (process.env[name] ?? "").trim();
   check(pattern.test(value), `missing-or-malformed-${name}`);
+  secrets.push(value, encodeURIComponent(value));
+  return value;
+}
+/** An entry the diagnosis can do without: "" when absent or malformed (reported, never printed). */
+function optional(name, pattern) {
+  const value = (process.env[name] ?? "").trim();
+  if (!pattern.test(value)) return "";
   secrets.push(value, encodeURIComponent(value));
   return value;
 }
@@ -280,6 +303,131 @@ function email(sql) {
   return { signals, failures, failureOutcomes, daily60d: daily, authUsers: auth, consumerConfirmations, authAuditActions60d: authAudit };
 }
 
+const MAJOR_MAILBOXES = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com", "aol.com", "live.com", "me.com", "msn.com", "ymail.com", "proton.me", "protonmail.com"];
+const MAILBOX_CLASS = `case when split_part(lower(u.email), '@', 2) in (${MAJOR_MAILBOXES.map((domain) => `'${domain}'`).join(",")}) then split_part(lower(u.email), '@', 2)
+  when split_part(lower(u.email), '@', 2) ~ '(\\.invalid|\\.test|\\.example|example\\.(com|org|net))$' then 'reserved-test-domain'
+  when split_part(lower(u.email), '@', 2) ~ '(\\.k12\\.|\\.edu$)' then 'school-domain'
+  else 'other-domain' end`;
+
+function emailLinks(sql) {
+  // auth.flow_state keeps one row per PKCE sign-up flow; auth_code_issued_at is set when Supabase verifies the
+  // emailed link. auth.one_time_tokens keeps the confirmation token until it is used.
+  const signups = sql(`select right(u.id::text, 6) as account, u.created_at, u.confirmation_sent_at, u.email_confirmed_at,
+      ${MAILBOX_CLASS} as mailbox,
+      exists(select 1 from auth.flow_state f where f.user_id = u.id and f.auth_code_issued_at is not null) as link_opened,
+      exists(select 1 from auth.one_time_tokens o where o.user_id = u.id and o.token_type = 'confirmation_token') as confirmation_pending,
+      (select count(*)::int from auth.flow_state f where f.user_id = u.id and f.authentication_method = 'email/signup') as signup_submissions
+    from auth.users u where u.created_at > now() - interval '60 days' order by u.created_at`);
+  const monthly = sql(`select to_char(date_trunc('month', created_at), 'YYYY-MM') as month, count(*)::int as signups,
+      count(email_confirmed_at)::int as confirmed,
+      percentile_cont(0.5) within group (order by extract(epoch from (email_confirmed_at - coalesce(confirmation_sent_at, created_at))))
+        filter (where email_confirmed_at is not null) as median_seconds_to_confirm
+    from auth.users group by 1 order by 1`);
+  const byMailbox = sql(`select ${MAILBOX_CLASS} as mailbox, count(*)::int as signups, count(u.email_confirmed_at)::int as confirmed, max(u.email_confirmed_at) as last_confirmed_at
+    from auth.users u group by 1 order by 2 desc`);
+  return {
+    signups, monthly, byMailbox,
+    reading: "confirmation_sent_at = the SMTP provider accepted the message; link_opened = Supabase verified the emailed link. An unopened link does not prove non-delivery: only the provider's log shows delivered, bounced or suppressed."
+  };
+}
+
+async function emailDomain() {
+  const domain = (process.env.SYSTEM_HEALTH_SENDING_DOMAIN ?? "auth.mathnexa.com").trim().toLowerCase();
+  check(/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain), "SYSTEM_HEALTH_SENDING_DOMAIN is not a domain name");
+  const organization = domain.split(".").slice(-2).join(".");
+  const resolver = new Resolver();
+  resolver.setServers(["1.1.1.1", "8.8.8.8"]);
+  const txt = async (name) => { try { return (await resolver.resolveTxt(name)).map((parts) => parts.join("")); } catch { return []; } };
+  const mx = async (name) => { try { return (await resolver.resolveMx(name)).map((record) => `${record.priority} ${record.exchange}`); } catch { return []; } };
+  const dkim = await txt(`resend._domainkey.${domain}`);
+  return {
+    sendingDomain: domain,
+    resendDkim: dkim.some((value) => /(^|;)\s*p=[A-Za-z0-9+/=]{100,}/.test(value)) ? "present" : "missing",
+    bounceDomainSpf: (await txt(`send.${domain}`)).filter((value) => value.startsWith("v=spf1")),
+    bounceDomainMx: await mx(`send.${domain}`),
+    dmarc: (await txt(`_dmarc.${domain}`)).filter((value) => value.startsWith("v=DMARC1")),
+    organizationDmarc: (await txt(`_dmarc.${organization}`)).filter((value) => value.startsWith("v=DMARC1")),
+    organizationMx: await mx(organization),
+    reading: "Resend needs the DKIM record and the send.<domain> SPF/MX records to send; DMARC is optional for low volume but lets receivers report alignment (rua) and is required of bulk senders."
+  };
+}
+
+async function providerAccess(sql) {
+  const get = async (url, headers) => {
+    const response = await fetch(url, { method: "GET", headers, signal: AbortSignal.timeout(20_000) });
+    const text = await response.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch { body = null; }
+    return { status: response.status, body };
+  };
+  const result = {};
+  const managementToken = optional("SUPABASE_ACCESS_TOKEN", /^sbp_[A-Za-z0-9]{20,}$/);
+  if (!managementToken) {
+    result.supabaseManagement = { readable: false, reason: "no Supabase management token in the vault" };
+  } else {
+    const projects = await get("https://api.supabase.com/v1/projects", { Authorization: `Bearer ${managementToken}` });
+    result.supabaseManagement = { readable: projects.status === 200, status: projects.status };
+    if (projects.status === 200) {
+      const config = await get(`https://api.supabase.com/v1/projects/${ref}/config/auth`, { Authorization: `Bearer ${managementToken}` });
+      const keep = ["site_url", "mailer_autoconfirm", "mailer_otp_exp", "smtp_host", "smtp_port", "smtp_sender_name", "smtp_max_frequency",
+        "rate_limit_email_sent", "external_email_enabled", "hook_send_email_enabled", "mailer_subjects_confirmation", "disable_signup"];
+      result.authSettings = { status: config.status };
+      if (config.status === 200 && config.body) {
+        for (const key of keep) result.authSettings[key] = config.body[key] ?? null;
+        result.authSettings.sender_domain = typeof config.body.smtp_admin_email === "string" ? config.body.smtp_admin_email.split("@")[1] ?? null : null;
+        result.authSettings.redirect_allow_list_entries = typeof config.body.uri_allow_list === "string" ? config.body.uri_allow_list.split(",").filter(Boolean).length : null;
+      }
+      const end = new Date();
+      const start = new Date(end.getTime() - 7 * 86_400_000);
+      const query = "select timestamp, event_message from auth_logs where regexp_contains(lower(event_message), 'mail|smtp|confirm|recover|rate limit|429') order by timestamp desc limit 200";
+      const logs = await get(`https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all?sql=${encodeURIComponent(query)}&iso_timestamp_start=${start.toISOString()}&iso_timestamp_end=${end.toISOString()}`,
+        { Authorization: `Bearer ${managementToken}` });
+      const rows = Array.isArray(logs.body?.result) ? logs.body.result : [];
+      result.authLogs7d = { status: logs.status, lines: rows.map((row) => {
+        let parsed = null;
+        try { parsed = JSON.parse(row.event_message); } catch { parsed = null; }
+        const at = typeof row.timestamp === "number" ? new Date(row.timestamp / 1000).toISOString() : row.timestamp;
+        return parsed ? { at, msg: parsed.msg ?? null, error: parsed.error ?? null, path: parsed.path ?? null, status: parsed.status ?? null }
+          : { at, text: redact(String(row.event_message)).slice(0, 200) };
+      }) };
+    }
+  }
+  const resendKey = optional("RESEND_PRODUCTION_RUNTIME_API_KEY", /^re_[A-Za-z0-9_]{8,}$/);
+  if (!resendKey) {
+    result.resend = { readable: false, reason: "no production Resend key in the vault" };
+  } else {
+    const domains = await get("https://api.resend.com/domains", { Authorization: `Bearer ${resendKey}` });
+    result.resend = { readable: domains.status === 200, status: domains.status, reason: domains.body?.name ?? null };
+    if (domains.status === 200 && Array.isArray(domains.body?.data)) {
+      result.resend.domains = domains.body.data.map((item) => ({ name: item.name, status: item.status, region: item.region }));
+      // The emails sent to sign-ups that never confirmed, matched in memory; the address never leaves this process.
+      const pending = sql(`select u.id::text as id, lower(u.email) as email from auth.users u
+        where u.created_at > now() - interval '60 days' and u.email_confirmed_at is null`);
+      for (const row of pending) secrets.push(row.email, row.id);
+      const byAddress = new Map(pending.map((row) => [row.email, `..${row.id.slice(-6)}`]));
+      const matched = [];
+      let after = null;
+      for (let page = 0; page < 20; page += 1) {
+        const list = await get(`https://api.resend.com/emails?limit=100${after ? `&after=${encodeURIComponent(after)}` : ""}`, { Authorization: `Bearer ${resendKey}` });
+        if (list.status !== 200 || !Array.isArray(list.body?.data) || list.body.data.length === 0) break;
+        for (const item of list.body.data) {
+          const recipients = (Array.isArray(item.to) ? item.to : [item.to]).filter(Boolean).map((address) => String(address).toLowerCase().replace(/^.*</, "").replace(/>.*$/, "").trim());
+          for (const address of recipients) if (byAddress.has(address)) matched.push({ account: byAddress.get(address), at: item.created_at, lastEvent: item.last_event ?? null });
+        }
+        if (!list.body.has_more) break;
+        after = list.body.data[list.body.data.length - 1].id;
+        await new Promise((done) => setTimeout(done, 600));
+      }
+      result.resend.unconfirmedSignupEmails = matched;
+    }
+  }
+  result.ownerActionIfUnreadable = [
+    "Supabase: create a personal access token (Account > Access Tokens) and store it as SUPABASE_ACCESS_TOKEN with scripts/update-phase7d-vault.ps1, or read Logs > Auth in the dashboard.",
+    "Resend: the runtime keys are sending-only by design; read Emails in the Resend dashboard (no read-only API scope exists; a full-access key would also grant writes)."
+  ];
+  return result;
+}
+
 function pdfQuarantine(sql) {
   const rows = sql(`select right(f.id::text, 6) as file, f.file_role, f.original_filename, f.normalized_filename, f.mime_type, f.byte_size,
       left(f.sha256, 12) as sha256_prefix, f.created_at, f.quarantined_at, f.resource_version_number,
@@ -363,6 +511,9 @@ async function main() {
     delete evidence.stripe.objects;
   }
   section("email", () => email(sql));
+  section("emailLinks", () => emailLinks(sql));
+  try { evidence.emailDomain = await emailDomain(); } catch (error) { evidence.emailDomain = { unavailable: redact(error instanceof Error ? error.message : String(error)).slice(0, 300) }; }
+  try { evidence.providerAccess = await providerAccess(sql); } catch (error) { evidence.providerAccess = { unavailable: redact(error instanceof Error ? error.message : String(error)).slice(0, 300) }; }
   section("pdfQuarantine", () => pdfQuarantine(sql));
   section("packages", () => packages(sql));
   section("operations", () => operations(sql));
