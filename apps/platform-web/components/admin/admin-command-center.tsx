@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AdminDashboardSnapshot } from "@/lib/admin/dashboard";
 import { formatAdminDateTime, formatAdminNumber } from "@/lib/admin/format";
 import { ADMIN_SECTIONS } from "@/lib/admin/navigation";
+import { HEALTH_STATE_LABELS, healthTone, type HealthSignal, type QuarantineSignal } from "@/lib/admin/system-health";
 
 import { AdminSessionClock, AdminSessionNotice, useAdminSessionCountdown, type AdminSessionTiming } from "./admin-session-status";
 
@@ -109,7 +110,7 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
   return <div className="admin-dashboard">
     <section className="admin-dashboard-intro" aria-labelledby="admin-dashboard-title">
       <div><p className="admin-eyebrow">Operational picture</p><h1 id="admin-dashboard-title">MathNexa Super Admin</h1><p>Review content readiness, subscriber signals, and system health from one owner-only workspace.</p></div>
-      <div className="admin-readiness-dial" aria-label={`System health: ${snapshot.systemHealth}`}><span>SYS</span><strong>{snapshot.systemHealth === "operational" ? "Ready" : "Check"}</strong><small>fail-closed controls</small></div>
+      <div className="admin-readiness-dial" aria-label={`System health: ${HEALTH_STATE_LABELS[snapshot.health.application.state]}`}><span>SYS</span><strong>{snapshot.health.application.state === "healthy" ? "Ready" : "Check"}</strong><small>fail-closed controls</small></div>
     </section>
 
     <section aria-labelledby="admin-metrics-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Today’s ledger</p><h2 id="admin-metrics-title">Content and commerce</h2></div><span>Live server projections</span></div>
@@ -120,21 +121,53 @@ function AdminDashboard({ snapshot }: Readonly<{ snapshot: AdminDashboardSnapsho
 
     <div className="admin-lower-grid">
       <section className="admin-health-panel" aria-labelledby="admin-health-title"><p className="admin-eyebrow">Provider watch</p><h2 id="admin-health-title">System health</h2>
-        <dl>
-          <div><dt>Application</dt><dd data-tone={snapshot.systemHealth === "operational" ? "good" : "warning"}>{snapshot.systemHealth}</dd></div>
-          <div><dt>Email</dt><dd data-tone={snapshot.emailHealth === "healthy" ? "good" : snapshot.emailHealth === "attention" ? "warning" : "neutral"}>{snapshot.emailHealth.replaceAll("-", " ")}</dd></div>
-          <div><dt>Webhooks</dt><dd data-tone={snapshot.webhookHealth === "healthy" ? "good" : snapshot.webhookHealth === "attention" ? "warning" : "neutral"}>{snapshot.webhookHealth.replaceAll("-", " ")}</dd></div>
-          <div><dt>Private storage</dt><dd data-tone={snapshot.storageHealth === "healthy" ? "good" : "warning"}>{snapshot.storageHealth}</dd></div>
-          <div><dt>Game package validation</dt><dd data-tone={snapshot.packageHealth === "healthy" ? "good" : snapshot.packageHealth === "attention" ? "warning" : "neutral"}>{snapshot.packageHealth.replaceAll("-", " ")}</dd></div>
-          <div><dt>PDF quarantine</dt><dd data-tone={snapshot.pdfQuarantineCount === 0 ? "good" : "warning"}>{snapshot.pdfQuarantineCount ?? "unavailable"}</dd></div>
-          <div><dt>ZIP quarantine</dt><dd data-tone={snapshot.packageQuarantineCount === 0 ? "good" : "warning"}>{snapshot.packageQuarantineCount ?? "unavailable"}</dd></div>
-        </dl><p className="admin-honesty-note">Missing provider signals are never shown as healthy. Detailed evidence is available in Analytics and Settings.</p>
+        <ul className="admin-health-list">
+          {[snapshot.health.application, ...snapshot.health.signals].map((signal) => <AdminHealthRow key={signal.key} signal={signal} />)}
+          {snapshot.health.quarantine.map((signal) => <AdminQuarantineRow key={signal.key} signal={signal} />)}
+        </ul><p className="admin-honesty-note">Healthy means verified, never assumed. “No recent signal” means there was nothing to judge and does not lower Application. Select a row for its evidence. Checked {formatAdminDateTime(snapshot.health.checkedAt)}.</p>
       </section>
       <section className="admin-audit-panel" aria-labelledby="admin-audit-title"><div className="admin-section-heading"><div><p className="admin-eyebrow">Immutable evidence</p><h2 id="admin-audit-title">Recent admin actions</h2></div><Link href="/admin?section=audit-log">Open audit log</Link></div>
         {snapshot.recentActions.length ? <ol>{snapshot.recentActions.map((event, index) => <li key={`${event.createdAt}-${index}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><strong>{readableAction(event.action)}</strong><small>{formatAdminDateTime(event.createdAt)}{event.target ? ` · ${event.target}` : ""}</small></div></li>)}</ol> : <div className="admin-empty-state"><strong>No admin actions yet</strong><p>The immutable ledger will appear here after an authorized owner action.</p></div>}
       </section>
     </div>
   </div>;
+}
+
+function AdminHealthEvidence({ rows, reason, details, action }: Readonly<{ rows: readonly (readonly [string, string])[]; reason: string; details: readonly string[]; action: string }>) {
+  return <div className="admin-health-evidence">
+    <p>{reason}</p>
+    <dl>{rows.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}</dl>
+    {details.length ? <ul>{details.map((detail) => <li key={detail}>{detail}</li>)}</ul> : null}
+    <p className="admin-health-action"><strong>Recommended action:</strong> {action}</p>
+  </div>;
+}
+
+const evidenceTime = (value: string | null) => value ? formatAdminDateTime(value) : "None recorded";
+
+function AdminHealthRow({ signal }: Readonly<{ signal: HealthSignal }>) {
+  const label = HEALTH_STATE_LABELS[signal.state];
+  return <li className="admin-health-row" data-state={signal.state}>
+    <details>
+      <summary><span className="admin-health-name">{signal.label}</span><span className="admin-health-badge" data-tone={healthTone(signal.state)}>{label}</span></summary>
+      <AdminHealthEvidence reason={signal.reason} details={signal.details} action={signal.action} rows={[
+        ["Status", label], ["Last checked", formatAdminDateTime(signal.checkedAt)], ["Last success", evidenceTime(signal.lastSuccessAt)],
+        ["Last failure", evidenceTime(signal.lastFailureAt)], ["Freshness", signal.freshness]
+      ]} />
+    </details>
+  </li>;
+}
+
+function AdminQuarantineRow({ signal }: Readonly<{ signal: QuarantineSignal }>) {
+  const value = signal.count === null ? "Unavailable" : formatAdminNumber(signal.count);
+  return <li className="admin-health-row" data-state={signal.severity}>
+    <details>
+      <summary><span className="admin-health-name">{signal.label}</span><span className="admin-health-badge" data-tone={signal.severity === "clear" ? "good" : signal.severity === "review" ? "notice" : signal.severity === "historical" ? "neutral" : "warning"}>{value}</span></summary>
+      <AdminHealthEvidence reason={signal.reason} details={signal.details} action={signal.action} rows={[
+        ["Status", signal.severity === "clear" ? "Clear" : signal.severity === "review" ? "Review when convenient" : signal.severity === "historical" ? "Historical records only (no action needed)" : "Unavailable"],
+        ["Last checked", formatAdminDateTime(signal.checkedAt)], ["Newest item", evidenceTime(signal.newestAt)]
+      ]} />
+    </details>
+  </li>;
 }
 
 function AdminModuleEmpty({ title, detail }: Readonly<{ title: string; detail: string }>) {

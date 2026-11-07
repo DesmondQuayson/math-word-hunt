@@ -6,10 +6,15 @@
 // Real Chromium and WebKit pages load subresources and fetches from the foreign
 // host, follow a same-host redirect and an off-origin redirect, and make API
 // requests; the secret and the bypass cookie must never reach the foreign host,
-// no URL may contain the secret, and the protected pages must still load.
+// no URL may contain the secret, and the protected pages must still load -
+// through the host-only cookie alone, with no header added to any browser
+// request (no request interception, no context-wide header). A third "gated"
+// deployment adds an app-level gate in front of every route, like the locked
+// MathNexa staging alias, for install()'s unlock step. Static guards then hold
+// every script that uses the bypass to the same confinement.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { after, before, describe, it } from "node:test";
 
@@ -19,9 +24,11 @@ import { PROTECTION_BYPASS_HEADER, SET_BYPASS_COOKIE_HEADER, SKIP_TOOLBAR_HEADER
 
 const secret = `bypass_${randomBytes(24).toString("hex")}`;
 const cookieToken = `jwt_${randomBytes(16).toString("hex")}`;
-const seen = { trusted: [], foreign: [] };
+const gateToken = `gate_${randomBytes(16).toString("hex")}`;
+const seen = { trusted: [], foreign: [], gated: [] };
 let trustedOrigin;
 let foreignOrigin;
+let gatedOrigin;
 const servers = [];
 
 function listen(handler) {
@@ -75,6 +82,31 @@ before(async () => {
     }
   });
   trustedOrigin = `http://127.0.0.1:${trustedPort}`;
+  // Like the locked MathNexa staging alias: Vercel's protection first, then an
+  // app gate that answers 404 for every route until its own cookie is set by
+  // POST /unlock with the gate token.
+  const gatedPort = await listen((request, response) => {
+    record(seen.gated, request);
+    const viaHeader = request.headers[PROTECTION_BYPASS_HEADER] === secret;
+    const cookies = (request.headers.cookie ?? "").split(/;\s*/);
+    if (!viaHeader && !cookies.includes(`_vercel_jwt=${cookieToken}`)) {
+      response.writeHead(401, { "content-type": "text/plain" });
+      response.end("protected deployment");
+    } else if (viaHeader && request.headers[SET_BYPASS_COOKIE_HEADER] === "true") {
+      response.writeHead(307, { "set-cookie": `_vercel_jwt=${cookieToken}; Path=/; HttpOnly; SameSite=Lax`, location: request.url });
+      response.end();
+    } else if (request.url === "/unlock" && request.method === "POST" && request.headers.authorization === `Bearer ${gateToken}`) {
+      response.writeHead(204, { "set-cookie": "gate=open; Path=/; HttpOnly; SameSite=Lax" });
+      response.end();
+    } else if (!cookies.includes("gate=open")) {
+      response.writeHead(404, { "cache-control": "no-store" });
+      response.end();
+    } else {
+      response.writeHead(200, { "content-type": "text/plain" });
+      response.end("ok");
+    }
+  });
+  gatedOrigin = `http://127.0.0.1:${gatedPort}`;
 });
 after(() => Promise.all(servers.map((server) => new Promise((resolve) => server.close(resolve)))));
 
@@ -152,15 +184,118 @@ for (const engineName of ["chromium", "webkit"]) {
       assert.equal(withSecret[0].url, "/api/health", "only to the redirect-free bootstrap request");
       assert.equal(withSecret[0].headers[SET_BYPASS_COOKIE_HEADER], "true");
       assert.ok(seen.trusted.filter((r) => r.url === "/api/health").length >= 2, "the cookie is verified with a second, secret-free request");
-      assert.ok(seen.trusted.filter((r) => r.url === "/").every((r) => r.headers[SKIP_TOOLBAR_HEADER] === "1"), "pages on the review origin get the toolbar opt-out");
-      // The non-secret toolbar opt-out is the only added header that can reach another host, and only
-      // because the browser replays route-added headers on a redirect hop (the off-origin redirect here).
-      for (const request of seen.foreign) {
-        if (SKIP_TOOLBAR_HEADER in request.headers) assert.equal(request.url, "/landing", `unexpected toolbar header on ${request.url}`);
+      // The protected page is reached through the host-only cookie alone.
+      const pages = seen.trusted.filter((r) => r.url === "/");
+      assert.ok(pages.length >= 1, "the protected page was requested");
+      for (const request of pages) {
+        assert.ok((request.headers.cookie ?? "").split(/;\s*/).includes(`_vercel_jwt=${cookieToken}`), "the page request carries the bypass cookie");
+        assert.ok(!(PROTECTION_BYPASS_HEADER in request.headers), "the page request carries no bypass header");
+      }
+      // Nothing is added to browser traffic: the only request with any added header is the bootstrap.
+      const withAddedHeader = [...seen.trusted, ...seen.foreign].filter((r) => SKIP_TOOLBAR_HEADER in r.headers || SET_BYPASS_COOKIE_HEADER in r.headers || PROTECTION_BYPASS_HEADER in r.headers);
+      assert.deepEqual(withAddedHeader, withSecret, "no browser request is re-routed or given an extra header");
+      // The off-origin redirect target got nothing: no secret, no bypass cookie, no added header.
+      const landing = seen.foreign.filter((r) => r.url === "/landing");
+      assert.ok(landing.length >= 2, "both off-origin redirects (page and API) reached the other host");
+      for (const request of landing) {
+        assert.ok(!JSON.stringify(request).includes(secret) && !JSON.stringify(request).includes(cookieToken), "the redirect target received neither the secret nor the cookie");
       }
     });
   });
 }
+
+describe("the cookie is what opens the review origin", () => {
+  it("refuses a context that did not install the bypass", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const response = await page.goto(`${trustedOrigin}/`);
+      assert.equal(response.status(), 401, "without the cookie the protected deployment refuses the page");
+    } finally {
+      await browser.close();
+    }
+  });
+});
+
+describe("an origin behind an app-level gate", () => {
+  const unlockGate = async (context) => {
+    const response = await context.request.post(`${gatedOrigin}/unlock`, { headers: { Authorization: `Bearer ${gateToken}` }, maxRedirects: 0 });
+    assert.equal(response.status(), 204, "the app gate opened");
+  };
+  it("is refused as an app-level gate without unlock", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const bypass = createProtectionBypass({ origin: gatedOrigin, secret });
+      await assert.rejects(bypass.install(context), /answered 404 for \/api\/health behind the bypass \(an app-level gate/);
+    } finally {
+      await browser.close();
+    }
+  });
+  it("opens with unlock on the bypass cookie alone and still sends the secret once", async () => {
+    seen.gated.length = 0;
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const bypass = createProtectionBypass({ origin: gatedOrigin, secret });
+      await bypass.install(context, { unlock: unlockGate });
+      const page = await context.newPage();
+      const home = await page.goto(`${gatedOrigin}/`);
+      assert.equal(home.status(), 200, "the gated page loads through both cookies");
+    } finally {
+      await browser.close();
+    }
+    const withSecret = seen.gated.filter((r) => JSON.stringify(r).includes(secret));
+    assert.equal(withSecret.length, 1, "the secret is sent exactly once per browser context");
+    assert.equal(withSecret[0].url, "/api/health");
+    assert.deepEqual(seen.gated.slice(0, 4).map((r) => r.url), ["/api/health", "/unlock", "/api/health", "/"], "bootstrap, unlock, secret-free verification, page");
+    const unlock = seen.gated.find((r) => r.url === "/unlock");
+    assert.ok(unlock.headers.cookie.split(/;\s*/).includes(`_vercel_jwt=${cookieToken}`), "unlock rides on the bypass cookie");
+    assert.ok(!(PROTECTION_BYPASS_HEADER in unlock.headers) && !(SKIP_TOOLBAR_HEADER in unlock.headers), "unlock carries no bypass header");
+  });
+  it("survives a sign-out that restores the cookies captured in unlock, without resending the secret", async () => {
+    // The pattern of the phase 9B/10 staging runners' sign-out.
+    seen.gated.length = 0;
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      let protectionCookies = [];
+      await createProtectionBypass({ origin: gatedOrigin, secret }).install(context, {
+        unlock: async (unlocked) => {
+          protectionCookies = await unlocked.cookies();
+          await unlockGate(unlocked);
+        }
+      });
+      assert.deepEqual(protectionCookies.map((cookie) => cookie.name), ["_vercel_jwt"], "only the bypass cookie is captured");
+      await context.clearCookies();
+      await context.addCookies(protectionCookies);
+      const page = await context.newPage();
+      assert.equal((await page.goto(`${gatedOrigin}/`)).status(), 404, "signed out of the app gate, still past Vercel's protection");
+      await unlockGate(context);
+      assert.equal((await page.goto(`${gatedOrigin}/`)).status(), 200, "the gate re-opens on the restored bypass cookie");
+    } finally {
+      await browser.close();
+    }
+    assert.equal(seen.gated.filter((r) => JSON.stringify(r).includes(secret)).length, 1, "the secret was still sent only once");
+  });
+  it("still runs unlock when no secret is configured", async () => {
+    let unlocked = 0;
+    await createProtectionBypass({ origin: gatedOrigin, secret: null }).install({}, { unlock: async () => { unlocked += 1; } });
+    assert.equal(unlocked, 1);
+  });
+});
+
+describe("the module never touches browser traffic", () => {
+  const source = readFileSync(new URL("./vercel-protection-bypass.mjs", import.meta.url), "utf8");
+  const code = source.split("\n").filter((line) => !line.trim().startsWith("//") && !line.trim().startsWith("*")).join("\n");
+  it("installs no request interception and no context-wide header", () => {
+    assert.ok(!/\.route\(/.test(code), "no context.route() / page.route()");
+    assert.ok(!/extraHTTPHeaders|setExtraHTTPHeaders/.test(code), "no context-wide headers");
+    assert.ok(!/\.goto\(/.test(code), "no navigation (a URL could carry the secret)");
+    assert.ok(/maxRedirects: 0/.test(code), "the bootstrap request never follows a redirect");
+  });
+});
 
 describe("a refused bypass fails loudly", () => {
   it("throws when the deployment refuses the secret", async () => {
@@ -188,5 +323,276 @@ describe("the staging quiz review uses the confined bypass", () => {
     assert.ok(source.includes("await bypass.install(context);"));
     assert.ok(/const note = \(message\) => \{ const safe = bypass\.redact\(message\);/.test(source), "notes are redacted");
     assert.equal((source.match(/engine\.newContext\(/g) ?? []).length, 1, "every context is created through open()");
+  });
+});
+
+describe("the staging Math Tug of War review uses the confined bypass", () => {
+  const source = readFileSync(new URL("./review-math-tug-of-war-staging.mjs", import.meta.url), "utf8");
+  it("never puts the secret in a URL or in context-wide headers", () => {
+    assert.ok(!/extraHTTPHeaders/.test(source), "no context-wide headers at all");
+    assert.ok(!/[?&]x-vercel-protection-bypass=/.test(source), "no bypass query parameter");
+    assert.ok(!/x-vercel-protection-bypass=\$\{/.test(source), "no bypass value interpolated into a URL");
+    assert.ok(!/"x-vercel-protection-bypass"/.test(source), "the header is only ever built by the module");
+  });
+  it("installs the confined bypass on every browser context and redacts its output", () => {
+    assert.ok(source.includes('import { createProtectionBypass } from "./vercel-protection-bypass.mjs";'));
+    assert.ok(source.includes("const protection = createProtectionBypass({ origin, secret: bypass });"));
+    assert.ok(source.includes("await protection.install(context);"));
+    assert.ok(source.includes("const redact = (text) => protection.redact(text);"), "every note is redacted");
+    assert.equal((source.match(/engine\.newContext\(/g) ?? []).length, 1, "every context is created through newContext()");
+    assert.ok(/headers: protection\.headersFor\([^)]*\), redirect: "manual"/.test(source), "the direct health probe neither leaks nor follows redirects");
+  });
+});
+
+// The source text of every call that starts with `pattern` (e.g. fetch( ), found
+// by matching parentheses outside quoted strings. Template-literal text is
+// scanned as code, which is enough here: the URLs and bodies in these scripts
+// hold only balanced parentheses.
+function calls(source, pattern) {
+  const found = [];
+  for (const match of source.matchAll(pattern)) {
+    let depth = 0;
+    let quote = null;
+    for (let index = match.index + match[0].length - 1; index < source.length; index += 1) {
+      const character = source[index];
+      if (quote) {
+        if (character === "\\") index += 1;
+        else if (character === quote) quote = null;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === "(") {
+        depth += 1;
+      } else if (character === ")" && --depth === 0) {
+        found.push({ start: match.index, end: index + 1, text: source.slice(match.index, index + 1) });
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+// The hosted staging runners and the admin-session probe used to send the
+// secret context-wide (extraHTTPHeaders) or on every direct request. Each must
+// now build the header only through the module, intercept nothing, install the
+// confined bypass on every browser context, never follow a redirect with the
+// header, and print only redacted text.
+const UNCAUGHT_REDACTED = /await main\(\)\.catch\(\(error\) => \{\s*process\.stderr\.write\(`\$\{redact\(/;
+for (const { file, contexts, failure } of [
+  { file: "probe-admin-session.mjs", contexts: 0, failure: /process\.on\("uncaughtException", \(error\) => \{\s*process\.stderr\.write\(`\$\{redact\(/ },
+  { file: "run-phase8-content-staging.mjs", contexts: 1, failure: UNCAUGHT_REDACTED },
+  { file: "run-phase9b-hosted-staging.mjs", contexts: 1, failure: UNCAUGHT_REDACTED },
+  { file: "run-phase10-hosted-staging.mjs", contexts: 1, failure: /catch\(error\)\{process\.stderr\.write\(`\$\{redact\(/ },
+  { file: "run-subscription-lifecycle-staging.mjs", contexts: 1, failure: /console\.error\(`FAILED \$\{redact\(/ }
+]) {
+  describe(`${file} uses the confined bypass`, () => {
+    const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
+    const code = source.split("\n").filter((line) => !line.trim().startsWith("//") && !line.trim().startsWith("*")).join("\n");
+    it("never puts the secret in a URL, in context-wide headers or in its own header literal", () => {
+      assert.ok(!/extraHTTPHeaders|setExtraHTTPHeaders/.test(source), "no context-wide headers at all");
+      assert.ok(!/[?&]x-vercel-protection-bypass=/.test(source), "no bypass query parameter");
+      assert.ok(!/x-vercel-protection-bypass=\$\{/.test(source), "no bypass value interpolated into a URL");
+      assert.ok(!/["'`]x-vercel-protection-bypass["'`]/.test(source), "the header is only ever built by the module");
+      assert.ok(!/\.route\(/.test(code), "no request interception (it stalled Chromium on protected previews)");
+    });
+    it("reaches the origin only through the module and never follows a redirect with the header", () => {
+      assert.ok(source.includes('import { createProtectionBypass } from "./vercel-protection-bypass.mjs";'), "imports the module");
+      assert.equal((source.match(/\.newContext\(/g) ?? []).length, contexts, "browser contexts");
+      assert.equal((source.match(/\bprotection\.install\(context\b/g) ?? []).length, contexts, "every browser context installs the confined bypass");
+      const fetches = calls(source, /(?<![\w.])fetch\(/g);
+      const uses = [...source.matchAll(/\.headersFor\(/g)];
+      assert.ok(uses.length > 0, "direct requests take their header from headersFor()");
+      for (const use of uses) {
+        const call = fetches.find((candidate) => candidate.start < use.index && use.index < candidate.end);
+        assert.ok(call, `headersFor() at offset ${use.index} is used outside a fetch() call`);
+        assert.match(call.text, /redirect:\s*"manual"/, `a fetch() carrying the header follows redirects: ${call.text.slice(0, 120)}`);
+      }
+      for (const post of calls(source, /\.request\.post\(/g).filter((candidate) => candidate.text.includes("staging-access/bootstrap"))) {
+        assert.match(post.text, /maxRedirects:\s*0/, "the staging-gate bootstrap never follows a redirect");
+      }
+      const clears = (code.match(/clearCookies\(\)/g) ?? []).length;
+      assert.equal((code.match(/clearCookies\(\);\s*await context\.addCookies\(protectionCookies\)/g) ?? []).length, clears, "clearing cookies keeps the bypass cookie instead of re-sending the secret");
+    });
+    it("prints only redacted text", () => {
+      assert.ok(/\bprotection\.redact\(/.test(source), "redact() goes through the module");
+      for (const write of source.matchAll(/process\.std(?:out|err)\.write\(/g)) {
+        assert.ok(source.startsWith("`${redact(", write.index + write[0].length), `unredacted write at offset ${write.index}`);
+      }
+      if (/console\.(?:log|error)\(/.test(source)) {
+        assert.match(source, /console\[method\] = \(\.\.\.parts\) => \{\s*const line = redact\(/, "every console line is redacted");
+      }
+      assert.match(source, failure, "an uncaught failure is printed redacted");
+    });
+  });
+}
+
+// A failure of the one secret-bearing request must not print the secret:
+// Playwright's call log lists every request header (seen 2026-11-07).
+describe("a failed bootstrap never prints the secret", () => {
+  it("rethrows a refused connection without the header-listing call log", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const refused = createProtectionBypass({ origin: "http://127.0.0.1:9", secret });
+      await assert.rejects(refused.install(context), (error) => {
+        assert.match(error.message, /protection bypass bootstrap request failed/);
+        assert.ok(!error.message.includes(secret), "the secret is not in the message");
+        assert.ok(!/Call log:/.test(error.message), "no call log");
+        return true;
+      });
+    } finally {
+      await browser.close();
+    }
+  });
+  it("redacts the URL-encoded form of the secret too", () => {
+    const tricky = `${secret}+/=`;
+    const protection = createProtectionBypass({ origin: "http://127.0.0.1:9", secret: tricky });
+    assert.equal(protection.redact(`raw ${tricky} encoded ${encodeURIComponent(tricky)}`), "raw [bypass-secret] encoded [bypass-secret]");
+  });
+});
+
+// Scripts added after the 2026-10-07 fix (the Math Bingo Live review, load test
+// and QA, the Math Tug of War 3D review) put the secret in a landing URL and in
+// context-wide headers. They now use the module like the runners above.
+for (const { file, contexts } of [
+  { file: "review-math-bingo-live-staging.mjs", contexts: 1 },
+  { file: "load-math-bingo-live-staging.mjs", contexts: 1 },
+  { file: "review-math-tug-of-war-3d-staging.mjs", contexts: 1 },
+  { file: "qa-math-bingo-live-production.mjs", contexts: 1 }
+]) {
+  describe(`${file} uses the confined bypass`, () => {
+    const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
+    it("never puts the secret in a URL, in context-wide headers or in its own header literal", () => {
+      assert.ok(!/extraHTTPHeaders|setExtraHTTPHeaders/.test(source), "no context-wide headers at all");
+      assert.ok(!/[?&]x-vercel-(?:protection-bypass|set-bypass-cookie)=/.test(source), "no bypass query parameter");
+      assert.ok(!/x-vercel-protection-bypass=\$\{/.test(source), "no bypass value interpolated into a URL");
+      assert.ok(!/["'`]x-vercel-protection-bypass["'`]/.test(source), "the header is only ever built by the module");
+      assert.ok(!/\.route\(/.test(source), "no request interception");
+    });
+    it("installs the module on every browser context, and direct requests never follow a redirect", () => {
+      assert.ok(source.includes('import { createProtectionBypass } from "./vercel-protection-bypass.mjs";'), "imports the module");
+      assert.equal((source.match(/\.newContext\(/g) ?? []).length, contexts, "browser contexts");
+      assert.equal((source.match(/await protection\.install\(context\)/g) ?? []).length, contexts, "every browser context installs the confined bypass");
+      const fetches = calls(source, /(?<![\w.])fetch\(/g);
+      const uses = [...source.matchAll(/\.headersFor\(/g)];
+      assert.ok(uses.length > 0, "direct requests take their header from headersFor()");
+      for (const use of uses) {
+        const call = fetches.find((candidate) => candidate.start < use.index && use.index < candidate.end);
+        assert.ok(call, `headersFor() at offset ${use.index} is used outside a fetch() call`);
+        assert.match(call.text, /redirect:\s*"manual"/, `a fetch() carrying the header follows redirects: ${call.text.slice(0, 120)}`);
+      }
+      assert.match(source, /const redact = \(text\) => protection\.redact\(/, "printed text is redacted by the module");
+    });
+  });
+}
+
+// Every script, Playwright config and end-to-end file in the repository: the
+// secret never in a URL, never in context-wide headers, and a direct request
+// that carries it never follows a redirect.
+describe("no file in the repository leaks the bypass secret by construction", () => {
+  const root = new URL("../", import.meta.url);
+  const listed = (folder, filter) => readdirSync(new URL(folder, root), { recursive: true })
+    .map((name) => String(name).replaceAll("\\", "/"))
+    .filter((name) => !name.includes("node_modules/") && filter(name))
+    .map((name) => ({ name: `${folder}${name}`, url: new URL(`${folder}${name}`, root) }));
+  const files = [
+    ...listed("scripts/", (name) => /\.(?:mjs|cjs|js|ts|ps1)$/.test(name) && !name.endsWith("vercel-protection-bypass.test.mjs")),
+    ...listed("e2e/", (name) => /\.(?:mjs|js|ts)$/.test(name)),
+    ...readdirSync(root).filter((name) => /^playwright.*\.(?:mjs|js|ts)$/.test(name)).map((name) => ({ name, url: new URL(name, root) }))
+  ];
+  const offenders = (check) => files.flatMap(({ name, url }) => check(readFileSync(url, "utf8")).map((problem) => `${name}: ${problem}`));
+  it(`scans ${files.length} files`, () => {
+    assert.ok(files.length > 100, "the scan covers the scripts, end-to-end files and configs");
+  });
+  it("never puts the secret in a URL", () => {
+    assert.deepEqual(offenders((source) => [
+      ...(/[?&]x-vercel-(?:protection-bypass|set-bypass-cookie)=/.test(source) ? ["bypass query parameter"] : []),
+      ...(/x-vercel-protection-bypass=\$\{/.test(source) ? ["bypass value interpolated into a URL"] : [])
+    ]), []);
+  });
+  it("never sends it as a context-wide header", () => {
+    // Comment lines may describe the old construction; only code counts.
+    const code = (source) => source.split("\n").filter((line) => !/^\s*(?:\/\/|\/?\*|#)/.test(line)).join("\n");
+    assert.deepEqual(offenders((source) =>
+      /x-vercel-protection-bypass|VERCEL_AUTOMATION_BYPASS_SECRET/.test(source) && /extraHTTPHeaders|setExtraHTTPHeaders/.test(code(source))
+        ? ["context-wide headers in a file that handles the bypass"] : []), []);
+  });
+  it("never follows a redirect with it on a direct request", () => {
+    const carries = (text) => /x-vercel-protection-bypass|\.headersFor\(|bypassHeaders/.test(text);
+    assert.deepEqual(offenders((source) => [
+      ...calls(source, /(?<![\w.])fetch\(/g).filter((call) => carries(call.text) && !/redirect:\s*"manual"/.test(call.text))
+        .map((call) => `fetch() follows redirects with the header: ${call.text.slice(0, 80)}`),
+      ...calls(source, /\.request\.(?:get|post|put|patch|delete|fetch)\(/g).filter((call) => carries(call.text) && !/maxRedirects:\s*0/.test(call.text))
+        .map((call) => `API request follows redirects with the header: ${call.text.slice(0, 80)}`)
+    ]), []);
+  });
+});
+
+// The real staging alias (2026-11-07): Vercel's Standard Protection covers
+// previews, not the project's production domain, so nothing in front of the app
+// answers the bootstrap - the app's own gate does (404) until unlock() sets its
+// cookie. install() must hand over to unlock() there, still send the secret only
+// once, and still fail on a genuine Vercel refusal or without unlock().
+describe("an app-gated origin that Vercel does not protect", () => {
+  let appGatedOrigin;
+  const appSeen = [];
+  let appServer;
+  before(async () => {
+    await new Promise((resolve) => {
+      appServer = createServer((request, response) => {
+        appSeen.push({ url: request.url, headers: request.headers });
+        const cookies = (request.headers.cookie ?? "").split(/;\s*/);
+        if (request.url === "/unlock" && request.method === "POST" && request.headers.authorization === `Bearer ${gateToken}`) {
+          response.writeHead(204, { "set-cookie": "gate=open; Path=/; HttpOnly; SameSite=Lax" });
+          response.end();
+        } else if (!cookies.includes("gate=open")) {
+          response.writeHead(404, { "cache-control": "no-store" });
+          response.end();
+        } else {
+          response.writeHead(200, { "content-type": "text/plain" });
+          response.end("ok");
+        }
+      });
+      appServer.listen(0, "127.0.0.1", () => resolve());
+    });
+    appGatedOrigin = `http://127.0.0.1:${appServer.address().port}`;
+  });
+  after(() => new Promise((resolve) => appServer.close(() => resolve())));
+  const unlockWith = (context) => async () => {
+    const response = await context.request.post(`${appGatedOrigin}/unlock`, { headers: { Authorization: `Bearer ${gateToken}` }, maxRedirects: 0 });
+    assert.equal(response.status(), 204, "the app gate opens");
+  };
+  it("hands the app gate's 404 to unlock(), verifies access without the secret, and sends the secret once", async () => {
+    appSeen.length = 0;
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      await createProtectionBypass({ origin: appGatedOrigin, secret }).install(context, { unlock: unlockWith(context) });
+      const page = await context.newPage();
+      assert.equal((await page.goto(`${appGatedOrigin}/`)).status(), 200, "the gated app loads");
+    } finally {
+      await browser.close();
+    }
+    assert.deepEqual(appSeen.slice(0, 3).map((r) => r.url), ["/api/health", "/unlock", "/api/health"], "bootstrap, unlock, secret-free verification");
+    assert.equal(appSeen.filter((r) => JSON.stringify(r).includes(secret)).length, 1, "the secret was sent exactly once");
+    assert.ok(!JSON.stringify(appSeen.find((r) => r.url === "/unlock")).includes(secret), "unlock() never carries the secret");
+  });
+  it("still refuses without unlock()", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      await assert.rejects(createProtectionBypass({ origin: appGatedOrigin, secret }).install(context), /protection bypass was refused for the review origin \(404\)/);
+    } finally {
+      await browser.close();
+    }
+  });
+  it("still fails on a genuine Vercel refusal even with unlock()", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const wrong = createProtectionBypass({ origin: trustedOrigin, secret: `wrong_${randomBytes(12).toString("hex")}` });
+      await assert.rejects(wrong.install(context, { unlock: async () => {} }), /protection bypass was refused/);
+    } finally {
+      await browser.close();
+    }
   });
 });

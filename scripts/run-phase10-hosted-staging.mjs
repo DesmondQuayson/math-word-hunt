@@ -28,6 +28,7 @@ import {
   persistPhase10Certificate,
   verifyPhase10Manifest
 } from "./phase10-preservation-manifest.mjs";
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const origin = "https://mathnexa-platform-staging.vercel.app";
 const projectRef = "gcmuhzxkwvfireyrearl";
@@ -58,6 +59,10 @@ const candidateTree = required("PHASE10_CANDIDATE_TREE", /^[a-f0-9]{40}$/);
 const supabaseUrl = `https://${projectRef}.supabase.co`;
 const admin = createClient(supabaseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const secrets = [accessToken, databasePassword, publishableKey, secretKey, stagingToken, bypassSecret];
+// The bypass value reaches nothing but the staging origin: a header on direct
+// requests that never follow a redirect, and one cookie bootstrap per browser
+// context (scripts/vercel-protection-bypass.mjs). Everything printed is redacted.
+const protection = createProtectionBypass({ origin, secret: bypassSecret });
 
 const trackedTables = [
   "admin_users", "admin_sessions", "admin_mfa_challenges", "admin_audit_log",
@@ -72,7 +77,7 @@ const trackedTables = [
 ];
 
 function check(value, code) { if (!value) throw new Error(code); }
-function redact(value) { let safe = String(value ?? ""); for (const secret of secrets) safe = safe.replaceAll(secret, "[REDACTED]"); return safe; }
+function redact(value) { let safe = protection.redact(String(value ?? "")); for (const secret of secrets) safe = safe.replaceAll(secret, "[REDACTED]"); return safe; }
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: repositoryRoot, encoding: "utf8", env: options.env ?? process.env,
@@ -213,7 +218,8 @@ function assertInventory(before,after,label){check(before.authUsers===after.auth
 
 function decodeBase32(value){const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let bits="";for(const character of value.replaceAll("=","").toUpperCase())bits+=alphabet.indexOf(character).toString(2).padStart(5,"0");const bytes=[];for(let offset=0;offset+8<=bits.length;offset+=8)bytes.push(Number.parseInt(bits.slice(offset,offset+8),2));return Buffer.from(bytes)}
 async function currentTotp(secret){const remainder=30-(Math.floor(Date.now()/1000)%30);if(remainder<4)await new Promise((done)=>setTimeout(done,(remainder+1)*1000));const payload=Buffer.alloc(8);payload.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const digest=createHmac("sha1",decodeBase32(secret)).update(payload).digest();const offset=digest.at(-1)&15;return String((digest.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,"0")}
-async function bootstrap(context){const response=await context.request.post(`${origin}/api/internal/staging-access/bootstrap`,{headers:{Authorization:`Bearer ${stagingToken}`,"x-vercel-protection-bypass":bypassSecret}});check(response.status()===204,"staging-bootstrap-failed")}
+// The staging gate's own cookie; the request rides on Vercel's bypass cookie and carries no secret.
+async function bootstrap(context){const response=await context.request.post(`${origin}/api/internal/staging-access/bootstrap`,{headers:{Authorization:`Bearer ${stagingToken}`},maxRedirects:0});check(response.status()===204,"staging-bootstrap-failed")}
 async function ownerLogin(page,email,password,secret=null){await page.goto(`${origin}/admin/sign-in`);await page.getByLabel("Owner email address").fill(email);await page.locator("input[name=\"password\"]").fill(password);await page.getByRole("button",{name:"Continue securely"}).click();if(!secret){await page.getByRole("button",{name:"Set up authenticator"}).click();secret=(await page.locator("code.admin-setup-secret").textContent())?.trim()??"";check(secret.length>10,"mfa-secret-missing")}await page.getByLabel("Six-digit authenticator code").fill(await currentTotp(secret));await page.getByRole("button",{name:"Verify and open admin"}).click();await page.waitForURL(`${origin}/admin`);return secret}
 
 const bytes=(value)=>Uint8Array.from(Buffer.from(value));const sha=(value)=>createHash("sha256").update(value).digest("hex");const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+T0m02QAAAABJRU5ErkJggg==","base64");
@@ -372,7 +378,7 @@ commit;`;
   });
   check(certificate.staging_project_ref===projectRef&&certificate.synthetic_run_id===fixture.runId&&certificate.repair_manifest_checksum===repaired.manifest.checksum&&certificate.idempotency_manifest_checksum===repeated.manifest.checksum,"phase10-repair-certificate-mismatch");
   rmSync(workRoot,{recursive:true,force:true});
-  process.stdout.write(`${JSON.stringify({passed:true,mode:"targeted-manifest-repair",runId:fixture.runId,allTwelveComponentsRestored:comparison.components.every((component)=>component.identical),storageRestored:comparison.storage_identical,idempotent:repeatedComparison.components.every((component)=>component.identical)&&repeatedComparison.storage_identical,certificate},null,2)}\n`);
+  process.stdout.write(`${redact(JSON.stringify({passed:true,mode:"targeted-manifest-repair",runId:fixture.runId,allTwelveComponentsRestored:comparison.components.every((component)=>component.identical),storageRestored:comparison.storage_identical,idempotent:repeatedComparison.components.every((component)=>component.identical)&&repeatedComparison.storage_identical,certificate},null,2))}\n`);
 }
 async function recoverFailedRun(){
   const users=(await allAuthUsers()).filter((user)=>user.user_metadata?.synthetic_run_id===fixture.runId);
@@ -400,7 +406,7 @@ async function recoverFailedRun(){
   await managementQuery(cleanupSql);await deleteUser(fixture.ordinaryUserId);await deleteUser(fixture.ownerUserId);
   const second=await exactResidueCounts();assertResidueZero(second);check(JSON.stringify(first)===JSON.stringify(second),"cleanup-not-idempotent");check(await unrelatedRunFingerprint()===unrelatedBefore,"cleanup-idempotent-fingerprint-changed");
   rmSync(workRoot,{recursive:true,force:true});
-  process.stdout.write(`${JSON.stringify({passed:true,mode:"exact-residue-cleanup",runId:fixture.runId,catalogAllowlist:fixture.catalogRows.length,destinationAuditAllowlist:fixture.destinationAuditRows.length,cleanupToZero:second,cleanupIdempotent:true,unrelatedFingerprintUnchanged:true},null,2)}\n`);
+  process.stdout.write(`${redact(JSON.stringify({passed:true,mode:"exact-residue-cleanup",runId:fixture.runId,catalogAllowlist:fixture.catalogRows.length,destinationAuditAllowlist:fixture.destinationAuditRows.length,cleanupToZero:second,cleanupIdempotent:true,unrelatedFingerprintUnchanged:true},null,2))}\n`);
 }
 
 async function main(){const evidence={};let deploymentId=null,primaryError=null,cleanupError=null;let baseline=null,baselineFingerprint=null,flagBaseline=null,preCapture=null,postCapture=null,idempotentCapture=null,preservationCertificate=null,preResidue=null,finalResidue=null;const ownerEmail=syntheticOwnerEmail(fixture.runId),ordinaryEmail=`phase10-ordinary-${fixture.runId}@example.invalid`,password=`Mx10-Staging!${fixture.runId.slice(0,12)}`;try{
@@ -416,13 +422,17 @@ async function main(){const evidence={};let deploymentId=null,primaryError=null,
   const postMigrationBaseline=await inventory();assertInventory(baseline,postMigrationBaseline,"staging-migration");baselineFingerprint=await preservationFingerprint();
   flagBaseline=(await admin.from("platform_feature_flags").select("enabled,message,version,updated_by,updated_at").eq("flag_key","admin-emergency-disabled").single()).data;check(flagBaseline,"admin-emergency-baseline-missing");
   upsertEnvironment("MVH_BUILD_ID",candidateTree);let deployment=findReadyCandidateDeployment();if(!deployment){vercel(["deploy",".","--project",projectName,"--scope",scope,"--prod","--yes","--json","--meta",`candidateTree=${candidateTree}`,"--meta",`gitCommitRef=${branch}`]);deployment=findReadyCandidateDeployment()}check(deployment?.id&&deployment.readyState==="READY","staging-deployment-not-ready");deploymentId=deployment.id;
-  await waitFor("staging-origin",()=>fetch(origin,{redirect:"manual",headers:{"x-vercel-protection-bypass":bypassSecret}}),(response)=>response.status===404&&response.headers.get("cache-control")?.includes("no-store"),300000);evidence.deployment=true;
+  await waitFor("staging-origin",()=>fetch(origin,{headers:protection.headersFor(origin),redirect:"manual"}),(response)=>response.status===404&&response.headers.get("cache-control")?.includes("no-store"),300000);evidence.deployment=true;
 
   const owner=await admin.auth.admin.createUser({email:ownerEmail,password,email_confirm:true,user_metadata:{synthetic_run_id:fixture.runId}});const ordinary=await admin.auth.admin.createUser({email:ordinaryEmail,password,email_confirm:true,user_metadata:{synthetic_run_id:fixture.runId}});if(owner.error||ordinary.error||!owner.data.user||!ordinary.data.user)throw new Error("synthetic-users-create-failed");fixture.ownerUserId=owner.data.user.id;fixture.ordinaryUserId=ordinary.data.user.id;addTargets(ownerEmail,ordinaryEmail,fixture.ownerUserId,fixture.ordinaryUserId);
   const adminRow=await admin.from("admin_users").insert({user_id:fixture.ownerUserId,role:"owner",mfa_enrolled:false}).select("id").single();if(adminRow.error)throw adminRow.error;fixture.adminId=adminRow.data.id;addTargets(fixture.adminId);
   const entitlement=await admin.from("consumer_game_entitlements").insert({user_id:fixture.ownerUserId,capability_key:"MATHNEXA_ALL_ACCESS",entitlement_state:"subscription-active",current_period_ends_at:new Date(Date.now()+86400000).toISOString()});if(entitlement.error)throw entitlement.error;
 
-  const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:"reduce",extraHTTPHeaders:{"x-vercel-protection-bypass":bypassSecret}});await bootstrap(context);const page=await context.newPage();let mfaSecret="";try{
+  const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:"reduce"});const page=await context.newPage();let mfaSecret="";try{
+    // Vercel's host-only bypass cookie, then the staging gate's cookie. The end-session check below restores the cookies
+    // Vercel set (captured before the gate's) instead of re-installing: clearCookies() alone would drop them, and a second
+    // install would resend the secret.
+    let protectionCookies=[];await protection.install(context,{unlock:async()=>{protectionCookies=await context.cookies();await bootstrap(context)}});
     await page.goto(`${origin}/sign-in`);await page.getByLabel("Email address").fill(ordinaryEmail);await page.locator("input[name=\"password\"]").fill(password);await page.getByRole("button",{name:"Sign in"}).click();await page.waitForURL(/\/(?:account|teacher)$/);const switchResponse=await page.goto(`${origin}/admin/sign-in`);check(switchResponse?.status()===200,"ordinary-admin-sign-in-not-200");await page.getByRole("heading",{name:"Sign in to MathNexa Admin"}).waitFor();await page.getByText("You are currently signed in to MathNexa without Admin access. Sign out of this account to continue with the authorized owner account.").waitFor();check((await context.request.get(`${origin}/admin`,{maxRedirects:0})).status()===404,"ordinary-admin-not-hidden");await page.getByRole("button",{name:"Sign out and continue"}).click();await page.waitForURL(/\/admin\/sign-in\?switched=1$/);evidence.accountSwitch=true;
     mfaSecret=await ownerLogin(page,ownerEmail,password);check((await context.request.get(`${origin}/admin`,{maxRedirects:0})).status()===200,"owner-admin-missing");evidence.ownerMfa=true;
 
@@ -450,7 +460,7 @@ async function main(){const evidence={};let deploymentId=null,primaryError=null,
     const html=await page.locator("html").innerHTML();check(secrets.every((secret)=>!html.includes(secret)),"hosted-secret-exposure");const csrf=await page.locator('input[name="csrfToken"]').first().inputValue();const denied=await context.request.post(`${origin}/admin/games/external`,{maxRedirects:0,headers:{Origin:origin},form:{csrfToken:csrf,title:"Unsafe URL",slug:`unsafe-url-${fixture.runId.slice(0,8)}`,description:"Must fail closed.",recommendedGradeMin:"",recommendedGradeMax:"",difficulty:"core",displayOrder:"80",skills:"",topics:"",tags:"",externalUrl:"javascript:alert(1)",allowedHost:"example.com",thumbnailReference:"builtin:game-card"}});check(denied.status()===303&&/invalid-input|unsafe-destination/.test(denied.headers().location??""),"unsafe-url-not-denied");evidence.security=true;
 
     const session=await admin.from("admin_sessions").select("id").eq("admin_user_id",fixture.adminId).is("ended_at",null).single();if(session.error)throw session.error;const flag=await admin.rpc("set_platform_feature_flag",{p_admin_user_id:fixture.adminId,p_admin_session_id:session.data.id,p_flag_key:"admin-emergency-disabled",p_enabled:true,p_message:null,p_reason:"Phase 10 isolated staging emergency verification",p_expected_version:flagBaseline.version});if(flag.error)throw flag.error;await waitFor("admin-emergency-sign-in-hide",()=>context.request.get(`${origin}/admin/sign-in`,{maxRedirects:0}),(response)=>response.status()===404,30000);await waitFor("admin-emergency-admin-hide",()=>context.request.get(`${origin}/admin`,{maxRedirects:0}),(response)=>response.status()===404,30000);await restoreFeatureFlag(flagBaseline);await waitFor("admin-emergency-restore",()=>context.request.get(`${origin}/admin/sign-in`,{maxRedirects:0}),(response)=>response.status()===200,30000);evidence.emergencyDisable=true;
-    await context.clearCookies();await bootstrap(context);await ownerLogin(page,ownerEmail,password,mfaSecret);const replayCookie=(await context.cookies()).find((cookie)=>cookie.name==="mvh-admin-session");await page.getByRole("button",{name:"End admin session"}).click();await page.waitForURL(/\/admin\/sign-in\?signedOut=1$/);check((await context.request.get(`${origin}/admin/sign-in`,{maxRedirects:0})).status()===200,"ended-session-sign-in-broken");if(replayCookie){await context.addCookies([replayCookie]);check((await context.request.get(`${origin}/admin`,{maxRedirects:0})).status()===404,"ended-session-replayed")}evidence.endSession=true;
+    await context.clearCookies();await context.addCookies(protectionCookies);await bootstrap(context);await ownerLogin(page,ownerEmail,password,mfaSecret);const replayCookie=(await context.cookies()).find((cookie)=>cookie.name==="mvh-admin-session");await page.getByRole("button",{name:"End admin session"}).click();await page.waitForURL(/\/admin\/sign-in\?signedOut=1$/);check((await context.request.get(`${origin}/admin/sign-in`,{maxRedirects:0})).status()===200,"ended-session-sign-in-broken");if(replayCookie){await context.addCookies([replayCookie]);check((await context.request.get(`${origin}/admin`,{maxRedirects:0})).status()===404,"ended-session-replayed")}evidence.endSession=true;
   }finally{await context.close().catch(()=>{});await browser.close().catch(()=>{})}
   await collectTargets();await collectCatalogCleanupScope();fixture.frozenAt=new Date().toISOString();await collectAnalyticsCleanupScope();await captureAudits();check(fixture.auditRows.size>0,"cleanup-audit-scope-empty");
 }catch(error){primaryError=error}finally{try{
@@ -466,6 +476,6 @@ async function main(){const evidence={};let deploymentId=null,primaryError=null,
     const certificatePath=resolve(repositoryRoot,"qa-artifacts","phase10",fixture.runId,"preservation-certificate.json");preservationCertificate=persistPhase10Certificate(certificatePath,certificate);evidence.cleanupToZero=true;evidence.cleanupIdempotent=true;evidence.preservationCertificate=true;evidence.postCleanupManifestChecksum=postCapture.manifest.checksum;evidence.componentComparison=comparison.components;evidence.exactCleanupCounts=exactCounts;evidence.auditImmutability=preservationCertificate.audit_immutability;evidence.bucketVerification=preservationCertificate.bucket_verification;
   }
 }catch(error){cleanupError=error}rmSync(workRoot,{recursive:true,force:true})}
-if(cleanupError)throw new Error(`cleanup-to-zero-failed:${cleanupError.message}`);if(primaryError)throw primaryError;process.stdout.write(`${JSON.stringify({passed:true,candidateTree,deploymentId,syntheticRunId:fixture.runId,preRunManifestChecksum:preCapture?.manifest.checksum,postCleanupManifestChecksum:postCapture?.manifest.checksum,preservationFingerprint:createHash("sha256").update(baselineFingerprint).digest("hex").slice(0,16),preservationCertificate,evidence},null,2)}\n`)}
+if(cleanupError)throw new Error(`cleanup-to-zero-failed:${cleanupError.message}`);if(primaryError)throw primaryError;process.stdout.write(`${redact(JSON.stringify({passed:true,candidateTree,deploymentId,syntheticRunId:fixture.runId,preRunManifestChecksum:preCapture?.manifest.checksum,postCleanupManifestChecksum:postCapture?.manifest.checksum,preservationFingerprint:createHash("sha256").update(baselineFingerprint).digest("hex").slice(0,16),preservationCertificate,evidence},null,2))}\n`)}
 
-if(repairRunId)await repairStagingBaseline();else if(cleanupRunId)await recoverFailedRun();else await main();
+try{if(repairRunId)await repairStagingBaseline();else if(cleanupRunId)await recoverFailedRun();else await main()}catch(error){process.stderr.write(`${redact(error?.stack??error)}\n`,()=>process.exit(1))}

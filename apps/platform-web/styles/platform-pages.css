@@ -832,6 +832,13 @@
   color: var(--color-danger);
 }
 
+/* Present while empty so assistive technology already knows the live region. */
+.confirmation-cooldown-status {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
 .confirmation-reopen,
 .confirmation-reminder {
   display: flex;

@@ -4,6 +4,8 @@ export type AuthFormState = Readonly<{
   fieldErrors?: Readonly<Record<string, string>>;
   confirmation?: Readonly<{
     maskedEmail: string;
+    /** Seconds until the provider accepts another confirmation email for this address. */
+    cooldownSeconds?: number;
   }>;
 }>;
 

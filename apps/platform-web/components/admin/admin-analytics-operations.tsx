@@ -64,7 +64,7 @@ function Operations({ snapshot, csrfToken, result, stepUpRequired }: Readonly<{ 
     <section className="admin-ops-summary" aria-labelledby="system-version"><h2 id="system-version">Build and database</h2><dl>
       <div><dt>Build</dt><dd>{snapshot.build.id}</dd></div><div><dt>Environment</dt><dd>{snapshot.build.environment}</dd></div>
       <div><dt>Applied migrations</dt><dd>{format(snapshot.build.migrationCount)}</dd></div><div><dt>Latest migration</dt><dd>{snapshot.build.latestMigration ?? "Unavailable"}</dd></div>
-      <div><dt>Webhook queue</dt><dd>{format(snapshot.webhookQueue.pending)} pending · {format(snapshot.webhookQueue.failed)} failed</dd></div>
+      <div><dt>Webhook queue</dt><dd>{format(snapshot.webhookQueue.open)} awaiting action · {format(snapshot.webhookQueue.historical)} historical reviews (no action needed)</dd></div>
       <div><dt>Private storage</dt><dd>{format(snapshot.storage.objects)} objects · {bytes(snapshot.storage.bytes)} · {format(snapshot.storage.buckets)} buckets</dd></div>
     </dl></section>
     <ProviderGrid snapshot={snapshot} />

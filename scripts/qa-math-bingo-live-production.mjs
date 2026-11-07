@@ -28,6 +28,8 @@ import { fileURLToPath } from "node:url";
 import { chromium, devices, webkit } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
+
 process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 const engine = "../apps/platform-web/public/internal-games/math-bingo-live/src/";
 const { buildAnswerPool, buildDeck, dealRules, answerMatches } = await import(`${engine}engine/questions.js`);
@@ -42,15 +44,18 @@ const STAGING = process.env.QA_TARGET === "staging";
 const ORIGIN = STAGING ? (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "") : "https://mathnexa.com";
 if (STAGING && !/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(ORIGIN)) throw new Error("STAGING_ORIGIN must be a staging preview");
 const bypass = STAGING ? (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim() : "";
-const protection = bypass ? { "x-vercel-protection-bypass": bypass, "x-vercel-skip-toolbar": "1" } : {};
+// Staging only: scripts/vercel-protection-bypass.mjs confines the secret to the preview origin (headers on direct
+// requests that never follow a redirect; browsers ride on Vercel's host-only bypass cookie). Production: no secret,
+// so headersFor() adds nothing and install() is a no-op.
+const protection = createProtectionBypass({ origin: ORIGIN, secret: bypass || null });
 const PLAY = `${ORIGIN}/api/games/math-bingo-live/play`;
-const HEADERS = { ...protection, "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live", "Sec-Fetch-Site": "same-origin", Origin: ORIGIN, "User-Agent": "MathNexa-Release-QA/1.0" };
+const HEADERS = { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live", "Sec-Fetch-Site": "same-origin", Origin: ORIGIN, "User-Agent": "MathNexa-Release-QA/1.0" };
 const ref = STAGING ? "gcmuhzxkwvfireyrearl" : (process.env.SUPABASE_PRODUCTION_PROJECT_REF ?? "").trim().toLowerCase();
 const secretKey = ((STAGING ? process.env.SUPABASE_SECRET_KEY : process.env.SUPABASE_PRODUCTION_SECRET_KEY) ?? "").trim();
 if (!/^[a-z]{20}$/.test(ref) || (!STAGING && ref === "gcmuhzxkwvfireyrearl")) throw new Error("production project ref missing or wrong");
 if (secretKey.length < 20) throw new Error("production service key missing");
 const admin = createClient(`https://${ref}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
-const redact = (text) => { let out = String(text).split(secretKey).join("[hidden]").split(ref).join("[ref]"); if (bypass) out = out.split(bypass).join("[hidden]"); return out; };
+const redact = (text) => protection.redact(String(text).split(secretKey).join("[hidden]").split(ref).join("[ref]"));
 
 const results = [];
 const evidence = { startedAt: new Date().toISOString(), checks: [] };
@@ -68,7 +73,7 @@ const rpc = async (fn, args) => {
   return data;
 };
 async function post(body) {
-  const response = await fetch(PLAY, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+  const response = await fetch(PLAY, { method: "POST", headers: { ...protection.headersFor(PLAY), ...HEADERS }, body: JSON.stringify(body), redirect: "manual" });
   let json = null;
   try { json = await response.json(); } catch { json = null; }
   return { status: response.status, json };
@@ -105,11 +110,12 @@ const rooms = [];
 const browsers = [];
 try {
   // --------------------------------------------------- deployed runtime + QR destination
-  const page = await fetch(`${ORIGIN}/join`, { headers: { ...protection, "User-Agent": HEADERS["User-Agent"] } });
+  const page = await fetch(`${ORIGIN}/join`, { headers: { ...protection.headersFor(`${ORIGIN}/join`), "User-Agent": HEADERS["User-Agent"] }, redirect: "manual" });
   const html = await page.text();
   const runtimeHash = /MATH_BINGO_LIVE_RUNTIME_SHA256 = "([0-9a-f]{64})"/.exec(readFileSync("apps/platform-web/features/games/math-bingo-live/document.ts", "utf8"))[1];
   ok(page.status === 200 && html.includes(`src/player.js?v=${runtimeHash.slice(0, 16)}`), `/join serves this release's game runtime (v=${runtimeHash.slice(0, 16)})`);
-  const served = await fetch(`${ORIGIN}/internal-games/math-bingo-live/src/join-link.js?v=${runtimeHash.slice(0, 16)}`, { headers: protection }).then((response) => response.text());
+  const joinLinkUrl = `${ORIGIN}/internal-games/math-bingo-live/src/join-link.js?v=${runtimeHash.slice(0, 16)}`;
+  const served = await fetch(joinLinkUrl, { headers: protection.headersFor(joinLinkUrl), redirect: "manual" }).then((response) => response.text());
   ok(served.includes(`export const PRODUCTION_ORIGIN = "https://mathnexa.com";`), "the served QR code helper points production at https://mathnexa.com");
   ok(joinLink("537636", { host: "mathnexa.com", origin: ORIGIN }) === "https://mathnexa.com/join?code=537636"
     && joinLink("537636", { host: "www.mathnexa.com", origin: "https://www.mathnexa.com" }) === "https://mathnexa.com/join?code=537636", "a production teacher screen's QR encodes https://mathnexa.com/join?code=… (also from www)");
@@ -148,7 +154,8 @@ try {
   for (const [engineName, browserType, device, name, emojiLabel] of [["webkit", webkit, devices["iPhone 13"], "QA Phone", "Lion"], ["chromium", chromium, devices["Pixel 7"], "QA Droid", "Rocket"]]) {
     const browser = await browserType.launch();
     browsers.push(browser);
-    const context = await browser.newContext({ ...device, extraHTTPHeaders: protection });
+    const context = await browser.newContext({ ...device });
+    await protection.install(context);
     const phone = await context.newPage();
     const errors = [];
     phone.on("pageerror", (error) => errors.push(error.message));

@@ -41,14 +41,20 @@
 //
 // Only STAGING identifiers are hard-coded here. Production project refs are
 // refused if they appear in the environment. Live Stripe keys are refused.
-// Nothing is printed from any credential; command output is redacted before it
-// is echoed. Every synthetic Stripe/Supabase object created here carries the
-// rehearsal id in its metadata and is removed in the cleanup step.
+// Nothing is printed from any credential; every console line (and its copy in
+// the --log file) is redacted. The Vercel protection-bypass value travels only
+// as a header on direct requests to the deployment under test, which never
+// follow a redirect, and as one cookie bootstrap for the browser context
+// (scripts/vercel-protection-bypass.mjs). Every synthetic Stripe/Supabase
+// object created here carries the rehearsal id in its metadata and is removed
+// in the cleanup step.
 import { spawnSync } from "node:child_process";
 import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 const LEGACY_PRODUCTION_PROJECT_REF = "ioodoktlxvvmghyvevgn";
@@ -68,17 +74,7 @@ const DAY = 86_400;
 
 const args = new Map(process.argv.slice(2).map((arg) => { const [key, value = "true"] = arg.split("=", 2); return [key, value]; }));
 const stage = args.get("--stage") ?? "certify";
-// Tee every console line into a log file (append) so long stages can be
-// followed while they run; the parent shell's pipe buffering made the first
-// hosted run invisible until exit.
 const logFile = args.get("--log") ?? process.env.LIFECYCLE_LOG_FILE?.trim() ?? "";
-if (logFile) {
-  const { appendFileSync } = await import("node:fs");
-  for (const method of ["log", "error"]) {
-    const original = console[method].bind(console);
-    console[method] = (...parts) => { original(...parts); try { appendFileSync(logFile, `${new Date().toISOString()} ${parts.map(String).join(" ")}\n`); } catch { /* best effort */ } };
-  }
-}
 const step = (label) => console.log(`STEP ${new Date().toISOString()} ${label}`);
 const alias = args.has("--alias");
 const allowEndpointCreate = args.has("--allow-endpoint-create");
@@ -92,10 +88,25 @@ function required(name, pattern = /\S/) {
   return value;
 }
 const secrets = [];
+// The bypass for the stable staging alias. Stages that address another
+// deployment (a fresh preview URL, --url) confine the same value to that origin.
+const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() || null;
+const protection = createProtectionBypass({ origin: STAGING_ORIGIN, secret: bypassSecret });
 function redact(value) {
-  let safe = String(value ?? "");
+  let safe = protection.redact(String(value ?? ""));
   for (const secret of secrets) if (secret) safe = safe.replaceAll(secret, "[REDACTED]");
   return safe.replace(/(?:sk|rk|pk)_(?:test|live)_[A-Za-z0-9_]+/g, "[key]").replace(/sbp_[A-Za-z0-9_-]+/g, "[token]").replace(/whsec_[A-Za-z0-9]+/g, "[whsec]").replace(/sb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, "[sbkey]");
+}
+// Every console line passes through redact(). With --log it is also teed into
+// that file (append) so long stages can be followed while they run; the parent
+// shell's pipe buffering made the first hosted run invisible until exit.
+for (const method of ["log", "error"]) {
+  const original = console[method].bind(console);
+  console[method] = (...parts) => {
+    const line = redact(parts.map(String).join(" "));
+    original(line);
+    if (logFile) { try { appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`); } catch { /* best effort */ } }
+  };
 }
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, { cwd: options.cwd ?? repositoryRoot, encoding: "utf8", env: options.env ?? process.env, input: options.input, stdio: [options.input === undefined ? "ignore" : "pipe", "pipe", "pipe"], shell: options.shell ?? false });
@@ -244,7 +255,8 @@ async function webhookConfig() {
     storeVaultEntry("STRIPE_WEBHOOK_SECRET", created.secret);
     evidence.stagingEndpointCreated = { id: shortId(created.id), storedInVault: true, stagingVercelEnvUpdated: upsertStagingVercelEnvironment("STRIPE_WEBHOOK_SECRET", created.secret) };
   }
-  const unsigned = await fetch(`${STAGING_ORIGIN}/api/billing/webhook`, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET.trim() } : {}) }, body: "{}" });
+  const webhookUrl = `${STAGING_ORIGIN}/api/billing/webhook`;
+  const unsigned = await fetch(webhookUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", ...protection.headersFor(webhookUrl) }, body: "{}" });
   evidence.configuredUrlProbe = { host: STAGING_HOST, status: unsigned.status, redirectLocation: unsigned.headers.get("location"), body: (await unsigned.text()).slice(0, 200) };
   check(unsigned.status === 400 && !/^3/.test(String(unsigned.status)), "configured-webhook-url-does-not-answer-400-for-unsigned");
   console.log(JSON.stringify({ webhookEndpoints: report, configuredUrlProbe: evidence.configuredUrlProbe }, null, 2));
@@ -299,14 +311,16 @@ async function waitForOrigin(url, bypass, stagingToken = null) {
   // behind the locked staging gate (404, empty body, for every route but the
   // Stripe webhook), so health is read through the gate cookie there.
   const deadline = Date.now() + 300_000;
-  const headers = bypass ? { "x-vercel-protection-bypass": bypass } : {};
+  const deployment = createProtectionBypass({ origin: url, secret: bypass });
+  const healthUrl = `${url}/api/health`;
+  const bootstrapUrl = `${url}/api/internal/staging-access/bootstrap`;
   let cookie = null;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${url}/api/health`, { redirect: "manual", headers: cookie ? { ...headers, cookie } : headers });
+      const response = await fetch(healthUrl, { redirect: "manual", headers: { ...deployment.headersFor(healthUrl), ...(cookie ? { cookie } : {}) } });
       if (response.status === 200) return { ...(await response.json()), throughStagingGate: Boolean(cookie) };
       if (response.status === 404 && stagingToken && !cookie) {
-        const bootstrap = await fetch(`${url}/api/internal/staging-access/bootstrap`, { method: "POST", redirect: "manual", headers: { ...headers, Authorization: `Bearer ${stagingToken}` } });
+        const bootstrap = await fetch(bootstrapUrl, { method: "POST", redirect: "manual", headers: { ...deployment.headersFor(bootstrapUrl), Authorization: `Bearer ${stagingToken}` } });
         cookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
         continue;
       }
@@ -354,42 +368,43 @@ async function certify() {
   const stagingToken = process.env.MVH_STAGING_ACCESS_TOKEN?.trim() || null;
   if (bypass) secrets.push(bypass);
   if (stagingToken) secrets.push(stagingToken);
-  const base = { redirect: "manual", headers: bypass ? { "x-vercel-protection-bypass": bypass } : {} };
+  // Every probe goes to the deployment under test with the bypass header for
+  // that origin only, and reports a redirect instead of following it.
+  const target = createProtectionBypass({ origin: targetUrl, secret: bypass });
+  const probe = (path, { headers = {}, ...init } = {}) => fetch(`${targetUrl}${path}`, { ...init, redirect: "manual", headers: { ...target.headersFor(`${targetUrl}${path}`), ...headers } });
   const results = {};
   // The stable alias is behind the locked staging gate: without its cookie every
   // page and internal route answers 404 with no body (recorded below as
   // lockedGate / lockedHealth). Only the Stripe webhook is exempt. Route
   // contracts are therefore probed with the gate cookie obtained from the
   // bootstrap endpoint, exactly as a staging operator would.
-  const lockedHealth = await fetch(`${targetUrl}/api/health`, base);
+  const lockedHealth = await probe("/api/health");
   results.lockedHealth = { status: lockedHealth.status, bytes: (await lockedHealth.arrayBuffer()).byteLength };
-  const unsigned = await fetch(`${targetUrl}/api/billing/webhook`, { ...base, method: "POST", headers: { ...base.headers, "content-type": "application/json" }, body: "{}" });
+  const unsigned = await probe("/api/billing/webhook", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
   results.webhookUnsigned = { status: unsigned.status, body: await unsigned.text(), redirectLocation: unsigned.headers.get("location") };
-  const lockedAccount = await fetch(`${targetUrl}/account`, base);
+  const lockedAccount = await probe("/account");
   results.lockedGate = { status: lockedAccount.status, bytes: (await lockedAccount.arrayBuffer()).byteLength, cacheControl: lockedAccount.headers.get("cache-control") };
   let gateCookie = null;
   if (stagingToken) {
-    const bootstrap = await fetch(`${targetUrl}/api/internal/staging-access/bootstrap`, { ...base, method: "POST", headers: { ...base.headers, Authorization: `Bearer ${stagingToken}` } });
+    const bootstrap = await probe("/api/internal/staging-access/bootstrap", { method: "POST", headers: { Authorization: `Bearer ${stagingToken}` } });
     gateCookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
     results.bootstrap = { status: bootstrap.status, cookie: Boolean(gateCookie) };
   }
-  const gatedBase = gateCookie ? { ...base, headers: { ...base.headers, cookie: gateCookie } } : base;
-  const health = await fetch(`${targetUrl}/api/health`, gatedBase);
+  const gate = gateCookie ? { cookie: gateCookie } : {};
+  const health = await probe("/api/health", { headers: gate });
   results.health = { status: health.status, body: health.status === 200 ? await health.json() : null };
-  const scheduler = await fetch(`${targetUrl}/api/internal/billing/reconcile`, gatedBase);
+  const scheduler = await probe("/api/internal/billing/reconcile", { headers: gate });
   results.schedulerRoute = { status: scheduler.status, body: await scheduler.text(), cacheControl: scheduler.headers.get("cache-control") };
-  const fixture = await fetch(`${targetUrl}/api/internal/billing/fixture`, { ...gatedBase, method: "POST", headers: { ...gatedBase.headers, "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
+  const fixture = await probe("/api/internal/billing/fixture", { method: "POST", headers: { ...gate, "content-type": "application/json" }, body: JSON.stringify({ action: "read-subscription", subscriptionId: "sub_x" }) });
   results.fixtureRoute = { status: fixture.status };
   if (gateCookie) {
     {
-      const cookie = gateCookie;
-      const gated = { ...base, headers: { ...base.headers, cookie } };
-      const account = await fetch(`${targetUrl}/account`, gated);
+      const account = await probe("/account", { headers: gate });
       results.accountSignedOut = { status: account.status, location: account.headers.get("location"), cacheControl: account.headers.get("cache-control") };
-      const pricing = await fetch(`${targetUrl}/pricing`, gated);
+      const pricing = await probe("/pricing", { headers: gate });
       const pricingBody = await pricing.text();
       results.pricing = { status: pricing.status, location: pricing.headers.get("location"), mentionsEnded: /Subscription ended/i.test(pricingBody), cacheControl: pricing.headers.get("cache-control") };
-      const subscription = await fetch(`${targetUrl}/subscription`, gated);
+      const subscription = await probe("/subscription", { headers: gate });
       results.subscriptionSignedOut = { status: subscription.status, location: subscription.headers.get("location"), cacheControl: subscription.headers.get("cache-control") };
     }
   }
@@ -434,6 +449,18 @@ function signedEvent(secret, type, object, createdSeconds, id = `evt_${randomUUI
   return { id, payload, header: `t=${timestamp},v1=${signature}` };
 }
 
+/**
+ * The account page's access row, read from its own <dt>/<dd> pair. 6837607 (2026-11-01) relabelled the row from
+ * "Game access" to "Access"; matching the collapsed page text for "game access available" has reported "unknown"
+ * since then. Both labels are accepted so the harness also runs against older candidates.
+ */
+async function accountAccessRow(page) {
+  const value = page.locator("main dl div").filter({ has: page.locator("dt", { hasText: /^(?:Game access|Access)$/ }) }).locator("dd");
+  if (await value.count() !== 1) return "unknown";
+  const text = (await value.innerText()).trim();
+  return /^unavailable$/i.test(text) ? "Unavailable" : /^available$/i.test(text) ? "Available" : "unknown";
+}
+
 async function lifecycle() {
   const bypass = required("VERCEL_AUTOMATION_BYPASS_SECRET");
   const stagingToken = required("MVH_STAGING_ACCESS_TOKEN");
@@ -453,8 +480,9 @@ async function lifecycle() {
   const table = { renewals: [] };
   evidence.lifecycle = table;
 
+  const webhookUrl = `${STAGING_ORIGIN}/api/billing/webhook`;
   const browser = await chromium.launch();
-  const context = await browser.newContext({ baseURL: STAGING_ORIGIN, extraHTTPHeaders: { "x-vercel-protection-bypass": bypass } });
+  const context = await browser.newContext({ baseURL: STAGING_ORIGIN });
   const page = await context.newPage();
   try {
     // ---- account + Stripe customer -------------------------------------------------
@@ -495,8 +523,14 @@ async function lifecycle() {
 
     // ---- browser session through the locked gate --------------------------------
     step("bootstrap staging gate and sign in");
-    const bootstrap = await context.request.post(`${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, { headers: { Authorization: `Bearer ${stagingToken}` } });
-    check(bootstrap.status() === 204, `staging-bootstrap-failed-${bootstrap.status()}`);
+    // Vercel's host-only bypass cookie, then the staging gate's own cookie
+    // (that request rides on the bypass cookie and carries no secret).
+    await protection.install(context, {
+      unlock: async () => {
+        const bootstrap = await context.request.post(`${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, { headers: { Authorization: `Bearer ${stagingToken}` }, maxRedirects: 0 });
+        check(bootstrap.status() === 204, `staging-bootstrap-failed-${bootstrap.status()}`);
+      }
+    });
     await page.goto(`${STAGING_ORIGIN}/sign-in`);
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill(password);
@@ -509,6 +543,7 @@ async function lifecycle() {
       const ent = await entitlement();
       await page.goto(`${STAGING_ORIGIN}/account`, { waitUntil: "networkidle" });
       const accountText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+      const accountAccess = await accountAccessRow(page);
       await page.goto(`${STAGING_ORIGIN}/subscription`, { waitUntil: "networkidle" });
       const statusLabel = (await page.getByTestId("consumer-subscription-label").first().innerText().catch(() => "")).trim();
       const subscriptionText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
@@ -526,7 +561,7 @@ async function lifecycle() {
       const gameAccessHeading = (await page.locator("main").getByRole("heading").first().innerText().catch(() => "")).trim();
       // innerText reflects CSS text-transform (the definition list renders labels in
       // capitals), so match case-insensitively and test "Unavailable" first.
-      const accountUi = /game access\s*unavailable/i.test(accountText) ? "Unavailable" : /game access\s*available/i.test(accountText) ? "Available" : "unknown";
+      const accountUi = accountAccess;
       const row = {
         GAME_ACCESS_PAGE: gameAccessHeading.slice(0, 80),
         ...(accountUi === "unknown" ? { ACCOUNT_SNIPPET: accountText.slice(0, 240) } : {}),
@@ -608,8 +643,7 @@ async function lifecycle() {
     check(instant(beforeHeal.current_period_ends_at) < Date.now(), "stale-simulation-not-in-past");
     const visitStartedAt = new Date().toISOString();
     await page.goto(`${STAGING_ORIGIN}/account`, { waitUntil: "networkidle" });
-    const healedText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-    const firstViewAvailable = !/game access\s*unavailable/i.test(healedText) && /game access\s*available/i.test(healedText);
+    const firstViewAvailable = (await accountAccessRow(page)) === "Available";
     // Diagnostics for the report either way: what the row, the throttle claim and
     // the game-access page looked like right after the first view.
     const afterFirstView = await localSubscription(primaryId);
@@ -647,12 +681,12 @@ async function lifecycle() {
       const currentObject = await stripe.subscriptions.retrieve(primaryId);
       const staleCreated = initialTime + 10;
       const outOfOrder = signedEvent(webhookSecret, "customer.subscription.updated", { ...currentObject, status: "trialing", items: { ...currentObject.items, data: currentObject.items.data.map((item) => ({ ...item, current_period_start: initialTime, current_period_end: initialTime + TRIAL_SECONDS })) } }, staleCreated);
-      const outOfOrderResponse = await fetch(`${STAGING_ORIGIN}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json", "stripe-signature": outOfOrder.header, "x-vercel-protection-bypass": bypass }, body: outOfOrder.payload });
+      const outOfOrderResponse = await fetch(webhookUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "stripe-signature": outOfOrder.header, ...protection.headersFor(webhookUrl) }, body: outOfOrder.payload });
       const outOfOrderBody = await outOfOrderResponse.text();
       const afterOutOfOrder = await entitlement();
       const duplicate = signedEvent(webhookSecret, "customer.subscription.updated", currentObject, Math.floor(Date.now() / 1000));
-      const first = await fetch(`${STAGING_ORIGIN}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json", "stripe-signature": duplicate.header, "x-vercel-protection-bypass": bypass }, body: duplicate.payload });
-      const second = await fetch(`${STAGING_ORIGIN}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json", "stripe-signature": duplicate.header, "x-vercel-protection-bypass": bypass }, body: duplicate.payload });
+      const first = await fetch(webhookUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "stripe-signature": duplicate.header, ...protection.headersFor(webhookUrl) }, body: duplicate.payload });
+      const second = await fetch(webhookUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "stripe-signature": duplicate.header, ...protection.headersFor(webhookUrl) }, body: duplicate.payload });
       const receipt = await admin.from("billing_webhook_events").select("processing_state, failure_class").eq("stripe_event_id", duplicate.id).maybeSingle();
       const afterDuplicate = await entitlement();
       table.SIGNED_REPLAYS = { outOfOrder: { status: outOfOrderResponse.status, body: outOfOrderBody.slice(0, 120), entitlementUnchanged: afterOutOfOrder?.entitlement_state === "subscription-active" && instant(afterOutOfOrder.current_period_ends_at) === periodEnd(currentObject) * 1000 }, duplicate: { first: first.status, second: second.status, receipt: receipt.data ?? null, entitlementUnchanged: afterDuplicate?.entitlement_state === "subscription-active" } };
@@ -711,7 +745,7 @@ async function lifecycle() {
     await observe("OLD_CANCELED_NEW_ACTIVE", replacement.id, { ...entitled, STRIPE_STATUS: "active", ENTITLEMENT: "subscription-active", SUBSCRIPTION_UI: "Active" });
     if (webhookSecret && !table.SIGNED_REPLAYS.skipped) {
       const lateOld = signedEvent(webhookSecret, "customer.subscription.deleted", subscription, Math.floor(Date.now() / 1000));
-      const late = await fetch(`${STAGING_ORIGIN}/api/billing/webhook`, { method: "POST", headers: { "content-type": "application/json", "stripe-signature": lateOld.header, "x-vercel-protection-bypass": bypass }, body: lateOld.payload });
+      const late = await fetch(webhookUrl, { method: "POST", redirect: "manual", headers: { "content-type": "application/json", "stripe-signature": lateOld.header, ...protection.headersFor(webhookUrl) }, body: lateOld.payload });
       const afterLate = await entitlement();
       table.LATE_OLD_SUBSCRIPTION_EVENT = { status: late.status, body: (await late.text()).slice(0, 120), entitlementUnchanged: afterLate?.entitlement_state === "subscription-active" };
       check(late.status === 200 && table.LATE_OLD_SUBSCRIPTION_EVENT.entitlementUnchanged, "late-old-subscription-event-revoked-new-access");
@@ -780,21 +814,23 @@ async function sweep() {
   if (secret) secrets.push(secret);
   const stagingToken = process.env.MVH_STAGING_ACCESS_TOKEN?.trim() || null;
   if (stagingToken) secrets.push(stagingToken);
-  const headers = bypass ? { "x-vercel-protection-bypass": bypass } : {};
+  const reconcileUrl = `${STAGING_ORIGIN}/api/internal/billing/reconcile`;
+  const bootstrapUrl = `${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`;
   // The locked staging gate answers 404 without its cookie; record that, then
   // probe the route contract through the gate the way a staging operator would.
-  const locked = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers, redirect: "manual" });
+  const locked = await fetch(reconcileUrl, { headers: protection.headersFor(reconcileUrl), redirect: "manual" });
   evidence.sweepLockedGate = { status: locked.status, bytes: (await locked.arrayBuffer()).byteLength };
+  const gate = {};
   if (stagingToken) {
-    const bootstrap = await fetch(`${STAGING_ORIGIN}/api/internal/staging-access/bootstrap`, { method: "POST", redirect: "manual", headers: { ...headers, Authorization: `Bearer ${stagingToken}` } });
+    const bootstrap = await fetch(bootstrapUrl, { method: "POST", redirect: "manual", headers: { ...protection.headersFor(bootstrapUrl), Authorization: `Bearer ${stagingToken}` } });
     const cookie = bootstrap.headers.get("set-cookie")?.split(";")[0] ?? null;
-    if (cookie) headers.cookie = cookie;
+    if (cookie) gate.cookie = cookie;
   }
-  const closed = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers, redirect: "manual" });
-  const wrong = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers: { ...headers, Authorization: "Bearer not-the-secret-value-at-all" }, redirect: "manual" });
+  const closed = await fetch(reconcileUrl, { headers: { ...protection.headersFor(reconcileUrl), ...gate }, redirect: "manual" });
+  const wrong = await fetch(reconcileUrl, { headers: { ...protection.headersFor(reconcileUrl), ...gate, Authorization: "Bearer not-the-secret-value-at-all" }, redirect: "manual" });
   evidence.sweep = { withoutBearer: { status: closed.status, body: (await closed.text()).slice(0, 120) }, wrongBearer: { status: wrong.status, body: (await wrong.text()).slice(0, 120) } };
   if (!secret) { evidence.sweep.authorized = "skipped: CRON_SECRET_STAGING not in vault (run --stage=cron-secret then redeploy)"; console.log(JSON.stringify(evidence.sweep, null, 2)); return; }
-  const authorized = await fetch(`${STAGING_ORIGIN}/api/internal/billing/reconcile`, { headers: { ...headers, Authorization: `Bearer ${secret}` }, redirect: "manual" });
+  const authorized = await fetch(reconcileUrl, { headers: { ...protection.headersFor(reconcileUrl), ...gate, Authorization: `Bearer ${secret}` }, redirect: "manual" });
   const body = await authorized.text();
   evidence.sweep.authorized = { status: authorized.status, body: redact(body).slice(0, 600) };
   check(authorized.status === 200 && closed.status === 401 && wrong.status === 401, `sweep-route-contract-failed:${JSON.stringify(evidence.sweep)}`);

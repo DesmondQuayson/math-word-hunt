@@ -20,7 +20,9 @@ if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unava
 function Probe {
   param([string]$Label, [string]$Uri, [hashtable]$Headers, [string]$Method = 'GET', [scriptblock]$Inspect = $null)
   try {
-    $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -Method $Method -UserAgent $script:BackendUserAgent -UseBasicParsing -TimeoutSec 30
+    # -MaximumRedirection 0: a redirect would carry these credential headers (the Vercel bypass secret, bearer
+    # tokens) to wherever it points, so any redirect is reported as a failure instead of being followed.
+    $response = Invoke-WebRequest -Uri $Uri -Headers $Headers -Method $Method -UserAgent $script:BackendUserAgent -UseBasicParsing -TimeoutSec 30 -MaximumRedirection 0
     $detail = ''
     if ($Inspect) { $detail = ' ' + (& $Inspect $response) }
     "$Label = PASS (HTTP $($response.StatusCode))$detail"

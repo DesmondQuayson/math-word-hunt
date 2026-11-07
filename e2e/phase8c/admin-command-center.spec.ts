@@ -56,7 +56,21 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await expect(page.getByRole("heading", { name: "MathNexa Super Admin" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Admin modules" }).getByRole("link")).toHaveCount(12);
   await expect(page.getByText("Standalone catalog entries")).toBeVisible();
-  await expect(page.locator(".admin-health-panel dl > div").filter({ hasText: "Email" }).getByText("no events", { exact: true })).toBeVisible();
+  const healthRow = (name: string) => page.locator(".admin-health-row").filter({ has: page.locator(".admin-health-name", { hasText: new RegExp(`^${name}$`) }) });
+  for (const name of ["Application", "Email", "Webhooks", "Subscription sync", "Private storage", "Game package validation", "PDF quarantine", "ZIP quarantine"]) {
+    await expect(healthRow(name), name).toHaveCount(1);
+  }
+  // Quiet providers are not failures and must not lower Application; unknown is never shown as healthy.
+  await expect(healthRow("Game package validation").locator(".admin-health-badge")).toHaveText(/No packages|Healthy|Attention/);
+  await expect(healthRow("Application").locator(".admin-health-badge")).not.toHaveText(/Degraded/);
+  await healthRow("Email").locator("summary").click();
+  const emailEvidence = healthRow("Email").locator(".admin-health-evidence");
+  await expect(emailEvidence).toBeVisible();
+  for (const term of ["Status", "Last checked", "Last success", "Last failure", "Freshness"]) await expect(emailEvidence.getByText(term, { exact: true })).toBeVisible();
+  await expect(emailEvidence.getByText(/Recommended action:/)).toBeVisible();
+  await healthRow("Email").locator("summary").press("Enter");
+  await expect(emailEvidence).toBeHidden();
+  expect(await page.locator(".admin-health-panel").textContent()).not.toMatch(/(?:sub|cus|evt|whsec|rk_live|sk_live|sb_secret)_[A-Za-z0-9]/);
 
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("searchbox", { name: "Find an admin area" })).toBeFocused();
@@ -89,6 +103,17 @@ test("owner command center is accessible, responsive, honest, and preference-awa
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("navigation", { name: "Admin modules" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  // Every evidence panel open on the dashboard at phone, tablet and desktop widths: no page-level horizontal scroll.
+  await page.goto("/admin");
+  for (const summary of await page.locator(".admin-health-row summary").all()) await summary.click();
+  for (const [width, height] of [[320, 720], [375, 812], [768, 1024], [1280, 900]] as const) {
+    await page.setViewportSize({ width, height });
+    await expect(page.locator(".admin-health-row details[open]").first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${width}px`).toBe(true);
+    expect(await page.evaluate(() => [...document.querySelectorAll(".admin-health-evidence")].every((node) => node.scrollWidth <= node.clientWidth + 1)), `${width}px evidence`).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
   await expect(page.getByRole("link", { name: /Users/ })).toHaveCSS("outline-style", /none|solid/);
