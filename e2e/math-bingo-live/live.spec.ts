@@ -68,9 +68,10 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
   }
   // The pacing contract is on every screen before the first call.
   const pacedHost = await waitFor(host.page, current => current.pacing !== null, "pacing on the host");
-  expect(pacedHost.pacing).toMatchObject({ firstWinCall: 15, spacing: 10, nextEligibleCall: 15, maxWinners: 3 });
+  expect(pacedHost.pacing).toMatchObject({ firstWinCall: 15, spacing: 10, nextEligibleCall: 15, gateOpen: false });
+  expect(pacedHost.pacing!.maxWinners).toBeGreaterThanOrEqual(3);
   await expect(host.page.locator(".head-pacing")).toContainText(/First Bingo opportunity in \d+ calls?/);
-  await expect(ava.page.locator(".pacing-line")).toContainText(/First Bingo opportunity in \d+ calls?/);
+  await expect(ava.page.locator(".pacing-line")).toContainText(/First Bingo opportunity: \d+ calls?/);
   await expect(ava.page.locator(".card-cell")).toHaveCount(25);
 
   const first = await waitFor(host.page, current => current.phase === "QUESTION_ACTIVE", "question 1");
@@ -108,6 +109,10 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
       // Nobody can finish a line before call 15, and nobody can be the next
       // winner within ten calls of the last one: the server paces the game.
       expect(hostState.winners.length === 0 ? hostState.questionNumber < 15 || hostState.pacing!.gateOpen : true).toBe(true);
+      // The chip before anyone marks: "OPEN" while the gate is open and untaken, "Next … in N calls" during a cooldown.
+      const chipBefore = (await host.page.locator(".head-pacing").textContent()) ?? "";
+      if (/Bingo opportunity OPEN/.test(chipBefore)) sawOpen = true;
+      if (/Next Bingo opportunity in \d+ calls?/.test(chipBefore)) sawNext = true;
       // Everyone plays their best; the server decides who is next.
       for (const name of ["Ava", "Zion", "Omar"]) {
         const page = players[name];

@@ -229,8 +229,8 @@ try {
   const distinct = (card) => new Set(card.filter((cell) => !cell.free).map((cell) => cell.n)).size;
   ok(cards.every((card) => card.length === 25 && distinct(card) === 24 && card[12].free) && new Set(cards.map((card) => card.map((cell) => cell.free ? "F" : cell.n).join(","))).size === 3, "every card holds 24 different answers in its own layout, Free Space in the middle");
   const pacedRoom = await state(host.page);
-  ok(pacedRoom.pacing && pacedRoom.pacing.firstWinCall === 15 && pacedRoom.pacing.spacing === 10 && pacedRoom.pacing.nextEligibleCall === 15 && pacedRoom.pacing.maxWinners === 3, "the room is paced: first Bingo from call 15, 10 calls between winners, 3 winners allowed");
-  ok(/First Bingo opportunity in \d+ calls?/.test((await host.page.locator(".head-pacing").textContent()) ?? "") && /First Bingo opportunity in \d+ calls?/.test((await ava.page.locator(".pacing-line").textContent()) ?? ""), "host and student screens show the first Bingo opportunity countdown");
+  ok(pacedRoom.pacing && pacedRoom.pacing.firstWinCall === 15 && pacedRoom.pacing.spacing === 10 && pacedRoom.pacing.nextEligibleCall === 15 && pacedRoom.pacing.maxWinners >= 3, `the room is paced: first Bingo from call 15, 10 calls between winners, up to ${pacedRoom.pacing?.maxWinners} winners allowed at this level`);
+  ok(/First Bingo opportunity in \d+ calls?/.test((await host.page.locator(".head-pacing").textContent()) ?? "") && /First Bingo opportunity: \d+ calls?/.test((await ava.page.locator(".pacing-line").textContent()) ?? ""), "host and student screens show the first Bingo opportunity countdown");
   ok(JSON.stringify(await ways(host.page, ".ways-strip")) === JSON.stringify({ rows: true, columns: true, diagonals: false })
     && JSON.stringify(await ways(ava.page, ".rules")) === JSON.stringify({ rows: true, columns: true, diagonals: false }), "host and student winning ways match the room (rows, columns; no diagonals)");
   await board(host.page, 1280, 720, "question");
@@ -245,6 +245,10 @@ try {
   for (let guard = 0; guard < 120 && current.phase === "QUESTION_ACTIVE"; guard += 1) {
     const question = current.questionNumber;
     for (const student of [ava, zion, omar]) await until(student.page, { phase: "QUESTION_ACTIVE", question }, `${student.name} sees question ${question}`);
+    // The chip before anyone marks: "OPEN" is shown while the gate is open and nobody has taken it yet.
+    const chipBefore = (await host.page.locator(".head-pacing").textContent().catch(() => "")) ?? "";
+    if (/Bingo opportunity OPEN/.test(chipBefore)) sawOpen = true;
+    if (/Next Bingo opportunity in \d+ calls?/.test(chipBefore)) sawNext = true;
     const avaResult = await markByTap(ava.page, false);
     if (avaResult) ok(avaResult === "correct", `Ava's tap on question ${question} is correct`);
     for (const student of [zion, omar]) {

@@ -5,9 +5,9 @@ migration, no catalog change, no Supabase upgrade). Not promoted, not merged.**
 
 | | |
 | --- | --- |
-| Branch | `feature/math-bingo-live-pacing` (from `main` `eb9bd40` = v1.2.37) |
-| Staging preview | _filled in after the deploy_ |
-| Staging database | `20261103100000` … `20261107100000`, **`20261108100000` (new, additive)** |
+| Branch | `feature/math-bingo-live-pacing` — commit `3054af4` (from `main` `eb9bd40` = v1.2.37); not pushed, not merged |
+| Staging preview | `dpl_BdbBUUtNkGemVSYdXJPW1vPUKyR1` — https://mathnexa-platform-staging-myrxww0og-bright-path-ed-tech.vercel.app (build `3054af4`, `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`); NOT promoted |
+| Staging database | `20261103100000` … `20261107100000`, **`20261108100000` applied 2026-11-06 (`-Stage migrate` PASS: universe table, pacing column, scheduler and paced Start present, browsers have no access; row counts unchanged; `-Stage smoke` PASS)** |
 | Production database | `20261103100000` … `20261107100000` (unchanged) |
 | Rollback | `supabase/rollback/math_bingo_live_pacing.sql` (restores every function and constraint exactly as `20261107100000` left them; drops the new table and columns) |
 
