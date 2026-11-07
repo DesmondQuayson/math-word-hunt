@@ -156,7 +156,9 @@ const MIXED = Object.freeze({
 export const FRACTION_DENOMINATORS = Object.freeze({
   "to-fifths": Object.freeze([2, 3, 4, 5]),
   "to-sixths": Object.freeze([2, 3, 4, 5, 6]),
-  "to-eighths": Object.freeze([2, 3, 4, 5, 6, 8])
+  "to-eighths": Object.freeze([2, 3, 4, 5, 6, 8]),
+  "to-tenths": Object.freeze([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+  "to-twelfths": Object.freeze([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 });
 
 const factCache = new Map();

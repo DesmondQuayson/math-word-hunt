@@ -131,8 +131,11 @@ select is((select count(*)::integer from public.bingo_participants where room_id
   'each player''s own card has exactly that cell marked, once');
 select is((select count(*)::integer from (select pg_temp.mark(repeat('6',64), repeat('b',60)||lpad(g::text,4,'0'), 0) as r from generate_series(1,50) g) s where r='already-marked'),50,
   'a repeated submission is never counted twice');
-select is((select count(distinct (e->>'rank')::integer)::integer from jsonb_array_elements(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard') e),50,
-  'the leaderboard ranks all 50 players, each once');
+select is((select count(*)::integer from jsonb_array_elements(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard') e),50,
+  'the leaderboard lists all 50 players');
+-- Equal progress is a tie (20261108100000): 50 players with one mark each all share rank 1.
+select is((select count(*)::integer from jsonb_array_elements(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard') e where (e->>'rank')::integer=1 and (e->>'tied')::boolean),50,
+  'all 50 share rank 1 and are marked tied');
 select is((select count(*)::integer from jsonb_array_elements(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard') e where (e->>'correct')::integer=1),50,
   'with one correct mark each');
 

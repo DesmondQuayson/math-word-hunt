@@ -39,7 +39,7 @@ const secretKey = (process.env.SUPABASE_SECRET_KEY ?? "").trim();
 if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const PLAYERS = Number(process.env.LOAD_PLAYERS ?? 50);
-const LOAD_SECONDS = Number(process.env.LOAD_SECONDS ?? 360);
+const LOAD_SECONDS = Number(process.env.LOAD_SECONDS ?? 480);
 if (!Number.isInteger(PLAYERS) || PLAYERS < 1 || PLAYERS > 60) throw new Error("LOAD_PLAYERS must be 1–60 (the room limit)");
 const out = resolve(process.env.REVIEW_OUT ?? "qa-artifacts/math-bingo-live/staging-load");
 mkdirSync(out, { recursive: true });
@@ -233,7 +233,8 @@ try {
   }
   networkBaseline = stats(baseline.slice(2));
 
-  // The synthetic free teacher signs in and creates a timed room: 10 s questions, 3 s reveal, 10 winners.
+  // The synthetic free teacher signs in and creates a timed room: Addition within 50,
+  // 10 s questions, 3 s reveal, 2 winners (a paced game of 25 calls fits the time budget).
   const email = `bingo-load-${run}-teacher@example.invalid`;
   const made = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { synthetic_run_id: run, purpose: "math-bingo-live-staging-load" } });
   if (made.error || !made.data.user) throw new Error("synthetic-user-failed");
@@ -260,7 +261,7 @@ try {
   await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
   await page.waitForURL((url) => url.pathname === HOST, { timeout: 120_000 });
   await page.waitForFunction(() => document.body.dataset.screen === "setup", null, { timeout: 60_000 });
-  for (const [name, setting] of [["mode", "addition"], ["level", "facts-20"], ["questionSeconds", "10"], ["revealSeconds", "3"], ["winners", "10"]]) {
+  for (const [name, setting] of [["mode", "addition"], ["level", "within-50"], ["questionSeconds", "10"], ["revealSeconds", "3"], ["winners", "2"]]) {
     await page.locator(`input[name="${name}"][value="${setting}"]`).click({ force: true });
   }
   await page.getByRole("button", { name: "CREATE GAME" }).click();
@@ -268,7 +269,7 @@ try {
   const hostState = () => page.evaluate(() => window.__MATH_BINGO_LIVE__?.state ?? null);
   const room = await hostState();
   codes.add(room.code);
-  ok(room.settings.questionSeconds === 10 && room.settings.winners === 10, `room ${room.code.slice(0, 2)}···· is timed (10 s questions, 10 winners)`);
+  ok(room.settings.questionSeconds === 10 && room.settings.winners === 2, `room ${room.code.slice(0, 2)}···· is timed (10 s questions, 2 winners)`);
 
   // A class of fifty joins within about ten seconds.
   for (let index = 0; index < PLAYERS; index += 1) students.push(student(index, room.code));
@@ -330,7 +331,7 @@ try {
       const calledIds = s.called.map((item) => item.id);
       emojiInStandings = Math.max(emojiInStandings, s.leaderboard.filter((row) => row.emoji).length);
       games.push({ game: s.gameNumber, questions: s.questionNumber, calledIds: calledIds.length, uniqueCalledIds: new Set(calledIds).size,
-        winners: s.winners.map((winner) => ({ placement: winner.placement, name: winner.name, emoji: winner.emoji })) });
+        winners: s.winners.map((winner) => ({ placement: winner.placement, name: winner.name, emoji: winner.emoji, question: winner.question })) });
       await page.screenshot({ path: resolve(out, `host-complete-game-${s.gameNumber}.png`) });
       if (Date.now() - playStarted > (LOAD_SECONDS - 45) * 1000) break;
       await sleep(5000);
@@ -410,7 +411,8 @@ try {
   const limited = samples.filter((sample) => sample.status === 429);
   ok(serverErrors.length === 0, `no server or network errors (${serverErrors.length}${serverErrors.length ? `: ${[...new Set(serverErrors.map((sample) => `${sample.action} ${sample.status} ${sample.result}`))].slice(0, 5).join("; ")}` : ""})`);
   ok(limited.length === 0, `no request was rate-limited from one shared address (${limited.length})`);
-  ok(games.length >= 1 && games.every((game) => game.winners.length >= 1 && game.winners.length <= 10 && new Set(game.winners.map((winner) => winner.placement)).size === game.winners.length), `${games.length} game(s) completed with 1–10 winners in distinct places`);
+  ok(games.length >= 1 && games.every((game) => game.winners.length >= 1 && game.winners.length <= 2 && new Set(game.winners.map((winner) => winner.placement)).size === game.winners.length), `${games.length} game(s) completed with 1–2 winners in distinct places`);
+  ok(games.every((game) => game.winners.every((winner, index) => winner.question >= (index === 0 ? 15 : game.winners[index - 1].question + 10))), `every Bingo kept the pacing: ${games.map((game) => game.winners.map((winner) => winner.question).join("/")).join(", ")}`);
   ok(report.boardsDealt === joined.filter(Boolean).length, `every student got a card (${report.boardsDealt})`);
   ok(burst.valid >= joined.filter(Boolean).length * 0.9 && burst.accepted === burst.valid, `same-answer burst: ${burst.accepted}/${burst.valid} simultaneous taps of the same answer accepted (${Object.entries(burst.results).map(([result, count]) => `${result} ${count}`).join(", ")}; p95 ${report.sameAnswerBurst.latency.p95} ms)`);
   ok(burst.repeats > 0 && burst.repeatsCounted === 0, `no repeated submission counted (${burst.repeatsCounted}/${burst.repeats})`);

@@ -15,7 +15,9 @@ export type LiveState = {
   question: Question | null;
   called: Question[];
   settings: { mode: string; patterns: { rows: boolean; columns: boolean; diagonals: boolean }; equivalentFractions: boolean; freeSpace: boolean; winners: number };
-  winners: Array<{ name: string; placement: number; lineType: string; line: string }>;
+  winners: Array<{ name: string; placement: number; lineType: string; line: string; question: number }>;
+  completedReason: string | null;
+  pacing: { firstWinCall: number; spacing: number; nextEligibleCall: number; lastWinnerCall: number | null; maxWinners: number; scaled: boolean; callsUntilOpportunity: number; gateOpen: boolean } | null;
   winnerCount: number;
   events: Array<{ seq: number; type: string; name: string; placement: number | null }>;
   leaderboard: Array<{ name: string; rank: number; won: boolean; placement: number | null; best: number; type: string | null }>;

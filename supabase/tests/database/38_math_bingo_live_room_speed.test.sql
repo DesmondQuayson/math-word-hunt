@@ -143,13 +143,15 @@ select is(public.bingo_player_state(:cy,null,null)->>'seed', null, 'no seed once
 select is(public.bingo_player_state(:cy,null,null)->'pool', 'null'::jsonb, 'no answer pool once the card is dealt');
 select is(public.bingo_create_room('612399',repeat('5',64),repeat('6',64),pg_temp.settings())->>'result','created','a seven-player room');
 select is((select count(*)::integer from (select public.bingo_join_room('612399','Kid '||g,repeat('d',60)||lpad(g::text,4,'0'),:subject)->>'result' as r from generate_series(1,7) g) s where r='joined'),7,'seven players join');
--- Everyone joined in one instant, so ties are ordered by id: look the ranks up.
+-- Everyone joined in one instant and is tied; the display order breaks the tie: look the positions up.
 create temporary table ranked as
-  select (e->>'rank')::integer as rank, p.token_hash
+  select (e->>'order')::integer as rank, p.token_hash
   from jsonb_array_elements(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard') e
   join public.bingo_participants p on p.id=(e->>'id')::uuid;
 select is(jsonb_array_length(public.bingo_player_state((select token_hash from ranked where rank=7),null,null)->'leaderboard'),6,'the seventh player gets the top five plus their own row');
-select is((public.bingo_player_state((select token_hash from ranked where rank=7),null,null)->'leaderboard'->5->>'rank')::integer,7,'their own row keeps its rank');
+-- Seven players with the same progress are tied (20261108100000): rank 1 for all, their row is still there.
+select is((public.bingo_player_state((select token_hash from ranked where rank=7),null,null)->'leaderboard'->5->>'rank')::integer,1,'their own row keeps its (tied) rank');
+select is((public.bingo_player_state((select token_hash from ranked where rank=7),null,null)->'leaderboard'->5->>'tied')::boolean,true,'and says it is a tie');
 select is(jsonb_array_length(public.bingo_player_state((select token_hash from ranked where rank=1),null,null)->'leaderboard'),5,'the leader gets the top five (their row is in it)');
 select is(jsonb_array_length(public.bingo_host_state(repeat('5',64),repeat('6',64),null,null)->'leaderboard'),7,'the host still gets everyone');
 

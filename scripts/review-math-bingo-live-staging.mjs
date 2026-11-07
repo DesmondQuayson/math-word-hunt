@@ -184,7 +184,8 @@ try {
   const safari = await webkit.launch();
   browsers.push(chrome, safari);
 
-  // The free teacher signs in and creates a room: rows + columns, no diagonals, 3 winners, manual pace.
+  // The free teacher signs in and creates a room: Addition within 50 (240 different
+  // questions: Bingo pacing allows 3 winners), rows + columns, no diagonals, 3 winners, manual pace.
   const email = await freeTeacher();
   const host = await open(chrome, { viewport: { width: 1366, height: 768 } });
   await host.page.goto(`${origin}/sign-in?next=${encodeURIComponent(HOST)}`);
@@ -194,7 +195,7 @@ try {
   await host.page.waitForURL((url) => url.pathname === HOST, { timeout: 120_000 });
   await host.page.waitForFunction(() => document.body.dataset.screen === "setup", null, { timeout: 60_000 });
   ok(true, "a free MathNexa account (no subscription) opens the host screen");
-  for (const [name, value] of [["mode", "addition"], ["level", "facts-20"], ["questionSeconds", "0"], ["revealSeconds", "0"], ["winners", "3"]]) {
+  for (const [name, value] of [["mode", "addition"], ["level", "within-50"], ["questionSeconds", "0"], ["revealSeconds", "0"], ["winners", "3"]]) {
     await host.page.locator(`input[name="${name}"][value="${value}"]`).click({ force: true });
   }
   if (await host.page.locator('input[name="diagonals"]').isChecked()) await host.page.locator('input[name="diagonals"]').click({ force: true });
@@ -225,34 +226,42 @@ try {
   await host.page.getByRole("button", { name: "START GAME" }).click();
   for (const student of [ava, zion, omar]) await until(student.page, { phase: "QUESTION_ACTIVE", board: true }, `${student.name} question 1`, 60_000);
   const cards = await Promise.all([ava, zion, omar].map(async (student) => (await state(student.page)).me.board));
-  const multiset = (card) => card.filter((cell) => !cell.free).map((cell) => cell.n).sort((x, y) => x - y).join(",");
-  ok(new Set(cards.map(multiset)).size === 1 && new Set(cards.map((card) => card.map((cell) => cell.free ? "F" : cell.n).join(","))).size === 3, "every card has the same answers in a different layout");
+  const distinct = (card) => new Set(card.filter((cell) => !cell.free).map((cell) => cell.n)).size;
+  ok(cards.every((card) => card.length === 25 && distinct(card) === 24 && card[12].free) && new Set(cards.map((card) => card.map((cell) => cell.free ? "F" : cell.n).join(","))).size === 3, "every card holds 24 different answers in its own layout, Free Space in the middle");
+  const pacedRoom = await state(host.page);
+  ok(pacedRoom.pacing && pacedRoom.pacing.firstWinCall === 15 && pacedRoom.pacing.spacing === 10 && pacedRoom.pacing.nextEligibleCall === 15 && pacedRoom.pacing.maxWinners === 3, "the room is paced: first Bingo from call 15, 10 calls between winners, 3 winners allowed");
+  ok(/First Bingo opportunity in \d+ calls?/.test((await host.page.locator(".head-pacing").textContent()) ?? "") && /First Bingo opportunity in \d+ calls?/.test((await ava.page.locator(".pacing-line").textContent()) ?? ""), "host and student screens show the first Bingo opportunity countdown");
   ok(JSON.stringify(await ways(host.page, ".ways-strip")) === JSON.stringify({ rows: true, columns: true, diagonals: false })
     && JSON.stringify(await ways(ava.page, ".rules")) === JSON.stringify({ rows: true, columns: true, diagonals: false }), "host and student winning ways match the room (rows, columns; no diagonals)");
   await board(host.page, 1280, 720, "question");
   await board(host.page, 1920, 1080, "question");
   await host.page.setViewportSize({ width: 1366, height: 768 });
 
-  // Play: Ava first (real taps in WebKit), then Zion, then Omar.
+  // Play: everyone plays their best (Ava with real taps in WebKit); the server paces the Bingos.
   let firstChecked = false;
+  let sawOpen = false;
+  let sawNext = false;
   let current = await state(host.page);
-  for (let guard = 0; guard < 60 && current.phase === "QUESTION_ACTIVE"; guard += 1) {
+  for (let guard = 0; guard < 120 && current.phase === "QUESTION_ACTIVE"; guard += 1) {
     const question = current.questionNumber;
     for (const student of [ava, zion, omar]) await until(student.page, { phase: "QUESTION_ACTIVE", question }, `${student.name} sees question ${question}`);
-    const hostNow = await state(host.page);
-    const won = new Set(hostNow.winners.map((winner) => winner.name));
     const avaResult = await markByTap(ava.page, false);
     if (avaResult) ok(avaResult === "correct", `Ava's tap on question ${question} is correct`);
-    for (const [student, hold] of [[zion, !won.has("Ava")], [omar, !won.has("Zion")]]) {
-      const result = await markByRequest(student.page, hold);
+    for (const student of [zion, omar]) {
+      const result = await markByRequest(student.page, false);
       if (result && result !== "correct") ok(false, `${student.name} mark ${result}`);
     }
     await sleep(1500);
     current = await state(host.page);
+    const chip = (await host.page.locator(".head-pacing").textContent().catch(() => "")) ?? "";
+    if (/Bingo opportunity OPEN/.test(chip)) sawOpen = true;
+    if (/Next Bingo opportunity in \d+ calls?/.test(chip)) sawNext = true;
     if (!firstChecked && current.winnerCount === 1 && current.phase !== "GAME_COMPLETE") {
       firstChecked = true;
+      const firstName = current.winners[0].name;
+      ok(current.winners[0].question >= 15, `the first Bingo (${firstName}) came at call ${current.winners[0].question}, not before call 15`);
       await host.page.locator(".panel-winners .winner-name").first().waitFor();
-      ok((await host.page.locator(".panel-winners .winner-name").allTextContents()).join(",") === "Ava", "Bingo Winners lists Ava");
+      ok((await host.page.locator(".panel-winners .winner-name").allTextContents()).join(",") === firstName, `Bingo Winners lists ${firstName}`);
       ok((await host.page.locator(".panel-winners .panel-meta").textContent()) === "Winners 1 / 3", "Winners 1 / 3");
       const banner = await host.page.locator(".board-left > .banner").textContent().catch(() => "");
       ok(!/null|undefined/.test(banner ?? ""), "the Bingo announcement has no stray text");
@@ -274,7 +283,11 @@ try {
     current = await state(host.page);
   }
   const final = await until(host.page, { phase: "GAME_COMPLETE" }, "game complete", 30_000);
-  ok(final?.winners?.map((winner) => `${winner.placement}:${winner.name}`).join(",") === "1:Ava,2:Zion,3:Omar", `winners in order: ${final?.winners?.map((winner) => winner.name).join(", ")}`);
+  const names = final?.winners?.map((winner) => winner.name) ?? [];
+  ok(final?.winners?.map((winner) => winner.placement).join(",") === "1,2,3" && new Set(names).size === 3 && names.every((name) => ["Ava", "Zion", "Omar"].includes(name)), `three winners in places 1-3: ${names.join(", ")}`);
+  const calls = final?.winners?.map((winner) => winner.question) ?? [];
+  ok(calls.length === 3 && calls[0] >= 15 && calls[1] >= calls[0] + 10 && calls[2] >= calls[1] + 10, `Bingos at calls ${calls.join(", ")}: first from call 15, at least 10 calls apart`);
+  ok(sawOpen && sawNext, "the host pacing chip showed \"Bingo opportunity OPEN\" and \"Next Bingo opportunity in N calls\"");
   ok(final?.winners?.every((winner) => winner.lineType === "row" || winner.lineType === "column"), "every Bingo is a row or a column (diagonals are off)");
   await host.page.locator(".complete-title").waitFor({ timeout: 30_000 });
   ok(true, "MATH BINGO COMPLETE shown on the host");

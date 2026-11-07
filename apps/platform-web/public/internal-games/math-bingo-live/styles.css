@@ -136,6 +136,15 @@ body.bingo {
 .join-help { margin: 0; color: var(--muted); font-size: 0.95rem; }
 .form-error { margin: 0; min-height: 1.2em; color: var(--pink-soft); font-weight: 700; }
 .form-error:empty { display: none; }
+.field-note { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; font-weight: 700; line-height: 1.35; }
+.chip.is-unavailable { opacity: 0.45; cursor: not-allowed; }
+.chip.is-unavailable input { cursor: not-allowed; }
+.lobby-pacing { margin: 0; padding: 10px 14px; border-radius: 14px; background: rgba(255, 200, 61, 0.1); border: 1px solid rgba(255, 200, 61, 0.45); line-height: 1.4; }
+.lobby-pacing:empty { display: none; }
+.lobby-notice { margin: 0; padding: 10px 14px; border-radius: 14px; background: rgba(255, 200, 61, 0.16); border: 1px solid var(--gold); font-weight: 700; }
+.lobby-notice:empty { display: none; }
+.pacing-line { margin: 0; text-align: center; font-weight: 800; color: var(--muted); font-size: 0.9rem; }
+.winner-ribbon.is-pending { background: rgba(155, 123, 255, 0.22); border-color: var(--violet); color: var(--text); }
 /* Emoji picker: original MathNexa chips, 44 px touch targets, native radios. */
 .emoji-field { margin: 4px 0 0; padding: 0; border: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; min-width: 0; }
 .emoji-legend { float: left; padding: 0; display: inline-flex; align-items: baseline; flex-wrap: wrap; }
@@ -547,6 +556,11 @@ body.bingo {
 .head-label + .head-code { margin-left: -0.1em; }
 .head-code { font-size: 1.55em; line-height: 1.1; color: var(--gold); }
 .head-locked { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); letter-spacing: 0.08em; }
+.head-pacing {
+  margin: 0; padding: 4px 14px; white-space: nowrap; border-radius: 999px; font-weight: 900; letter-spacing: 0.02em;
+  background: rgba(155, 123, 255, 0.16); border: 1px solid var(--violet); color: var(--text); font-size: clamp(0.85rem, calc(var(--u) * 1.05), 1.35rem);
+}
+.head-pacing.is-open { background: rgba(139, 227, 107, 0.18); border-color: var(--lime); }
 .head-winners {
   margin: 0; padding: 4px 16px; white-space: nowrap; border-radius: 999px; font-weight: 900;
   background: rgba(255, 200, 61, 0.14); border: 1px solid var(--gold); font-size: clamp(0.95rem, calc(var(--u) * 1.2), 1.6rem);

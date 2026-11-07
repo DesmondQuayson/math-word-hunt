@@ -5,6 +5,17 @@ import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import { dealCard } from "@/public/internal-games/math-bingo-live/src/engine/board.js";
 import { describeModel, fractionText } from "@/public/internal-games/math-bingo-live/src/engine/fractions.js";
 import { isAllowedEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
+import {
+  buildUniverse,
+  classesFromCallable,
+  dealPacedBoard,
+  isValidPacedBoard,
+  pacingPlan,
+  universeClasses,
+  type PacingPlan,
+  type UniverseClass,
+  type UniverseQuestion
+} from "@/public/internal-games/math-bingo-live/src/engine/pacing.js";
 import { buildAnswerPool, buildDeck, dealRules, modeLabel, revealText } from "@/public/internal-games/math-bingo-live/src/engine/questions.js";
 import { ATTEMPTS_PER_QUESTION, normalizeSettings, type BingoSettings } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
 import { PRODUCTION_PUBLIC_CANONICAL_HOST, PRODUCTION_PUBLIC_WWW_HOST } from "@/lib/environment/production-public";
@@ -164,9 +175,61 @@ export function buildGame(settings: BingoSettings, seed: string): Readonly<{ poo
   return Object.freeze({ pool, deck: Object.freeze(deck) });
 }
 
+/**
+ * A paced game (winner pacing, 20261108100000): the room's question universe
+ * (every unique question with its answer class) and the pacing plan built
+ * from the game's secret seed. The database re-checks both at Start.
+ */
+export function buildPacedGame(settings: BingoSettings, seed: string, players: number | null = null): Readonly<{ universe: readonly UniverseQuestion[]; plan: PacingPlan; questions: readonly StoredUniverseQuestion[] }> {
+  const universe = buildUniverse(settings, seed);
+  const plan = pacingPlan(settings, universe, seed, players);
+  const questions = universe.map((question) => Object.freeze({ q: question.id, c: question.class, t: question.text, s: question.spoken, k: question.kind, n: question.n, d: question.d }));
+  if (new Set(questions.map((question) => question.q)).size !== questions.length) throw new Error("A question would repeat in this game.");
+  return Object.freeze({ universe, plan, questions: Object.freeze(questions) });
+}
+
+/** Universe entries as sent to and stored by the database. */
+export type StoredUniverseQuestion = Readonly<{ q: string; c: string; t: string; s: string; k: "arithmetic" | "fraction"; n: number; d: number }>;
+
+/** The pacing plan as the Start call sends it (the database keeps its own live state). */
+export function pacingPayload(plan: PacingPlan): Json {
+  return { firstWinCall: plan.firstWinCall, spacing: plan.spacing, buffer: plan.buffer, maxWinners: plan.maxWinners, scaled: plan.scaled, players: plan.players, late: [...plan.late], reserve: [...plan.reserve] };
+}
+
+/**
+ * Every listed player's paced card for a new game: classes spread evenly
+ * across the class's cards, every enabled line holding a late cell.
+ */
+export function dealPacedBoards(settings: BingoSettings, game: ReturnType<typeof buildPacedGame>, seed: string, participantIds: readonly unknown[]): Record<string, readonly Cell[]> {
+  const reserve = new Set(game.plan.reserve);
+  const classes = universeClasses(game.universe).filter((item) => !reserve.has(item.key));
+  const usage = new Map<string, number>();
+  const boards: Record<string, readonly Cell[]> = {};
+  for (const id of participantIds) {
+    if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) || id in boards) continue;
+    const board = dealPacedBoard({ settings, classes, late: game.plan.late, seed, participantId: id, usage });
+    if (!board || !isValidPacedBoard(board, { settings, late: game.plan.late, classes })) continue;
+    for (const cell of board) if (!("free" in cell)) usage.set(`${cell.n}/${cell.d}`, (usage.get(`${cell.n}/${cell.d}`) ?? 0) + 1);
+    boards[id] = board;
+  }
+  return boards;
+}
+
+/**
+ * A card for a player who needs one after Start (a late joiner, or a refused
+ * card): in a paced game from the room's late classes and the classes that
+ * still have an unasked question; in an older game from the shared pool.
+ */
 export function dealFor(record: Json, participantId: string): readonly Cell[] | null {
   const settings = normalizeSettings(record.settings);
-  if (!settings.ok || typeof record.seed !== "string" || !Array.isArray(record.pool)) return null;
+  if (!settings.ok || typeof record.seed !== "string") return null;
+  if (Array.isArray(record.late) && Array.isArray(record.callable)) {
+    const late = (record.late as unknown[]).filter((item): item is string => typeof item === "string");
+    const classes: UniverseClass[] = classesFromCallable(record.callable as unknown[]);
+    const board = dealPacedBoard({ settings: settings.settings, classes, late, seed: record.seed, participantId });
+    return board && isValidPacedBoard(board, { settings: settings.settings, late, classes }) ? board : null;
+  }
+  if (!Array.isArray(record.pool)) return null;
   return dealCard({ pool: record.pool as Fraction[], seed: record.seed, participantId, ...dealRules(settings.settings) });
 }
 
@@ -245,6 +308,31 @@ function questionView(entry: Json, number: number, revealed: boolean) {
   });
 }
 
+/**
+ * The pacing the screens show: the gate numbers and how many calls until the
+ * next Bingo opportunity. Never which player is close, never an answer.
+ */
+function pacingView(record: Json) {
+  const pacing = record.pacing;
+  if (!pacing || typeof pacing !== "object") return null;
+  const source = pacing as Json;
+  const questionNumber = int(record.questionNumber);
+  const nextEligibleCall = int(source.nextEligibleCall);
+  const cap = int((record.settings as Json | undefined)?.winners);
+  const capReached = cap > 0 && int(record.winnerCount) >= cap;
+  return Object.freeze({
+    firstWinCall: int(source.firstWinCall),
+    spacing: int(source.spacing),
+    nextEligibleCall,
+    lastWinnerCall: Number.isInteger(source.lastWinnerCall) ? (source.lastWinnerCall as number) : null,
+    maxWinners: int(source.maxWinners),
+    scaled: source.scaled === true,
+    /** Calls still to be made before a Bingo can become possible (0 = the gate is open). */
+    callsUntilOpportunity: capReached ? null : Math.max(0, nextEligibleCall - questionNumber),
+    gateOpen: !capReached && questionNumber >= nextEligibleCall
+  });
+}
+
 function common(record: Json) {
   const settings = cleanSettings(record.settings);
   const called = list(record.called);
@@ -279,6 +367,7 @@ function common(record: Json) {
     version: int(record.version),
     eventSeq: int(record.eventSeq),
     playerCount: int(record.playerCount),
+    pacing: pacingView(record),
     events: Object.freeze(list(record.events).map((event) => Object.freeze({
       seq: int(event.seq),
       type: text(event.type),
@@ -300,6 +389,9 @@ function common(record: Json) {
         placement: int(winner.placement),
         line: text(winner.line),
         lineType: text(winner.lineType),
+        // The call the Bingo was confirmed on (a line completed while a gate
+        // was closed is confirmed when the next gate opens).
+        question: int(winner.question),
         mask: shown ? int(winner.mask) : 0,
         cells: shown ? Object.freeze(list(winner.cells).map(cleanCell).filter((cell): cell is Cell => cell !== null)) : Object.freeze([])
       });
@@ -307,9 +399,12 @@ function common(record: Json) {
     leaderboard: Object.freeze(list(record.leaderboard).map((row) => Object.freeze({
       participant: text(row.id),
       rank: int(row.rank),
+      tied: row.tied === true,
       name: text(row.name),
       emoji: emoji(row.emoji),
       won: row.won === true,
+      pending: row.pending === true,
+      bestLines: int(row.bestLines),
       placement: Number.isInteger(row.placement) ? (row.placement as number) : null,
       best: int(row.best),
       type: typeof row.type === "string" ? row.type : null,
@@ -334,6 +429,8 @@ export function toHostState(record: Json) {
       placement: Number.isInteger(player.placement) ? (player.placement as number) : null,
       best: int(player.best),
       bestType: typeof player.bestType === "string" ? player.bestType : null,
+      bestLines: int(player.bestLines),
+      pending: player.pending === true,
       correct: int(player.correct)
     })))
   });
@@ -384,8 +481,12 @@ export function toPlayerState(record: Json) {
       winLine: typeof me.winLine === "string" ? me.winLine : null,
       best: int(me.best),
       bestType: typeof me.bestType === "string" ? me.bestType : null,
+      bestLines: int(me.bestLines),
+      /** A completed enabled line waiting for the next winner gate (not a Bingo yet). */
+      pendingLine: typeof me.pendingLine === "string" ? me.pendingLine : null,
       correct: int(me.correct),
-      rank: mine?.rank ?? null
+      rank: mine?.rank ?? null,
+      tied: mine?.tied ?? false
     })
   });
 }

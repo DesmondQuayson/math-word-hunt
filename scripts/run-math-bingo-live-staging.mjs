@@ -32,7 +32,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // Bingo migrations in order; `migrate` applies whichever single one is pending.
-const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000"]);
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000", "20261108100000"]);
+const PACING_MIGRATION = "20261108100000";
 const FINAL_GAMEPLAY_MIGRATION = "20261107100000";
 const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
@@ -175,6 +176,16 @@ async function migrate() {
   if (MIGRATION !== FIRST_MIGRATION) {
     evidence.speedFunctions = sql("select (to_regprocedure('public.bingo_host_state(text,text,bigint,bigint)') is not null) as host_state_with_progress, (to_regprocedure('private.bingo_progress(uuid)') is not null) as progress_helper, has_function_privilege('anon','private.bingo_progress(uuid)','EXECUTE') or has_function_privilege('authenticated','private.bingo_progress(uuid)','EXECUTE') as progress_browser_execute")[0];
     check(evidence.speedFunctions.host_state_with_progress && evidence.speedFunctions.progress_helper && !evidence.speedFunctions.progress_browser_execute, "room-speed-functions-missing-or-open");
+  }
+  if (MIGRATION === PACING_MIGRATION) {
+    evidence.pacing = sql(`select
+      exists (select 1 from information_schema.tables where table_schema='public' and table_name='bingo_room_questions') as universe_table,
+      exists (select 1 from information_schema.columns where table_schema='public' and table_name='bingo_rooms' and column_name='pacing') as pacing_column,
+      (to_regprocedure('public.bingo_host_start_paced(text,text,text,jsonb,text,jsonb,jsonb,jsonb)') is not null) as paced_start,
+      (to_regprocedure('private.bingo_schedule(public.bingo_rooms)') is not null) as scheduler,
+      has_table_privilege('anon','public.bingo_room_questions','SELECT') or has_table_privilege('authenticated','public.bingo_room_questions','SELECT') as universe_browser_select,
+      has_function_privilege('anon','private.bingo_schedule(public.bingo_rooms)','EXECUTE') or has_function_privilege('authenticated','private.bingo_schedule(public.bingo_rooms)','EXECUTE') as scheduler_browser_execute`)[0];
+    check(evidence.pacing.universe_table && evidence.pacing.pacing_column && evidence.pacing.paced_start && evidence.pacing.scheduler && !evidence.pacing.universe_browser_select && !evidence.pacing.scheduler_browser_execute, "pacing-objects-missing-or-open");
   }
   if (MIGRATION === FINAL_GAMEPLAY_MIGRATION) {
     evidence.finalGameplay = sql(`select

@@ -9,7 +9,8 @@
 import { HOST_ENDPOINT, LiveError, MESSAGES, createLiveSession, liveRequest, pollInterval } from "./api.js";
 import { GameAudio, MUSIC_TRACK, attachAudioLifecycle, readPreferences, writePreferences } from "./audio.js";
 import { announce, clear, fill, h, icon } from "./dom.js";
-import { AUDIO_TARGETS, DEFAULT_SETTINGS, MAX_WINNERS, MODES, QUESTION_SECONDS, REVEAL_SECONDS, WINNER_PRESETS, getMode } from "./engine/settings.js";
+import { capacityFor } from "./engine/pacing.js";
+import { AUDIO_TARGETS, DEFAULT_SETTINGS, MAX_WINNERS, MODES, QUESTION_SECONDS, REVEAL_SECONDS, WINNER_PRESETS, getLevel, getMode, normalizeSettings } from "./engine/settings.js";
 import { joinHostLabel, joinLink } from "./join-link.js";
 import {
   LINE_LABEL,
@@ -22,12 +23,14 @@ import {
   iconButton,
   medal,
   ordinal,
+  pacingText,
   phaseTotalMs,
   placeWord,
   playerName,
   progressText,
   qrCode,
   questionFace,
+  rankLabel,
   remainingMs,
   revealFace,
   rulesStrip,
@@ -171,12 +174,41 @@ function settingsForm(initial, { submitLabel, onSubmit, onCancel = null, joinLoc
     "aria-label": "Custom number of winners", placeholder: "#",
     value: WINNER_PRESETS.includes(initial.winners) ? "" : String(initial.winners)
   });
+  const capacityNote = h("p", { id: "winners-capacity", class: "field-note", "aria-live": "polite" });
+  // Bingo pacing: the first Bingo from call 15, 10 calls between winners, no
+  // question twice. How many winners that allows depends on the level's unique
+  // questions; the chips beyond that are disabled and the note says why.
+  const updateCapacity = () => {
+    const data = new FormData(form);
+    const probe = normalizeSettings({ ...DEFAULT_SETTINGS, mode: data.get("mode"), level: data.get("level") ?? initial.level, equivalentFractions: data.get("mode") === "fractions" && data.has("equivalentFractions") });
+    if (!probe.ok) return;
+    const capacity = capacityFor(probe.settings);
+    const mode = getMode(probe.settings.mode);
+    const level = getLevel(probe.settings.mode, probe.settings.level);
+    for (const chip of form.querySelectorAll('input[name="winners"]')) {
+      const count = Number(chip.value);
+      const over = count > capacity.maxWinners || (count === 0 && capacity.maxWinners < 2);
+      chip.disabled = over;
+      chip.closest(".chip")?.classList.toggle("is-unavailable", over);
+      if (over && chip.checked) {
+        chip.checked = false;
+        const fallback = form.querySelector(`input[name="winners"][value="${Math.min(capacity.maxWinners, 1)}"]`);
+        if (fallback) fallback.checked = true;
+      }
+    }
+    customWinners.max = String(Math.max(1, capacity.maxWinners));
+    const pace = capacity.scaled
+      ? `first Bingo from call ${capacity.firstWinCall} (${capacity.universe} questions in this level)`
+      : `first Bingo from call ${capacity.firstWinCall}, ${capacity.spacing} calls between winners`;
+    capacityNote.textContent = `${mode?.label ?? ""} · ${level?.label ?? ""}: ${capacity.universe} different questions — up to ${capacity.maxWinners} winner${capacity.maxWinners === 1 ? "" : "s"} with Bingo pacing (${pace}). "Everyone" needs a class no larger than that.`;
+  };
 
   const form = h("form", {
     class: "setup-form", novalidate: true,
     onchange: event => {
       if (event.target.name === "mode") renderLevels(event.target.value, null);
       if (event.target.name === "winners") customWinners.value = "";
+      if (["mode", "level", "equivalentFractions"].includes(event.target.name)) updateCapacity();
     },
     onsubmit: event => {
       event.preventDefault();
@@ -226,7 +258,8 @@ function settingsForm(initial, { submitLabel, onSubmit, onCancel = null, joinLoc
           chip("columns", "on", "Columns", initial.patterns.columns, { type: "checkbox" }),
           chip("diagonals", "on", "Diagonals", initial.patterns.diagonals, { type: "checkbox" }))),
       h("fieldset", { class: "setup-field" }, h("legend", { class: "field-title", text: "Number of winners" }),
-        h("div", { class: "chips" }, WINNER_PRESETS.map(count => chip("winners", count, winnersLabel(count), count === initial.winners)), customWinners))),
+        h("div", { class: "chips" }, WINNER_PRESETS.map(count => chip("winners", count, winnersLabel(count), count === initial.winners)), customWinners),
+        capacityNote)),
     h("fieldset", { class: "setup-section" },
       h("legend", { class: "section-title", text: "CLASSROOM" }),
       h("div", { class: "toggles" },
@@ -243,6 +276,7 @@ function settingsForm(initial, { submitLabel, onSubmit, onCancel = null, joinLoc
 
   fill(fractionOptions, chip("equivalentFractions", "on", "Allow Equivalent Fractions", initial.equivalentFractions, { type: "checkbox", hint: "Off: exact match only" }));
   renderLevels(initial.mode, initial.level);
+  updateCapacity();
   return form;
 }
 
@@ -553,8 +587,15 @@ function buildLobby() {
   const count = h("h2", { class: "roster-title" });
   const roster = h("ul", { class: "roster", "aria-live": "polite", "aria-relevant": "additions" });
   const summary = h("div", { class: "lobby-summary" });
+  const notice = h("p", { class: "lobby-notice", role: "alert" });
+  // The class size bounds the winners the level can pace: said here, before Start.
+  const pacingNote = h("p", { class: "lobby-pacing", role: "status" });
   const lockToggle = h("button", { type: "button", class: "button button-ghost" });
-  const startButton = h("button", { type: "button", class: "button button-primary button-cta", text: "START GAME", onclick: () => command("start") });
+  const startButton = h("button", { type: "button", class: "button button-primary button-cta", text: "START GAME", onclick: async () => {
+    notice.textContent = "";
+    const payload = await command("start");
+    if (payload?.result === "winners-exceed-capacity") notice.textContent = capacityMessage(payload.capacity, state);
+  } });
   const main = h("main", { id: "main", class: "lobby-host" },
     topBar([h("button", { type: "button", class: "button button-ghost button-small", onclick: () => { players.update(); players.dialog.showModal(); } }, icon("users"), h("span", { text: "Players" }))]),
     h("section", { class: "join-panel", "aria-label": "How to join" },
@@ -562,7 +603,7 @@ function buildLobby() {
       openJoin,
       lockedJoin),
     h("section", { class: "roster-panel", "aria-labelledby": "roster-title" }, count, roster),
-    h("section", { class: "lobby-actions" }, summary,
+    h("section", { class: "lobby-actions" }, summary, pacingNote, notice,
       h("div", { class: "lobby-buttons" },
         startButton,
         h("button", { type: "button", class: "button button-ghost", onclick: settingsDialog }, icon("settings"), h("span", { text: "Settings" })),
@@ -589,6 +630,7 @@ function buildLobby() {
       }
       count.id = "roster-title";
       count.textContent = `PLAYERS — ${state.players.length}`;
+      pacingNote.textContent = lobbyPacingNote(state);
       const key = state.players.map(player => `${player.id}:${player.name}:${player.emoji ?? ""}`).join("|");
       if (key !== rosterKey) {
         rosterKey = key;
@@ -617,6 +659,34 @@ function buildLobby() {
 
 // ------------------------------------------------------------------ game
 
+/** Why Start was refused: the winners asked for do not fit the level's unique questions. */
+function capacityMessage(capacity, current) {
+  const max = capacity?.maxWinners ?? 0;
+  const requested = capacity?.requestedWinners ?? current?.settings?.winners ?? 0;
+  const everyone = current?.settings?.winners === 0;
+  const players = current?.players?.length ?? 0;
+  return `With ${players} student${players === 1 ? "" : "s"}, ${current?.modeLabel ?? "this level"} (${capacity?.availableQuestions ?? "too few"} different questions) paces up to ${max} winner${max === 1 ? "" : "s"}: first Bingo from call ${current?.pacing?.firstWinCall ?? 15}, 10 calls between winners, no question twice, and no line finishing for several students at once. ${everyone ? `Everyone (${requested} players)` : `${requested} winners`} needs ${capacity?.requiredCalls ?? "more"} calls: choose up to ${max} winner${max === 1 ? "" : "s"} in Settings, or a bigger difficulty.`;
+}
+
+/**
+ * The lobby's live pacing note: once the class is bigger than the level can
+ * pace for the winners chosen, say so before Start (Start would refuse).
+ */
+function lobbyPacingNote(current) {
+  const settings = current?.settings;
+  const players = current?.players?.length ?? 0;
+  if (!settings || players === 0) return "";
+  let capacity;
+  try { capacity = capacityFor(settings, players); } catch { return ""; }
+  const requested = settings.winners === 0 ? players : settings.winners;
+  if (requested <= capacity.maxWinners) return "";
+  const limit = capacity.playersForMultipleWinners;
+  const why = capacity.maxWinners === 1 && limit !== null && players > limit
+    ? `with more than ${limit} students the answers are shared by too many cards for a second paced winner`
+    : "its unique questions cannot space more winners 10 calls apart";
+  return `Bingo pacing: with ${players} student${players === 1 ? "" : "s"}, ${current.modeLabel ?? "this level"} paces up to ${capacity.maxWinners} winner${capacity.maxWinners === 1 ? "" : "s"} (${why}). You chose ${settings.winners === 0 ? "Everyone" : `${settings.winners} winners`}: choose fewer in Settings, or a bigger difficulty.`;
+}
+
 /** Winners so far, e.g. "Winners 2 / 3" (or just the count when everyone can win). */
 function winnersText(settings) {
   return settings.winners === 0 ? `Winners ${state.winnerCount}` : `Winners ${state.winnerCount} / ${settings.winners}`;
@@ -628,10 +698,10 @@ function standingsList(rows) {
   return h("ol", { class: "standings-list", "aria-label": "Standings" }, rows.map(row => h("li", {
     class: `standing${row.won ? " is-winner" : ""}${!row.won && row.best === 4 ? " is-close" : ""}`
   },
-  h("span", { class: "standing-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : String(row.rank) }),
+  h("span", { class: "standing-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : rankLabel(row) }),
   h("span", { class: "standing-name", text: playerName(row) }),
   h("span", { class: "standing-progress", text: progressText(row) }),
-  h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, rank ${row.rank}, best line ${row.best} of 5` }))));
+  h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, ${row.tied ? "tied for rank" : "rank"} ${row.rank}, best line ${row.best} of 5${row.bestLines > 1 ? ` on ${row.bestLines} lines` : ""}` }))));
 }
 
 /** Confirmed winners in placement order; they stay listed for the rest of the game. */
@@ -684,6 +754,7 @@ function buildGame() {
   const modeChip = h("p", { class: "head-mode" });
   const joinChip = h("p", { class: "head-join" });
   const winnersChip = h("p", { class: "head-winners", "aria-live": "polite" });
+  const pacingChip = h("p", { class: "head-pacing", "aria-live": "polite" });
   const musicButton = iconButton("Music", "music", () => {
     preferences.music = !preferences.music;
     writePreferences(preferences);
@@ -713,7 +784,7 @@ function buildGame() {
     h("header", { class: "host-head" },
       h("p", { class: "host-title" }, h("img", { src: "/brand/mathnexa-mark.png", alt: "MathNexa", class: "brand-mark", width: "28", height: "28" }),
         h("span", { class: "title-math", text: " Math " }), h("span", { class: "title-bingo", text: "Bingo" }), h("span", { class: "title-live", text: " Live" })),
-      modeChip, joinChip, winnersChip,
+      modeChip, joinChip, winnersChip, pacingChip,
       h("div", { class: "host-bar-tools" }, musicButton, soundButton, fullscreen)),
     ways,
     h("div", { class: "host-board" },
@@ -790,6 +861,9 @@ function buildGame() {
              h("span", { class: "head-label", text: "CODE" }), codeDisplay(state.code, "head-code")]);
       }
       winnersChip.textContent = winnersText(settings);
+      pacingChip.textContent = pacingText(state, { first: true });
+      pacingChip.classList.toggle("is-open", state.pacing?.gateOpen === true);
+      pacingChip.hidden = !pacingChip.textContent;
 
       const patterns = JSON.stringify(settings.patterns);
       if (patterns !== waysKey) {
@@ -861,7 +935,10 @@ function buildComplete() {
       podium,
       note,
       h("div", { class: "complete-actions" },
-        h("button", { type: "button", class: "button button-primary button-cta", onclick: () => command("again") }, icon("refresh"), h("span", { text: "Play Again" })),
+        h("button", { type: "button", class: "button button-primary button-cta", onclick: async () => {
+          const payload = await command("again");
+          if (payload?.result === "winners-exceed-capacity") note.textContent = capacityMessage(payload.capacity, state);
+        } }, icon("refresh"), h("span", { text: "Play Again" })),
         h("button", { type: "button", class: "button button-ghost", onclick: () => command("change-settings") }, icon("settings"), h("span", { text: "Change Settings" })),
         h("button", { type: "button", class: "button button-ghost", text: "End Room", onclick: confirmEndRoom }))));
   fill(app, main);

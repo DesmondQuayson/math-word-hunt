@@ -6,8 +6,8 @@ import { getGameAccessView } from "@/lib/game-access/server";
 import { isInteger, readJsonBody, refused, reply, startTiming, timed, withServerTiming, type Json, type RequestTiming } from "@/lib/games/math-bingo-live/http";
 import {
   GAME_KEY,
-  buildGame,
-  dealBoards,
+  buildPacedGame,
+  dealPacedBoards,
   generateRoomCode,
   hashToken,
   isMathBingoLiveAvailable,
@@ -16,6 +16,7 @@ import {
   newGameSeed,
   newToken,
   ownerHash,
+  pacingPayload,
   toHostState
 } from "@/lib/games/math-bingo-live/server";
 import { SCHOOL_ACCESS_COOKIE } from "@/lib/school-access/session";
@@ -106,6 +107,16 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
       const mapped = ERRORS[result];
       return mapped ? refused(mapped[0], mapped[1]) : refused("live-unavailable", 503);
     }
+    // Start refused because the winners do not fit the level's unique questions: say how many would.
+    if (result === "winners-exceed-capacity") {
+      const capacity = {
+        maxWinners: isInteger(data.maxWinners, 0, 60) ? data.maxWinners : 0,
+        requestedWinners: isInteger(data.requestedWinners, 0, 1000) ? data.requestedWinners : 0,
+        requiredCalls: isInteger(data.requiredCalls, 0, 100000) ? data.requiredCalls : 0,
+        availableQuestions: isInteger(data.availableQuestions, 0, 100000) ? data.availableQuestions : 0
+      };
+      return reply({ result, state: toHostState(data), capacity, ...extra });
+    }
     return reply({ result, state: toHostState(data), ...extra });
   };
 
@@ -158,18 +169,20 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     const settings = normalizeSettings(current.settings);
     if (!settings.ok) return refused("invalid-settings", 400);
     const seed = newGameSeed();
-    const game = buildGame(settings.settings, seed);
-    // Deal every joined student's card now, so 50 phones do not each ask for
-    // one in the first seconds of the game (the database checks every card).
+    // A paced game: the question universe, the pacing plan and every joined
+    // student's card, all dealt here from the secret seed and re-checked by
+    // the database, in one request (the database then chooses each call).
     const players = Array.isArray(current.players) ? (current.players as Json[]).map((player) => player?.id) : [];
-    const data = await call("bingo_host_start", {
+    // The class size bounds the winners the level can pace (see maxWinnersFor).
+    const game = buildPacedGame(settings.settings, seed, players.length);
+    const data = await call("bingo_host_start_paced", {
       ...seat,
       p_kind: action,
       p_settings: settings.settings,
       p_seed: seed,
-      p_pool: game.pool,
-      p_deck: game.deck,
-      p_boards: dealBoards(settings.settings, game.pool, seed, players)
+      p_questions: game.questions,
+      p_boards: dealPacedBoards(settings.settings, game, seed, players),
+      p_pacing: pacingPayload(game.plan)
     });
     return roomReply(data);
   }

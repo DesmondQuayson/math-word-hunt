@@ -24,16 +24,21 @@ test.afterEach(() => {
   expect(PAGE_ERRORS, PAGE_ERRORS.join("\n")).toEqual([]);
 });
 
+const ORDINALS = ["1st", "2nd", "3rd"];
+
 /**
  * The owner's scenario: a free teacher hosts, Ava, Zion and Omar join with a
- * code and a name, Omar uses his Free Space, Ava gets FIRST BINGO, keeps
- * playing as a spectator but can never win again, Zion and Omar finish
- * second and third, and with three winners configured the game ends at once.
+ * code and a name, Omar uses his Free Space, everyone plays their best, the
+ * first Bingo comes at the first gate (call 15), the first winner keeps
+ * watching as a spectator but can never win again, the next Bingos are ten
+ * calls apart (the server decides the order), and with three winners
+ * configured the game ends at once.
  */
-test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, game complete, rematch", async ({ browser }) => {
+test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced Bingos, game complete, rematch", async ({ browser }) => {
   test.setTimeout(900_000);
   const host = await signInTeacher(browser);
-  const created = await createGame(host.page, { mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0, winners: 3 });
+  // Within 50 holds 240 different questions: Bingo pacing allows three winners.
+  const created = await createGame(host.page, { mode: "addition", level: "within-50", questionSeconds: 0, revealSeconds: 0, winners: 3 });
   const code = created.code;
   await expect(host.page.locator(".join-url")).toHaveText(/\/join$/);
   await expect(host.page.locator(".join-code .code-display")).toHaveAttribute("aria-label", `Code ${code.split("").join(" ")}`);
@@ -51,16 +56,21 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
 
   await startGame(host.page);
 
-  // Same answer multiset for everyone; a different arrangement for each.
+  // Paced cards: 24 different answers each, a different card for each player
+  // (the server balances how often every answer is dealt), Free Space in the middle.
   const boards = await Promise.all(Object.values(players).map(page => waitFor(page, current => Boolean(current.me?.board), "card dealt")));
-  const signatures = new Set(boards.map(current => cardSignature(current.me!.board!)));
   const layouts = new Set(boards.map(current => cardLayout(current.me!.board!)));
-  expect(signatures.size).toBe(1);
   expect(layouts.size).toBe(3);
   for (const current of boards) {
     expect(current.me!.board).toHaveLength(25);
     expect(current.me!.board![12]).toEqual({ free: true });
+    expect(new Set(cardSignature(current.me!.board!).split(",")).size).toBe(24);
   }
+  // The pacing contract is on every screen before the first call.
+  const pacedHost = await waitFor(host.page, current => current.pacing !== null, "pacing on the host");
+  expect(pacedHost.pacing).toMatchObject({ firstWinCall: 15, spacing: 10, nextEligibleCall: 15, maxWinners: 3 });
+  await expect(host.page.locator(".head-pacing")).toContainText(/First Bingo opportunity in \d+ calls?/);
+  await expect(ava.page.locator(".pacing-line")).toContainText(/First Bingo opportunity in \d+ calls?/);
   await expect(ava.page.locator(".card-cell")).toHaveCount(25);
 
   const first = await waitFor(host.page, current => current.phase === "QUESTION_ACTIVE", "question 1");
@@ -87,16 +97,18 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
     await expect(zion.page.locator(`[data-cell="${wrong.cell}"]`)).toHaveAttribute("aria-pressed", "false");
   }
 
-  let avaWonAt = 0;
-  let zionWonAt = 0;
   let sawOneAway = false;
+  let sawOpen = false;
+  let sawNext = false;
   const order: string[] = [];
   for (let guard = 0; guard < 200; guard += 1) {
     const hostState = await state(host.page);
     if (hostState.phase === "WINNER_REVEAL" || hostState.phase === "GAME_COMPLETE") break;
     if (hostState.phase === "QUESTION_ACTIVE") {
-      // Everyone plays; Zion holds his last square until Ava has Bingo, and
-      // Omar holds his until Zion has, so the order is Ava, Zion, Omar.
+      // Nobody can finish a line before call 15, and nobody can be the next
+      // winner within ten calls of the last one: the server paces the game.
+      expect(hostState.winners.length === 0 ? hostState.questionNumber < 15 || hostState.pacing!.gateOpen : true).toBe(true);
+      // Everyone plays their best; the server decides who is next.
       for (const name of ["Ava", "Zion", "Omar"]) {
         const page = players[name];
         await waitFor(page, current => current.questionNumber === hostState.questionNumber, `${name} sees the question`);
@@ -111,19 +123,16 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
           expect(["already-won", "not-active", "stale"]).toContain(attempt);
           continue;
         }
-        const hold = (name === "Zion" && avaWonAt === 0) || (name === "Omar" && zionWonAt === 0);
-        const marked = await markBest(page, { hold });
+        const marked = await markBest(page);
         if (marked) expect(marked.result).toBe("correct");
-        const now = await state(host.page);
-        if (avaWonAt === 0 && now.winners.some(winner => winner.name === "Ava")) avaWonAt = now.questionNumber;
-        if (zionWonAt === 0 && now.winners.some(winner => winner.name === "Zion")) zionWonAt = now.questionNumber;
         const after = (await state(page)).me!;
         if (after.hasWon && !order.includes(name)) order.push(name);
       }
       // The host screen must have caught up with every confirmed Bingo before Next.
       const after = await waitFor(host.page, current => current.winnerCount === order.length, "host sees the winners");
-      if (avaWonAt === 0 && after.winners.some(winner => winner.name === "Ava")) avaWonAt = after.questionNumber;
-      if (zionWonAt === 0 && after.winners.some(winner => winner.name === "Zion")) zionWonAt = after.questionNumber;
+      const chip = (await host.page.locator(".head-pacing").textContent()) ?? "";
+      if (/Bingo opportunity OPEN/.test(chip)) sawOpen = true;
+      if (/Next Bingo opportunity in \d+ calls?/.test(chip)) sawNext = true;
       if (order.length > 0 && order.length < 3) {
         // The host board keeps every confirmed winner listed in Bingo Winners, in order.
         await expect(host.page.locator(".panel-winners .winner-name")).toHaveText(order);
@@ -135,23 +144,30 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
     await hostNext(host.page);
   }
 
-  // Server-confirmed order: Ava first, Zion second, Omar third; each once.
+  // Server-confirmed order: three different winners in places 1..3, each once,
+  // the first at call 15 and every next one at least ten calls later.
   const final = await waitFor(host.page, current => current.phase === "WINNER_REVEAL" || current.phase === "GAME_COMPLETE", "final winner");
-  expect(final.winners.map(winner => [winner.placement, winner.name])).toEqual([[1, "Ava"], [2, "Zion"], [3, "Omar"]]);
-  expect(order).toEqual(["Ava", "Zion", "Omar"]);
+  expect(final.winners.map(winner => winner.placement)).toEqual([1, 2, 3]);
+  expect(new Set(final.winners.map(winner => winner.name)).size).toBe(3);
+  expect(order).toEqual(final.winners.map(winner => winner.name));
   expect(final.winnerCount).toBe(3);
+  expect(final.winners[0].question).toBeGreaterThanOrEqual(15);
+  expect(final.winners[1].question).toBeGreaterThanOrEqual(final.winners[0].question + 10);
+  expect(final.winners[2].question).toBeGreaterThanOrEqual(final.winners[1].question + 10);
   expect(sawOneAway).toBe(true);
+  expect(sawOpen).toBe(true);
+  expect(sawNext).toBe(true);
   const endedAt = final.questionNumber;
+  const firstWinner = players[final.winners[0].name];
 
   // Bingo broadcast and the winner's own result.
-  await expect(ava.page.locator(".winner-ribbon")).toHaveText(/BINGO! You finished 1st/);
-  await expect(zion.page.locator(".winner-ribbon")).toHaveText(/You finished 2nd/);
+  for (const winner of final.winners) await expect(players[winner.name].locator(".winner-ribbon")).toHaveText(new RegExp(`BINGO! You finished ${ORDINALS[winner.placement - 1]}`));
 
   // Audio: the shared track plays on the host only (default), and the Bingo
   // fanfare is a host celebration by default.
   const hostAudio = await host.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { source: string | null; lastEffect: { name: string } | null } } }).__MATH_BINGO_LIVE__.audio());
   expect(hostAudio.source).toBe("/media/audio/cosmic-candy-catchers.mp3");
-  const avaAudio = await ava.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { source: string | null; lastEffect: { name: string } | null } } }).__MATH_BINGO_LIVE__.audio());
+  const avaAudio = await firstWinner.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { source: string | null; lastEffect: { name: string } | null } } }).__MATH_BINGO_LIVE__.audio());
   expect(avaAudio.source).toBeNull();
   expect(avaAudio.lastEffect?.name).not.toBe("bingo");
   expect((await host.page.evaluate(() => (window as unknown as { __MATH_BINGO_LIVE__: { audio(): { effects: string[] } } }).__MATH_BINGO_LIVE__.audio())).effects).toEqual(expect.arrayContaining(["bingo", "free-space"]));
@@ -161,9 +177,9 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
   expect(complete.questionNumber).toBe(endedAt);
   expect(complete.completedReason).toBe("winners");
   await expect(host.page.getByRole("heading", { name: "MATH BINGO COMPLETE" })).toBeVisible();
-  await expect(host.page.locator(".podium")).toContainText("Ava");
+  await expect(host.page.locator(".podium")).toContainText(final.winners[0].name);
   await expect(host.page.locator(".podium-place").nth(0)).toContainText("\u{1F947}");
-  await expect(host.page.locator(".podium-place").nth(2)).toContainText("Omar");
+  await expect(host.page.locator(".podium-place").nth(2)).toContainText(final.winners[2].name);
   for (const page of Object.values(players)) await expect(page.locator(".complete-title")).toHaveText("MATH BINGO COMPLETE");
   // The host cannot generate another question for a finished game.
   const stale = await host.page.evaluate(async () => {
@@ -180,6 +196,8 @@ test("host + Ava, Zion, Omar: fair cards, live marks, Free Space, three Bingos, 
   await host.page.getByRole("button", { name: "Play Again" }).click();
   const again = await waitFor(host.page, current => current.gameNumber === complete.gameNumber + 1 && current.phase === "COUNTDOWN", "rematch countdown");
   expect(again.winnerCount).toBe(0);
+  // Play Again resets the pacing: the first gate is call 15 again.
+  expect(again.pacing).toMatchObject({ nextEligibleCall: 15, lastWinnerCall: null, gateOpen: false });
   expect(again.players?.map(player => player.name).sort()).toEqual(["Ava", "Omar", "Zion"]);
   const rematch = await Promise.all(Object.values(players).map(page => waitFor(page, current => current.gameNumber === again.gameNumber && Boolean(current.me?.board), "new card")));
   for (const [index, current] of rematch.entries()) {

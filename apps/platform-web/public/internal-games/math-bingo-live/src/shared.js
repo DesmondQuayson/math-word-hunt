@@ -166,8 +166,31 @@ export function rulesStrip(patterns, { compact = false, title = "WIN WITH", clas
 
 export function progressText(row) {
   if (row.won) return "BINGO";
+  // A completed line waiting for the next winner gate (not a Bingo yet).
+  if (row.pending) return "5/5 · waiting";
   if (!row.type) return `${row.best}/5`;
   return `${row.best}/5 · ${LINE_LABEL[row.type] ?? ""}`;
+}
+
+/** "1", or "T-2" for players who share a rank (equal progress is a tie, never an order). */
+export function rankLabel(row) {
+  return row.tied && !row.won ? `T-${row.rank}` : String(row.rank);
+}
+
+/**
+ * The pacing line every screen can show: how many calls until a Bingo can
+ * become possible. Says nothing about who is close or what the answers are.
+ */
+export function pacingText(state, { first = false } = {}) {
+  const pacing = state?.pacing;
+  if (!pacing || state.phase === "LOBBY" || state.phase === "GAME_COMPLETE") return "";
+  if (pacing.callsUntilOpportunity === null) return "";
+  const noWinnerYet = state.winnerCount === 0;
+  const calls = pacing.callsUntilOpportunity;
+  if (calls === 0) return "Bingo opportunity OPEN";
+  const noun = calls === 1 ? "call" : "calls";
+  if (noWinnerYet) return first ? `First Bingo opportunity in ${calls} ${noun}` : `First Bingo opportunity: ${calls} ${noun}`;
+  return first ? `Next Bingo opportunity in ${calls} ${noun}` : `Next Bingo opportunity: ${calls} ${noun}`;
 }
 
 /** The live leaderboard. Winners keep their medal and place. */
@@ -176,10 +199,10 @@ export function leaderboardList(rows, { limit = 10, highlightYou = false } = {})
   return h("ol", { class: "leaderboard", "aria-label": "Leaderboard" }, rows.slice(0, limit).map(row => h("li", {
     class: `leader${row.won ? " is-winner" : ""}${highlightYou && row.you ? " is-you" : ""}${!row.won && row.best === 4 ? " is-close" : ""}`
   },
-  h("span", { class: "leader-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : String(row.rank) }),
+  h("span", { class: "leader-rank", "aria-hidden": "true", text: row.won && row.placement <= 3 ? medal(row.placement) : rankLabel(row) }),
   h("span", { class: "leader-name", text: playerName(row) }),
   h("span", { class: "leader-progress", text: progressText(row) }),
-  h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : `, rank ${row.rank}` }))));
+  h("span", { class: "sr-only", text: row.won ? `, ${ordinal(row.placement)} Bingo` : row.tied ? `, tied for rank ${row.rank}` : `, rank ${row.rank}` }))));
 }
 
 /** Questions called so far; the current one is marked and never answered early. */

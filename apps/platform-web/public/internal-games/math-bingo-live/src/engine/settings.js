@@ -52,7 +52,9 @@ export const MODES = Object.freeze([
     levels: Object.freeze([
       Object.freeze({ id: "to-fifths", label: "Halves to fifths" }),
       Object.freeze({ id: "to-sixths", label: "Halves to sixths" }),
-      Object.freeze({ id: "to-eighths", label: "Halves to eighths" })
+      Object.freeze({ id: "to-eighths", label: "Halves to eighths" }),
+      Object.freeze({ id: "to-tenths", label: "Halves to tenths" }),
+      Object.freeze({ id: "to-twelfths", label: "Halves to twelfths" })
     ])
   })
 ]);

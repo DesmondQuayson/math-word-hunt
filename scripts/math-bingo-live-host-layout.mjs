@@ -48,7 +48,7 @@ const NAMES = ["Ava", "Zion", "Omar", "Desmond", "Mia", "Liam", "Noah", "Emma", 
   "Tara", "Maximiliana Gonzalez", "Will", "Ximena"];
 const ALL = { rows: true, columns: true, diagonals: true };
 const settingsFor = (overrides = {}) => ({
-  mode: "addition", level: "facts-20", questionSeconds: 0, revealSeconds: 0, patterns: ALL, winners: 3,
+  mode: "addition", level: "within-50", questionSeconds: 0, revealSeconds: 0, patterns: ALL, winners: 3,
   freeSpace: true, music: "off", celebration: "host", equivalentFractions: false, ...overrides
 });
 
@@ -151,7 +151,12 @@ function answerOf(question) {
 }
 
 /** A student taps the best matching cell; with hold, never the one that completes a line. */
-async function mark(student, room, address, { hold = false } = {}) {
+/**
+ * Mark the best matching cell. `hold`: never complete a line. `limit`: never
+ * take any line past that many marks (players kept at 3/5 are never "one
+ * away", so the paced scheduler's Bingo opportunities go to the racers).
+ */
+async function mark(student, room, address, { hold = false, limit = 5 } = {}) {
   const state = student.state;
   if (!state?.me?.board || state.me.hasWon || state.phase !== "QUESTION_ACTIVE") return null;
   const answer = answerOf(state.question);
@@ -161,6 +166,7 @@ async function mark(student, room, address, { hold = false } = {}) {
     if (cell.free || ((state.me.marks >>> index) & 1) === 1 || cell.n !== answer.n || cell.d !== answer.d) return;
     const score = Math.max(...lines.map(line => popcount((state.me.marks | (1 << index)) & line.mask)));
     if (hold && score >= 5) return;
+    if (score > limit) return;
     if (!best || score > best.score) best = { index, score };
   });
   if (!best) return null;
@@ -291,7 +297,7 @@ try {
   for (const [index, count] of [1, 5, 10, 30].entries()) {
     const address = `198.19.${index + 1}.1`;
     const room = await openRoom(hostView, count, settingsFor(), address);
-    for (const [order, student] of room.students.entries()) if (order % 2 === 0) await mark(student, room, address, { hold: true });
+    for (const [order, student] of room.students.entries()) if (order % 2 === 0) await mark(student, room, address, { limit: 3 });
     await uiSettled(page, { phase: "QUESTION_ACTIVE", players: count }, `${count} players`);
     await allViewports(page, `${count}-players-question`, count);
     report.scenarios.push({ scenario: `${count} players, question active, no winners`, code: room.code });
@@ -308,13 +314,14 @@ try {
     let celebrated = false;
     let shotOne = false;
     let shotRevealPause = false;
-    for (let guard = 0; guard < 70 && state.phase === "QUESTION_ACTIVE"; guard += 1) {
+    // Paced game: the first Bingo comes at call 15 and the next ones ten calls
+    // apart, so three winners need about 35 calls.
+    for (let guard = 0; guard < 60 && state.phase === "QUESTION_ACTIVE"; guard += 1) {
       await refresh(room.students, address);
-      const target = racers[state.winnerCount];
       const results = [];
       for (const [order, student] of room.students.entries()) {
-        if (racers.includes(student)) results.push(await mark(student, room, address, { hold: student !== target || state.winnerCount >= 3 }));
-        else if ((order + guard) % 3 === 0) await mark(student, room, address, { hold: true });
+        if (racers.includes(student)) results.push(await mark(student, room, address, { hold: state.winnerCount >= 3 }));
+        else if ((order + guard) % 3 === 0) await mark(student, room, address, { limit: 3 });
       }
       const fresh = (await host("state")).state;
       if (!celebrated && fresh.winnerCount === 1) {
@@ -370,7 +377,7 @@ try {
   // J: Fraction Bingo with a long Called Fractions history.
   {
     const address = "198.19.60.1";
-    const room = await openRoom(hostView, 10, settingsFor({ mode: "fractions", level: "to-eighths", winners: 3 }), address);
+    const room = await openRoom(hostView, 10, settingsFor({ mode: "fractions", level: "to-twelfths", winners: 3 }), address);
     let state = room.state;
     // Each fraction is called once (22 at "to eighths"): stop one before the end of the deck.
     const last = Math.min(25, state.deckLength - 1);

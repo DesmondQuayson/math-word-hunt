@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, waitFor, startGame } from "./helpers";
+import { PAGE_ERRORS, closeRoom, createGame, hostNext, joinPlayer, markBest, signInTeacher, state, waitFor, startGame, type LiveState } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -37,7 +37,8 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
   test.setTimeout(600_000);
   const engine = testInfo.project.name.includes("webkit") ? "webkit" : "chromium";
   const host = await signInTeacher(browser, { viewport: { width: 1920, height: 1080 } });
-  const room = await createGame(host.page, { mode: "fractions", level: "to-sixths", questionSeconds: 0, revealSeconds: 0, winners: 0 });
+  // Halves to sixths holds 15 different fractions: Bingo pacing allows one winner.
+  const room = await createGame(host.page, { mode: "fractions", level: "to-sixths", questionSeconds: 0, revealSeconds: 0, winners: 1 });
   const players = [];
   for (const viewport of PLAYER_VIEWPORTS) {
     const joined = await joinPlayer(browser, room.code, viewport.name.split("-")[0].slice(0, 12) + viewport.width, {
@@ -71,10 +72,21 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
     await expect(page.locator(".question-face")).toBeVisible();
     await noHorizontalScroll(page, `${player.name} game`);
     // Touch where the device has touch, a click elsewhere: the mark lands either way.
-    const current = await state(page);
+    // Paced cards differ, so the host moves on until this player holds the live answer.
+    let current = await state(page);
+    const holds = (live: LiveState) => {
+      const answer = live.question!.text.split("/").map(Number);
+      return live.me!.board!.findIndex((item, cellIndex) => !item.free && item.n === answer[0] && item.d === answer[1] && ((live.me!.marks >>> cellIndex) & 1) === 0);
+    };
+    for (let guard = 0; guard < 12 && (current.phase !== "QUESTION_ACTIVE" || holds(current) < 0); guard += 1) {
+      const before = current.questionNumber;
+      await hostNext(host.page);
+      await hostNext(host.page);
+      current = await waitFor(page, live => live.phase === "QUESTION_ACTIVE" && live.questionNumber > before, `${player.name} next question`);
+    }
+    expect(holds(current), `${player.name} holds the live answer`).toBeGreaterThanOrEqual(0);
     if (player.touch) {
-      const answer = current.question!.text.split("/").map(Number);
-      const index = current.me!.board!.findIndex(item => !item.free && item.n === answer[0] && item.d === answer[1]);
+      const index = holds(current);
       const reply = page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/play") && (response.request().postData() ?? "").includes("\"mark\""));
       await page.bringToFront();
       await page.locator(`[data-cell="${index}"]`).tap();
