@@ -79,7 +79,11 @@ export function createProtectionBypass({ origin, secret, bootstrapPath = "/api/h
         // its SSO page on another host. The redirect is never followed here.
         const location = response.headers().location;
         const backToOrigin = response.status() >= 300 && response.status() < 400 && Boolean(location) && isTrusted(new URL(location, bootstrap).href);
-        if (!response.ok() && !backToOrigin) {
+        const refusedByVercel = response.status() === 401 || response.status() === 403 || /^https:\/\/vercel\.com\/sso/.test(location ?? "");
+        // With unlock(), any other answer comes from the app's own gate: Vercel's Standard Protection covers
+        // previews, not the project's production domain, so MathNexa's locked staging alias answers this request
+        // itself (404) until unlock() sets its access cookie. The secret-free verification below still has to pass.
+        if (!response.ok() && !backToOrigin && (refusedByVercel || !unlock)) {
           throw new Error(`protection bypass was refused for the review origin (${response.status()})`);
         }
       }

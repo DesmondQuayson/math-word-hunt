@@ -526,3 +526,73 @@ describe("no file in the repository leaks the bypass secret by construction", ()
     ]), []);
   });
 });
+
+// The real staging alias (2026-11-07): Vercel's Standard Protection covers
+// previews, not the project's production domain, so nothing in front of the app
+// answers the bootstrap - the app's own gate does (404) until unlock() sets its
+// cookie. install() must hand over to unlock() there, still send the secret only
+// once, and still fail on a genuine Vercel refusal or without unlock().
+describe("an app-gated origin that Vercel does not protect", () => {
+  let appGatedOrigin;
+  const appSeen = [];
+  let appServer;
+  before(async () => {
+    await new Promise((resolve) => {
+      appServer = createServer((request, response) => {
+        appSeen.push({ url: request.url, headers: request.headers });
+        const cookies = (request.headers.cookie ?? "").split(/;\s*/);
+        if (request.url === "/unlock" && request.method === "POST" && request.headers.authorization === `Bearer ${gateToken}`) {
+          response.writeHead(204, { "set-cookie": "gate=open; Path=/; HttpOnly; SameSite=Lax" });
+          response.end();
+        } else if (!cookies.includes("gate=open")) {
+          response.writeHead(404, { "cache-control": "no-store" });
+          response.end();
+        } else {
+          response.writeHead(200, { "content-type": "text/plain" });
+          response.end("ok");
+        }
+      });
+      appServer.listen(0, "127.0.0.1", () => resolve());
+    });
+    appGatedOrigin = `http://127.0.0.1:${appServer.address().port}`;
+  });
+  after(() => new Promise((resolve) => appServer.close(() => resolve())));
+  const unlockWith = (context) => async () => {
+    const response = await context.request.post(`${appGatedOrigin}/unlock`, { headers: { Authorization: `Bearer ${gateToken}` }, maxRedirects: 0 });
+    assert.equal(response.status(), 204, "the app gate opens");
+  };
+  it("hands the app gate's 404 to unlock(), verifies access without the secret, and sends the secret once", async () => {
+    appSeen.length = 0;
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      await createProtectionBypass({ origin: appGatedOrigin, secret }).install(context, { unlock: unlockWith(context) });
+      const page = await context.newPage();
+      assert.equal((await page.goto(`${appGatedOrigin}/`)).status(), 200, "the gated app loads");
+    } finally {
+      await browser.close();
+    }
+    assert.deepEqual(appSeen.slice(0, 3).map((r) => r.url), ["/api/health", "/unlock", "/api/health"], "bootstrap, unlock, secret-free verification");
+    assert.equal(appSeen.filter((r) => JSON.stringify(r).includes(secret)).length, 1, "the secret was sent exactly once");
+    assert.ok(!JSON.stringify(appSeen.find((r) => r.url === "/unlock")).includes(secret), "unlock() never carries the secret");
+  });
+  it("still refuses without unlock()", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      await assert.rejects(createProtectionBypass({ origin: appGatedOrigin, secret }).install(context), /protection bypass was refused for the review origin \(404\)/);
+    } finally {
+      await browser.close();
+    }
+  });
+  it("still fails on a genuine Vercel refusal even with unlock()", async () => {
+    const browser = await playwright.chromium.launch();
+    try {
+      const context = await browser.newContext();
+      const wrong = createProtectionBypass({ origin: trustedOrigin, secret: `wrong_${randomBytes(12).toString("hex")}` });
+      await assert.rejects(wrong.install(context, { unlock: async () => {} }), /protection bypass was refused/);
+    } finally {
+      await browser.close();
+    }
+  });
+});
