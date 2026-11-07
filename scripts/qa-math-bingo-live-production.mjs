@@ -277,9 +277,12 @@ try {
   ok(alreadyWon === "already-won", `a winner cannot win or mark again (${alreadyWon})`);
   ok(view.phase === "WINNER_REVEAL" || view.phase === "GAME_COMPLETE", `the configured limit (2) ended the game (${view.phase})`);
   ok(afterLimit === "not-active", `after the limit, further marks are refused (${afterLimit})`);
+  // One row per player; ranks never go backwards; equal players share a rank and say so (v1.2.38 ties); winners first.
   const ranks = view.leaderboard.map((row) => row.rank);
-  ok(view.leaderboard.length === ids.length && new Set(ranks).size === ids.length && view.leaderboard[0].won && view.leaderboard[1].won,
-    `leaderboard: ${ids.length} players ranked once each, winners first`);
+  const rankCounts = ranks.reduce((map, rank) => map.set(rank, (map.get(rank) ?? 0) + 1), new Map());
+  ok(view.leaderboard.length === ids.length && ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1])
+    && view.leaderboard.every((row) => Boolean(row.tied) === (rankCounts.get(row.rank) > 1)) && view.leaderboard[0].won && view.leaderboard[1].won,
+    `leaderboard: ${ids.length} players listed once, ranks in order (${rankCounts.size} distinct, ties shared), winners first`);
   await refresh(ava);
   const called = ava.state.called.map((item) => item.id);
   const orderless = ava.state.called.filter((item) => / \+ /.test(item.text)).map((item) => item.text.split(" + ").map(Number).sort((a, b) => a - b).join("+"));
