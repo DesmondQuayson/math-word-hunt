@@ -267,5 +267,7 @@ test("consumer identity and access states retain accessible interaction", async 
   await page.goto("/game-access");
   await expect(page.locator("[aria-live]")).toHaveCount(1);
   // That live region is Next's route announcer; the app's own status must be announced too.
-  await expect(page.getByRole("status", { name: "Game-access status" })).toHaveCount(1);
+  // 6837607 renamed the page's status from "Game-access status" to "Access status" (a subscription opens every
+  // MathNexa resource, not only games) without updating this assertion.
+  await expect(page.getByRole("status", { name: "Access status" })).toHaveCount(1);
 });
