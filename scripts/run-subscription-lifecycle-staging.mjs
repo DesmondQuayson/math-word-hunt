@@ -434,6 +434,18 @@ function signedEvent(secret, type, object, createdSeconds, id = `evt_${randomUUI
   return { id, payload, header: `t=${timestamp},v1=${signature}` };
 }
 
+/**
+ * The account page's access row, read from its own <dt>/<dd> pair. 6837607 (2026-11-01) relabelled the row from
+ * "Game access" to "Access"; matching the collapsed page text for "game access available" has reported "unknown"
+ * since then. Both labels are accepted so the harness also runs against older candidates.
+ */
+async function accountAccessRow(page) {
+  const value = page.locator("main dl div").filter({ has: page.locator("dt", { hasText: /^(?:Game access|Access)$/ }) }).locator("dd");
+  if (await value.count() !== 1) return "unknown";
+  const text = (await value.innerText()).trim();
+  return /^unavailable$/i.test(text) ? "Unavailable" : /^available$/i.test(text) ? "Available" : "unknown";
+}
+
 async function lifecycle() {
   const bypass = required("VERCEL_AUTOMATION_BYPASS_SECRET");
   const stagingToken = required("MVH_STAGING_ACCESS_TOKEN");
@@ -509,6 +521,7 @@ async function lifecycle() {
       const ent = await entitlement();
       await page.goto(`${STAGING_ORIGIN}/account`, { waitUntil: "networkidle" });
       const accountText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+      const accountAccess = await accountAccessRow(page);
       await page.goto(`${STAGING_ORIGIN}/subscription`, { waitUntil: "networkidle" });
       const statusLabel = (await page.getByTestId("consumer-subscription-label").first().innerText().catch(() => "")).trim();
       const subscriptionText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
@@ -526,7 +539,7 @@ async function lifecycle() {
       const gameAccessHeading = (await page.locator("main").getByRole("heading").first().innerText().catch(() => "")).trim();
       // innerText reflects CSS text-transform (the definition list renders labels in
       // capitals), so match case-insensitively and test "Unavailable" first.
-      const accountUi = /game access\s*unavailable/i.test(accountText) ? "Unavailable" : /game access\s*available/i.test(accountText) ? "Available" : "unknown";
+      const accountUi = accountAccess;
       const row = {
         GAME_ACCESS_PAGE: gameAccessHeading.slice(0, 80),
         ...(accountUi === "unknown" ? { ACCOUNT_SNIPPET: accountText.slice(0, 240) } : {}),
@@ -608,8 +621,7 @@ async function lifecycle() {
     check(instant(beforeHeal.current_period_ends_at) < Date.now(), "stale-simulation-not-in-past");
     const visitStartedAt = new Date().toISOString();
     await page.goto(`${STAGING_ORIGIN}/account`, { waitUntil: "networkidle" });
-    const healedText = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-    const firstViewAvailable = !/game access\s*unavailable/i.test(healedText) && /game access\s*available/i.test(healedText);
+    const firstViewAvailable = (await accountAccessRow(page)) === "Available";
     // Diagnostics for the report either way: what the row, the throttle claim and
     // the game-access page looked like right after the first view.
     const afterFirstView = await localSubscription(primaryId);
