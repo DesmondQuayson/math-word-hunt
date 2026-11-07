@@ -1,0 +1,40 @@
+{
+  "window": "2026-11-07T21:32:30Z .. 2026-11-07T21:36:22Z",
+  "positiveControl4xxPlus": {
+    "total": 8,
+    "byStatus": {
+      "400": 4,
+      "401": 2,
+      "404": 2
+    }
+  },
+  "requests": {
+    "total": 41,
+    "byDeployment": {
+      "dpl_3ozmqjmDboK1fYShWL7BQUe5zPca": 41
+    },
+    "byStatusClass": {
+      "4xx": 8,
+      "2xx": 19,
+      "3xx": 14
+    }
+  },
+  "http5xx": {
+    "total": 0,
+    "byRoute": {}
+  },
+  "runtime_error": {
+    "total": 0,
+    "byRoute": {}
+  },
+  "runtime_fatal": {
+    "total": 0,
+    "byRoute": {}
+  },
+  "event_webhook-processing-failed": 0,
+  "event_webhook-manual-review": 0,
+  "event_entitlement-mismatch-unresolved": 0,
+  "event_security-config-error": 0,
+  "event_security-dependency-unavailable": 0,
+  "event_rate-limiter-unavailable": 0
+}

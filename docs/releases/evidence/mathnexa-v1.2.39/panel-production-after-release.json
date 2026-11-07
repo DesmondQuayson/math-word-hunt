@@ -1,0 +1,111 @@
+{
+  "evaluatedAt": "2026-11-07T21:35:32.252Z",
+  "rows": [
+    {
+      "row": "Application",
+      "state": "healthy",
+      "reason": "Core services verified; Game package validation without recent activity.",
+      "lastSuccessAt": "2026-11-07T21:35:32.252Z",
+      "lastFailureAt": null,
+      "details": [
+        "Database: reachable; this dashboard's queries completed.",
+        "Email: healthy.",
+        "Webhooks: healthy.",
+        "Subscription sync: healthy.",
+        "Private storage: healthy.",
+        "Game package validation: no packages.",
+        "Game package validation has nothing to judge right now and does not lower Application."
+      ],
+      "action": "No action needed."
+    },
+    {
+      "row": "Email",
+      "state": "healthy",
+      "reason": "Email delivery verified: last confirmed Nov 7, 2026, 9:47 AM.",
+      "lastSuccessAt": "2026-11-07T15:47:17.438418+00:00",
+      "lastFailureAt": "2026-10-22T20:34:43.748+00:00",
+      "details": [
+        "9 accounts confirmed an emailed link in the last 30 days (last Nov 7, 2026, 9:47 AM).",
+        "15 sign-ups in the last 30 days; 4 not confirmed after 30 minutes.",
+        "2 resend or recovery emails accepted by the provider in the last 30 days.",
+        "1 send attempt failed earlier and was followed by a confirmed delivery (before this release, a repeated resend inside the provider's 60-second limit was recorded this way)."
+      ],
+      "action": "No action needed."
+    },
+    {
+      "row": "Webhooks",
+      "state": "healthy",
+      "reason": "Stripe events are being processed: last Nov 7, 2026, 9:51 AM, none awaiting review or retry.",
+      "lastSuccessAt": "2026-11-07T15:51:40.829959+00:00",
+      "lastFailureAt": null,
+      "details": [
+        "15 events processed in the last 35 days (16 events received).",
+        "Historical review, no action needed: customer.subscription.created received Sep 28, 2026, 9:00 AM (trial length did not match the 24-hour trial); Stripe's later state for the same subscription was applied Sep 28, 2026, 9:00 AM.",
+        "Historical review, no action needed: customer.subscription.created received Sep 28, 2026, 5:22 PM (trial length did not match the 24-hour trial); Stripe's later state for the same subscription was applied Sep 28, 2026, 5:22 PM.",
+        "Historical review, no action needed: customer.subscription.created received Oct 15, 2026, 6:16 AM (trial length did not match the 24-hour trial); Stripe's later state for the same subscription was applied Oct 15, 2026, 6:16 AM."
+      ],
+      "action": "No action needed."
+    },
+    {
+      "row": "Subscription sync",
+      "state": "healthy",
+      "reason": "Every live subscription matches a Stripe read from the last 72 hours (latest Nov 7, 2026, 9:51 AM).",
+      "lastSuccessAt": "2026-11-07T06:17:44.398279+00:00",
+      "lastFailureAt": null,
+      "details": [
+        "4 live subscriptions; 4 subscriptions re-read from Stripe in the last 72 hours.",
+        "Last change applied by the scheduled reconciliation: Nov 7, 2026, 12:17 AM."
+      ],
+      "action": "No action needed."
+    },
+    {
+      "row": "Private storage",
+      "state": "healthy",
+      "reason": "All required private buckets are present.",
+      "lastSuccessAt": "2026-11-07T21:35:32.252Z",
+      "lastFailureAt": null,
+      "details": [
+        "Required private buckets: resource-files, resource-quarantine, game-packages, game-package-quarantine."
+      ],
+      "action": "No action needed."
+    },
+    {
+      "row": "Game package validation",
+      "state": "no-packages",
+      "reason": "No ZIP game packages have been imported. Every current game ships with the platform. This is neutral.",
+      "lastSuccessAt": null,
+      "lastFailureAt": null,
+      "details": [
+        "0 packages; 0 published."
+      ],
+      "action": "No action needed."
+    }
+  ],
+  "quarantine": [
+    {
+      "row": "PDF quarantine",
+      "count": 10,
+      "severity": "review",
+      "reason": "10 rejected uploads held privately and never served (Aug 6, 2026, 5:07 PM to Aug 23, 2026, 4:44 AM). The validator worked as designed; this is not an outage. 3 awaiting a decision on unarchived resources; 0 replaced by a later accepted upload; 7 on archived resources (historical). None blocks a published resource.",
+      "details": [
+        "3 awaiting a decision on unarchived resources.",
+        "0 replaced by a later accepted upload.",
+        "7 on archived resources (historical).",
+        "8 PDF",
+        "1 thumbnail image",
+        "1 answer-key PDF"
+      ]
+    },
+    {
+      "row": "ZIP quarantine",
+      "count": 0,
+      "severity": "clear",
+      "reason": "Nothing is quarantined.",
+      "details": []
+    }
+  ],
+  "settingsWebhookQueue": {
+    "open": 0,
+    "historical": 3
+  }
+}

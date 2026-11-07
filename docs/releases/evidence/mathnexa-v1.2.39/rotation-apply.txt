@@ -1,0 +1,4 @@
+project mathnexa-platform-staging (prj_O61Cyx9WMjc0jljpM9erCiSXsJA0, team team_qhdZ6TvnEA6BYjjfAiwJBAp9); automation-bypass entries: 1; vault value is an entry: yes; vault value is the deployment env-var entry: yes
+rotated: the old secret is revoked; the new secret is stored in the vault (never printed)
+verify: https://mathnexa-platform-staging-7imw2qco8-bright-path-ed-tech.vercel.app accepts the new secret
+verify: https://mathnexa-platform-staging-7imw2qco8-bright-path-ed-tech.vercel.app refuses the revoked secret

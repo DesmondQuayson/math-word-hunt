@@ -1,0 +1,2 @@
+project mathnexa-platform-staging (prj_O61Cyx9WMjc0jljpM9erCiSXsJA0, team team_qhdZ6TvnEA6BYjjfAiwJBAp9); automation-bypass entries: 1; vault value is an entry: yes; vault value is the deployment env-var entry: yes
+plan only: -Apply would revoke the vault's current secret, have Vercel generate a new one, store it in the vault and verify. Nothing was changed.

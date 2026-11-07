@@ -1,0 +1,56 @@
+{
+  "lockedHealth": {
+    "status": 404,
+    "bytes": 0
+  },
+  "webhookUnsigned": {
+    "status": 400,
+    "body": "{\"received\":false,\"state\":\"invalid-signature\"}",
+    "redirectLocation": null
+  },
+  "lockedGate": {
+    "status": 404,
+    "bytes": 0,
+    "cacheControl": "no-store"
+  },
+  "bootstrap": {
+    "status": 204,
+    "cookie": true
+  },
+  "health": {
+    "status": 200,
+    "body": {
+      "status": "ready",
+      "environment": "production-platform",
+      "build": "7ed3d2d81e1e958278ba3fdcf7d6e0f285387c8f",
+      "searchIndexing": "enabled",
+      "payments": "test"
+    }
+  },
+  "schedulerRoute": {
+    "status": 401,
+    "body": "{\"error\":\"unauthorized\"}",
+    "cacheControl": "no-store"
+  },
+  "fixtureRoute": {
+    "status": 404
+  },
+  "accountSignedOut": {
+    "status": 307,
+    "location": "/access?next=/account",
+    "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+  },
+  "pricing": {
+    "status": 307,
+    "location": "/access?next=/subscription",
+    "mentionsEnded": false,
+    "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+  },
+  "subscriptionSignedOut": {
+    "status": 307,
+    "location": "/access?next=/subscription",
+    "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+  }
+}
+EVIDENCE_FILE C:\Users\quays\AppData\Local\Temp\mathnexa-lifecycle-evidence-1794087604472.json
+EVIDENCE {"stage":"certify","startedAt":"2026-11-07T21:40:00.841Z","certification":{"lockedHealth":{"status":404,"bytes":0},"webhookUnsigned":{"status":400,"body":"{\"received\":false,\"state\":\"invalid-signature\"}","redirectLocation":null},"lockedGate":{"status":404,"bytes":0,"cacheControl":"no-store"},"bootstrap":{"status":204,"cookie":true},"health":{"status":200,"body":{"status":"ready","environment":"production-platform","build":"7ed3d2d81e1e958278ba3fdcf7d6e0f285387c8f","searchIndexing":"enabled","payments":"test"}},"schedulerRoute":{"status":401,"body":"{\"error\":\"unauthorized\"}","cacheControl":"no-store"},"fixtureRoute":{"status":404},"accountSignedOut":{"status":307,"location":"/access?next=/account","cacheControl":"private, no-cache, no-store, max-age=0, must-revalidate"},"pricing":{"status":307,"location":"/access?next=/subscription","mentionsEnded":false,"cacheControl":"private, no-cache, no-store, max-age=0, must-revalidate"},"subscriptionSignedOut":{"status":307,"location":"/access?next=/subscription","cacheControl":"private, no-cache, no-store, max-age=0, must-revalidate"}},"pass":true,"finishedAt":"2026-11-07T21:40:04.471Z"}
