@@ -12,7 +12,7 @@ param(
 # invoke-math-tug-of-war-production.ps1.
 #
 #   -Stage audit    READ ONLY production identity + migration plan + baseline
-#   -Stage migrate  apply the pending Bingo migrations in order (20261103100000, 20261106100000, 20261106110000, 20261106120000, 20261107100000, 20261108100000); refuses anything else
+#   -Stage migrate  apply the pending Bingo migrations in order (20261103100000, 20261106100000, 20261106110000, 20261106120000, 20261107100000, 20261108100000, 20261108110000); refuses anything else
 #   -Stage verify   tables, RLS, grants, functions, catalog row, other games
 #   -Stage smoke    service-role room contract with synthetic hashes (no account; cleaned up)
 #   -Stage qa       post-release gameplay QA: synthetic room via service role, students through the

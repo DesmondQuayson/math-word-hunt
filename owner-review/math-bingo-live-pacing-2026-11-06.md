@@ -5,11 +5,12 @@ migration, no catalog change, no Supabase upgrade). Not promoted, not merged.**
 
 | | |
 | --- | --- |
-| Branch | `feature/math-bingo-live-pacing` — commit `3054af4` (from `main` `eb9bd40` = v1.2.37); not pushed, not merged |
-| Staging preview | `dpl_BdbBUUtNkGemVSYdXJPW1vPUKyR1` — https://mathnexa-platform-staging-myrxww0og-bright-path-ed-tech.vercel.app (build `3054af4`, `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`); NOT promoted |
+| Branch | `feature/math-bingo-live-pacing` — commits `3054af4` (pacing) + `db0fee3` (header chip fix, review assertions) from `main` `eb9bd40` = v1.2.37; not pushed, not merged |
+| Staging preview | **`dpl_AAqbivFsTCJUDj16f2isqVYdGQoR`** — https://mathnexa-platform-staging-raou8vviv-bright-path-ed-tech.vercel.app (build `db0fee3`, `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`); NOT promoted. Earlier preview `dpl_BdbBUUtNkGemVSYdXJPW1vPUKyR1` (build `3054af4`) superseded: its header pushed the pacing chip off screen with the long preview hostname |
 | Staging database | `20261103100000` … `20261107100000`, **`20261108100000` applied 2026-11-06 (`-Stage migrate` PASS: universe table, pacing column, scheduler and paced Start present, browsers have no access; row counts unchanged; `-Stage smoke` PASS)** |
 | Production database | `20261103100000` … `20261107100000` (unchanged) |
-| Rollback | `supabase/rollback/math_bingo_live_pacing.sql` (restores every function and constraint exactly as `20261107100000` left them; drops the new table and columns) |
+| Rollback | `supabase/rollback/math_bingo_live_pacing.sql` (restores every function and constraint exactly as `20261107100000` left them; drops the new table, columns and the scheduler whatever its version) |
+| Migrations | `20261108100000_math_bingo_live_pacing.sql` (additive: table, columns, functions) + `20261108110000_math_bingo_live_pacing_tune.sql` (scheduler only: urgency near a gate so a class of three reaches one away by call 15, and a gate-open fallback that builds 3/5 lines) |
 
 Everything released in v1.2.35–v1.2.37 is kept: QR joining and the numeric code, emoji identities, no exact question
 repeat per game, participant-independent marking, the duplicate-answer strategy, Fraction Bingo (symbolic question,
@@ -48,7 +49,10 @@ complete line.
    how many students it would bring to one away, and a seeded hash:
    - calls 1–14: early classes only, building 4/5 progress toward the gate;
    - gate open (call 15, or N + 10): the class that lets the **fewest** students (at least one) finish — a real
-     opportunity every call until a student takes it; a wrong or missed answer just keeps the gate open;
+     opportunity every call until a student takes it; a wrong or missed answer just keeps the gate open; if nobody
+     is one away yet (a very small class), the class that brings the fewest to one away, then the one building the
+     most 3/5 lines; within five calls of a gate with nobody one away, progress outweighs the call mixture
+     (`20261108110000`);
    - gate closed (cooldown): only classes that complete nothing for anyone; students at 4/5 keep their progress.
 4. **Two complete lines on the same call** (two cards share the completing class): the first correct mark under the
    lock is the winner; the other line is **pending** — kept, shown as `5/5 · waiting` under the winners and as "Line

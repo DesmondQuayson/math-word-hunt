@@ -32,8 +32,9 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // Bingo migrations in order; `migrate` applies whichever single one is pending.
-const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000", "20261108100000"]);
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000", "20261108100000", "20261108110000"]);
 const PACING_MIGRATION = "20261108100000";
+const PACING_TUNE_MIGRATION = "20261108110000";
 const FINAL_GAMEPLAY_MIGRATION = "20261107100000";
 const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
@@ -186,6 +187,13 @@ async function migrate() {
       has_table_privilege('anon','public.bingo_room_questions','SELECT') or has_table_privilege('authenticated','public.bingo_room_questions','SELECT') as universe_browser_select,
       has_function_privilege('anon','private.bingo_schedule(public.bingo_rooms)','EXECUTE') or has_function_privilege('authenticated','private.bingo_schedule(public.bingo_rooms)','EXECUTE') as scheduler_browser_execute`)[0];
     check(evidence.pacing.universe_table && evidence.pacing.pacing_column && evidence.pacing.paced_start && evidence.pacing.scheduler && !evidence.pacing.universe_browser_select && !evidence.pacing.scheduler_browser_execute, "pacing-objects-missing-or-open");
+  }
+  if (MIGRATION === PACING_TUNE_MIGRATION) {
+    evidence.pacingTune = sql(`select
+      (to_regprocedure('private.bingo_schedule(public.bingo_rooms)') is not null) as scheduler,
+      position('v_urgent' in pg_get_functiondef('private.bingo_schedule(public.bingo_rooms)'::regprocedure)) > 0 as urgency_term,
+      has_function_privilege('anon','private.bingo_schedule(public.bingo_rooms)','EXECUTE') or has_function_privilege('authenticated','private.bingo_schedule(public.bingo_rooms)','EXECUTE') as scheduler_browser_execute`)[0];
+    check(evidence.pacingTune.scheduler && evidence.pacingTune.urgency_term && !evidence.pacingTune.scheduler_browser_execute, "pacing-tune-missing-or-open");
   }
   if (MIGRATION === FINAL_GAMEPLAY_MIGRATION) {
     evidence.finalGameplay = sql(`select

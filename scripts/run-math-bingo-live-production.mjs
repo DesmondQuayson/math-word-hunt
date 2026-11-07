@@ -9,7 +9,7 @@
  *   --stage=audit    READ ONLY. Proves the target is production with several
  *                    independent signals, lists the migration history, proves
  *                    that what is pending is exactly the next Bingo migrations
- *                    in order (20261103100000, 20261106100000, 20261106110000, 20261106120000, 20261107100000, 20261108100000),
+ *                    in order (20261103100000, 20261106100000, 20261106110000, 20261106120000, 20261107100000, 20261108100000, 20261108110000),
  *                    nothing else and no remote-only versions, that the Bingo objects are absent
  *                    (first migration) or present (later ones), and snapshots
  *                    the catalog, history and row counts as the rollback baseline.
@@ -55,7 +55,8 @@ const MIGRATIONS = Object.freeze([
   Object.freeze({ version: "20261106110000", file: "20261106110000_math_bingo_live_player_payload.sql" }),
   Object.freeze({ version: "20261106120000", file: "20261106120000_math_bingo_live_deal_at_start.sql" }),
   Object.freeze({ version: "20261107100000", file: "20261107100000_math_bingo_live_final_gameplay.sql" }),
-  Object.freeze({ version: "20261108100000", file: "20261108100000_math_bingo_live_pacing.sql" })
+  Object.freeze({ version: "20261108100000", file: "20261108100000_math_bingo_live_pacing.sql" }),
+  Object.freeze({ version: "20261108110000", file: "20261108110000_math_bingo_live_pacing_tune.sql" })
 ]);
 const BINGO_VERSIONS = MIGRATIONS.map((migration) => migration.version);
 const SPEED_MIGRATION = "20261106100000";
