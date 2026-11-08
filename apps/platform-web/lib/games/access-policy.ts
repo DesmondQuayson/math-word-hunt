@@ -20,7 +20,11 @@ export type GameAccessPolicy = "entitled" | "authenticated-free";
 
 const GAME_ACCESS_POLICIES: Readonly<Record<string, GameAccessPolicy>> = Object.freeze({
   "math-tug-of-war": "authenticated-free",
-  "math-bingo-live": "authenticated-free"
+  "math-bingo-live": "authenticated-free",
+  // Free for any signed-in account. Its Showdown guests never sign in: they
+  // join one room with a code and a display name, which grants nothing outside
+  // that room and creates no account, wallet or saved progress.
+  "polygon-showdown": "authenticated-free"
 });
 
 type FreeGameRoute = `/games/${string}/play` | `/games/${string}/host`;
@@ -28,11 +32,13 @@ type FreeGameRoute = `/games/${string}/play` | `/games/${string}/host`;
 /** Play (or host) routes of authenticated-free games, keyed by catalog slug. */
 const FREE_GAME_PLAY_ROUTES: Readonly<Record<string, FreeGameRoute>> = Object.freeze({
   "math-tug-of-war": "/games/math-tug-of-war/play",
-  "math-bingo-live": "/games/math-bingo-live/host"
+  "math-bingo-live": "/games/math-bingo-live/host",
+  "polygon-showdown": "/games/polygon-showdown/play"
 });
 
 export const MATH_TUG_OF_WAR_PLAY_ROUTE = "/games/math-tug-of-war/play" as const;
 export const MATH_BINGO_LIVE_HOST_ROUTE = "/games/math-bingo-live/host" as const;
+export const POLYGON_SHOWDOWN_PLAY_ROUTE = "/games/polygon-showdown/play" as const;
 
 export function gameAccessPolicy(stableKey: string): GameAccessPolicy {
   return Object.prototype.hasOwnProperty.call(GAME_ACCESS_POLICIES, stableKey) ? GAME_ACCESS_POLICIES[stableKey] : "entitled";

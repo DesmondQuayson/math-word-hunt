@@ -6,6 +6,7 @@ import { renderMathBingoLiveHostDocument } from "@/features/games/math-bingo-liv
 import { renderMathTugOfWarDocument } from "@/features/games/math-tug-of-war/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
+import { renderPolygonShowdownDocument } from "@/features/games/polygon-showdown/document";
 
 /** Per-visitor facts a game document may use (never secrets, never identity). */
 export type InternalGameDocumentOptions = Readonly<{
@@ -61,6 +62,15 @@ const INTERNAL_GAMES = Object.freeze({
     assetBase: "/internal-games/math-bingo-live/",
     connectSource: "'self'",
     renderDocument: renderMathBingoLiveHostDocument
+  }),
+  // Solo for signed-in accounts, and a live Showdown whose creator plays from
+  // the same screen; guests join at /join with a code and a display name.
+  "polygon-showdown": Object.freeze({
+    stableKey: "polygon-showdown",
+    route: "/games/polygon-showdown/play",
+    assetBase: "/internal-games/polygon-showdown/",
+    connectSource: "'self'",
+    renderDocument: renderPolygonShowdownDocument
   })
 } satisfies Record<string, InternalGameRegistration>);
 

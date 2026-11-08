@@ -1,0 +1,26 @@
+export const CURRENCY_NAME: string;
+export const CURRENCY_SINGULAR: string;
+export const COMBO_CAP: number;
+export function sizeBonus(size: number): number;
+export function coinsForMatch(size: number, chain: number, firstInStep?: boolean): number;
+export function scoreForMatch(size: number, chain: number): number;
+export const TIMING: Readonly<{
+  MIN_SWAP_MS: number;
+  MIN_STEP_MS: number;
+  FUTURE_TOLERANCE_MS: number;
+  MAX_BACKDATE_MS: number;
+  SHOWDOWN_GRACE_MS: number;
+  MAX_BATCH: number;
+}>;
+export function minGapAfter(chainSteps: number): number;
+export const BANK_EVERY_COINS: number;
+export const BANK_EVERY_MS: number;
+export const DAILY_EARN_CAP: number;
+export const SHOWDOWN_REWARD_RATE: number;
+export const SHOWDOWN_REWARD_PER_MINUTE: number;
+export function showdownReward(showdownCoins: number, durationSeconds: number): number;
+export const RUN_MILESTONES: readonly number[];
+export function milestonesCrossed(before: number, after: number): number[];
+export const ACHIEVEMENTS: ReadonlyArray<Readonly<{ key: string; title: string; detail: string }>>;
+export function isAchievementKey(key: string): boolean;
+export function achievementsFor(totals: Readonly<{ matches: number; bestCombo: number; largestClear: number; lifetimeCoins: number }>): string[];

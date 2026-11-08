@@ -26,6 +26,11 @@ const PREMIUM_THUMBNAILS = Object.freeze({
   "math-bingo-live": Object.freeze({
     webp: "/media/games/math-bingo-live.webp",
     avif: "/media/games/math-bingo-live.avif"
+  }),
+  // Captured from real play: scripts/capture-polygon-showdown-thumbnail.mjs.
+  "polygon-showdown": Object.freeze({
+    webp: "/media/games/polygon-showdown.webp",
+    avif: "/media/games/polygon-showdown.avif"
   })
 } satisfies Record<string, CatalogThumbnail>);
 

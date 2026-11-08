@@ -19,16 +19,16 @@ export function refused(error: string, status: number): Response {
   return reply({ error }, status);
 }
 
-export function isSameOriginGameRequest(request: Request): boolean {
-  if (request.headers.get("x-mathnexa-game") !== "math-bingo-live") return false;
+export function isSameOriginGameRequest(request: Request, game = "math-bingo-live"): boolean {
+  if (request.headers.get("x-mathnexa-game") !== game) return false;
   const site = request.headers.get("sec-fetch-site");
   if (site && site !== "same-origin") return false;
   return site === "same-origin" || isSameOriginAdminRequest(request.headers);
 }
 
 /** The parsed JSON object body, or a refusal to send instead. */
-export async function readJsonBody(request: Request, maxBytes: number): Promise<Json | Response> {
-  if (!isSameOriginGameRequest(request)) return refused("forbidden", 403);
+export async function readJsonBody(request: Request, maxBytes: number, game = "math-bingo-live"): Promise<Json | Response> {
+  if (!isSameOriginGameRequest(request, game)) return refused("forbidden", 403);
   if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return refused("unsupported-media-type", 415);
   const text = await request.text();
   if (text.length > maxBytes) return refused("payload-too-large", 413);

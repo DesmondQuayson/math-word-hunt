@@ -12,6 +12,7 @@ import {
   subjectHash,
   toPlayerState
 } from "@/lib/games/math-bingo-live/server";
+import { isPolygonShowdownAvailable, liveRoomGameForCode } from "@/lib/games/polygon-showdown/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { normalizeEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
 import { sanitizeDisplayName } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
@@ -89,6 +90,11 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     // Optional and decorative: one of the curated choices exactly, or none.
     const emoji = normalizeEmoji(body.emoji);
     if (!emoji.ok) return refused(emoji.error, 400);
+    // One join page serves every live game: a code owned by a Polygon Showdown
+    // room goes there, before it can count as a failed Bingo code.
+    if ((await liveRoomGameForCode(code)) === "polygon_showdown" && (await isPolygonShowdownAvailable())) {
+      return reply({ result: "other-game", game: "polygon_showdown", href: `/join?code=${code}` });
+    }
     const token = newToken();
     const tokenHash = hashToken("player", token);
     const data = await call("bingo_join_room", {

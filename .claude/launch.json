@@ -12,6 +12,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/mobile-gameplay-harness.mjs"],
       "port": 4195
+    },
+    {
+      "name": "polygon-showdown-review",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/run-polygon-showdown.mjs", "demo"],
+      "port": 3102
     }
   ]
 }

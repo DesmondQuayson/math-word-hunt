@@ -7,7 +7,7 @@ const ASSET_BASE = "/internal-games/math-bingo-live/";
  * recomputes it and fails if a runtime file changes without updating it
  * (`node scripts/math-bingo-live-runtime-hash.mjs --write`).
  */
-export const MATH_BINGO_LIVE_RUNTIME_SHA256 = "0da28eb369cc30e242c0069baa93f3055e6716ca6390d76b1167873759aa4718";
+export const MATH_BINGO_LIVE_RUNTIME_SHA256 = "eb517009bbc20b325784bfa05a7e3cead207e20b21b6c94e9eef9e60febcc8d8";
 
 type Role = "host" | "player";
 

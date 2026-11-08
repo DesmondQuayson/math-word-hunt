@@ -1,0 +1,17 @@
+export type CatalogItem = Readonly<{ id: string; slot: string; name: string; price: number; tier: string; starter: boolean; model: string; color: string | undefined; accent: string | null }>;
+export type Avatar = Record<string, string | null>;
+export const TIERS: readonly string[];
+export const TIER_LABELS: Readonly<Record<string, string>>;
+export const SKIN_TONES: ReadonlyArray<Readonly<{ id: string; label: string; color: string }>>;
+export const BASES: ReadonlyArray<Readonly<{ id: string; label: string }>>;
+export const SLOTS: ReadonlyArray<Readonly<{ key: string; label: string; tab: string; optional: boolean }>>;
+export const SHOP_TABS: ReadonlyArray<Readonly<{ key: string; label: string }>>;
+export const ITEMS: readonly CatalogItem[];
+export const STARTER_ITEM_IDS: readonly string[];
+export const DEFAULT_AVATAR: Readonly<Avatar>;
+export function getItem(id: unknown): CatalogItem | null;
+export function itemsForSlot(slot: string): CatalogItem[];
+export function itemsForTab(tab: string): CatalogItem[];
+export function normalizeAvatar(raw: unknown, owned?: ReadonlySet<string> | null): { ok: true; avatar: Avatar } | { ok: false; error: string };
+export function equipItem(avatar: Avatar, entry: CatalogItem): Avatar;
+export function catalogSummary(): { tiers: Array<{ tier: string; count: number; min: number; max: number; typicalPrice: number }>; count: number; totalPrice: number };

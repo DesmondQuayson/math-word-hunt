@@ -205,6 +205,17 @@ function renderJoinName(code, message = "", { name = "", emoji = null } = {}) {
       submit.textContent = "Joining…";
       try {
         const payload = await liveRequest(PLAY_ENDPOINT, { action: "join", code, name: typed, emoji: chosen }, { timeoutMs: ACTION_TIMEOUT_MS });
+        // The code belongs to another live game: its own join screen takes over
+        // with what was typed here, so nothing has to be entered twice.
+        if (payload.result === "other-game" && typeof payload.href === "string" && payload.href.startsWith("/join?code=")) {
+          try {
+            sessionStorage.setItem("mathnexa:live-join:prefill", JSON.stringify({ code, name: typed, emoji: chosen }));
+          } catch {
+            /* The next screen simply asks for the name again. */
+          }
+          location.assign(payload.href);
+          return;
+        }
         seat = { token: payload.token, code, name: payload.state.me.name, emoji: payload.state.me.emoji };
         saveSeat(seat);
         startSession(payload.state);
