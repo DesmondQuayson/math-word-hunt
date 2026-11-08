@@ -966,11 +966,19 @@ function buildCoat(item, frame, materials, ctx) {
   const shortened = ctx.skirted;
   const hem = shortened ? 0.84 : 0.4;
   const flareAt = (y) => (shortened ? 0 : 0.17 * Math.pow(clamp((0.96 - y) / 0.56), 1.4));
+  // The torso tapers away towards the crotch but the legs do not, so below the
+  // waist the coat has to be as wide as the thighs in trousers, wherever it hangs.
+  const leg = frame.legs[1];
+  const clearLegs = (y) => {
+    const t = clamp((0.9 - y) / 0.785);
+    return Math.abs(leg.point(t).x) + leg.radius(t) + 0.05 - looseRing(frame, y, 0, 0.5, 1.22, hem).rx;
+  };
+  const coatInflate = (y) => Math.max(FIT.jacket + flareAt(y) + (ctx.bottomRadius ? Math.max(0, ctx.bottomRadius(y)) : 0), y < 0.92 ? clearLegs(y) : 0);
   const gap = (y) => (y > 1.0 ? lerp(0.16, 0.42, clamp((y - 1.0) / 0.42)) : lerp(0.16, 0.34, clamp((1.0 - y) / 0.6)));
   torsoShell(main, frame, {
     hem,
     top: jacketTop(1.45),
-    inflate: (y) => FIT.jacket + flareAt(y) + (ctx.bottomRadius ? Math.max(0, ctx.bottomRadius(y)) : 0),
+    inflate: coatInflate,
     loose: 0.5,
     gap,
     nu: 56,
@@ -984,7 +992,7 @@ function buildCoat(item, frame, materials, ctx) {
     for (let i = 0; i <= 24; i += 1) {
       const y = lerp(hem + 0.004, 1.41, i / 24);
       const a = side * gap(y);
-      const ring = looseRing(frame, y, FIT.jacket + flareAt(y) + (ctx.bottomRadius ? Math.max(0, ctx.bottomRadius(y)) : 0), 0.5, 1.22, hem);
+      const ring = looseRing(frame, y, coatInflate(y), 0.5, 1.22, hem);
       points.push(vec(Math.sin(a) * ring.rx, y, ring.cz + Math.cos(a) * ring.rz));
     }
     return points;
@@ -1003,7 +1011,7 @@ function buildCoat(item, frame, materials, ctx) {
       (u, v, out) => {
         const a = side * lerp(gap(beltY), PI, u);
         const y = lerp(beltY - 0.028, beltY + 0.028, v);
-        const ring = looseRing(frame, y, FIT.jacket + flareAt(y) + 0.006, 0.5, 1.22, hem);
+        const ring = looseRing(frame, y, coatInflate(y) + 0.006, 0.5, 1.22, hem);
         out.set(Math.sin(a) * ring.rx, y, ring.cz + Math.cos(a) * ring.rz);
       },
       { tint: accent, flip: side < 0 }

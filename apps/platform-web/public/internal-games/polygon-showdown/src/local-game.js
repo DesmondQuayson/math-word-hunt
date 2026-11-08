@@ -4,7 +4,8 @@
 // everything on this side is a preview of it.
 
 import { minGapAfter, TIMING } from "./engine/economy.js";
-import { allLegalMoves, applySwap, createKnownRefills, CONFIG, decodeBoard, pentagonIsActive, stateHash } from "./engine/game.js";
+import { allLegalMoves, applySwap, createKnownRefills, CONFIG, decodeBoard, stateHash } from "./engine/game.js";
+import { PENTAGON } from "./engine/shapes.js";
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -30,7 +31,7 @@ export class LocalGame {
     this.onMoved = onMoved;
     this.onStall = onStall;
     this.onPentagon = onPentagon;
-    this.pentagonAnnounced = pentagonIsActive(state, Math.round(clockT()));
+    this.pentagonAnnounced = this.boardHasPentagon();
     this.known = createKnownRefills(CONFIG);
     this.refillAt = refillAt ?? this.known.at;
     if (windows) this.known.merge(cursors ?? state.cursors, windows);
@@ -43,9 +44,13 @@ export class LocalGame {
     this.restartHintClock();
   }
 
-  /** The Pentagon's arrival, once. Called after a move and by the Showdown's clock. */
-  checkPentagon(t = Math.round(this.clockT())) {
-    if (this.pentagonAnnounced || !pentagonIsActive(this.state, t)) return;
+  boardHasPentagon() {
+    return decodeBoard(this.state.board).includes(PENTAGON);
+  }
+
+  /** The first Pentagon to land, once. */
+  checkPentagon() {
+    if (this.pentagonAnnounced || !this.boardHasPentagon()) return;
     this.pentagonAnnounced = true;
     this.onPentagon?.();
   }
@@ -106,7 +111,7 @@ export class LocalGame {
     this.busy = false;
     this.restartHintClock();
     this.onMoved?.(result, before);
-    this.checkPentagon(t);
+    this.checkPentagon();
     this.applyDeferred();
   }
 

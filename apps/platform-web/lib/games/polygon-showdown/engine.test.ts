@@ -15,7 +15,9 @@ import {
   findLegalMove,
   isGameState,
   newGameState,
-  pentagonIsActive,
+  PENTAGON_LANE,
+  PENTAGON_WAVES,
+  pentagonRule,
   refillWindow,
   replayMoves,
   SCHEDULES,
@@ -281,15 +283,18 @@ describe("the same seed gives the same game", () => {
     expect(Array.from({ length: 500 }, (_, index) => again.at(3, index))).toEqual(sequence);
     expect([...sequence.keys()].reverse().map((index) => again.at(3, index))).toEqual([...sequence].reverse());
     expect(Array.from({ length: 500 }, (_, index) => other.at(3, index))).not.toEqual(sequence);
-    // A value at or above 10 is a slot the Pentagon may take over: it stands for
-    // value - 10 until the Pentagon has joined.
-    const decoded = sequence.map((value) => (value >= 10 ? value - 10 : value));
+    // Each value is one of the four shapes plus 16 times a roll from 0 to 99,
+    // which decides whether the Pentagon takes that place once its share allows.
+    const decoded = sequence.map((value) => value % 16);
     expect(decoded.every((kind) => ACTIVE_SHAPES.includes(kind))).toBe(true);
     const counts = ACTIVE_SHAPES.map((kind) => decoded.filter((value) => value === kind).length);
     expect(Math.min(...counts)).toBeGreaterThan(85);
-    const flagged = sequence.filter((value) => value >= 10).length;
-    expect(flagged).toBeGreaterThan(70);
-    expect(flagged).toBeLessThan(130);
+    const rolls = sequence.map((value) => value >> 4);
+    expect(Math.min(...rolls)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...rolls)).toBeLessThanOrEqual(99);
+    const low = rolls.filter((roll) => roll < 20).length;
+    expect(low).toBeGreaterThan(70);
+    expect(low).toBeLessThan(130);
   });
 
   it("the same swaps from the same seed give exactly the same result", () => {
@@ -541,8 +546,8 @@ describe("the pentagon", () => {
         const board = startingBoard(`opening-${round}`, CONFIG, kinds);
         expect(boardFindMatches(board, cols, rows)).toEqual([]);
         const count = allLegalMoves(board, cols, rows).length;
-        expect(count).toBeGreaterThanOrEqual(CONFIG.boardTarget!.min - 3);
-        expect(count).toBeLessThanOrEqual(CONFIG.boardTarget!.max + 12);
+        expect(count).toBeGreaterThanOrEqual(kinds === CONFIG.kinds ? CONFIG.boardTarget!.min : 12);
+        expect(count).toBeLessThanOrEqual(CONFIG.boardTarget!.max);
       }
     }
   });
@@ -553,53 +558,139 @@ describe("the pentagon", () => {
     expect(boardFindMatches(board, cols, rows)).toEqual([]);
   });
 
-  it("joins Solo after a set number of matches, and a Showdown at a set time", () => {
+  it("waits through a warm-up in Solo, then comes in waves that grow", () => {
     const opening = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.solo);
-    expect(pentagonIsActive(opening, 0)).toBe(false);
-    expect(pentagonIsActive({ ...opening, matches: SCHEDULES.solo.afterMatches! - 1 }, 0)).toBe(false);
-    expect(pentagonIsActive({ ...opening, matches: SCHEDULES.solo.afterMatches! }, 0)).toBe(true);
+    const warmup = SCHEDULES.solo.warmup;
+    const every = SCHEDULES.solo.every!;
+    const lasts = SCHEDULES.solo.lasts!;
+    expect(warmup).toBeGreaterThanOrEqual(8);
+    expect(warmup).toBeLessThanOrEqual(12);
+    expect(pentagonRule(opening, 0)).toBeNull();
+    expect(pentagonRule({ ...opening, moves: warmup - 1 }, 0)).toBeNull();
+    const first = pentagonRule({ ...opening, moves: warmup }, 0)!;
+    expect(first).toMatchObject(PENTAGON_WAVES[0]);
+    expect(first.lane).toBe(PENTAGON_LANE);
+    expect(pentagonRule({ ...opening, moves: warmup + lasts - 1 }, 0)).not.toBeNull();
+    expect(pentagonRule({ ...opening, moves: warmup + lasts }, 0)).toBeNull();
+    expect(pentagonRule({ ...opening, moves: warmup + every }, 0)).toMatchObject(PENTAGON_WAVES[1]);
+    expect(pentagonRule({ ...opening, moves: warmup + every * 2 }, 0)).toMatchObject(PENTAGON_WAVES[2]);
+    expect(pentagonRule({ ...opening, moves: warmup + every * 40 }, 0)).toMatchObject(PENTAGON_WAVES[2]);
+    for (let index = 1; index < PENTAGON_WAVES.length; index += 1) {
+      expect(PENTAGON_WAVES[index].share).toBeGreaterThan(PENTAGON_WAVES[index - 1].share);
+      expect(PENTAGON_WAVES[index].ceiling).toBeGreaterThan(PENTAGON_WAVES[index - 1].ceiling);
+    }
+  });
 
+  it("follows the room's clock in a Showdown, never anyone's progress", () => {
     const room = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.standard);
-    expect(pentagonIsActive(room, SCHEDULES.standard.afterMs! - 1)).toBe(false);
-    expect(pentagonIsActive(room, SCHEDULES.standard.afterMs!)).toBe(true);
-    // It is the clock, not how well anyone is doing.
-    expect(pentagonIsActive({ ...room, matches: 500, coins: 9_999 }, 1_000)).toBe(false);
+    const warmup = SCHEDULES.standard.warmup;
+    expect(warmup).toBeGreaterThan(0);
+    expect(pentagonRule(room, warmup - 1)).toBeNull();
+    expect(pentagonRule(room, warmup)).toMatchObject(PENTAGON_WAVES[0]);
+    // How well someone is doing changes nothing.
+    expect(pentagonRule({ ...room, moves: 500, matches: 900, coins: 9_999 }, warmup - 1)).toBeNull();
+    expect(pentagonRule({ ...room, moves: 500, matches: 900, coins: 9_999 }, warmup)).toEqual(pentagonRule(room, warmup));
+    // No clock, no Pentagon.
+    expect(pentagonRule(room, undefined)).toBeNull();
+    // Three waves, growing, inside the shortest game.
+    const every = SCHEDULES.standard.every!;
+    const shortest = 5 * 60_000;
+    expect(warmup + 2 * every).toBeLessThan(shortest);
+    expect(pentagonRule(room, warmup + 2 * every)).toMatchObject(PENTAGON_WAVES[2]);
+  });
 
+  it("is in every column from the first move in Challenge, and absent with no schedule", () => {
     const challenge = newGameState(encodeBoard(startingBoard("schedule", CONFIG, CONFIG.advancedKinds)), CONFIG, SCHEDULES.challenge);
-    expect(pentagonIsActive(challenge, 0)).toBe(true);
-
-    expect(pentagonIsActive(newGameState(encodeBoard(startingBoard("schedule"))), 999_999)).toBe(false);
+    const rule = pentagonRule(challenge, 0)!;
+    expect(rule.first).toBe(0);
+    expect(rule.lane).toBeGreaterThanOrEqual(cols);
+    expect(pentagonRule(newGameState(encodeBoard(startingBoard("schedule"))), 999_999)).toBeNull();
   });
 
   it("a state's schedule is checked like the rest of it", () => {
     const state = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.standard);
     expect(isGameState(state)).toBe(true);
-    expect(isGameState({ ...state, schedule: { afterMs: -1 } })).toBe(false);
-    expect(isGameState({ ...state, schedule: { afterMs: "soon" } })).toBe(false);
-    expect(isGameState({ ...state, schedule: { somethingElse: 1 } })).toBe(false);
+    expect(isGameState({ ...state, schedule: SCHEDULES.solo })).toBe(true);
+    expect(isGameState({ ...state, schedule: SCHEDULES.challenge })).toBe(true);
+    for (const schedule of [
+      { unit: "hours", warmup: 1, every: 2, lasts: 1 },
+      { unit: "ms", warmup: -1, every: 2, lasts: 1 },
+      { unit: "ms", warmup: 0, every: 0, lasts: 0 },
+      { unit: "ms", warmup: 0, every: 2, lasts: 3 },
+      { unit: "ms", warmup: "soon", every: 2, lasts: 1 },
+      { unit: "ms", warmup: 0, every: 2, lasts: 1, extra: 1 },
+      { unit: "ms", warmup: 0, always: "yes" },
+      { somethingElse: 1 }
+    ]) {
+      expect(isGameState({ ...state, schedule }), JSON.stringify(schedule)).toBe(false);
+    }
   });
 
   function play(seed: string, schedule: object, spacing: number, count: number) {
     const stream = createRefillStream(seed);
     let state = newGameState(encodeBoard(startingBoard(seed)), CONFIG, schedule as never);
     const list: Move[] = [];
+    const arrivals: { col: number; moves: number; t: number }[] = [];
     let t = 0;
+    let most = 0;
     for (let index = 0; index < count; index += 1) {
       t = (index + 1) * spacing;
       const [a, b] = findLegalMove(decodeBoard(state.board), cols, rows)!;
       const result = applySwap(state, a, b, stream.at, CONFIG, t);
       if (!result.ok) throw new Error(result.reason);
+      for (const step of result.steps) for (const spawn of step.spawns) if (spawn.kind === PENTAGON) arrivals.push({ col: spawn.to % cols, moves: state.moves, t });
       state = result.state;
+      most = Math.max(most, decodeBoard(state.board).filter((value) => value === PENTAGON).length);
       list.push([a, b, t]);
     }
-    return { stream, state, list };
+    return { stream, state, list, arrivals, most };
   }
 
-  it("appears on the board once it has joined, and not before", () => {
+  it("arrives only after the warm-up, and only inside a wave", () => {
     const early = play("arrival", SCHEDULES.standard, 2_000, 25);
+    expect(early.arrivals).toEqual([]);
     expect(decodeBoard(early.state.board)).not.toContain(PENTAGON);
-    const late = play("arrival", SCHEDULES.standard, 4_000, 60);
-    expect(decodeBoard(late.state.board)).toContain(PENTAGON);
+
+    const { warmup } = SCHEDULES.standard;
+    const every = SCHEDULES.standard.every!;
+    const lasts = SCHEDULES.standard.lasts!;
+    const late = play("arrival", SCHEDULES.standard, 4_000, 75);
+    expect(late.arrivals.length).toBeGreaterThan(0);
+    for (const { t } of late.arrivals) {
+      expect(t).toBeGreaterThanOrEqual(warmup);
+      expect((t - warmup) % every).toBeLessThan(lasts);
+    }
+  });
+
+  it("comes in through the wave's own lane, one wave's worth at a time, up to the ceiling", () => {
+    for (let run = 0; run < 12; run += 1) {
+      const { arrivals, most, state } = play(`solo-lane-${run}`, SCHEDULES.solo, 2_500, 260);
+      expect(arrivals.length).toBeGreaterThan(0);
+      for (const { col, moves } of arrivals) {
+        const rule = pentagonRule({ ...state, moves }, 0)!;
+        expect(rule, `move ${moves}`).not.toBeNull();
+        expect(col).toBeGreaterThanOrEqual(rule.first);
+        expect(col).toBeLessThan(rule.first + rule.lane);
+      }
+      expect(most).toBeLessThanOrEqual(PENTAGON_WAVES[PENTAGON_WAVES.length - 1].ceiling);
+    }
+  });
+
+  it("never touches what is already on the board", () => {
+    const seed = "existing-pieces";
+    const stream = createRefillStream(seed);
+    let state = newGameState(encodeBoard(startingBoard(seed)), CONFIG, SCHEDULES.solo);
+    for (let index = 0; index < 60; index += 1) {
+      const before = decodeBoard(state.board);
+      const pentagons = before.filter((value) => value === PENTAGON).length;
+      const [a, b] = findLegalMove(before, cols, rows)!;
+      const result = applySwap(state, a, b, stream.at, CONFIG, index * 2_500);
+      if (!result.ok) throw new Error(result.reason);
+      const cleared = result.steps.flatMap((step) => step.groups).filter((group) => group.kind === PENTAGON).reduce((sum, group) => sum + group.size, 0);
+      const arrived = result.steps.flatMap((step) => step.spawns).filter((spawn) => spawn.kind === PENTAGON).length;
+      if (!result.reshuffled) expect(decodeBoard(result.state.board).filter((value) => value === PENTAGON).length).toBe(pentagons - cleared + arrived);
+      state = result.state;
+    }
   });
 
   it("every player in a room faces the same schedule and the same shapes", () => {
@@ -632,11 +723,11 @@ describe("the pentagon", () => {
     expect(stateHash(current)).toBe(stateHash(state));
   });
 
-  it("the known-refill windows carry the pentagon flag to the browser", () => {
+  it("the known-refill windows carry each draw's roll to the browser", () => {
     const stream = createRefillStream("window-flags");
     const state = newGameState(encodeBoard(startingBoard("window-flags")), CONFIG, SCHEDULES.standard);
     const windows = refillWindow(stream, state.cursors);
-    expect(windows.every((text: string) => /^[0-3a-d]{40}$/.test(text))).toBe(true);
+    expect(windows.every((text: string) => /^[0-9a-f]{120}$/.test(text))).toBe(true);
     const known = createKnownRefills();
     known.merge(state.cursors, windows);
     for (let col = 0; col < cols; col += 1) {

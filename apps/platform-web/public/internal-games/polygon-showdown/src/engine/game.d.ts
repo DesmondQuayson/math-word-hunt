@@ -1,7 +1,8 @@
 export type Move = [number, number, number];
 
 export type GameConfig = Readonly<{ rules: number; cols: number; rows: number; kinds: readonly number[]; advancedKinds?: readonly number[]; boardTarget?: Readonly<{ min: number; max: number; attempts: number }> | null }>;
-export type GameSchedule = Readonly<{ afterMatches?: number; afterMs?: number }>;
+export type GameSchedule = Readonly<{ unit: "moves" | "ms"; warmup: number; every?: number; lasts?: number; always?: true }>;
+export type PentagonRule = Readonly<{ share: number; ceiling: number; first: number; lane: number }>;
 
 export type GameState = {
   rules: number;
@@ -38,7 +39,9 @@ export type RefillStream = Readonly<{ at: RefillAt }>;
 
 export const CONFIG: GameConfig;
 export const SCHEDULES: Readonly<{ solo: GameSchedule; standard: GameSchedule; challenge: GameSchedule }>;
-export function pentagonIsActive(state: GameState, t?: number): boolean;
+export const PENTAGON_LANE: number;
+export const PENTAGON_WAVES: readonly Readonly<{ share: number; ceiling: number }>[];
+export function pentagonRule(state: GameState, t?: number, cols?: number): PentagonRule | null;
 export const CELL_COUNT: number;
 export const WINDOW_SIZE: number;
 export function createRefillStream(seed: string, config?: GameConfig): RefillStream;

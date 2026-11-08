@@ -1,17 +1,18 @@
 /**
- * Polygon Showdown difficulty comparison: the four-shape game against the
- * five-shape progression, through the real engine, for three kinds of player.
- * Reports what the player experiences (legal swaps to choose from, time between
- * successful swaps, matches, cascades, reshuffles, coins per minute) and what a
- * session earns at 5, 10, 30 and 60 minutes.
+ * Polygon Showdown difficulty comparison, through the real engine, for three
+ * kinds of player: the four-shape game before the Pentagon, the all-five-shapes
+ * build it replaced, and the progressive Pentagon that shipped. Reports what the
+ * player experiences (legal swaps to choose from, time between successful
+ * swaps, matches, cascades, reshuffles, coins per minute, how many Pentagons
+ * are about) and what a session earns at 5, 10, 30 and 60 minutes.
  *
  * Thinking time grows as legal swaps get scarcer: that is the assumption that
- * turns "fewer obvious matches" into time, and it is applied to both rule sets.
+ * turns "fewer obvious matches" into time, and it is applied to every rule set.
  *
  *   node scripts/polygon-showdown-difficulty-comparison.mjs [--runs 30] [--json]
  */
 import { createRandom } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/random.js";
-import { ACTIVE_SHAPES } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/shapes.js";
+import { ACTIVE_SHAPES, PENTAGON } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/shapes.js";
 import { allLegalMoves, applySwap, CONFIG, createRefillStream, decodeBoard, encodeBoard, newGameState, SCHEDULES, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const args = process.argv.slice(2);
@@ -21,16 +22,15 @@ const option = (name, fallback) => {
 };
 const RUNS = option("runs", 30);
 const JSON_OUTPUT = args.includes("--json");
-const HORIZON_MS = 60 * 60_000;
 const CHECKPOINTS = [5, 10, 30, 60];
+const SHOWDOWN_LENGTHS = [5, 10, 30];
 const SWAP_ANIMATION_MS = 180;
 const STEP_ANIMATION_MS = 470;
 
-const OLD_CONFIG = Object.freeze({ rules: 1, cols: 8, rows: 8, kinds: ACTIVE_SHAPES, boardTarget: null });
-const RULES = Object.freeze({
-  old: { config: OLD_CONFIG, schedule: null, label: "before (4 shapes)" },
-  new: { config: CONFIG, schedule: SCHEDULES.solo, label: "after (Pentagon joins)" }
-});
+const PRE_PENTAGON = Object.freeze({ config: Object.freeze({ rules: 1, cols: 8, rows: 8, kinds: ACTIVE_SHAPES, boardTarget: null }), schedule: null, label: "pre-Pentagon" });
+const ALL_FIVE = Object.freeze({ config: Object.freeze({ ...CONFIG, boardTarget: Object.freeze({ min: 9, max: 15, attempts: 40 }) }), schedule: Object.freeze({ unit: "moves", warmup: 20, always: true }), label: "all five shapes" });
+const PROGRESSIVE = Object.freeze({ config: CONFIG, schedule: SCHEDULES.solo, label: "progressive Pentagon" });
+const SHOWDOWN_STANDARD = Object.freeze({ config: CONFIG, schedule: SCHEDULES.standard, label: "Standard Showdown" });
 
 const PLAYERS = Object.freeze({
   beginner: { thinkMs: 3600, jitter: 0.5, smart: 0, misses: 0.18 },
@@ -61,22 +61,24 @@ function moveQuality(board, [a, b], config) {
   return best + rowBias;
 }
 
-function playSession(profile, rules, seedText) {
+function playSession(profile, rules, seedText, checkpoints) {
   const { config, schedule } = rules;
   const random = createRandom(`difficulty:${seedText}`);
   const stream = createRefillStream(seedText, config);
   let state = newGameState(encodeBoard(startingBoard(seedText, config)), config, schedule);
   let clock = 0;
-  let legalSum = 0;
-  let decisions = 0;
-  let pentagonAtMs = null;
+  const totals = { legal: 0, decisions: 0, onBoard: 0, spawned: 0, pentagonsSpawned: 0, pentagonMatches: 0 };
+  let firstPentagon = null;
   const samples = new Map();
   let nextCheckpoint = 0;
-  while (clock < HORIZON_MS) {
+  const horizon = checkpoints[checkpoints.length - 1] * 60_000;
+  while (clock < horizon) {
     const board = decodeBoard(state.board);
     const moves = allLegalMoves(board, config.cols, config.rows);
-    legalSum += moves.length;
-    decisions += 1;
+    totals.legal += moves.length;
+    totals.decisions += 1;
+    totals.onBoard += board.filter((value) => value === PENTAGON).length;
+    if (firstPentagon === null && board.includes(PENTAGON)) firstPentagon = { seconds: clock / 1000, swaps: state.moves };
     clock += profile.thinkMs * scanFactor(moves.length) * (1 + (random.next() * 2 - 1) * profile.jitter);
     if (random.next() < profile.misses) clock += 1200;
     let choice = moves[random.int(0, moves.length - 1)];
@@ -93,65 +95,92 @@ function playSession(profile, rules, seedText) {
     const result = applySwap(state, choice[0], choice[1], stream.at, config, Math.round(clock));
     if (!result.ok) throw new Error(`Engine refused a legal swap: ${result.reason}`);
     state = result.state;
-    if (pentagonAtMs === null && schedule && state.matches >= schedule.afterMatches) pentagonAtMs = clock;
+    for (const step of result.steps) {
+      totals.spawned += step.spawns.length;
+      totals.pentagonsSpawned += step.spawns.filter((spawn) => spawn.kind === PENTAGON).length;
+      totals.pentagonMatches += step.groups.filter((group) => group.kind === PENTAGON).length;
+    }
     clock += SWAP_ANIMATION_MS + result.chain * STEP_ANIMATION_MS;
-    while (nextCheckpoint < CHECKPOINTS.length && clock >= CHECKPOINTS[nextCheckpoint] * 60_000) {
-      samples.set(CHECKPOINTS[nextCheckpoint], { coins: state.coins, moves: state.moves, cascades: state.cascades, matches: state.matches, reshuffles: state.reshuffles, bestCombo: state.bestCombo, legalAverage: legalSum / decisions });
+    while (nextCheckpoint < checkpoints.length && clock >= checkpoints[nextCheckpoint] * 60_000) {
+      samples.set(checkpoints[nextCheckpoint], { coins: state.coins, moves: state.moves, cascades: state.cascades, matches: state.matches, reshuffles: state.reshuffles, bestCombo: state.bestCombo, ...totals });
       nextCheckpoint += 1;
     }
   }
-  return { samples, pentagonAtMs };
+  return { samples, firstPentagon };
 }
 
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
 const round = (value, places = 2) => Number(value.toFixed(places));
 
-function summarize(rules, profile, name) {
-  const sessions = Array.from({ length: RUNS }, (_, run) => playSession(profile, rules, `${name}-${run}`));
+function summarize(rules, profile, name, checkpoints) {
+  const sessions = Array.from({ length: RUNS }, (_, run) => playSession(profile, rules, `${name}-${run}`, checkpoints));
   const at = (minutes, key) => mean(sessions.map((session) => session.samples.get(minutes)[key]));
-  const hour = 60;
-  const moves = at(hour, "moves");
-  const pentagon = sessions.map((session) => session.pentagonAtMs).filter((value) => value !== null);
+  const last = checkpoints[checkpoints.length - 1];
+  const moves = at(last, "moves");
+  const decisions = at(last, "decisions");
+  const firsts = sessions.map((session) => session.firstPentagon).filter(Boolean);
   return {
-    coins: Object.fromEntries(CHECKPOINTS.map((minutes) => [minutes, Math.round(at(minutes, "coins"))])),
-    legalMovesAverage: round(at(hour, "legalAverage"), 1),
-    secondsPerSuccessfulSwap: round(3600 / moves, 2),
-    movesPerMinute: round(moves / 60, 1),
-    matchesPerMinute: round(at(hour, "matches") / 60, 1),
-    matchesPerSwap: round(at(hour, "matches") / moves),
-    cascadesPerSwap: round(at(hour, "cascades") / moves),
-    cascadesPerMinute: round(at(hour, "cascades") / 60, 1),
-    reshufflesPer1000Swaps: round((at(hour, "reshuffles") / moves) * 1000, 1),
-    coinsPerMinute: round(at(hour, "coins") / 60, 1),
-    coinsPerSwap: round(at(hour, "coins") / moves),
-    bestCombo: Math.max(...sessions.map((session) => session.samples.get(hour).bestCombo)),
-    pentagonJoinsAfterSeconds: pentagon.length ? Math.round(mean(pentagon) / 1000) : null
+    coins: Object.fromEntries(checkpoints.map((minutes) => [minutes, Math.round(at(minutes, "coins"))])),
+    legalMovesAverage: round(at(last, "legal") / decisions, 1),
+    secondsPerSuccessfulSwap: round((last * 60) / moves, 2),
+    movesPerMinute: round(moves / last, 1),
+    matchesPerMinute: round(at(last, "matches") / last, 1),
+    matchesPerSwap: round(at(last, "matches") / moves),
+    cascadesPerSwap: round(at(last, "cascades") / moves),
+    cascadesPerMinute: round(at(last, "cascades") / last, 1),
+    reshufflesPer1000Swaps: round((at(last, "reshuffles") / moves) * 1000, 1),
+    coinsPerMinute: round(at(last, "coins") / last, 1),
+    coinsPerSwap: round(at(last, "coins") / moves),
+    bestCombo: Math.max(...sessions.map((session) => session.samples.get(last).bestCombo)),
+    pentagonsOnBoardAverage: round(at(last, "onBoard") / decisions, 1),
+    pentagonShareOfNewShapesPercent: round((at(last, "pentagonsSpawned") / at(last, "spawned")) * 100, 1),
+    pentagonMatchesPer100Swaps: round((at(last, "pentagonMatches") / moves) * 100, 1),
+    firstPentagonAfterSwaps: firsts.length ? round(mean(firsts.map((first) => first.swaps)), 0) : null,
+    firstPentagonAfterSeconds: firsts.length ? round(mean(firsts.map((first) => first.seconds)), 0) : null
   };
 }
 
 const openingLegal = (rules) => {
-  const counts = Array.from({ length: 200 }, (_, index) => {
-    const seed = `opening-${index}`;
-    return allLegalMoves(startingBoard(seed, rules.config), rules.config.cols, rules.config.rows).length;
-  });
+  const counts = Array.from({ length: 200 }, (_, index) => allLegalMoves(startingBoard(`opening-${index}`, rules.config), rules.config.cols, rules.config.rows).length);
   return { mean: round(mean(counts), 1), min: Math.min(...counts), max: Math.max(...counts) };
 };
 
-const report = { openingBoardLegalMoves: { old: openingLegal(RULES.old), new: openingLegal(RULES.new) }, players: {} };
+const report = {
+  openingBoardLegalMoves: { preP: openingLegal(PRE_PENTAGON), allFive: openingLegal(ALL_FIVE), progressive: openingLegal(PROGRESSIVE) },
+  players: {},
+  showdown: {}
+};
 for (const [name, profile] of Object.entries(PLAYERS)) {
-  report.players[name] = { old: summarize(RULES.old, profile, name), new: summarize(RULES.new, profile, name) };
+  report.players[name] = {
+    preP: summarize(PRE_PENTAGON, profile, name, CHECKPOINTS),
+    allFive: summarize(ALL_FIVE, profile, name, CHECKPOINTS),
+    progressive: summarize(PROGRESSIVE, profile, name, CHECKPOINTS)
+  };
+  report.showdown[name] = {
+    preP: summarize(PRE_PENTAGON, profile, `${name}-room`, SHOWDOWN_LENGTHS),
+    standard: summarize(SHOWDOWN_STANDARD, profile, `${name}-room`, SHOWDOWN_LENGTHS)
+  };
 }
+
+const reduction = (before, after) => `${round((1 - after / before) * 100, 1)}%`;
 
 if (JSON_OUTPUT) {
   console.log(JSON.stringify(report, null, 2));
 } else {
-  console.log(`Opening board legal swaps: before ${JSON.stringify(report.openingBoardLegalMoves.old)}  after ${JSON.stringify(report.openingBoardLegalMoves.new)}`);
+  console.log(`Runs per row: ${RUNS}. Opening board legal swaps: ${JSON.stringify(report.openingBoardLegalMoves)}`);
   for (const [name, row] of Object.entries(report.players)) {
-    console.log(`\n${name.toUpperCase()}`);
-    for (const key of Object.keys(row.old)) {
+    console.log(`\n${name.toUpperCase()}: Solo   pre-Pentagon -> all five -> progressive`);
+    for (const key of Object.keys(row.preP)) {
       if (key === "coins") continue;
-      console.log(`${key.padEnd(28)} ${String(row.old[key]).padEnd(10)} -> ${row.new[key]}`);
+      console.log(`${key.padEnd(34)} ${String(row.preP[key]).padEnd(8)} ${String(row.allFive[key]).padEnd(8)} ${row.progressive[key]}`);
     }
-    console.log(`coins at 5/10/30/60 min      ${Object.values(row.old.coins).join(" / ")}  ->  ${Object.values(row.new.coins).join(" / ")}`);
+    for (const minutes of CHECKPOINTS) {
+      const before = row.preP.coins[minutes];
+      console.log(`coins at ${String(minutes).padEnd(3)}min  pre ${String(before).padEnd(6)} all-five ${String(row.allFive.coins[minutes]).padEnd(6)} (-${reduction(before, row.allFive.coins[minutes])})  progressive ${String(row.progressive.coins[minutes]).padEnd(6)} (-${reduction(before, row.progressive.coins[minutes])})`);
+    }
+  }
+  console.log("\nSTANDARD SHOWDOWN (coins at the end of a game of this length, against the same player before the Pentagon)");
+  for (const [name, row] of Object.entries(report.showdown)) {
+    console.log(`${name.padEnd(9)} ${SHOWDOWN_LENGTHS.map((minutes) => `${minutes} min: ${row.preP.coins[minutes]} -> ${row.standard.coins[minutes]} (-${reduction(row.preP.coins[minutes], row.standard.coins[minutes])})`).join("   ")}   legal ${row.standard.legalMovesAverage}  cascades/swap ${row.standard.cascadesPerSwap}`);
   }
 }

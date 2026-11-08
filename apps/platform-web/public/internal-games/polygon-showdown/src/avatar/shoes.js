@@ -27,9 +27,10 @@ const PROFILES = Object.freeze({
   sneaker: [[0, 0.128], [0.05, 0.142], [0.27, 0.112], [0.47, 0.132], [0.72, 0.084], [0.9, 0.066], [1, 0.05]],
   platform: [[0, 0.128], [0.05, 0.142], [0.27, 0.112], [0.47, 0.132], [0.72, 0.084], [0.9, 0.066], [1, 0.05]],
   hightop: [[0, 0.135], [0.05, 0.15], [0.27, 0.12], [0.47, 0.138], [0.72, 0.086], [0.9, 0.066], [1, 0.05]],
-  hightopTall: [[0, 0.2], [0.05, 0.218], [0.27, 0.232], [0.5, 0.212], [0.72, 0.092], [0.9, 0.066], [1, 0.05]],
+  hightopTall: [[0, 0.228], [0.05, 0.232], [0.27, 0.232], [0.5, 0.212], [0.72, 0.092], [0.9, 0.066], [1, 0.05]],
   boot: [[0, 0.135], [0.05, 0.15], [0.27, 0.125], [0.47, 0.14], [0.72, 0.09], [0.9, 0.07], [1, 0.05]],
-  bootTall: [[0, 0.285], [0.05, 0.3], [0.27, 0.312], [0.52, 0.292], [0.74, 0.1], [0.9, 0.07], [1, 0.05]],
+  // Stops below the fullest part of the calf, which would otherwise come through the back.
+  bootTall: [[0, 0.272], [0.05, 0.274], [0.27, 0.272], [0.52, 0.254], [0.74, 0.1], [0.9, 0.07], [1, 0.05]],
   flat: [[0, 0.076], [0.06, 0.07], [0.3, 0.04], [0.6, 0.05], [0.7, 0.06], [0.9, 0.05], [1, 0.04]],
   heel: [[0, 0.09], [0.06, 0.085], [0.3, 0.035], [0.6, 0.042], [0.72, 0.06], [0.9, 0.045], [1, 0.035]]
 });
@@ -73,7 +74,9 @@ function makeLast(model, spec, shinsCovered) {
   const open = model === "flat" || model === "heel";
   const holeCentre = 0.28;
   const holeReach = tall ? (model === "boot" ? 0.262 : 0.232) : 0.216;
-  const holeWidth = tall ? (model === "boot" ? 0.098 : 0.086) : 0.064;
+  const holeWidth = tall ? (model === "boot" ? 0.104 : 0.09) : 0.064;
+  // A tall shaft stays wide towards the back, because the calf inside it does.
+  const holeRoundness = tall ? 2.8 : 2;
   const throatEnd = model === "boot" && tall ? 0.74 : 0.72;
   const rise = (s) => (model === "heel" ? spec.lift * smoothstep(0.66, 0.2, s) * 1.25 : 0);
   const spring = (s) => (open ? 0 : 0.016 * smoothstep(0.74, 1, s) ** 2);
@@ -83,7 +86,7 @@ function makeLast(model, spec, shinsCovered) {
   const halfOpening = (s) => {
     if (open) return s < 0.03 || s > openingEnd ? 0 : width(s) * 0.74 * (1 - smoothstep(0.52, openingEnd, s)) * smoothstep(0.03, 0.09, s);
     const d = (s - holeCentre) / holeReach;
-    const hole = Math.abs(d) < 1 ? holeWidth * Math.sqrt(1 - d * d) : 0;
+    const hole = Math.abs(d) < 1 ? holeWidth * (1 - Math.abs(d) ** holeRoundness) ** (1 / holeRoundness) : 0;
     const throat = s > 0.38 && s < throatEnd ? 0.02 * smoothstep(throatEnd, throatEnd - 0.06, s) : 0;
     return Math.max(hole, throat);
   };
@@ -95,7 +98,8 @@ function makeLast(model, spec, shinsCovered) {
     const edge = width(s);
     const inner = halfOpening(s);
     const angle = u * Math.PI * 0.5;
-    const out1 = Math.cos(angle) ** 0.72;
+    // A tall shaft stands out sooner, clear of the shin inside it.
+    const out1 = Math.cos(angle) ** (tall ? 1.3 : 0.72);
     const up1 = Math.sin(angle) ** 0.88;
     const heelBulge = -0.01 * Math.sin(Math.PI * u) * (1 - s) ** 9;
     const toeRoll = offset * smoothstep(0.9, 1, s) * (1 - u * 0.4);
@@ -216,7 +220,7 @@ function addSole(builder, cx, last, tint, options = {}) {
       const bottom = base + last.rise(s) * 0.98 + 0.002 + last.spring(s);
       out.set(cx + across * edge, bottom + thickness * level, lerp(HEEL_Z - flare, TOE_Z + flare, s));
     },
-    { wrapU: true, poleStart: true, poleEnd: true, tint }
+    { wrapU: true, poleStart: true, poleEnd: true, flip: true, tint }
   );
 }
 
@@ -243,7 +247,7 @@ function addBootHeel(builder, cx, tint) {
       const y = lerp(0, 0.045, j / 5);
       out.set(cx + Math.cos(a) * 0.06, y, lerp(HEEL_Z, TOE_Z, 0.13) + Math.sin(a) * 0.052);
     },
-    { wrapU: true, tint }
+    { wrapU: true, flip: true, tint }
   );
 }
 

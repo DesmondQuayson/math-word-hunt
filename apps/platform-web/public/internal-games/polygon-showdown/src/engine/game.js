@@ -14,41 +14,70 @@ import { ACTIVE_SHAPES, ADVANCED_SHAPES, PENTAGON } from "./shapes.js";
 export { allLegalMoves, findLegalMove, findMatches };
 
 /**
- * `kinds` are dealt from the start; `advancedKinds` once a game's schedule says
- * so. `boardTarget` keeps a new board's legal swaps in a range that leaves the
- * player something to look for. Old runs and rooms keep their own stored state.
+ * `kinds` are the four shapes every game starts with. `advancedKinds` adds the
+ * Pentagon, which arrives on a game's own schedule. `boardTarget` keeps a new
+ * board's legal swaps in a sensible range: enough to see a match at once, not
+ * so many that the board plays itself.
  */
 export const CONFIG = Object.freeze({
-  rules: 2,
+  rules: 3,
   cols: 8,
   rows: 8,
   kinds: ACTIVE_SHAPES,
   advancedKinds: ADVANCED_SHAPES,
-  boardTarget: Object.freeze({ min: 9, max: 15, attempts: 40 })
+  boardTarget: Object.freeze({ min: 18, max: 34, attempts: 40 })
 });
 
 /**
- * When the Pentagon joins. Never based on how well someone is doing against
- * other players: in a Showdown it is the same moment on the room's clock for
- * everyone; in Solo it follows the run's own matches, because there is nobody
- * to be unfair to.
+ * The Pentagon arrives in waves, each a little stronger, into new shapes only:
+ * nothing already on the board ever changes. A wave's `share` is the percent of
+ * new shapes it takes, in the three-column lane the wave falls through.
+ * `ceiling` limits how many can be on the board at once. Both limits matter:
+ * a shape that is rare rarely lines up, so without a ceiling even a small share
+ * piles up (5% of new shapes reached 12% of the board and cost a third of the
+ * coins), and a narrow lane keeps Pentagons close enough to each other to clear.
+ */
+export const PENTAGON_LANE = 3;
+export const PENTAGON_WAVES = Object.freeze([
+  Object.freeze({ share: 20, ceiling: 4 }),
+  Object.freeze({ share: 30, ceiling: 6 }),
+  Object.freeze({ share: 40, ceiling: 8 })
+]);
+/** Challenge: as many as the shapes bring, in every column, from the first move. */
+const PENTAGON_ALWAYS = Object.freeze({ share: 20, ceiling: Infinity, first: 0, lane: Infinity });
+
+/**
+ * When the Pentagon arrives. Never based on how well someone is doing against
+ * other players: in a Showdown it follows the room's clock, the same moment for
+ * everyone; in Solo it follows the run's own swaps, because there is nobody to
+ * be unfair to. `unit` is what `warmup`, `every` and `lasts` count.
  */
 export const SCHEDULES = Object.freeze({
-  solo: Object.freeze({ afterMatches: 40 }),
-  standard: Object.freeze({ afterMs: 60_000 }),
-  challenge: Object.freeze({ afterMs: 0 })
+  solo: Object.freeze({ unit: "moves", warmup: 10, every: 70, lasts: 10 }),
+  standard: Object.freeze({ unit: "ms", warmup: 60_000, every: 110_000, lasts: 15_000 }),
+  challenge: Object.freeze({ unit: "ms", warmup: 0, always: true })
 });
 
-export function pentagonIsActive(state, t) {
+/**
+ * What the Pentagon may do during a swap at time `t`: null for nothing, else
+ * { share, ceiling, first, lane } with the lane starting at column `first`.
+ */
+export function pentagonRule(state, t, cols = CONFIG.cols) {
   const schedule = state.schedule;
-  if (!schedule) return false;
-  if (schedule.afterMatches !== undefined) return state.matches >= schedule.afterMatches;
-  if (schedule.afterMs !== undefined) return Number.isInteger(t) && t >= schedule.afterMs;
-  return false;
+  if (!schedule) return null;
+  const now = schedule.unit === "moves" ? state.moves : t;
+  if (!Number.isInteger(now) || now < schedule.warmup) return null;
+  if (schedule.always) return PENTAGON_ALWAYS;
+  const since = now - schedule.warmup;
+  if (since % schedule.every >= schedule.lasts) return null;
+  const wave = Math.floor(since / schedule.every);
+  const openings = cols - PENTAGON_LANE + 1;
+  return { ...PENTAGON_WAVES[Math.min(wave, PENTAGON_WAVES.length - 1)], first: (wave * 5 + 2) % openings, lane: PENTAGON_LANE };
 }
 
-/** A drawn value at or above this is a Pentagon once active, otherwise value - PROMOTED. */
-const PROMOTED = 10;
+/** One drawn value is a shape plus this many times a roll from 0 to 99. */
+const ROLL_UNIT = 16;
+const ROLLS = 100;
 export const CELL_COUNT = CONFIG.cols * CONFIG.rows;
 
 /** How many upcoming shapes per column a browser is told at a time. */
@@ -69,12 +98,8 @@ export function createRefillStream(seed, config = CONFIG) {
     let values = blocks.get(key);
     if (!values) {
       const random = createRandom(`polygon-showdown:refill:${seed}:${col}:${number}`);
-      const promotes = (config.advancedKinds?.length ?? 0) > config.kinds.length;
-      values = Array.from({ length: BLOCK_SIZE }, () => {
-        const kind = config.kinds[random.int(0, config.kinds.length - 1)];
-        // One draw in five is the Pentagon's, so all five shapes are equally likely.
-        return promotes && random.int(0, config.advancedKinds.length - 1) === 0 ? PROMOTED + kind : kind;
-      });
+      // The roll decides whether the Pentagon takes this place, once its share has grown past it.
+      values = Array.from({ length: BLOCK_SIZE }, () => config.kinds[random.int(0, config.kinds.length - 1)] + ROLL_UNIT * random.int(0, ROLLS - 1));
       if (blocks.size >= 128) blocks.clear();
       blocks.set(key, values);
     }
@@ -126,8 +151,9 @@ export function newGameState(boardText, config = CONFIG, schedule = null) {
 
 function isSchedule(schedule) {
   if (!schedule || typeof schedule !== "object") return false;
-  const keys = Object.keys(schedule);
-  return keys.length === 1 && (keys[0] === "afterMatches" || keys[0] === "afterMs") && Number.isInteger(schedule[keys[0]]) && schedule[keys[0]] >= 0;
+  if ((schedule.unit !== "moves" && schedule.unit !== "ms") || !Number.isInteger(schedule.warmup) || schedule.warmup < 0) return false;
+  if (schedule.always === true) return Object.keys(schedule).length === 3;
+  return Object.keys(schedule).length === 4 && Number.isInteger(schedule.every) && schedule.every > 0 && Number.isInteger(schedule.lasts) && schedule.lasts > 0 && schedule.lasts <= schedule.every;
 }
 
 export function isGameState(value, config = CONFIG) {
@@ -168,8 +194,7 @@ export function applySwap(state, a, b, refillAt, config = CONFIG, t = undefined)
   if (!swapMakesMatch(board, a, b, cols, rows)) return { ok: false, reason: "no-match" };
   [board[a], board[b]] = [board[b], board[a]];
 
-  const advanced = Boolean(config.advancedKinds) && pentagonIsActive(state, t);
-  const kinds = advanced ? config.advancedKinds : config.kinds;
+  const rule = config.advancedKinds ? pentagonRule(state, t, cols) : null;
   const cursors = state.cursors.slice();
   const steps = [];
   let chain = 0;
@@ -197,14 +222,16 @@ export function applySwap(state, a, b, refillAt, config = CONFIG, t = undefined)
     for (const cell of clearedCells) board[cell] = EMPTY;
     const { falls, emptyAbove } = collapse(board, cols, rows);
     const spawns = [];
+    let pentagons = rule ? board.filter((value) => value === PENTAGON).length : 0;
     for (let col = 0; col < cols; col += 1) {
       for (let row = emptyAbove[col] - 1; row >= 0; row -= 1) {
         const raw = refillAt(col, cursors[col]);
         if (!Number.isInteger(raw) || raw < 0) return { ok: false, reason: "need-refill" };
         cursors[col] += 1;
         const cell = cellOf(row, col, cols);
-        const drawn = raw >= PROMOTED ? (advanced ? PENTAGON : raw - PROMOTED) : raw;
-        const kind = settleKind(board, cell, drawn, drawn === PENTAGON ? kinds : config.kinds, cols, rows);
+        const entersAsPentagon = rule !== null && Math.floor(raw / ROLL_UNIT) < rule.share && col >= rule.first && col < rule.first + rule.lane && pentagons < rule.ceiling;
+        const kind = entersAsPentagon ? settleKind(board, cell, PENTAGON, config.advancedKinds, cols, rows) : settleKind(board, cell, raw % ROLL_UNIT, config.kinds, cols, rows);
+        if (kind === PENTAGON) pentagons += 1;
         board[cell] = kind;
         spawns.push({ to: cell, kind, drop: emptyAbove[col] });
       }
@@ -219,7 +246,7 @@ export function applySwap(state, a, b, refillAt, config = CONFIG, t = undefined)
   let reshuffles = state.reshuffles;
   let reshuffled = null;
   if (!findLegalMove(board, cols, rows)) {
-    const next = reshuffleBoard(board, reshuffles, kinds, cols, rows);
+    const next = reshuffleBoard(board, reshuffles, config.advancedKinds && board.includes(PENTAGON) ? config.advancedKinds : config.kinds, cols, rows);
     reshuffles += 1;
     reshuffled = encodeBoard(next);
     for (let cell = 0; cell < count; cell += 1) board[cell] = next[cell];
@@ -290,11 +317,13 @@ export function replayMoves(state, moves, refillAt, limits, config = CONFIG) {
   return { state: current, accepted, nextT, rejected };
 }
 
-/** The upcoming draws per column from the given cursors, one hex digit per draw. */
+const DRAW_DIGITS = 3;
+
+/** The upcoming draws per column from the given cursors, three hex digits per draw. */
 export function refillWindow(stream, cursors, size = WINDOW_SIZE) {
   return cursors.map((start, col) => {
     let text = "";
-    for (let offset = 0; offset < size; offset += 1) text += stream.at(col, start + offset).toString(16);
+    for (let offset = 0; offset < size; offset += 1) text += stream.at(col, start + offset).toString(16).padStart(DRAW_DIGITS, "0");
     return text;
   });
 }
@@ -308,7 +337,7 @@ export function createKnownRefills(config = CONFIG) {
   return {
     merge(cursors, windows) {
       windows.forEach((text, col) => {
-        for (let offset = 0; offset < text.length; offset += 1) known[col].set(cursors[col] + offset, parseInt(text[offset], 16));
+        for (let offset = 0; offset * DRAW_DIGITS < text.length; offset += 1) known[col].set(cursors[col] + offset, parseInt(text.slice(offset * DRAW_DIGITS, (offset + 1) * DRAW_DIGITS), 16));
       });
     },
     at(col, index) {

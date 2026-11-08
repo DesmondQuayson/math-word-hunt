@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applySwap, createRefillStream, decodeBoard, findLegalMove, stateHash, type GameState, type Move } from "@/public/internal-games/polygon-showdown/src/engine/game.js";
+import { applySwap, createRefillStream, decodeBoard, findLegalMove, SCHEDULES, stateHash, type GameState, type Move } from "@/public/internal-games/polygon-showdown/src/engine/game.js";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/service", () => ({ createServiceSupabaseClient: () => null }));
@@ -179,7 +179,7 @@ describe("what a browser is sent", () => {
   it("gives the browser the next shapes but not the seed", () => {
     const seat = server.toSeatPayload(record.me, SEED, 1000, 2000) as { windows: string[]; nowT: number };
     expect(seat.windows).toHaveLength(8);
-    expect(seat.windows.every((text) => /^[0-3a-d]{40}$/.test(text))).toBe(true);
+    expect(seat.windows.every((text) => /^[0-9a-f]{120}$/.test(text))).toBe(true);
     expect(seat.nowT).toBe(1000);
   });
 });
@@ -199,21 +199,21 @@ describe("achievements earned by a commit", () => {
 });
 
 describe("opening states", () => {
-  it("Solo starts on four shapes and adds the Pentagon by matches", () => {
+  it("Solo starts on four shapes and adds the Pentagon by swaps", () => {
     const state = server.soloOpeningState(SEED);
-    expect(state.schedule).toEqual({ afterMatches: 40 });
+    expect(state.schedule).toEqual(SCHEDULES.solo);
     expect(new Set(decodeBoard(state.board)).size).toBe(4);
   });
 
   it("a Standard Showdown starts on four shapes and adds it by the clock", () => {
     const state = server.showdownOpeningState(SEED, "standard");
-    expect(state.schedule).toEqual({ afterMs: 60_000 });
+    expect(state.schedule).toEqual(SCHEDULES.standard);
     expect(new Set(decodeBoard(state.board)).size).toBe(4);
   });
 
   it("a Challenge Showdown has it from the first move", () => {
     const state = server.showdownOpeningState(SEED, "challenge");
-    expect(state.schedule).toEqual({ afterMs: 0 });
+    expect(state.schedule).toEqual(SCHEDULES.challenge);
     expect(new Set(decodeBoard(state.board)).size).toBe(5);
   });
 });

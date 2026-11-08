@@ -23,7 +23,7 @@ window.__POLYGON_SHOWDOWN__ = { audio };
 
 const DURATIONS = Object.freeze([5, 7, 10, 15, 20, 30]);
 const DIFFICULTY_NOTES = Object.freeze({
-  standard: "Four shapes to start. The Pentagon joins after one minute, for everyone at once.",
+  standard: "Four shapes to start. After a minute, Pentagons begin arriving in waves, at the same moment for everyone.",
   challenge: "All five shapes from the first move."
 });
 
