@@ -9,6 +9,7 @@ import {
   DURATIONS_SECONDS,
   GAME_KEY,
   hashToken,
+  isLocalOwnerPreview,
   isPolygonShowdownAvailable,
   isRoomRecord,
   isRunRecord,
@@ -181,6 +182,15 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     const data = await call("polygon_bootstrap", { p_user: accountId });
     if (!data) return refused("live-unavailable", 503);
     return reply({ result: "ok", guest: false, wallet: data.wallet, profile: data.profile, inventory: data.inventory, activeRun: data.activeRun });
+  }
+
+  // The draft catalog card, for the local owner review only.
+  if (action === "catalog-preview") {
+    if (!isLocalOwnerPreview()) return refused("not-available", 404);
+    const { data } = await timed(timing, "db", () => client.from("game_catalog_entries").select("title,description,status,recommended_grade_min,recommended_grade_max,publication_metadata").eq("stable_key", GAME_KEY).maybeSingle());
+    const row = data as { title: string; description: string; status: string; recommended_grade_min: number; recommended_grade_max: number; publication_metadata: Json } | null;
+    if (!row) return refused("not-available", 404);
+    return reply({ result: "ok", entry: { title: row.title, description: row.description, status: row.status, category: row.publication_metadata.category, gradeMin: row.recommended_grade_min, gradeMax: row.recommended_grade_max } });
   }
 
   if (!accountId) return refused("account-required", 403);

@@ -37,6 +37,9 @@ export const ACCOUNTS = Object.freeze({
   teacher: { email: "bingo-teacher@example.test", password: "BingoTeacher42!" }
 });
 
+// The local stand-in for a school's access code: proves such a session stays a guest.
+const SCHOOL_CODE = "POLYGON-LOCAL";
+
 const [mode = "demo", ...passThrough] = process.argv.slice(2);
 if (!["demo", "e2e", "load", "thumbnail", "regress"].includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
@@ -102,6 +105,8 @@ const environment = {
   MVH_SUPPORT_EMAIL: "support@example.invalid",
   MVH_POLYGON_SHOWDOWN_PREVIEW: "local-owner-review",
   MVH_MATH_BINGO_LIVE_PREVIEW: "local-owner-review",
+  MATHNEXA_SCHOOL_ACCESS_CODE: SCHOOL_CODE,
+  MATHNEXA_SCHOOL_ACCESS_SESSION_SECRET: "polygon-showdown-local-school-access-secret-value",
   BILLING_ENABLED: "true",
   BILLING_PROVIDER: "fixture",
   BILLING_CHECKOUT_ENABLED: "true",
@@ -162,7 +167,8 @@ try {
     SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY,
     BINGO_TEACHER_EMAIL: ACCOUNTS.teacher.email,
     BINGO_TEACHER_PASSWORD: ACCOUNTS.teacher.password,
-    POLYGON_ACCOUNTS: JSON.stringify(ACCOUNTS)
+    POLYGON_ACCOUNTS: JSON.stringify(ACCOUNTS),
+    POLYGON_SCHOOL_CODE: SCHOOL_CODE
   };
   if (mode === "demo") {
     console.log(`\nPolygon Showdown owner review is running.\n  App:  ${origin}/games/polygon-showdown/play\n  Join: ${origin}/join\nPress Ctrl+C to stop.\n`);

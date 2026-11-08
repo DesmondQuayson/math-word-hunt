@@ -1,0 +1,16 @@
+export const EMPTY: number;
+export const MIN_MATCH: number;
+export type BoardRandom = Readonly<{ int(min: number, max: number): number; shuffle<T>(list: readonly T[]): T[] }>;
+export type BoardMatch = Readonly<{ kind: number; cells: readonly number[]; size: number; horizontal: boolean; vertical: boolean }>;
+export function cellOf(row: number, col: number, cols: number): number;
+export function rowOf(cell: number, cols: number): number;
+export function colOf(cell: number, cols: number): number;
+export function areAdjacent(a: number, b: number, cols: number): boolean;
+export function findMatches(board: readonly number[], cols: number, rows: number): BoardMatch[];
+export function settleKind(board: readonly number[], cell: number, drawn: number, kinds: readonly number[], cols: number, rows: number): number;
+export function swapMakesMatch(board: number[], a: number, b: number, cols: number, rows: number): boolean;
+export function findLegalMove(board: number[], cols: number, rows: number): [number, number] | null;
+export function allLegalMoves(board: number[], cols: number, rows: number): [number, number][];
+export function collapse(board: number[], cols: number, rows: number): Readonly<{ falls: ReadonlyArray<Readonly<{ from: number; to: number }>>; emptyAbove: readonly number[] }>;
+export function generateBoard(random: BoardRandom, kinds: readonly number[], cols: number, rows: number): number[];
+export function reshuffleBoard(board: readonly number[], count: number, kinds: readonly number[], cols: number, rows: number): number[];

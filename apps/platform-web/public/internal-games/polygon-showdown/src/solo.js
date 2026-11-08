@@ -6,7 +6,7 @@
 import { announce, fill, h, icon } from "../../math-bingo-live/src/dom.js";
 import { accountRequest, GameError } from "./api.js";
 import { BoardView } from "./board-view.js";
-import { ACHIEVEMENTS, CURRENCY_NAME, milestonesCrossed } from "./engine/economy.js";
+import { ACHIEVEMENTS, CURRENCY_NAME, milestonesCrossed, TIMING } from "./engine/economy.js";
 import { CONFIG, createRefillStream, encodeBoard, newGameState, startingBoard } from "./engine/game.js";
 import { LocalGame } from "./local-game.js";
 import { brand, coinAmount, coinIcon, confirmDialog, numberText, setScreen, soundControls, toast } from "./ui.js";
@@ -39,7 +39,8 @@ class Saver {
     }
     const batch = this.game.batch();
     if (!batch && !checkpoint && !end) return null;
-    const body = { run: this.runId, epoch: this.epoch, from: batch?.from ?? this.game.acked, moves: batch?.moves ?? [], h: batch?.h, checkpoint, end };
+    const finalBatch = !end || this.game.pending.length <= TIMING.MAX_BATCH;
+    const body = { run: this.runId, epoch: this.epoch, from: batch?.from ?? this.game.acked, moves: batch?.moves ?? [], h: batch?.h, checkpoint: checkpoint || !finalBatch, end: end && finalBatch };
     this.lastSavedAt = performance.now();
     this.inFlight = accountRequest("solo-sync", body, { keepalive });
     try {
@@ -47,7 +48,7 @@ class Saver {
       this.apply(reply);
       this.onSaved?.(reply);
       // More swaps were waiting behind this batch.
-      if (end && this.game.pending.length) return this.flush({ end: true });
+      if (end && !finalBatch) return this.flush({ end: true });
       return reply;
     } catch (error) {
       if (error instanceof GameError && (error.code === "run-moved" || error.code === "run-ended" || error.code === "run-not-found")) this.onLost?.(error);
@@ -318,6 +319,7 @@ export class SoloScreen {
   }
 
   cleanup() {
+    if (this.saver && this.game?.pending.length) this.saver.flush({ checkpoint: true, keepalive: true });
     this.saver?.stop();
     this.saver = null;
     for (const undo of this.leaveHandlers.splice(0)) undo();

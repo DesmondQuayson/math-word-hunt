@@ -103,7 +103,7 @@ function renderHub() {
         session.guest ? null : h("button", { type: "button", class: "link-button", id: "open-avatar", text: "Customize Avatar", onclick: () => navigate("#avatar") })),
       session.guest ? null : avatarHost),
     musicCredit()));
-  if (!session.guest) hubAvatar = mountAvatar(avatarHost, session.avatar, { interactive: false, autoRotate: false });
+  if (!session.guest) hubAvatar = mountAvatar(avatarHost, session.avatar, { interactive: false, autoRotate: false, defer: true });
 }
 
 async function confirmNewRun() {
@@ -232,6 +232,21 @@ function openShop(mode) {
   screen.open();
 }
 
+async function renderCatalogPreview() {
+  setScreen("catalog");
+  const { entry } = await accountRequest("catalog-preview");
+  fill(app, h("main", { id: "main", class: "center-screen" }, brand(),
+    h("p", { class: "status-tag", id: "catalog-status", text: entry.status.toUpperCase() }),
+    h("article", { class: "catalog-card", id: "catalog-card" },
+      h("img", { src: "/media/games/polygon-showdown.webp", alt: `${entry.title} gameplay artwork` }),
+      h("div", { class: "catalog-card-body" },
+        h("p", { class: "catalog-meta" }, h("span", { class: "free-tag", text: "Free to play" }), `${entry.category} · Grades ${entry.gradeMin}–${entry.gradeMax}`),
+        h("h2", { text: entry.title }),
+        h("p", { text: entry.description }))),
+    h("p", { class: "muted small", text: "Local owner review. A draft is never listed in the catalog." }),
+    h("button", { type: "button", class: "button ghost", text: "Back", onclick: () => goHome() })));
+}
+
 async function route() {
   const hash = location.hash.slice(1) || "home";
   try {
@@ -244,6 +259,10 @@ async function route() {
     } else if (hash === "showdown" || hash === "lobby") await openShowdown();
     else if (hash === "shop") openShop("shop");
     else if (hash === "avatar") openShop("avatar");
+    else if (hash === "catalog") {
+      teardown();
+      await renderCatalogPreview();
+    }
     else {
       teardown();
       renderHub();

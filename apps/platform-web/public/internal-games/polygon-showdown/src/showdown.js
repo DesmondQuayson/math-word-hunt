@@ -360,14 +360,15 @@ export class ShowdownScreen {
           h("div", { class: "hud-value" }, h("span", { class: "hud-label", text: "Time" }), this.timerValue),
           h("div", { class: "hud-value" }, h("span", { class: "hud-label", text: "Coins" }), h("span", { class: "coin-amount big" }, coinIcon(), this.coinValue)),
           h("div", { class: "hud-value" }, h("span", { class: "hud-label", text: "Place" }), this.rankValue)),
-        h("button", { type: "button", class: "button small ghost controls-button", id: "showdown-controls", text: controlsLabel, "aria-label": this.isCreator ? "Showdown Controls" : "Menu", "aria-haspopup": "dialog", onclick: () => this.openControls() })),
+        h("button", { type: "button", class: "button small ghost controls-button", id: "showdown-controls", "aria-label": this.isCreator ? "Showdown Controls" : "Menu", "aria-haspopup": "dialog", onclick: () => this.openControls() }, h("span", { class: "controls-long", text: controlsLabel }), h("span", { class: "controls-short", text: "⋯" }))),
       this.tickerList,
       h("div", { class: "play-area" },
-        h("div", { class: "board-wrap" }, this.view.root, this.comboBanner, this.countdown),
+        h("div", { class: "board-wrap" }, this.view.root, this.comboBanner),
         h("section", { class: "standings-panel", "aria-label": "Standings" },
           h("h2", { class: "panel-heading", text: "STANDINGS" }),
           this.standingsList)),
       h("div", { class: "offline-note", role: "status", text: "Reconnecting… your moves are safe." })));
+    this.view.root.append(this.countdown);
     this.view.setBoard(this.game.state.board);
     this.updateStandings();
     this.audio.syncMusic();
@@ -422,8 +423,10 @@ export class ShowdownScreen {
     const myRow = me ?? rows.find((row) => row.id === this.me?.id);
     const shown = me ? [...rows, me] : rows;
     this.standingsList.replaceChildren(...shown.map((row) => this.standingRow(row)));
-    this.tickerList.replaceChildren(...rows.slice(0, 3).map((row) => h("li", { class: row.id === this.me?.id ? "me" : "" }, h("span", { text: `${row.rank}. ` }), h("span", { text: row.emoji ?? "🔷" }), h("span", { class: "ticker-name", text: ` ${row.name} ` }), h("strong", { text: numberText(row.coins) }))));
-    if (myRow) this.rankValue.textContent = `${this.rankText(myRow)}/${total}`;
+    this.tickerList.replaceChildren(...rows.slice(0, 3).map((row) => h("li", { class: row.id === this.me?.id ? "me" : "" }, h("span", { text: `${row.rank}.` }), h("span", { text: row.emoji ?? "🔷" }), h("span", { class: "ticker-name", text: row.name }), h("strong", { text: numberText(row.coins) }))));
+    // Before anyone has scored, everyone is tied for first: that is not news.
+    const anyScore = shown.some((row) => row.coins > 0);
+    this.rankValue.textContent = myRow && anyScore ? `${this.rankText(myRow)}/${total}` : "–";
   }
 
   /** 3, 2, 1, GO!, the clock, and the buzzer: all from the server's time. */

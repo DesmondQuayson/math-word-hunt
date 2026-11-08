@@ -1151,7 +1151,7 @@ begin
     seen_at=statement_timestamp()
   from public.polygon_rooms r
   where p.token_hash=p_token_hash and p.version=p_version and p.status='active'
-    and r.id=p.room_id and r.status='open' and r.finalized_at is null and r.phase='RUNNING'
+    and r.id=p.room_id and r.status='open' and r.finalized_at is null and r.phase in ('RUNNING','ENDED')
     and statement_timestamp() >= r.starts_at
     and statement_timestamp() <= r.ends_at + interval '2500 milliseconds'
     and (p_state->>'moves')::integer >= p.moves and (p_state->>'coins')::integer >= p.coins

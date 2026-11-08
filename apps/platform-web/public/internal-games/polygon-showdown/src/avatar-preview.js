@@ -50,7 +50,7 @@ export function flatAvatar(avatar) {
  * Mounts an avatar picture in `host`. Returns { setAvatar, dispose }.
  * `load3d: false` keeps it flat (the fast choice for a list or a small badge).
  */
-export function mountAvatar(host, avatar, { load3d = true, interactive = false, framing = "full", autoRotate = false } = {}) {
+export function mountAvatar(host, avatar, { load3d = true, interactive = false, framing = "full", autoRotate = false, defer = false } = {}) {
   let current = avatar;
   let stage = null;
   let disposed = false;
@@ -59,7 +59,16 @@ export function mountAvatar(host, avatar, { load3d = true, interactive = false, 
   host.setAttribute("role", "img");
   host.setAttribute("aria-label", avatarDescription(avatar));
 
-  if (load3d && (window.__POLYGON_SHOWDOWN__?.graphics ?? "auto") !== "flat") {
+  const saveData = (() => {
+    try {
+      return navigator.connection?.saveData === true;
+    } catch {
+      return false;
+    }
+  })();
+
+  const load = () => {
+    if (disposed) return;
     import("./avatar/stage.js").then(({ createAvatarStage }) => {
       if (disposed) return;
       const created = createAvatarStage(host, { interactive, autoRotate, framing });
@@ -71,6 +80,13 @@ export function mountAvatar(host, avatar, { load3d = true, interactive = false, 
     }).catch(() => {
       /* The drawing stays. */
     });
+  };
+
+  if (load3d && !saveData) {
+    // On the way to a game the big download waits until the page has nothing better to do.
+    if (defer && typeof requestIdleCallback === "function") requestIdleCallback(load, { timeout: 2500 });
+    else if (defer) setTimeout(load, 800);
+    else load();
   }
 
   return {

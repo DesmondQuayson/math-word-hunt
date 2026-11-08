@@ -7,7 +7,7 @@ const ASSET_BASE = "/internal-games/polygon-showdown/";
  * recomputes it and fails if a runtime file changes without updating it
  * (`node scripts/polygon-showdown-runtime-hash.mjs --write`).
  */
-export const POLYGON_SHOWDOWN_RUNTIME_SHA256 = "ffa099074295d9b916692d0e7e7f7632a7b3b985fe11b056df809a81494eca4d";
+export const POLYGON_SHOWDOWN_RUNTIME_SHA256 = "eb25570f90739f91186992f4fedbcce9c887626d4eaa5c449aa99006f6b733ba";
 
 type Role = "app" | "join";
 

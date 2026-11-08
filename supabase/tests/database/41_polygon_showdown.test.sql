@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = extensions, public;
-select plan(92);
+select plan(99);
 
 -- ------------------------------------------------------------------- fixture
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
@@ -124,6 +124,12 @@ select is((public.polygon_player_load(pg_temp.hash('seat-a'))->>'phase'), 'LOBBY
 select is((public.polygon_create_room('482391',pg_temp.hash('owner-b'),pg_temp.hash('host-b'),pg_temp.hash('seat-b'),null,'Zion','🐼',300,repeat('d',32),pg_temp.state()))->>'result', 'code-taken', 'a code in use is not given out again');
 select is(public.live_room_game_for_code('482391'), 'polygon_showdown', 'the code identifies this game');
 select is(public.live_room_game_for_code('999999'), null, 'an unknown code identifies nothing');
+
+-- One code space across every live game.
+select is((public.bingo_create_room('482391',pg_temp.hash('bingo-owner'),pg_temp.hash('bingo-host'),'{"mode":"addition","level":"facts-20","questionSeconds":15,"revealSeconds":3,"patterns":{"rows":true,"columns":true,"diagonals":false},"winners":1,"freeSpace":false,"equivalentFractions":false,"music":"host","celebration":"host"}'::jsonb))->>'result', 'code-taken', 'Bingo cannot take a code a Showdown holds');
+select is((public.bingo_create_room('654321',pg_temp.hash('bingo-owner'),pg_temp.hash('bingo-host'),'{"mode":"addition","level":"facts-20","questionSeconds":15,"revealSeconds":3,"patterns":{"rows":true,"columns":true,"diagonals":false},"winners":1,"freeSpace":false,"equivalentFractions":false,"music":"host","celebration":"host"}'::jsonb))->>'result', 'created', 'Bingo rooms are created as before');
+select is(public.live_room_game_for_code('654321'), 'math_bingo_live', 'a Bingo code still belongs to Bingo');
+select is((public.polygon_create_room('654321',pg_temp.hash('owner-c'),pg_temp.hash('host-c'),pg_temp.hash('seat-c'),null,'Mina',null,300,repeat('e',32),pg_temp.state()))->>'result', 'code-taken', 'a Showdown cannot take a code Bingo holds');
 select is((public.polygon_join_room('482391','Ava','🚀',pg_temp.hash('seat-ava'),pg_temp.hash('addr'),null))->>'result', 'joined', 'a guest joins with a code and a name');
 select is((public.polygon_join_room('482391','Ava',null,pg_temp.hash('seat-ava2'),pg_temp.hash('addr'),null)->'me'->>'name'), 'Ava 2', 'a repeated name stays readable');
 select is((select user_id from public.polygon_participants where token_hash=pg_temp.hash('seat-ava')), null, 'a guest has no account behind them');
@@ -147,12 +153,18 @@ select is((public.polygon_player_commit(pg_temp.hash('seat-a'),2,pg_temp.state(r
 select is((public.polygon_player_load(pg_temp.hash('seat-ava'))->>'phase'),'COMPLETE','the buzzer ends the room');
 select ok((public.polygon_player_load(pg_temp.hash('seat-ava'))->>'finalized')::boolean,'and the results are final');
 select is((public.polygon_player_load(pg_temp.hash('seat-ava'))->'standings'->0->>'name'),'Ava','the creator can lose: the guest with more coins is first');
-select is((select amount from public.polygon_ledger where idempotency_key like 'showdown:%' and user_id='11111111-1111-1111-1111-111111111111'),22,'a signed-in player earns half their Showdown coins');
-select is((select count(*)::int from public.polygon_ledger where idempotency_key like 'showdown:%'),1,'and the guests earn nothing permanent');
+select is((select amount from public.polygon_ledger where idempotency_key like 'showdown:'||(select value from fixture where name='room')||':%' and user_id='11111111-1111-1111-1111-111111111111'),22,'a signed-in player earns half their Showdown coins');
+select is((select count(*)::int from public.polygon_ledger where idempotency_key like 'showdown:'||(select value from fixture where name='room')||':%'),1,'and the guests earn nothing permanent');
 select lives_ok($$ select public.polygon_player_load(pg_temp.hash('seat-a')) $$,'reading the results again');
-select is((select count(*)::int from public.polygon_ledger where idempotency_key like 'showdown:%'),1,'pays nothing more');
+select is((select count(*)::int from public.polygon_ledger where idempotency_key like 'showdown:'||(select value from fixture where name='room')||':%'),1,'pays nothing more');
 select is((select count(*)::int from public.polygon_wallets w join public.polygon_participants p on p.user_id=w.user_id where p.token_hash in (pg_temp.hash('seat-ava'),pg_temp.hash('seat-omar'))),0,'a guest never gets a wallet');
 select ok((select achievements ? 'first-showdown' from public.polygon_profiles where user_id='11111111-1111-1111-1111-111111111111'),'the signed-in creator gets the achievement');
+
+-- The daily limit on banked coins.
+update public.polygon_wallets set earned_day=(statement_timestamp() at time zone 'utc')::date, earned_today=14990 where user_id='11111111-1111-1111-1111-111111111111';
+select is((private.polygon_credit('11111111-1111-1111-1111-111111111111','EARN_SOLO',50,'cap-test-1','{}')->>'credited')::int, 10, 'a day''s earnings stop at the limit');
+select is((private.polygon_credit('11111111-1111-1111-1111-111111111111','EARN_SOLO',50,'cap-test-2','{}')->>'capped')::boolean, true, 'and say so');
+select is((private.polygon_credit('11111111-1111-1111-1111-111111111111','EARN_SOLO',50,'cap-test-1','{}')->>'duplicate')::boolean, true, 'the same earning twice is recognised');
 
 select * from finish();
 rollback;
