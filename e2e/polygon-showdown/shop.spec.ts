@@ -2,15 +2,22 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { adminClient, newPage, PLAY_ROUTE, resetAccount, setBalance, SHOPPER, signIn, waitForScreen } from "./helpers";
 
-const card = (page: Page, item: string) => page.locator(`article[data-item="${item}"]`);
+const card = (page: Page, item: string) => page.locator(`.product-card[data-item="${item}"]`);
+const detail = (page: Page) => page.locator("#product-detail");
+
+async function select(page: Page, item: string): Promise<void> {
+  await card(page, item).click();
+  await expect(detail(page).locator("#detail-name")).toBeVisible();
+}
 
 async function openTab(page: Page, tab: string): Promise<void> {
   await page.locator(`.tab[data-tab="${tab}"]`).click();
 }
 
 async function buy(page: Page, item: string): Promise<void> {
-  await card(page, item).locator('[data-action="buy"]').click();
-  await page.getByRole("button", { name: "Buy", exact: true }).last().click();
+  await select(page, item);
+  await detail(page).locator('[data-action="buy"]').click();
+  await page.getByRole("dialog").getByRole("button", { name: "Buy", exact: true }).click();
 }
 
 test.describe("shop and avatar", () => {
@@ -27,7 +34,8 @@ test.describe("shop and avatar", () => {
 
     // Try On changes the preview only: nothing owned, nothing charged.
     await openTab(laptop.page, "shoes");
-    await card(laptop.page, "shoes-nova-high").locator('[data-action="try"]').click();
+    await select(laptop.page, "shoes-nova-high");
+    await detail(laptop.page).locator('[data-action="try"]').click();
     await expect(laptop.page.locator("#try-note")).toContainText("Trying on Nova High-Top Sneakers");
     let wallet = await admin.from("polygon_wallets").select("balance").eq("user_id", id).single();
     expect(wallet.data?.balance).toBe(425);
@@ -36,7 +44,7 @@ test.describe("shop and avatar", () => {
     await openTab(laptop.page, "tops");
     await buy(laptop.page, "top-sunrise");
     await expect(laptop.page.locator("#shop-balance")).toContainText("400");
-    await expect(card(laptop.page, "top-sunrise").locator(".owned-tag")).toHaveText("Owned");
+    await expect(card(laptop.page, "top-sunrise").locator(".state-tag")).toHaveText("OWNED");
 
     // The owner's example: 400 less 350 leaves 50.
     await openTab(laptop.page, "shoes");
@@ -45,8 +53,9 @@ test.describe("shop and avatar", () => {
 
     // An expensive item says so and cannot be bought.
     await openTab(laptop.page, "jackets");
-    await expect(card(laptop.page, "jacket-phoenix").locator('[data-action="buy"]')).toBeDisabled();
-    await expect(card(laptop.page, "jacket-phoenix").locator('[data-action="buy"]')).toHaveText("Not enough");
+    await select(laptop.page, "jacket-phoenix");
+    await expect(detail(laptop.page).locator('[data-action="buy"]')).toBeDisabled();
+    await expect(detail(laptop.page).locator('[data-action="buy"]')).toHaveText("Not enough coins");
 
     // Exactly the balance is enough, and leaves zero.
     await openTab(laptop.page, "bottoms");
@@ -108,8 +117,9 @@ test.describe("shop and avatar", () => {
     await laptop.page.reload();
     await waitForScreen(laptop.page, "avatar");
     await openTab(laptop.page, "shoes");
-    await card(laptop.page, "shoes-nova-high").locator('[data-action="equip"]').click();
-    await expect(card(laptop.page, "shoes-nova-high").locator(".owned-tag")).toHaveText("Wearing");
+    await select(laptop.page, "shoes-nova-high");
+    await detail(laptop.page).locator('[data-action="equip"]').click();
+    await expect(card(laptop.page, "shoes-nova-high").locator(".state-tag")).toHaveText("EQUIPPED");
     await openTab(laptop.page, "body");
     await laptop.page.locator(".tone").nth(7).click();
     await expect(laptop.page.locator(".tone").nth(7)).toHaveAttribute("aria-pressed", "true");
@@ -117,7 +127,7 @@ test.describe("shop and avatar", () => {
     await laptop.page.reload();
     await waitForScreen(laptop.page, "avatar");
     await openTab(laptop.page, "shoes");
-    await expect(card(laptop.page, "shoes-nova-high").locator(".owned-tag")).toHaveText("Wearing");
+    await expect(card(laptop.page, "shoes-nova-high").locator(".state-tag")).toHaveText("EQUIPPED");
 
     // A different device, the same account.
     const tablet = await newPage(browser, { viewport: { width: 1024, height: 768 } });
@@ -128,9 +138,9 @@ test.describe("shop and avatar", () => {
     await tablet.page.goto(`${PLAY_ROUTE}#shop`);
     await waitForScreen(tablet.page, "shop");
     await openTab(tablet.page, "shoes");
-    await expect(card(tablet.page, "shoes-nova-high").locator(".owned-tag")).toHaveText("Wearing");
+    await expect(card(tablet.page, "shoes-nova-high").locator(".state-tag")).toHaveText("EQUIPPED");
     await openTab(tablet.page, "hats");
-    await expect(card(tablet.page, "hat-beanie").locator(".owned-tag")).toHaveText("Owned");
+    await expect(card(tablet.page, "hat-beanie").locator(".state-tag")).toHaveText("OWNED");
     const avatar = await tablet.page.evaluate(() => (window as unknown as { __POLYGON_SHOWDOWN__: { session: { avatar: { skin: string; shoes: string } } } }).__POLYGON_SHOWDOWN__.session.avatar);
     expect(avatar.shoes).toBe("shoes-nova-high");
     expect(avatar.skin).toBe("skin-8");
@@ -149,11 +159,11 @@ test.describe("shop and avatar", () => {
     await expect(page.locator(".tone")).toHaveCount(10);
     for (const tab of ["hair", "facial-hair", "makeup", "tops", "bottoms", "shoes"]) {
       await openTab(page, tab);
-      await expect(page.locator("article.item-card").first(), tab).toBeVisible();
+      await expect(page.locator(".product-card").first(), tab).toBeVisible();
     }
     await openTab(page, "hair");
     for (const name of ["Short Crop", "Long Layers", "Natural Curls", "Straight Cut", "Braids", "Locs", "Afro", "Fade", "Top Bun", "Ponytail"]) {
-      await expect(page.getByRole("heading", { name, exact: true }), name).toBeVisible();
+      await expect(page.locator(".product-card .item-name", { hasText: new RegExp(`^${name}$`) }), name).toBeVisible();
     }
     await context.close();
   });

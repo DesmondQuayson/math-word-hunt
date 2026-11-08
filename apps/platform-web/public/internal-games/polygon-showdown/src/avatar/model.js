@@ -2,10 +2,10 @@
 // was last built from, so setAvatar only rebuilds what actually changed and
 // frees exactly what it replaces.
 
-import { Group, Mesh } from "../../../math-tug-of-war/src/vendor/three.js";
+import { Box3, Group, Mesh, Vector3 } from "../../../math-tug-of-war/src/vendor/three.js";
 import { DEFAULT_AVATAR, SKIN_TONES, getItem } from "../engine/catalog.js";
 import { HEAD_CENTER_Y, frameFor } from "./frame.js";
-import { buildBodyGeometry } from "./body.js";
+import { buildBodyGeometry, buildFormGeometry } from "./body.js";
 import { buildEyesGeometry, buildHeadGeometry } from "./head.js";
 import { buildBrowsGeometry, buildFaceDetailGeometry, buildFacialHairGeometry, buildLipsGeometry, naturalLipColor, paintFace } from "./face.js";
 import { buildHair, hairCoversEars } from "./hair.js";
@@ -52,6 +52,15 @@ export function createAvatarFigure(environment = null) {
   let hairInfo = BARE_HEAD;
   let hatInfo = null;
   let extents = { top: 2.4, width: 1.5, headWidth: 1 };
+  let visibleSlots = null;
+
+  function applyVisibility() {
+    for (const [name, entry] of slots) {
+      const visible = !visibleSlots || visibleSlots.has(name);
+      // A bare foot inside an open shoe belongs to the wearer, not the product.
+      for (const mesh of entry.meshes) mesh.visible = visible && !(visibleSlots && mesh.userData.wornOnly);
+    }
+  }
 
   function release(entry) {
     for (const mesh of entry.meshes) {
@@ -73,6 +82,7 @@ export function createAvatarFigure(environment = null) {
         const mesh = new Mesh(part.geometry, part.material);
         mesh.userData.ownsMaterial = Boolean(part.ownsMaterial);
         mesh.userData.placement = part.placement ?? null;
+        mesh.userData.wornOnly = Boolean(part.wornOnly);
         if (part.renderOrder) mesh.renderOrder = part.renderOrder;
         parents[part.parent ?? "body"].add(mesh);
         meshes.push(mesh);
@@ -197,7 +207,22 @@ export function createAvatarFigure(environment = null) {
     if (nextExtents.top !== extents.top || nextExtents.width !== extents.width) changed = true;
     extents = nextExtents;
 
+    applyVisibility();
     return changed;
+  }
+
+  function* pointsIn(names) {
+    const point = new Vector3();
+    for (const name of names) {
+      for (const mesh of slots.get(name)?.meshes ?? []) {
+        if (!mesh.visible) continue;
+        const positions = mesh.geometry.getAttribute("position");
+        for (let i = 0; i < positions.count; i += 1) {
+          point.fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld);
+          yield point.clone();
+        }
+      }
+    }
   }
 
   return {
@@ -205,6 +230,40 @@ export function createAvatarFigure(environment = null) {
     apply,
     extents() {
       return extents;
+    },
+    /** Only these slots draw (null for all). Product views use the same meshes the avatar wears. */
+    showOnly(names) {
+      visibleSlots = names ? new Set(names) : null;
+      applyVisibility();
+    },
+    /** A display form for showing a product on, or null for none. */
+    setForm(form) {
+      setSlot("form", form ? JSON.stringify(form) : NOTHING, () => (form ? [{ geometry: buildFormGeometry(frameFor("base-a"), form), material: materials.matte }] : []));
+      applyVisibility();
+    },
+    /** The box around these slots, relative to the figure. */
+    boundsOf(names) {
+      group.updateMatrixWorld(true);
+      const inverse = group.matrixWorld.clone().invert();
+      const box = new Box3();
+      for (const point of pointsIn(names)) box.expandByPoint(point.applyMatrix4(inverse));
+      return box;
+    },
+    /** Where the body of a garment ends, ignoring sleeves that hang lower. */
+    hemOf(name) {
+      group.updateMatrixWorld(true);
+      const inverse = group.matrixWorld.clone().invert();
+      let lowest = Infinity;
+      for (const point of pointsIn([name])) {
+        point.applyMatrix4(inverse);
+        if (Math.abs(point.x) < 0.16) lowest = Math.min(lowest, point.y);
+      }
+      return lowest;
+    },
+    /** Every vertex of these slots in world space, for fitting a camera exactly. */
+    pointsOf(names) {
+      group.updateMatrixWorld(true);
+      return [...pointsIn(names)];
     },
     dispose() {
       for (const entry of slots.values()) release(entry);

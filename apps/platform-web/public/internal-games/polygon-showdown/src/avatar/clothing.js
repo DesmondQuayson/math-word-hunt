@@ -355,7 +355,11 @@ function pelvis(builder, frame, options) {
       const ring = frame.torsoAt(y);
       const scale = v === 0 ? 0 : 1;
       const ease = Math.min(1, (y - 0.705) / 0.04);
-      out.set(Math.sin(angle) * (ring.rx + inflate) * scale, y, ring.cz + Math.cos(angle) * (ring.rz + inflate * ease) * scale);
+      // Fuller at the seat: the thighs then leave the hips low down, at a clear
+      // angle, along one clean line instead of skimming the surface.
+      // (Below every shirt hem, which starts at 0.84.)
+      const seat = 0.03 * smoothstep(0.835, 0.775, y) * smoothstep(0.705, 0.75, y);
+      out.set(Math.sin(angle) * (ring.rx + inflate + seat) * scale, y, ring.cz + Math.cos(angle) * (ring.rz + inflate * ease + seat) * scale);
     },
     { wrapU: true, poleStart: true, tint, uvAt }
   );

@@ -2,7 +2,7 @@
 // because the shoes slot is always filled.
 
 import { Matrix4, Vector3 } from "../../../math-tug-of-war/src/vendor/three.js";
-import { MeshBuilder, TAU, lerp, smoothstep, smoothPath, vec } from "./geometry.js";
+import { MeshBuilder, TAU, clamp, color, lerp, smoothstep, smoothPath, vec } from "./geometry.js";
 
 function addHand(builder, arm, side) {
   const wrist = arm.point(1);
@@ -67,6 +67,58 @@ export function buildBodyGeometry(frame) {
     // The ankle runs on down into the shoe, so no cut end ever shows.
     const ankle = leg.point(1);
     builder.tube([ankle, ankle.clone().add(vec(0, -0.08, 0.01))], leg.radius(1), { radial: 12, capStart: false, capEnd: "flat" });
+  }
+  return builder.toGeometry();
+}
+
+/**
+ * A display form for products: a closed torso with an optional neck, or a
+ * wrist. Clothes are built round the same frame, so they fit it exactly.
+ */
+export function buildFormGeometry(frame, form) {
+  const builder = new MeshBuilder();
+  const tint = color(form.tint);
+  if (form.kind === "wrist") {
+    const arm = frame.arms[1];
+    builder.tube(arm.slice(0.74, 1, 8), (t) => lerp(arm.radius(0.74), arm.radius(1), t), { radial: 18, capStart: "round", capEnd: "round", tint });
+    return builder.toGeometry();
+  }
+  const low = clamp(form.from, frame.torsoBottom, frame.torsoTop);
+  const high = clamp(form.to, low + 0.01, frame.torsoTop);
+  const rows = 18;
+  builder.grid(
+    30,
+    rows,
+    (u, v, out, i, j) => {
+      const a = TAU * u;
+      const y = lerp(low, high, Math.max(j - 1, 0) / (rows - 1));
+      const ring = frame.torsoAt(y);
+      const end = j === 0 ? 0 : j === rows && !form.neck ? 0.96 : 1;
+      out.set(Math.sin(a) * ring.rx * end, y, ring.cz + Math.cos(a) * ring.rz * end);
+    },
+    { wrapU: true, poleStart: true, tint }
+  );
+  if (!form.neck) {
+    // Close the waist with a flat disc.
+    const ring = frame.torsoAt(high);
+    builder.grid(30, 1, (u, v, out, i, j) => {
+      const a = TAU * u;
+      out.set(Math.sin(a) * ring.rx * 0.96 * (1 - j), high, ring.cz + Math.cos(a) * ring.rz * 0.96 * (1 - j));
+    }, { wrapU: true, poleEnd: true, tint });
+  }
+  if (form.neck) {
+    builder.lathe(
+      [
+        [0.098, 1.445],
+        [0.104, 1.5],
+        [0.108, 1.56],
+        [0.112, 1.64],
+        [0.1, 1.668],
+        [0.062, 1.682],
+        [0, 1.686]
+      ],
+      { nu: 20, cz: -0.012, tint, poleEnd: true }
+    );
   }
   return builder.toGeometry();
 }

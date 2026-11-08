@@ -11,7 +11,6 @@ import { attachAudioLifecycle, GameAudio, readPreferences } from "./audio.js";
 import { avatarDescription, mountAvatar } from "./avatar-preview.js";
 import { DEFAULT_AVATAR, normalizeAvatar } from "./engine/catalog.js";
 import { CURRENCY_NAME } from "./engine/economy.js";
-import { ShopScreen } from "./shop.js";
 import { readSeat, saveSeat, ShowdownScreen } from "./showdown.js";
 import { SoloScreen } from "./solo.js";
 import { brand, coinAmount, confirmDialog, errorNote, musicCredit, numberText, setScreen, soundControls } from "./ui.js";
@@ -23,6 +22,10 @@ attachAudioLifecycle(audio);
 window.__POLYGON_SHOWDOWN__ = { audio };
 
 const DURATIONS = Object.freeze([5, 7, 10, 15, 20, 30]);
+const DIFFICULTY_NOTES = Object.freeze({
+  standard: "Four shapes to start. The Pentagon joins after one minute, for everyone at once.",
+  challenge: "All five shapes from the first move."
+});
 
 let session = null;
 let current = null;
@@ -119,11 +122,22 @@ function navigate(hash) {
 function renderCreate(message = "") {
   setScreen("create");
   let minutes = 5;
+  let difficulty = "standard";
   let chosen = isAllowedEmoji(session.profile?.emoji) ? session.profile.emoji : "🦁";
   const nameInput = h("input", { id: "creator-name", class: "text-input", type: "text", autocomplete: "nickname", maxlength: String(NAME_MAX), required: true, value: session.profile?.displayName ?? "" });
   const durationButtons = DURATIONS.map((value) => h("button", { type: "button", class: `chip${value === minutes ? " on" : ""}`, "aria-pressed": String(value === minutes), dataset: { minutes: String(value) }, text: `${value} min`, onclick: (event) => {
     minutes = value;
     durationButtons.forEach((button) => {
+      const on = button === event.currentTarget;
+      button.classList.toggle("on", on);
+      button.setAttribute("aria-pressed", String(on));
+    });
+  } }));
+  const difficultyNote = h("p", { class: "muted small", id: "difficulty-note", text: DIFFICULTY_NOTES.standard });
+  const difficultyButtons = [["standard", "Standard"], ["challenge", "Challenge"]].map(([value, label]) => h("button", { type: "button", class: `chip${value === difficulty ? " on" : ""}`, "aria-pressed": String(value === difficulty), dataset: { difficulty: value }, text: label, onclick: (event) => {
+    difficulty = value;
+    difficultyNote.textContent = DIFFICULTY_NOTES[value];
+    difficultyButtons.forEach((button) => {
       const on = button === event.currentTarget;
       button.classList.toggle("on", on);
       button.setAttribute("aria-pressed", String(on));
@@ -143,6 +157,9 @@ function renderCreate(message = "") {
     h("p", { class: "muted", text: "You play too, from this screen, by the same rules as everyone else." }),
     h("h2", { class: "slot-heading", text: "How long?" }),
     h("div", { class: "chip-row" }, durationButtons),
+    h("h2", { class: "slot-heading", text: "Difficulty" }),
+    h("div", { class: "chip-row" }, difficultyButtons),
+    difficultyNote,
     h("label", { for: "creator-name", class: "slot-heading", text: "Your name" }), nameInput,
     h("h2", { class: "slot-heading", text: "Your emoji" }),
     h("div", { class: "emoji-grid", role: "group", "aria-label": "Emoji" }, emojiButtons),
@@ -155,7 +172,7 @@ function renderCreate(message = "") {
     submit.disabled = true;
     submit.textContent = "Creating…";
     try {
-      const reply = await accountRequest("create-room", { durationSeconds: minutes * 60, name: nameInput.value, emoji: chosen });
+      const reply = await accountRequest("create-room", { durationSeconds: minutes * 60, name: nameInput.value, emoji: chosen, difficulty });
       const seat = { token: reply.token, hostToken: reply.hostToken, code: reply.room.code, name: reply.room.me.name, emoji: reply.room.me.emoji };
       saveSeat(seat);
       history.replaceState(null, "", "#showdown");
@@ -216,13 +233,15 @@ async function openSolo(mode) {
   await screen.open(mode);
 }
 
-function openShop(mode) {
+async function openShop(mode) {
   teardown();
   if (session.guest) {
     history.replaceState(null, "", "#home");
     route();
     return;
   }
+  // The shop is a separate download, so playing a game never pays for it.
+  const { ShopScreen } = await import("./shop.js");
   const screen = new ShopScreen({ app, session, audio, mode, onExit: () => {
     current = null;
     history.replaceState(null, "", "#home");

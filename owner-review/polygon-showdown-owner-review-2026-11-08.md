@@ -25,7 +25,7 @@ You asked for the recommended option each time, so these are mine to flag rather
 - **Pause is left out.** A paused board could be studied by whoever paused it, which would be a creator advantage.
 - **School access sessions are guests for progression**: they can open the game, create a room, and play a practice run that exists only in their tab. No wallet is ever created.
 - **Anonymous visitors are sent to sign in**, matching every other free game. No anonymous Solo.
-- **Coins run higher than your examples.** With only four shapes, falling pieces line up often: about 0.7 to 0.9 cascades per move. A five-minute Showdown pays about 215 / 430 / 720 coins for a beginner / average / skilled player, against your example of 184. I kept your example prices at the low end and stretched the top tiers.
+- **Coins ran higher than your examples on four shapes.** The Pentagon pass brought them down: about 0.35 to 0.48 cascades per move, and a five-minute Showdown pays about 151 / 286 / 463 coins for a beginner / average / skilled player, against your example of 184. Prices did not change.
 - **Permanent reward from a Showdown** is half the Showdown's coins, capped at 40 per minute of its length. Solo stays the main earner.
 - **Daily banking limit** of 15,000 coins per account, to stop a modified client from farming the shop.
 

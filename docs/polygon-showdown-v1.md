@@ -17,7 +17,19 @@ The gameplay concept is match-three, a long-established genre. All artwork, inte
 
 ## How it plays
 
-The board is 8 × 8. V1 deals **Circle, Triangle, Square, Rectangle**. A shape is identified by its outline, never its colour alone, and the Rectangle is drawn about two to one so it cannot be mistaken for a Square (`engine/shapes.js`; tests classify every shape from its geometry). Pentagon, Hexagon, Rhombus, Trapezoid and Octagon are already drawn: adding one is a line in `ACTIVE_SHAPES`, with no change to the match engine.
+The board is 8 × 8. A game starts with **Circle, Triangle, Square, Rectangle**, and the **Pentagon** joins as it goes. A shape is identified by its outline, never its colour alone, and the Rectangle is drawn about two to one so it cannot be mistaken for a Square (`engine/shapes.js`; tests classify every shape from its geometry). The Pentagon is a regular five-sided polygon, read aloud as "Pentagon — five-sided polygon". Hexagon, Rhombus, Trapezoid and Octagon are already drawn for later.
+
+### Pentagon schedule
+
+| Mode | When the Pentagon joins | Why |
+| --- | --- | --- |
+| Solo | After 40 matches in the run | A warm-up on four shapes for anyone new |
+| Showdown, Standard | One minute into the round | The clock, so it never depends on who is winning |
+| Showdown, Challenge | From the first move | Chosen by the creator; the same for everyone |
+
+The schedule lives in the game's state and is replayed by the server. In a Showdown every seat has the same schedule, the same opening board and the same refill sequences. Before the Pentagon has joined, a flagged refill draw stands for an ordinary shape, so what fell is fixed and only its reading depends on the schedule.
+
+Opening boards are dealt until they offer 9 to 15 legal swaps (closest of 40 deals). A board is never dealt solved or with a ready-made match, and the free reshuffle is unchanged. A hint appears after 14 seconds without a move.
 
 | Event | Polygon Coins |
 | --- | --- |
@@ -116,7 +128,11 @@ No swap touches the room row. Each sync reads one player row and the room, then 
 
 153 items in 15 slots with fictional MathNexa names. Skin tones are always free and are not shop items. Every slot a complete avatar needs has free choices, and all ten natural hair styles are free. Nothing is locked to a frame. Virtual cosmetics only: no real-money purchases in V1.
 
-The 3D renderer is a separate download reached through a dynamic import on the hub (deferred until idle, skipped under Save-Data) and the shop. Gameplay screens never import it; a test enforces this.
+The 3D renderer is a separate download reached through a dynamic import on the hub (deferred until idle, skipped under Save-Data) and the shop. Gameplay screens never import it; a test enforces this. The shop itself is also a separate download, so Solo and Showdown never pay for it.
+
+Shop cards show still renders of the real 3D items (see [asset provenance](./polygon-showdown-asset-provenance.md)). One WebGL stage serves the whole shop: choosing a card shows that item turning on the stage, Try On puts it on the avatar with the camera moved to suit it, and the card grid stays pictures.
+
+The avatar turns once every 10 seconds in the shop and editor. Dragging or using the rotate buttons pauses the turn for 3 seconds of idle. Under `prefers-reduced-motion` it stays still and the buttons still work. Frames are capped near 30 fps and stop entirely when the stage is off-screen or the tab is hidden.
 
 ### Economy simulation
 

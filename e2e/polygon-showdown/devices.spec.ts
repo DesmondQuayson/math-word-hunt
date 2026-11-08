@@ -78,7 +78,21 @@ for (const viewport of VIEWPORTS) {
     await waitForScreen(page, "shop");
     await assertNoHorizontalScroll(page);
     await expect(page.locator("#avatar-stage")).toBeVisible();
-    await expect(page.locator("article.item-card").first()).toBeVisible();
+    await expect(page.locator(".product-card").first()).toBeVisible();
+    await page.waitForFunction(() => document.querySelector<HTMLImageElement>(".product-card img")?.complete === true);
+
+    // The rotate controls sit below the stage and fit, with or without WebGL.
+    await page.locator('.tab[data-tab="shoes"]').click();
+    await page.locator('.product-card[data-item="shoes-canvas"]').click();
+    await expect(page.locator("#detail-name")).toBeVisible();
+    await assertNoHorizontalScroll(page);
+    const detail = (await page.locator("#product-detail").boundingBox())!;
+    expect(detail.y + detail.height).toBeLessThanOrEqual(viewport.height + 1);
+    await expect(page.locator("#detail-close")).toBeVisible();
+    const frame = (await page.locator("#stage-frame").boundingBox())!;
+    expect(frame.height).toBeGreaterThan(120);
+    await page.locator("#detail-close").click();
+    await expect(page.locator("#product-detail")).toBeHidden();
     await context.close();
   });
 }

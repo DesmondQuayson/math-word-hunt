@@ -20,7 +20,7 @@ export default defineConfig({
   projects: [
     { name: "chromium", testIgnore: ["**/devices.spec.ts"], use: { ...devices["Desktop Chrome"] } },
     // Headless WebKit is several times slower per click on the review machine.
-    { name: "webkit", timeout: 900_000, testMatch: ["**/solo.spec.ts", "**/showdown.spec.ts", "**/shop.spec.ts"], use: { ...devices["Desktop Safari"] } },
+    { name: "webkit", timeout: 900_000, testMatch: ["**/solo.spec.ts", "**/showdown.spec.ts", "**/shop.spec.ts", "**/avatar-spin.spec.ts"], use: { ...devices["Desktop Safari"] } },
     { name: "devices-chromium", testMatch: ["**/devices.spec.ts"], use: { ...devices["Desktop Chrome"] } },
     { name: "devices-webkit", timeout: 600_000, testMatch: ["**/devices.spec.ts"], use: { ...devices["Desktop Safari"] } }
   ]

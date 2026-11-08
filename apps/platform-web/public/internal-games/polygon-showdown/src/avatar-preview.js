@@ -5,6 +5,7 @@
 
 import { h, s } from "../../math-bingo-live/src/dom.js";
 import { getItem, SKIN_TONES } from "./engine/catalog.js";
+import { productPicture } from "./product-picture.js";
 
 export function avatarDescription(avatar) {
   const parts = ["hair", "top", "bottom", "outfit", "jacket", "shoes", "hat", "glasses", "jewelry"]
@@ -50,10 +51,12 @@ export function flatAvatar(avatar) {
  * Mounts an avatar picture in `host`. Returns { setAvatar, dispose }.
  * `load3d: false` keeps it flat (the fast choice for a list or a small badge).
  */
-export function mountAvatar(host, avatar, { load3d = true, interactive = false, framing = "full", autoRotate = false, defer = false } = {}) {
+export function mountAvatar(host, avatar, { load3d = true, interactive = false, framing = "full", autoRotate = false, defer = false, onReady = null } = {}) {
   let current = avatar;
   let stage = null;
   let disposed = false;
+  // What should be on the stage, kept so it can be applied once the stage has loaded.
+  let view = { kind: "avatar", framing };
   const flat = h("div", { class: "avatar-flat" }, flatAvatar(avatar));
   host.replaceChildren(flat);
   host.setAttribute("role", "img");
@@ -74,9 +77,11 @@ export function mountAvatar(host, avatar, { load3d = true, interactive = false, 
       const created = createAvatarStage(host, { interactive, autoRotate, framing });
       if (!created.available) return;
       stage = created;
-      stage.setAvatar(current);
+      if (view.kind === "product") stage.showProduct(view.item);
+      else stage.showAvatar(current, view.framing);
       flat.hidden = true;
       window.__POLYGON_SHOWDOWN__.avatarStageReady = true;
+      onReady?.();
     }).catch(() => {
       /* The drawing stays. */
     });
@@ -95,6 +100,31 @@ export function mountAvatar(host, avatar, { load3d = true, interactive = false, 
       host.setAttribute("aria-label", avatarDescription(next));
       if (stage) stage.setAvatar(next);
       else flat.replaceChildren(flatAvatar(next));
+    },
+    /** The avatar, framed for what is being looked at. */
+    showAvatar(next, nextFraming = view.framing ?? framing) {
+      current = next;
+      view = { kind: "avatar", framing: nextFraming };
+      host.setAttribute("aria-label", avatarDescription(next));
+      if (stage) stage.showAvatar(next, nextFraming);
+      else flat.replaceChildren(flatAvatar(next));
+    },
+    /** One product turning on its own. */
+    showProduct(item) {
+      view = { kind: "product", item, framing: view.framing };
+      host.setAttribute("aria-label", `${item.name}, 3D product view.`);
+      if (stage) stage.showProduct(item);
+      else flat.replaceChildren(productPicture(item, { sizes: "320px", eager: true }));
+    },
+    setFraming(next) {
+      view = { ...view, framing: next };
+      stage?.setFraming(next);
+    },
+    rotateBy(amount) {
+      stage?.rotateBy(amount);
+    },
+    debug() {
+      return stage?.debug() ?? null;
     },
     dispose() {
       disposed = true;

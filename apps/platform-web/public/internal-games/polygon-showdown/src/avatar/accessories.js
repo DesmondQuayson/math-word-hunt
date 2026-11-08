@@ -428,10 +428,28 @@ function buildHalo(item, materials) {
     },
     { wrapU: true, wrapV: true, tint: mixColor(base, color("#FFFFFF"), 0.3) }
   );
-  const orbit = 8;
+  const orbit = 10;
   for (let i = 0; i < orbit; i += 1) {
     const a = (i / orbit) * TAU;
-    addSparkle(glow, vec(Math.sin(a) * (radius + 0.06), 0.03 * Math.sin(a * 3), Math.cos(a) * (radius + 0.06)), vec(Math.sin(a), 0.25, Math.cos(a)).normalize(), 0.046, accent);
+    addSparkle(glow, vec(Math.sin(a) * (radius + 0.09), 0.03 * Math.sin(a * 3), Math.cos(a) * (radius + 0.09)), vec(Math.sin(a), 0.25, Math.cos(a)).normalize(), 0.058, accent);
+  }
+  // Rays between an inner line of light and the main ring.
+  const rays = 20;
+  for (let i = 0; i < rays; i += 1) {
+    const a = ((i + 0.5) / rays) * TAU;
+    const reach = radius + (i % 2 === 0 ? 0.075 : 0.045);
+    glow.tube([vec(Math.sin(a) * (radius + 0.018), 0, Math.cos(a) * (radius + 0.018)), vec(Math.sin(a) * reach, 0, Math.cos(a) * reach)], (t) => lerp(0.011, 0.0015, t), { radial: 4, capStart: false, capEnd: false, tint: mixColor(base, color("#FFFFFF"), 0.1) });
+  }
+  // Five faceted crystals riding the ring: this is the pentagon's hat.
+  const gems = new MeshBuilder();
+  for (let i = 0; i < 5; i += 1) {
+    const a = (i / 5) * TAU + 0.31;
+    const center = vec(Math.sin(a) * radius, 0.052, Math.cos(a) * radius);
+    gems.grid(5, 2, (u, v, out, column, row) => {
+      const angle = TAU * u + a;
+      const r = row === 1 ? 0.034 : 0;
+      out.set(center.x + Math.sin(angle) * r, center.y + (row === 0 ? -0.044 : row === 1 ? 0.004 : 0.05), center.z + Math.cos(angle) * r);
+    }, { wrapU: true, poleStart: true, poleEnd: true, tint: mixColor(accent, color("#FFFFFF"), 0.2) });
   }
   // A faint disc of light inside the ring.
   const disc = new MeshBuilder();
@@ -447,6 +465,7 @@ function buildHalo(item, materials) {
   return {
     parts: [
       { geometry: glow.toGeometry(), material: materials.glow, parent: "head", placement: "halo" },
+      { geometry: gems.toGeometry(), material: materials.gem, parent: "head", placement: "halo" },
       { geometry: disc.toGeometry(), material: materials.lensGlow, parent: "head", placement: "halo", renderOrder: 2 }
     ],
     top: 0.08,
@@ -699,7 +718,7 @@ export function buildJewelry(item, frame, materials, wearing) {
       const pearls = 27;
       for (let i = 0; i < pearls; i += 1) {
         const p = path[Math.round(((i + 0.5) / pearls) * 120)];
-        gems.ellipsoid(p.x, p.y, p.z, 0.022, 0.022, 0.022, { nu: 8, nv: 5, tint: base });
+        gems.ellipsoid(p.x, p.y, p.z, 0.022, 0.022, 0.022, { nu: 12, nv: 8, tint: base });
       }
     }
   } else if (model === "watch" || model === "bracelet") {
