@@ -14,7 +14,7 @@ import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 import { minGapAfter, TIMING } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/economy.js";
-import { allLegalMoves, applySwap, createKnownRefills, createRefillStream, decodeBoard, encodeBoard, newGameState, startingBoard, stateHash } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
+import { allLegalMoves, applySwap, createKnownRefills, decodeBoard, encodeBoard, newGameState, startingBoard, stateHash } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -181,13 +181,11 @@ async function runRoom(count) {
   const joinTimes = [];
   await Promise.all(Array.from({ length: count - 1 }, async (_, index) => {
     await sleep(index * 12);
-    const token = newToken;
     const started = performance.now();
     const join = await post("join", { code, name: `Player ${index + 1}`, emoji: null }, null);
     joinTimes.push(performance.now() - started);
     if (join.status !== 200) throw new Error(`Join refused: ${join.status} ${JSON.stringify(join.body)}`);
     players.push(new Player(index + 1, join.body.token, join.body.room, metrics));
-    void token;
   }));
 
   const started = await admin.rpc("polygon_host_command", { p_owner_hash: ownerHash, p_token_hash: hashToken("host", hostToken), p_command: "start", p_args: {} });
@@ -210,7 +208,7 @@ async function runRoom(count) {
   const latencies = metrics.latencies.slice();
   await admin.rpc("polygon_host_command", { p_owner_hash: ownerHash, p_token_hash: hashToken("host", hostToken), p_command: "end", p_args: {} });
   await sleep(TIMING.SHOWDOWN_GRACE_MS + 300);
-  const final = await post("state", { token: creatorToken }, null);
+  await post("state", { token: creatorToken }, null);
   await sleep(200);
   const finalRoom = (await post("state", { token: creatorToken }, null)).body.room;
 
@@ -220,7 +218,6 @@ async function runRoom(count) {
   const sorted = rows.every((row, index) => index === 0 || rows[index - 1].coins >= row.coins);
   const coinsById = new Map(rows.map((row) => [row.id, row.coins]));
   const scoreMismatch = players.filter((player) => coinsById.get(player.id) !== player.state.coins).length;
-  void final;
 
   await admin.rpc("polygon_host_command", { p_owner_hash: ownerHash, p_token_hash: hashToken("host", hostToken), p_command: "close", p_args: {} });
 
