@@ -143,7 +143,6 @@ function addUpper(builder, cx, last, tint, { trimToe = false, trimHeel = false }
 /** The inside of the shoe, seen through the opening. */
 function addLining(builder, cx, last, tint) {
   const spanEnd = last.open ? last.openingEnd : last.holeCentre + last.holeReach + 0.02;
-  const scratch = new Vector3();
   for (const side of [1, -1]) {
     builder.grid(
       6,
@@ -169,7 +168,6 @@ function addLining(builder, cx, last, tint) {
     },
     { flip: true, tint: shade(tint, 1.35) }
   );
-  scratch.set(0, 0, 0);
 }
 
 /** A foot inside an open shoe. */
@@ -236,7 +234,7 @@ function addHeelPost(builder, cx, spec, tint) {
   );
 }
 
-function bootHeelBlock(builder, cx, last, tint) {
+function addBootHeel(builder, cx, tint) {
   builder.grid(
     14,
     5,
@@ -247,7 +245,6 @@ function bootHeelBlock(builder, cx, last, tint) {
     },
     { wrapU: true, tint }
   );
-  void last;
 }
 
 /** Follows the rim of the opening from the front of one side, round the heel, to the other. */
@@ -515,7 +512,7 @@ export function buildShoes(item, frame, materials, skinHex, shinsCovered = false
       addSole(rubber, cx, last, soleTint, { base: outsole, thickness: spec.sole - outsole });
       if (outsole) addSole(rubber, cx, last, model === "boot" ? color("#16120E") : accent, { thickness: outsole, flare: 0.0075, bulge: 0.012 });
     }
-    if (model === "boot") bootHeelBlock(rubber, cx, last, color("#16120E"));
+    if (model === "boot") addBootHeel(rubber, cx, color("#16120E"));
 
     addTongue(inside, cx, last, level >= 1 ? mixColor(base, accent, 0.25) : shade(base, 0.9));
     addCollar(panels, cx, last, model === "boot" ? 0.0135 : 0.0118, level >= 1 ? accent : shade(base, 0.86));

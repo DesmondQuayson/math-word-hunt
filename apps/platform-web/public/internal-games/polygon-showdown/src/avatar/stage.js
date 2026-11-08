@@ -11,15 +11,13 @@ const MAX_PIXEL_RATIO = 1.75;
 const CAMERA_FOV = 24;
 const TAU = Math.PI * 2;
 /** One full turn. Slow enough to read every side, without making anyone dizzy. */
-export const SPIN_PERIOD_S = 10;
+const SPIN_PERIOD_S = 10;
 /** A person who has just turned the avatar gets this long before it moves again. */
-export const SPIN_RESUME_MS = 3_000;
+const SPIN_RESUME_MS = 3_000;
 const SPIN_EASE_S = 0.7;
 const SPIN_FRAME_MS = 30; // a slow turn does not need 60 fps on a Chromebook
 const DRAG_SPEED = 0.011;
 const TWEEN_MS = 420;
-/** What one press of a rotate button turns. */
-export const ROTATE_STEP = Math.PI / 4;
 
 function supportsWebGL() {
   try {
@@ -456,13 +454,43 @@ export function createAvatarStage(host, options = {}) {
     const centerZ = (box.min.z + box.max.z) / 2;
     figure.group.position.set(-centerX, 0, -centerZ);
     const reach = Math.hypot((box.max.x - box.min.x) / 2, (box.max.z - box.min.z) / 2);
-    productFit = { radius: reach, halfHeight: (box.max.y - box.min.y) / 2, centerY: (box.min.y + box.max.y) / 2, pitch: view.pitch, fill: view.fill, floor: box.min.y };
+    productFit = { radius: reach, halfHeight: (box.max.y - box.min.y) / 2, centerY: (box.min.y + box.max.y) / 2, pitch: view.pitch, fill: view.fill };
     setLighting("studio");
     shadowDisc.visible = view.shadow > 0;
     shadowDisc.material.opacity = view.shadow;
     shadowDisc.position.y = box.min.y - 0.012;
     shadowDisc.scale.setScalar(Math.max(reach * 1.18, 0.22));
     return view;
+  }
+
+  /** The camera distance at which this product's actual outline fills the frame as asked. */
+  function fitSilhouette(view) {
+    const tanHalf = Math.tan((CAMERA_FOV * Math.PI) / 360);
+    const cosPitch = Math.cos(view.pitch);
+    const sinPitch = Math.sin(view.pitch);
+    const { centerY } = productFit;
+    const inCamera = figure.pointsOf(view.frameOn).map((p) => {
+      // Into the camera's axes: x right, y up, z towards the lens.
+      const y = p.y - centerY;
+      return [p.x, y * cosPitch - p.z * sinPitch, y * sinPitch + p.z * cosPitch];
+    });
+    const boundsAt = (distance) => {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const [x, y, z] of inCamera) {
+        const scale = 1 / ((distance - z) * tanHalf);
+        minX = Math.min(minX, x * scale);
+        maxX = Math.max(maxX, x * scale);
+        minY = Math.min(minY, y * scale);
+        maxY = Math.max(maxY, y * scale);
+      }
+      return { minX, maxX, minY, maxY, size: Math.max(maxX - minX, maxY - minY) / 2 };
+    };
+    let distance = 2;
+    for (let step = 0; step < 24; step += 1) distance *= boundsAt(distance).size / view.fill;
+    return { distance, boundsAt };
   }
 
   function mountAvatar() {
@@ -535,40 +563,12 @@ export function createAvatarStage(host, options = {}) {
       mode = "product";
       yaw = view.yaw;
       pivot.rotation.y = yaw;
-      const points = figure.pointsOf(view.frameOn);
-      const tanHalf = Math.tan((CAMERA_FOV * Math.PI) / 360);
-      const cosPitch = Math.cos(view.pitch);
-      const sinPitch = Math.sin(view.pitch);
-      const centerY = productFit.centerY;
-      const camera3 = points.map((p) => {
-        // Into the camera's axes: x right, y up, z towards the lens.
-        const y = p.y - centerY;
-        return [p.x, y * cosPitch - p.z * sinPitch, y * sinPitch + p.z * cosPitch];
-      });
-      const fit = (distance) => {
-        let minX = Infinity;
-        let maxX = -Infinity;
-        let minY = Infinity;
-        let maxY = -Infinity;
-        for (const [x, y, z] of camera3) {
-          const scale = 1 / ((distance - z) * tanHalf);
-          minX = Math.min(minX, x * scale);
-          maxX = Math.max(maxX, x * scale);
-          minY = Math.min(minY, y * scale);
-          maxY = Math.max(maxY, y * scale);
-        }
-        return { minX, maxX, minY, maxY, size: Math.max(maxX - minX, maxY - minY) / 2 };
-      };
-      let distance = 2;
-      for (let step = 0; step < 24; step += 1) {
-        const { size } = fit(distance);
-        distance *= size / view.fill;
-      }
-      distance = Math.max(distance, minimumDistance);
-      const bounds = fit(distance);
+      const { distance: fitted, boundsAt } = fitSilhouette(view);
+      const distance = Math.max(fitted, minimumDistance);
+      const bounds = boundsAt(distance);
       const shiftX = (bounds.minX + bounds.maxX) / 2;
       const shiftY = (bounds.minY + bounds.maxY) / 2;
-      applyCamera({ y: centerY, distance, pitch: view.pitch });
+      applyCamera({ y: productFit.centerY, distance, pitch: view.pitch });
       camera.setViewOffset(width, height, (shiftX * width) / 2, (-shiftY * height) / 2, width, height);
       camera.updateProjectionMatrix();
       draw();
@@ -581,29 +581,7 @@ export function createAvatarStage(host, options = {}) {
       if (disposed) return null;
       const view = mountProduct(item);
       pivot.rotation.y = view.yaw;
-      const points = figure.pointsOf(view.frameOn);
-      const tanHalf = Math.tan((CAMERA_FOV * Math.PI) / 360);
-      const c = Math.cos(view.pitch);
-      const sn = Math.sin(view.pitch);
-      const centerY = productFit.centerY;
-      let distance = 2;
-      for (let step = 0; step < 24; step += 1) {
-        let minX = Infinity;
-        let maxX = -Infinity;
-        let minY = Infinity;
-        let maxY = -Infinity;
-        for (const p of points) {
-          const y = p.y - centerY;
-          const scale = 1 / ((distance - (y * sn + p.z * c)) * tanHalf);
-          const sy = (y * c - p.z * sn) * scale;
-          minX = Math.min(minX, p.x * scale);
-          maxX = Math.max(maxX, p.x * scale);
-          minY = Math.min(minY, sy);
-          maxY = Math.max(maxY, sy);
-        }
-        distance *= Math.max(maxX - minX, maxY - minY) / 2 / view.fill;
-      }
-      return { id: item.id, slot: item.slot, distance };
+      return { id: item.id, slot: item.slot, distance: fitSilhouette(view).distance };
     },
     debug() {
       return {
