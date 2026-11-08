@@ -11,18 +11,21 @@ import {
   createRefillStream,
   decodeBoard,
   encodeBoard,
+  allLegalMoves,
   findLegalMove,
   isGameState,
   newGameState,
+  pentagonIsActive,
   refillWindow,
   replayMoves,
+  SCHEDULES,
   startingBoard,
   stateHash,
   type GameConfig,
   type GameState,
   type Move
 } from "@/public/internal-games/polygon-showdown/src/engine/game.js";
-import { ACTIVE_SHAPES, aspectRatio, classifyGeometry, SHAPE_INDEX, SHAPES } from "@/public/internal-games/polygon-showdown/src/engine/shapes.js";
+import { ACTIVE_SHAPES, ADVANCED_SHAPES, aspectRatio, classifyGeometry, PENTAGON, SHAPE_INDEX, SHAPES, shapeLabel } from "@/public/internal-games/polygon-showdown/src/engine/shapes.js";
 
 const { circle: O, triangle: T, square: S, rectangle: R } = SHAPE_INDEX as Record<string, number>;
 const cols = CONFIG.cols;
@@ -278,9 +281,15 @@ describe("the same seed gives the same game", () => {
     expect(Array.from({ length: 500 }, (_, index) => again.at(3, index))).toEqual(sequence);
     expect([...sequence.keys()].reverse().map((index) => again.at(3, index))).toEqual([...sequence].reverse());
     expect(Array.from({ length: 500 }, (_, index) => other.at(3, index))).not.toEqual(sequence);
-    expect(sequence.every((kind) => ACTIVE_SHAPES.includes(kind))).toBe(true);
-    const counts = ACTIVE_SHAPES.map((kind) => sequence.filter((value) => value === kind).length);
+    // A value at or above 10 is a slot the Pentagon may take over: it stands for
+    // value - 10 until the Pentagon has joined.
+    const decoded = sequence.map((value) => (value >= 10 ? value - 10 : value));
+    expect(decoded.every((kind) => ACTIVE_SHAPES.includes(kind))).toBe(true);
+    const counts = ACTIVE_SHAPES.map((kind) => decoded.filter((value) => value === kind).length);
     expect(Math.min(...counts)).toBeGreaterThan(85);
+    const flagged = sequence.filter((value) => value >= 10).length;
+    expect(flagged).toBeGreaterThan(70);
+    expect(flagged).toBeLessThan(130);
   });
 
   it("the same swaps from the same seed give exactly the same result", () => {
@@ -473,5 +482,172 @@ describe("rewards and milestones", () => {
     expect(milestonesCrossed(20, 30)).toEqual([25]);
     expect(milestonesCrossed(30, 40)).toEqual([]);
     expect(milestonesCrossed(0, 120)).toEqual([25, 50, 100]);
+  });
+});
+
+describe("the pentagon", () => {
+  const pentagon = SHAPES[PENTAGON];
+
+  it("is one regular five-sided polygon, not confusable with any other shape", () => {
+    const points = (pentagon.geometry as unknown as { points: number[][] }).points;
+    expect(points).toHaveLength(5);
+    expect(classifyGeometry(pentagon.geometry)).toBe("pentagon");
+    const sides = points.map(([x, y]: number[], index: number) => {
+      const [nx, ny] = points[(index + 1) % 5];
+      return Math.hypot(nx - x, ny - y);
+    });
+    expect(Math.max(...sides) - Math.min(...sides)).toBeLessThan(0.2);
+    const angles = points.map(([x, y]: number[], index: number) => {
+      const [ax, ay] = points[(index + 4) % 5];
+      const [bx, by] = points[(index + 1) % 5];
+      const dot = (ax - x) * (bx - x) + (ay - y) * (by - y);
+      return (Math.acos(dot / (Math.hypot(ax - x, ay - y) * Math.hypot(bx - x, by - y))) * 180) / Math.PI;
+    });
+    for (const angle of angles) expect(angle).toBeCloseTo(108, 0);
+    expect(pentagon.sides).toBe(5);
+    expect(shapeSvg(PENTAGON)).toContain("<polygon");
+  });
+
+  it("is read aloud as a five-sided polygon", () => {
+    expect(shapeLabel(PENTAGON)).toBe("Pentagon — five-sided polygon");
+  });
+
+  it("is the only new matchable shape, and the first four stay as they were", () => {
+    expect(ACTIVE_SHAPES).toEqual([O, T, S, R]);
+    expect(ADVANCED_SHAPES).toEqual([O, T, S, R, PENTAGON]);
+    expect(CONFIG.kinds).toEqual(ACTIVE_SHAPES);
+  });
+
+  it("all five shapes match, break and pay the same", () => {
+    const filler = (cell: number) => [O, T, S, R, PENTAGON][(cell * 7 + Math.floor(cell / cols) * 3) % 5];
+    for (const kind of ADVANCED_SHAPES) {
+      // Two of a kind in the bottom row with a third one step above the gap.
+      const board = Array.from({ length: cols * rows }, (_, cell) => filler(cell));
+      const others = ADVANCED_SHAPES.filter((value: number) => value !== kind);
+      for (let cell = 0; cell < cols * rows; cell += 1) if (board[cell] === kind) board[cell] = others[(cell + Math.floor(cell / cols)) % 4];
+      board[at(7, 0)] = kind;
+      board[at(7, 1)] = kind;
+      board[at(6, 2)] = kind;
+      const before = newGameState(encodeBoard(board), CONFIG, SCHEDULES.challenge);
+      const result = applySwap(before, at(6, 2), at(7, 2), quietRefill, CONFIG, 1_000);
+      expect(result.ok, shapeLabel(kind)).toBe(true);
+      if (result.ok) expect(result.state.matches).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("every opening board is playable, not solved, with a sensible number of swaps", () => {
+    for (let round = 0; round < 200; round += 1) {
+      for (const kinds of [CONFIG.kinds, CONFIG.advancedKinds]) {
+        const board = startingBoard(`opening-${round}`, CONFIG, kinds);
+        expect(boardFindMatches(board, cols, rows)).toEqual([]);
+        const count = allLegalMoves(board, cols, rows).length;
+        expect(count).toBeGreaterThanOrEqual(CONFIG.boardTarget!.min - 3);
+        expect(count).toBeLessThanOrEqual(CONFIG.boardTarget!.max + 12);
+      }
+    }
+  });
+
+  it("a board with the pentagon in it is still free of ready-made matches", () => {
+    const board = startingBoard("five-from-the-start", CONFIG, CONFIG.advancedKinds);
+    expect(board).toContain(PENTAGON);
+    expect(boardFindMatches(board, cols, rows)).toEqual([]);
+  });
+
+  it("joins Solo after a set number of matches, and a Showdown at a set time", () => {
+    const opening = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.solo);
+    expect(pentagonIsActive(opening, 0)).toBe(false);
+    expect(pentagonIsActive({ ...opening, matches: SCHEDULES.solo.afterMatches! - 1 }, 0)).toBe(false);
+    expect(pentagonIsActive({ ...opening, matches: SCHEDULES.solo.afterMatches! }, 0)).toBe(true);
+
+    const room = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.standard);
+    expect(pentagonIsActive(room, SCHEDULES.standard.afterMs! - 1)).toBe(false);
+    expect(pentagonIsActive(room, SCHEDULES.standard.afterMs!)).toBe(true);
+    // It is the clock, not how well anyone is doing.
+    expect(pentagonIsActive({ ...room, matches: 500, coins: 9_999 }, 1_000)).toBe(false);
+
+    const challenge = newGameState(encodeBoard(startingBoard("schedule", CONFIG, CONFIG.advancedKinds)), CONFIG, SCHEDULES.challenge);
+    expect(pentagonIsActive(challenge, 0)).toBe(true);
+
+    expect(pentagonIsActive(newGameState(encodeBoard(startingBoard("schedule"))), 999_999)).toBe(false);
+  });
+
+  it("a state's schedule is checked like the rest of it", () => {
+    const state = newGameState(encodeBoard(startingBoard("schedule")), CONFIG, SCHEDULES.standard);
+    expect(isGameState(state)).toBe(true);
+    expect(isGameState({ ...state, schedule: { afterMs: -1 } })).toBe(false);
+    expect(isGameState({ ...state, schedule: { afterMs: "soon" } })).toBe(false);
+    expect(isGameState({ ...state, schedule: { somethingElse: 1 } })).toBe(false);
+  });
+
+  function play(seed: string, schedule: object, spacing: number, count: number) {
+    const stream = createRefillStream(seed);
+    let state = newGameState(encodeBoard(startingBoard(seed)), CONFIG, schedule as never);
+    const list: Move[] = [];
+    let t = 0;
+    for (let index = 0; index < count; index += 1) {
+      t = (index + 1) * spacing;
+      const [a, b] = findLegalMove(decodeBoard(state.board), cols, rows)!;
+      const result = applySwap(state, a, b, stream.at, CONFIG, t);
+      if (!result.ok) throw new Error(result.reason);
+      state = result.state;
+      list.push([a, b, t]);
+    }
+    return { stream, state, list };
+  }
+
+  it("appears on the board once it has joined, and not before", () => {
+    const early = play("arrival", SCHEDULES.standard, 2_000, 25);
+    expect(decodeBoard(early.state.board)).not.toContain(PENTAGON);
+    const late = play("arrival", SCHEDULES.standard, 4_000, 60);
+    expect(decodeBoard(late.state.board)).toContain(PENTAGON);
+  });
+
+  it("every player in a room faces the same schedule and the same shapes", () => {
+    const moveAt = 5_000;
+    const players = Array.from({ length: 4 }, (_, seat) => {
+      const stream = createRefillStream("same-room");
+      let state = newGameState(encodeBoard(startingBoard("same-room")), CONFIG, SCHEDULES.standard);
+      const [a, b] = findLegalMove(decodeBoard(state.board), cols, rows)!;
+      const result = applySwap(state, a, b, stream.at, CONFIG, moveAt + seat * 0);
+      if (!result.ok) throw new Error(result.reason);
+      state = result.state;
+      return stateHash(state);
+    });
+    expect(new Set(players).size).toBe(1);
+  });
+
+  it("the server replays the pentagon's arrival exactly, whatever the browser claims", () => {
+    const { state, list } = play("server-agrees", SCHEDULES.standard, 4_000, 40);
+    const stream = createRefillStream("server-agrees");
+    const opening = newGameState(encodeBoard(startingBoard("server-agrees")), CONFIG, SCHEDULES.standard);
+    let current = opening;
+    let nextT = 0;
+    for (let index = 0; index < list.length; index += 4) {
+      const batch = list.slice(index, index + 4);
+      const outcome = replayMoves(current, batch, stream.at, { nextT, nowT: batch[batch.length - 1][2] + 500 });
+      expect(outcome.accepted).toBe(batch.length);
+      current = outcome.state;
+      nextT = outcome.nextT;
+    }
+    expect(stateHash(current)).toBe(stateHash(state));
+  });
+
+  it("the known-refill windows carry the pentagon flag to the browser", () => {
+    const stream = createRefillStream("window-flags");
+    const state = newGameState(encodeBoard(startingBoard("window-flags")), CONFIG, SCHEDULES.standard);
+    const windows = refillWindow(stream, state.cursors);
+    expect(windows.every((text: string) => /^[0-3a-d]{40}$/.test(text))).toBe(true);
+    const known = createKnownRefills();
+    known.merge(state.cursors, windows);
+    for (let col = 0; col < cols; col += 1) {
+      for (let index = 0; index < 40; index += 1) expect(known.at(col, index)).toBe(stream.at(col, index));
+    }
+  });
+
+  it("the swap hint stays out of the way but a stuck player still gets one", async () => {
+    // @ts-expect-error A browser module, with no declarations.
+    const { HINT_AFTER_MS } = await import("@/public/internal-games/polygon-showdown/src/local-game.js");
+    expect(HINT_AFTER_MS).toBeGreaterThanOrEqual(10_000);
+    expect(HINT_AFTER_MS).toBeLessThanOrEqual(20_000);
   });
 });

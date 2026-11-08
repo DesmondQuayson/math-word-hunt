@@ -9,11 +9,46 @@
 import { createRandom } from "../../../math-bingo-live/src/engine/random.js";
 import { allLegalMoves, areAdjacent, collapse, cellOf, colOf, EMPTY, findLegalMove, findMatches, generateBoard, reshuffleBoard, settleKind, swapMakesMatch } from "./board.js";
 import { coinsForMatch, minGapAfter, scoreForMatch, TIMING } from "./economy.js";
-import { ACTIVE_SHAPES } from "./shapes.js";
+import { ACTIVE_SHAPES, ADVANCED_SHAPES, PENTAGON } from "./shapes.js";
 
 export { allLegalMoves, findLegalMove, findMatches };
 
-export const CONFIG = Object.freeze({ rules: 1, cols: 8, rows: 8, kinds: ACTIVE_SHAPES });
+/**
+ * `kinds` are dealt from the start; `advancedKinds` once a game's schedule says
+ * so. `boardTarget` keeps a new board's legal swaps in a range that leaves the
+ * player something to look for. Old runs and rooms keep their own stored state.
+ */
+export const CONFIG = Object.freeze({
+  rules: 2,
+  cols: 8,
+  rows: 8,
+  kinds: ACTIVE_SHAPES,
+  advancedKinds: ADVANCED_SHAPES,
+  boardTarget: Object.freeze({ min: 9, max: 15, attempts: 40 })
+});
+
+/**
+ * When the Pentagon joins. Never based on how well someone is doing against
+ * other players: in a Showdown it is the same moment on the room's clock for
+ * everyone; in Solo it follows the run's own matches, because there is nobody
+ * to be unfair to.
+ */
+export const SCHEDULES = Object.freeze({
+  solo: Object.freeze({ afterMatches: 40 }),
+  standard: Object.freeze({ afterMs: 60_000 }),
+  challenge: Object.freeze({ afterMs: 0 })
+});
+
+export function pentagonIsActive(state, t) {
+  const schedule = state.schedule;
+  if (!schedule) return false;
+  if (schedule.afterMatches !== undefined) return state.matches >= schedule.afterMatches;
+  if (schedule.afterMs !== undefined) return Number.isInteger(t) && t >= schedule.afterMs;
+  return false;
+}
+
+/** A drawn value at or above this is a Pentagon once active, otherwise value - PROMOTED. */
+const PROMOTED = 10;
 export const CELL_COUNT = CONFIG.cols * CONFIG.rows;
 
 /** How many upcoming shapes per column a browser is told at a time. */
@@ -34,7 +69,12 @@ export function createRefillStream(seed, config = CONFIG) {
     let values = blocks.get(key);
     if (!values) {
       const random = createRandom(`polygon-showdown:refill:${seed}:${col}:${number}`);
-      values = Array.from({ length: BLOCK_SIZE }, () => config.kinds[random.int(0, config.kinds.length - 1)]);
+      const promotes = (config.advancedKinds?.length ?? 0) > config.kinds.length;
+      values = Array.from({ length: BLOCK_SIZE }, () => {
+        const kind = config.kinds[random.int(0, config.kinds.length - 1)];
+        // One draw in five is the Pentagon's, so all five shapes are equally likely.
+        return promotes && random.int(0, config.advancedKinds.length - 1) === 0 ? PROMOTED + kind : kind;
+      });
       if (blocks.size >= 128) blocks.clear();
       blocks.set(key, values);
     }
@@ -48,8 +88,8 @@ export function createRefillStream(seed, config = CONFIG) {
 }
 
 /** The same opening board for everyone given this seed. */
-export function startingBoard(seed, config = CONFIG) {
-  return generateBoard(createRandom(`polygon-showdown:board:${seed}`), config.kinds, config.cols, config.rows);
+export function startingBoard(seed, config = CONFIG, kinds = config.kinds) {
+  return generateBoard(createRandom(`polygon-showdown:board:${seed}`), kinds, config.cols, config.rows, config.boardTarget ?? null);
 }
 
 export function encodeBoard(board) {
@@ -62,13 +102,14 @@ export function decodeBoard(text) {
 
 export function isBoardText(text, config = CONFIG) {
   if (typeof text !== "string" || text.length !== config.cols * config.rows) return false;
-  const kinds = new Set(config.kinds.map(String));
+  const kinds = new Set((config.advancedKinds ?? config.kinds).map(String));
   return Array.from(text).every((digit) => kinds.has(digit));
 }
 
-export function newGameState(boardText, config = CONFIG) {
+export function newGameState(boardText, config = CONFIG, schedule = null) {
   return {
     rules: config.rules,
+    ...(schedule ? { schedule } : {}),
     board: boardText,
     cursors: new Array(config.cols).fill(0),
     reshuffles: 0,
@@ -83,10 +124,17 @@ export function newGameState(boardText, config = CONFIG) {
   };
 }
 
+function isSchedule(schedule) {
+  if (!schedule || typeof schedule !== "object") return false;
+  const keys = Object.keys(schedule);
+  return keys.length === 1 && (keys[0] === "afterMatches" || keys[0] === "afterMs") && Number.isInteger(schedule[keys[0]]) && schedule[keys[0]] >= 0;
+}
+
 export function isGameState(value, config = CONFIG) {
   if (!value || typeof value !== "object") return false;
   if (!isBoardText(value.board, config)) return false;
   if (!Array.isArray(value.cursors) || value.cursors.length !== config.cols || !value.cursors.every((n) => Number.isInteger(n) && n >= 0)) return false;
+  if (value.schedule !== undefined && !isSchedule(value.schedule)) return false;
   return ["reshuffles", "moves", "coins", "score", "matches", "cascades", "largestClear", "bestCombo", "cleared"].every((key) => Number.isInteger(value[key]) && value[key] >= 0);
 }
 
@@ -110,7 +158,7 @@ export function stateHash(state) {
  * Otherwise `{ ok: true, state, steps, reshuffled, chain, coins, score }`, with
  * one step per link of the cascade, for the board to animate.
  */
-export function applySwap(state, a, b, refillAt, config = CONFIG) {
+export function applySwap(state, a, b, refillAt, config = CONFIG, t = undefined) {
   const { cols, rows } = config;
   const count = cols * rows;
   if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= count || b >= count || !areAdjacent(a, b, cols)) {
@@ -120,6 +168,8 @@ export function applySwap(state, a, b, refillAt, config = CONFIG) {
   if (!swapMakesMatch(board, a, b, cols, rows)) return { ok: false, reason: "no-match" };
   [board[a], board[b]] = [board[b], board[a]];
 
+  const advanced = Boolean(config.advancedKinds) && pentagonIsActive(state, t);
+  const kinds = advanced ? config.advancedKinds : config.kinds;
   const cursors = state.cursors.slice();
   const steps = [];
   let chain = 0;
@@ -149,11 +199,12 @@ export function applySwap(state, a, b, refillAt, config = CONFIG) {
     const spawns = [];
     for (let col = 0; col < cols; col += 1) {
       for (let row = emptyAbove[col] - 1; row >= 0; row -= 1) {
-        const drawn = refillAt(col, cursors[col]);
-        if (!Number.isInteger(drawn) || drawn < 0) return { ok: false, reason: "need-refill" };
+        const raw = refillAt(col, cursors[col]);
+        if (!Number.isInteger(raw) || raw < 0) return { ok: false, reason: "need-refill" };
         cursors[col] += 1;
         const cell = cellOf(row, col, cols);
-        const kind = settleKind(board, cell, drawn, config.kinds, cols, rows);
+        const drawn = raw >= PROMOTED ? (advanced ? PENTAGON : raw - PROMOTED) : raw;
+        const kind = settleKind(board, cell, drawn, drawn === PENTAGON ? kinds : config.kinds, cols, rows);
         board[cell] = kind;
         spawns.push({ to: cell, kind, drop: emptyAbove[col] });
       }
@@ -168,7 +219,7 @@ export function applySwap(state, a, b, refillAt, config = CONFIG) {
   let reshuffles = state.reshuffles;
   let reshuffled = null;
   if (!findLegalMove(board, cols, rows)) {
-    const next = reshuffleBoard(board, reshuffles, config.kinds, cols, rows);
+    const next = reshuffleBoard(board, reshuffles, kinds, cols, rows);
     reshuffles += 1;
     reshuffled = encodeBoard(next);
     for (let cell = 0; cell < count; cell += 1) board[cell] = next[cell];
@@ -227,7 +278,7 @@ export function replayMoves(state, moves, refillAt, limits, config = CONFIG) {
       rejected = { index: accepted, reason };
       break;
     }
-    const result = applySwap(current, a, b, refillAt, config);
+    const result = applySwap(current, a, b, refillAt, config, t);
     if (!result.ok) {
       rejected = { index: accepted, reason: result.reason };
       break;
@@ -239,11 +290,11 @@ export function replayMoves(state, moves, refillAt, limits, config = CONFIG) {
   return { state: current, accepted, nextT, rejected };
 }
 
-/** The upcoming shapes per column from the given cursors, one digit per shape. */
+/** The upcoming draws per column from the given cursors, one hex digit per draw. */
 export function refillWindow(stream, cursors, size = WINDOW_SIZE) {
   return cursors.map((start, col) => {
     let text = "";
-    for (let offset = 0; offset < size; offset += 1) text += String(stream.at(col, start + offset));
+    for (let offset = 0; offset < size; offset += 1) text += stream.at(col, start + offset).toString(16);
     return text;
   });
 }
@@ -257,7 +308,7 @@ export function createKnownRefills(config = CONFIG) {
   return {
     merge(cursors, windows) {
       windows.forEach((text, col) => {
-        for (let offset = 0; offset < text.length; offset += 1) known[col].set(cursors[col] + offset, Number(text[offset]));
+        for (let offset = 0; offset < text.length; offset += 1) known[col].set(cursors[col] + offset, parseInt(text[offset], 16));
       });
     },
     at(col, index) {

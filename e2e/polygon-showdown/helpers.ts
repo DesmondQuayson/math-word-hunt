@@ -137,10 +137,11 @@ export async function joinAsGuest(browser: Browser, code: string, name: string, 
   return { context, page };
 }
 
-export async function createShowdown(page: Page, name: string, minutes = 5): Promise<string> {
+export async function createShowdown(page: Page, name: string, minutes = 5, difficulty: "standard" | "challenge" = "standard"): Promise<string> {
   await page.goto(`${PLAY_ROUTE}#create`);
   await waitForScreen(page, "create");
   await page.locator(`[data-minutes="${minutes}"]`).click();
+  await page.locator(`[data-difficulty="${difficulty}"]`).click();
   await page.locator("#creator-name").fill(name);
   await page.locator("#create-game").click();
   await waitForScreen(page, "lobby");

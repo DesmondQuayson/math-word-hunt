@@ -170,17 +170,38 @@ export function collapse(board, cols, rows) {
   return { falls, emptyAbove };
 }
 
-/** A board with no ready-made match and at least one legal swap. */
-export function generateBoard(random, kinds, cols, rows) {
-  for (let attempt = 0; attempt < 200; attempt += 1) {
-    const board = new Array(cols * rows).fill(EMPTY);
-    for (let cell = 0; cell < board.length; cell += 1) {
-      const allowed = kinds.filter((kind) => !completesLine(board, cell, kind, cols, rows));
-      board[cell] = allowed[random.int(0, allowed.length - 1)];
-    }
-    if (findLegalMove(board, cols, rows)) return board;
+function dealBoard(random, kinds, cols, rows) {
+  const board = new Array(cols * rows).fill(EMPTY);
+  for (let cell = 0; cell < board.length; cell += 1) {
+    const allowed = kinds.filter((kind) => !completesLine(board, cell, kind, cols, rows));
+    board[cell] = allowed[random.int(0, allowed.length - 1)];
   }
-  throw new Error("Polygon Showdown could not generate a playable board.");
+  return board;
+}
+
+/**
+ * A board with no ready-made match and at least one legal swap. With `target`
+ * ({ min, max, attempts }) it deals a few and keeps one in the range, so a new
+ * board is playable without being solved for the player.
+ */
+export function generateBoard(random, kinds, cols, rows, target = null) {
+  let best = null;
+  let bestDistance = Infinity;
+  const limit = target ? target.attempts : 200;
+  for (let attempt = 0; attempt < limit || !best; attempt += 1) {
+    if (attempt > 2000) throw new Error("Polygon Showdown could not generate a playable board.");
+    const board = dealBoard(random, kinds, cols, rows);
+    const count = allLegalMoves(board, cols, rows).length;
+    if (count === 0) continue;
+    if (!target) return board;
+    const distance = count < target.min ? target.min - count : count > target.max ? count - target.max : 0;
+    if (distance === 0) return board;
+    if (distance < bestDistance) {
+      best = board;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 /**

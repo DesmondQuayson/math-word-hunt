@@ -1,9 +1,11 @@
 export type Move = [number, number, number];
 
-export type GameConfig = Readonly<{ rules: number; cols: number; rows: number; kinds: readonly number[] }>;
+export type GameConfig = Readonly<{ rules: number; cols: number; rows: number; kinds: readonly number[]; advancedKinds?: readonly number[]; boardTarget?: Readonly<{ min: number; max: number; attempts: number }> | null }>;
+export type GameSchedule = Readonly<{ afterMatches?: number; afterMs?: number }>;
 
 export type GameState = {
   rules: number;
+  schedule?: GameSchedule;
   board: string;
   cursors: number[];
   reshuffles: number;
@@ -35,17 +37,19 @@ export type RefillAt = (col: number, index: number) => number;
 export type RefillStream = Readonly<{ at: RefillAt }>;
 
 export const CONFIG: GameConfig;
+export const SCHEDULES: Readonly<{ solo: GameSchedule; standard: GameSchedule; challenge: GameSchedule }>;
+export function pentagonIsActive(state: GameState, t?: number): boolean;
 export const CELL_COUNT: number;
 export const WINDOW_SIZE: number;
 export function createRefillStream(seed: string, config?: GameConfig): RefillStream;
-export function startingBoard(seed: string, config?: GameConfig): number[];
+export function startingBoard(seed: string, config?: GameConfig, kinds?: readonly number[]): number[];
 export function encodeBoard(board: readonly number[]): string;
 export function decodeBoard(text: string): number[];
 export function isBoardText(text: unknown, config?: GameConfig): boolean;
-export function newGameState(boardText: string, config?: GameConfig): GameState;
+export function newGameState(boardText: string, config?: GameConfig, schedule?: GameSchedule | null): GameState;
 export function isGameState(value: unknown, config?: GameConfig): value is GameState;
 export function stateHash(state: GameState): number;
-export function applySwap(state: GameState, a: number, b: number, refillAt: RefillAt, config?: GameConfig): SwapResult;
+export function applySwap(state: GameState, a: number, b: number, refillAt: RefillAt, config?: GameConfig, t?: number): SwapResult;
 export function replayMoves(
   state: GameState,
   moves: readonly Move[],

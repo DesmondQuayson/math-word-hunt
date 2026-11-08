@@ -7,10 +7,10 @@
  * creator, or any seat number, had a systematic edge it would show here as a
  * seat whose average is out of line with the rest.
  *
- *   node scripts/polygon-showdown-fairness-simulation.mjs [--rooms 400] [--seats 8]
+ *   node scripts/polygon-showdown-fairness-simulation.mjs [--rooms 400] [--seats 8] [--challenge]
  */
 import { createRandom } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/random.js";
-import { allLegalMoves, applySwap, createRefillStream, decodeBoard, encodeBoard, newGameState, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
+import { allLegalMoves, applySwap, CONFIG, createRefillStream, decodeBoard, encodeBoard, newGameState, SCHEDULES, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -20,16 +20,18 @@ const option = (name, fallback) => {
 const ROOMS = option("rooms", 400);
 const SEATS = option("seats", 8);
 const ROUND_MS = 5 * 60_000;
+const CHALLENGE = args.includes("--challenge");
+const SCHEDULE = CHALLENGE ? SCHEDULES.challenge : SCHEDULES.standard;
 
 function playSeat(roomSeed, stream, luck) {
   const random = createRandom(luck);
-  let state = newGameState(encodeBoard(startingBoard(roomSeed)));
+  let state = newGameState(encodeBoard(startingBoard(roomSeed, CONFIG, CHALLENGE ? CONFIG.advancedKinds : CONFIG.kinds)), CONFIG, SCHEDULE);
   let clock = 0;
   while (clock < ROUND_MS) {
     clock += 2100 * (0.6 + random.next() * 0.8);
     const moves = allLegalMoves(decodeBoard(state.board), 8, 8);
     const [a, b] = moves[random.int(0, moves.length - 1)];
-    const result = applySwap(state, a, b, stream.at);
+    const result = applySwap(state, a, b, stream.at, CONFIG, Math.round(clock));
     if (!result.ok) throw new Error(result.reason);
     state = result.state;
     clock += 180 + result.chain * 470;
@@ -65,7 +67,7 @@ const worst = Math.max(...means.map((value) => Math.abs(value - overall)));
 const expectedWinShare = 1 / SEATS;
 const winShares = totals.map((seat) => seat.wins / ROOMS);
 
-console.log(`Rooms ${ROOMS}, seats ${SEATS}, overall mean coins ${overall.toFixed(1)}, standard error of a seat mean ${standardError.toFixed(2)}`);
+console.log(`${CHALLENGE ? "CHALLENGE" : "STANDARD"}: Rooms ${ROOMS}, seats ${SEATS}, overall mean coins ${overall.toFixed(1)}, standard error of a seat mean ${standardError.toFixed(2)}`);
 means.forEach((value, seat) => {
   const z = (value - overall) / standardError;
   console.log(`${seat === 0 ? "creator" : `seat ${seat} `}  mean ${value.toFixed(1)}  (${z >= 0 ? "+" : ""}${z.toFixed(2)} SE)  win share ${(winShares[seat] * 100).toFixed(1)}%`);

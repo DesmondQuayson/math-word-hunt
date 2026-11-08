@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { adminClient, clickCell, createShowdown, CREATOR, endRoomIn, gameIdle, gameState, joinAsGuest, JOINER, newPage, OWNER, PAGE_ERRORS, playMoves, PLAY_ROUTE, resetAccount, saved, signIn, waitForBoardLive, waitForResults, waitForScreen } from "./helpers";
 
@@ -9,7 +9,9 @@ test.describe("Player-Host Showdown", () => {
 
     const host = await newPage(browser);
     await signIn(host.page, CREATOR);
-    const code = await createShowdown(host.page, "Desmond");
+    // Challenge, so the Pentagon's arrival cannot fall between two players'
+    // identical moves on a slow machine.
+    const code = await createShowdown(host.page, "Desmond", 5, "challenge");
     expect(code).toMatch(/^[1-9]\d{5}$/);
 
     // The lobby shows the way in and the creator as player one.
@@ -300,5 +302,36 @@ test.describe("one join page for every live game", () => {
     await expect(unknown.page.locator("body")).toHaveClass(/bingo/);
     await unknown.context.close();
     await host.context.close();
+  });
+
+});
+
+test.describe("Showdown difficulty", () => {
+  test("Challenge puts the Pentagon on every board from the first move, and Standard waits", async ({ browser }) => {
+    const admin = adminClient();
+    await resetAccount(admin, CREATOR.email);
+    const boardOf = (page: Page): Promise<string> => page.evaluate(() => (window as unknown as { __POLYGON_SHOWDOWN__: { showdown: { game: { state: { board: string } } } } }).__POLYGON_SHOWDOWN__.showdown.game.state.board);
+
+    const challenge = await newPage(browser);
+    await signIn(challenge.page, CREATOR);
+    const code = await createShowdown(challenge.page, "Desmond", 5, "challenge");
+    await expect(challenge.page.locator("#lobby-rule")).toContainText("Pentagon");
+    const guest = await joinAsGuest(browser, code, "Ava", "Rocket");
+    await challenge.page.locator("#start-showdown").click();
+    await Promise.all([waitForBoardLive(challenge.page), waitForBoardLive(guest.page)]);
+    const [hostBoard, guestBoard] = await Promise.all([boardOf(challenge.page), boardOf(guest.page)]);
+    expect(hostBoard).toContain("4");
+    expect(guestBoard).toBe(hostBoard);
+    await challenge.page.locator(".cell").first().waitFor();
+    await expect(challenge.page.locator('.cell[aria-label*="Pentagon"]').first()).toBeVisible();
+    await Promise.all([challenge.context.close(), guest.context.close()]);
+
+    const standard = await newPage(browser);
+    await signIn(standard.page, CREATOR);
+    await createShowdown(standard.page, "Desmond", 5, "standard");
+    await standard.page.locator("#start-showdown").click();
+    await waitForBoardLive(standard.page);
+    expect(await boardOf(standard.page)).not.toContain("4");
+    await standard.context.close();
   });
 });

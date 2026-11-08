@@ -7,7 +7,7 @@ import { announce, fill, h, icon } from "../../math-bingo-live/src/dom.js";
 import { accountRequest, GameError } from "./api.js";
 import { BoardView } from "./board-view.js";
 import { ACHIEVEMENTS, CURRENCY_NAME, milestonesCrossed, TIMING } from "./engine/economy.js";
-import { CONFIG, createRefillStream, encodeBoard, newGameState, startingBoard } from "./engine/game.js";
+import { CONFIG, createRefillStream, encodeBoard, newGameState, SCHEDULES, startingBoard } from "./engine/game.js";
 import { LocalGame } from "./local-game.js";
 import { brand, coinAmount, coinIcon, confirmDialog, numberText, setScreen, soundControls, toast } from "./ui.js";
 
@@ -111,7 +111,7 @@ export class SoloScreen {
       epoch: 0,
       nextT: 0,
       nowT: 0,
-      state: newGameState(encodeBoard(startingBoard(seed))),
+      state: newGameState(encodeBoard(startingBoard(seed)), CONFIG, SCHEDULES.solo),
       balance: 0
     }, stream.at);
   }
@@ -136,7 +136,12 @@ export class SoloScreen {
       refillAt,
       onStep: (step, result) => this.showStep(step, result),
       onMoved: (result, before) => this.afterMove(result, before),
-      onStall: () => this.saver?.flush()
+      onStall: () => this.saver?.flush(),
+      onPentagon: () => {
+        this.audio.go();
+        toast("New shape: PENTAGON joins the board!", { tone: "gold" });
+        announce("A new shape joins the board: Pentagon, a five-sided polygon.");
+      }
     });
     this.renderScreen();
     this.view.setBoard(run.state.board);
@@ -217,7 +222,7 @@ export class SoloScreen {
     for (const group of step.groups) this.view.floatCoins(group);
     this.bumpCoins(step.coins);
     if (multi) this.flashCombo(step.chain);
-    const shapes = step.groups.map((group) => `${group.size} ${["circles", "triangles", "squares", "rectangles"][group.kind] ?? "shapes"}`).join(", ");
+    const shapes = step.groups.map((group) => `${group.size} ${["circles", "triangles", "squares", "rectangles", "pentagons"][group.kind] ?? "shapes"}`).join(", ");
     announce(`${multi ? `Combo times ${step.chain}. ` : "Match. "}${shapes}. Plus ${step.coins} ${step.coins === 1 ? "coin" : "coins"}.`);
   }
 
@@ -319,6 +324,7 @@ export class SoloScreen {
   }
 
   cleanup() {
+    this.game?.stop();
     if (this.saver && this.game?.pending.length) this.saver.flush({ checkpoint: true, keepalive: true });
     this.saver?.stop();
     this.saver = null;

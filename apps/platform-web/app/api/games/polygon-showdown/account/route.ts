@@ -16,10 +16,11 @@ import {
   isUuid,
   newlyEarnedAchievements,
   newSeed,
-  openingState,
   ownerHash,
   parseMoves,
   replayBatch,
+  showdownOpeningState,
+  soloOpeningState,
   toRoomPayload,
   toRunPayload,
   windowsFor
@@ -109,6 +110,7 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
 
   if (action === "create-room") {
     if (!DURATIONS_SECONDS.includes(body.durationSeconds as number)) return refused("invalid-request", 400);
+    const difficulty = body.difficulty === "challenge" ? "challenge" : "standard";
     const name = sanitizeDisplayName(body.name);
     if (!name.ok) return refused(name.error, 400);
     const emoji = normalizeEmoji(body.emoji);
@@ -128,7 +130,7 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
         p_emoji: emoji.emoji,
         p_duration: body.durationSeconds,
         p_seed: seed,
-        p_state: openingState(seed)
+        p_state: showdownOpeningState(seed, difficulty)
       });
       if (data?.result === "code-taken") continue;
       if (!data || !isRoomRecord(data)) {
@@ -197,7 +199,7 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
 
   if (action === "solo-start") {
     const seed = newSeed();
-    const data = await call("polygon_solo_start", { p_user: accountId, p_seed: seed, p_state: openingState(seed), p_replace: body.replace === true });
+    const data = await call("polygon_solo_start", { p_user: accountId, p_seed: seed, p_state: soloOpeningState(seed), p_replace: body.replace === true });
     if (data?.result === "run-active") return reply({ result: "run-active" });
     if (!data || !isRunRecord(data)) return refused("live-unavailable", 503);
     return reply({ result: "started", run: toRunPayload(data) });

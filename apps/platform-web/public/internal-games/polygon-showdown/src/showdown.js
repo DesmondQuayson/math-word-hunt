@@ -101,6 +101,7 @@ export class ShowdownScreen {
     this.closed = true;
     clearTimeout(this.timer);
     clearInterval(this.tickTimer);
+    this.game?.stop();
     document.removeEventListener("visibilitychange", this.onVisibility);
     this.view?.destroy();
     this.view = null;
@@ -238,6 +239,7 @@ export class ShowdownScreen {
     this.playerCount = h("span", { id: "player-count", text: String(this.room.standings.total) });
     this.joinSlot = h("div", { id: "join-slot" }, this.joinPanel());
     const minutes = Math.round(this.room.durationSeconds / 60);
+    const challenge = this.me?.state.schedule?.afterMs === 0;
     const actions = this.isCreator
       ? h("div", { class: "lobby-actions" },
           h("button", { type: "button", class: "button primary huge", id: "start-showdown", text: "START SHOWDOWN", onclick: (event) => this.startShowdown(event.currentTarget) }),
@@ -251,7 +253,7 @@ export class ShowdownScreen {
         h("section", { class: "roster-panel", "aria-label": "Players" },
           h("h2", { class: "panel-heading" }, "PLAYERS ", h("span", { class: "muted" }, "(", this.playerCount, ")")),
           this.rosterList,
-          h("p", { class: "lobby-rule", text: `${minutes} minutes. Everyone starts from the same board. Most coins wins.` }))),
+          h("p", { class: "lobby-rule", id: "lobby-rule", text: `${minutes} minutes. ${challenge ? "Challenge: the Pentagon is in play from the start." : "The Pentagon joins after one minute."} Everyone starts from the same board. Most coins wins.` }))),
       actions,
       this.isCreator ? musicCredit() : null));
     this.audio.syncMusic();
@@ -337,7 +339,12 @@ export class ShowdownScreen {
       audio: this.audio,
       onStep: (step) => this.showStep(step),
       onMoved: () => this.updateMyNumbers(),
-      onStall: () => this.schedule(0)
+      onStall: () => this.schedule(0),
+      onPentagon: () => {
+        this.audio.go();
+        toast("New shape: PENTAGON joins the board!", { tone: "gold" });
+        announce("A new shape joins the board: Pentagon, a five-sided polygon.");
+      }
     });
   }
 
@@ -470,6 +477,7 @@ export class ShowdownScreen {
       this.audio.tick();
       if (second === 10 || second <= 5) announce(`${second} seconds left.`);
     }
+    this.game.checkPentagon();
     if (untilEnd <= 0 && !this.frozen) this.buzzer();
   }
 

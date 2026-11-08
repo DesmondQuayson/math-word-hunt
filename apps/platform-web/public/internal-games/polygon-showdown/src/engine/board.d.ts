@@ -12,5 +12,5 @@ export function swapMakesMatch(board: number[], a: number, b: number, cols: numb
 export function findLegalMove(board: number[], cols: number, rows: number): [number, number] | null;
 export function allLegalMoves(board: number[], cols: number, rows: number): [number, number][];
 export function collapse(board: number[], cols: number, rows: number): Readonly<{ falls: ReadonlyArray<Readonly<{ from: number; to: number }>>; emptyAbove: readonly number[] }>;
-export function generateBoard(random: BoardRandom, kinds: readonly number[], cols: number, rows: number): number[];
+export function generateBoard(random: BoardRandom, kinds: readonly number[], cols: number, rows: number, target?: Readonly<{ min: number; max: number; attempts: number }> | null): number[];
 export function reshuffleBoard(board: readonly number[], count: number, kinds: readonly number[], cols: number, rows: number): number[];

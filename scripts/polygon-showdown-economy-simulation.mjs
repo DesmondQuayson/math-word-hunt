@@ -9,7 +9,7 @@
  *   node scripts/polygon-showdown-economy-simulation.mjs [--runs 40] [--json]
  */
 import { createRandom } from "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/random.js";
-import { allLegalMoves, applySwap, CONFIG, createRefillStream, decodeBoard, encodeBoard, newGameState, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
+import { allLegalMoves, applySwap, CONFIG, createRefillStream, decodeBoard, encodeBoard, newGameState, SCHEDULES, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 import { showdownReward } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/economy.js";
 import { catalogSummary } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/catalog.js";
 
@@ -60,7 +60,7 @@ function playSession(profile, seedText) {
   const config = CONFIG;
   const random = createRandom(`sim:${seedText}`);
   const stream = createRefillStream(seedText);
-  let state = newGameState(encodeBoard(startingBoard(seedText)));
+  let state = newGameState(encodeBoard(startingBoard(seedText)), config, SCHEDULES.solo);
   let clock = 0;
   const samples = new Map();
   let nextCheckpoint = 0;
@@ -81,7 +81,7 @@ function playSession(profile, seedText) {
         }
       }
     }
-    const result = applySwap(state, choice[0], choice[1], stream.at.bind(stream));
+    const result = applySwap(state, choice[0], choice[1], stream.at.bind(stream), config, Math.round(clock));
     if (!result.ok) throw new Error(`Engine refused a legal swap: ${result.reason}`);
     state = result.state;
     clock += SWAP_ANIMATION_MS + result.chain * STEP_ANIMATION_MS;

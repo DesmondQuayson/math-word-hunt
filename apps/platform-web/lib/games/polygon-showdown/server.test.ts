@@ -11,7 +11,7 @@ const SEED = "0123456789abcdef0123456789abcdef";
 
 function play(count: number, spacing = 1500): { moves: Move[]; states: GameState[] } {
   const stream = createRefillStream(SEED);
-  let state = server.openingState(SEED);
+  let state = server.soloOpeningState(SEED);
   const moves: Move[] = [];
   const states = [state];
   for (let index = 0; index < count; index += 1) {
@@ -120,7 +120,7 @@ describe("replaying a batch", () => {
 });
 
 describe("what a browser is sent", () => {
-  const state = server.openingState(SEED);
+  const state = server.soloOpeningState(SEED);
   const standings = Array.from({ length: 12 }, (_, index) => ({ id: `p${index}`, name: `P${index}`, emoji: null, coins: 100 - index, score: 1000 - index, combo: 1, clear: 3, moves: 5, creator: index === 0, rank: index + 1 }));
   const record = {
     result: "ok",
@@ -179,13 +179,13 @@ describe("what a browser is sent", () => {
   it("gives the browser the next shapes but not the seed", () => {
     const seat = server.toSeatPayload(record.me, SEED, 1000, 2000) as { windows: string[]; nowT: number };
     expect(seat.windows).toHaveLength(8);
-    expect(seat.windows.every((text) => /^[0-3]{40}$/.test(text))).toBe(true);
+    expect(seat.windows.every((text) => /^[0-3a-d]{40}$/.test(text))).toBe(true);
     expect(seat.nowT).toBe(1000);
   });
 });
 
 describe("achievements earned by a commit", () => {
-  const before = server.openingState(SEED);
+  const before = server.soloOpeningState(SEED);
 
   it("counts what this batch added", () => {
     const after = { ...before, matches: 1 };
@@ -195,5 +195,25 @@ describe("achievements earned by a commit", () => {
   it("never repeats one already held", () => {
     const after = { ...before, matches: 1 };
     expect(server.newlyEarnedAchievements({ matches: 5, achievements: { "first-match": "x" } }, before, after)).toEqual([]);
+  });
+});
+
+describe("opening states", () => {
+  it("Solo starts on four shapes and adds the Pentagon by matches", () => {
+    const state = server.soloOpeningState(SEED);
+    expect(state.schedule).toEqual({ afterMatches: 40 });
+    expect(new Set(decodeBoard(state.board)).size).toBe(4);
+  });
+
+  it("a Standard Showdown starts on four shapes and adds it by the clock", () => {
+    const state = server.showdownOpeningState(SEED, "standard");
+    expect(state.schedule).toEqual({ afterMs: 60_000 });
+    expect(new Set(decodeBoard(state.board)).size).toBe(4);
+  });
+
+  it("a Challenge Showdown has it from the first move", () => {
+    const state = server.showdownOpeningState(SEED, "challenge");
+    expect(state.schedule).toEqual({ afterMs: 0 });
+    expect(new Set(decodeBoard(state.board)).size).toBe(5);
   });
 });

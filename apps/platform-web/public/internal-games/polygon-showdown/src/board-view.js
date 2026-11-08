@@ -158,6 +158,18 @@ export class BoardView {
     }
   }
 
+  /** A gentle nudge toward a legal swap, when a player has been looking for a while. */
+  showHint(a, b) {
+    this.clearHint();
+    this.hinted = [a, b];
+    for (const cell of this.hinted) this.cells[cell].classList.add("hint");
+  }
+
+  clearHint() {
+    for (const cell of this.hinted ?? []) this.cells[cell].classList.remove("hint");
+    this.hinted = null;
+  }
+
   moveFocus(cell) {
     this.cells[this.focusCell].setAttribute("tabindex", "-1");
     this.focusCell = cell;

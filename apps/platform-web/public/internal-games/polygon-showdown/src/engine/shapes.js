@@ -14,8 +14,17 @@ const circle = (r) => Object.freeze({ type: "circle", cx: 50, cy: 50, r });
 const rect = (width, height, rx) => Object.freeze({ type: "rect", x: 50 - width / 2, y: 50 - height / 2, width, height, rx });
 const polygon = (...points) => Object.freeze({ type: "polygon", points: Object.freeze(points.map((point) => Object.freeze(point))) });
 
-function shape(key, label, sides, geometry, colors) {
-  return Object.freeze({ key, label, sides, geometry, colors: Object.freeze(colors) });
+function shape(key, label, sides, geometry, colors, spoken = label) {
+  return Object.freeze({ key, label, spoken, sides, geometry, colors: Object.freeze(colors) });
+}
+
+/** Vertices of a regular polygon with one point straight up, in the 100 x 100 box. */
+function regularPolygon(sides, radius, cx, cy) {
+  const points = Array.from({ length: sides }, (_, index) => {
+    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / sides;
+    return [Math.round((cx + radius * Math.cos(angle)) * 100) / 100, Math.round((cy + radius * Math.sin(angle)) * 100) / 100];
+  });
+  return polygon(...points);
 }
 
 export const SHAPES = Object.freeze([
@@ -24,7 +33,8 @@ export const SHAPES = Object.freeze([
   shape("square", "Square", 4, rect(70, 70, 9), { face: "#FF9CC6", body: "#FF4F9A", rim: "#99144F" }),
   // Unmistakably not a square: 90 wide and 44 tall, about two to one.
   shape("rectangle", "Rectangle", 4, rect(90, 44, 8), { face: "#C9B8FF", body: "#8F6BFF", rim: "#4A28B8" }),
-  shape("pentagon", "Pentagon", 5, polygon([50, 7], [93, 39], [77, 90], [23, 90], [7, 39]), { face: "#A8F0C0", body: "#3DD979", rim: "#137A3C" }),
+  // A regular pentagon: five equal sides and five equal angles.
+  shape("pentagon", "Pentagon", 5, regularPolygon(5, 46, 50, 52.5), { face: "#A8F0C0", body: "#3DD979", rim: "#137A3C" }, "Pentagon — five-sided polygon"),
   shape("hexagon", "Hexagon", 6, polygon([27, 10], [73, 10], [96, 50], [73, 90], [27, 90], [4, 50]), { face: "#FFC3A8", body: "#FF7F50", rim: "#A23E13" }),
   shape("rhombus", "Rhombus", 4, polygon([50, 5], [90, 50], [50, 95], [10, 50]), { face: "#B9E2FF", body: "#4DA8FF", rim: "#14589E" }),
   shape("trapezoid", "Trapezoid", 4, polygon([26, 18], [74, 18], [96, 82], [4, 82]), { face: "#E9F7A2", body: "#BCE02F", rim: "#667C07" }),
@@ -36,8 +46,12 @@ export const SHAPE_INDEX = Object.freeze(Object.fromEntries(SHAPES.map((entry, i
 /** The shapes a V1 board deals, as registry indexes. */
 export const ACTIVE_SHAPES = Object.freeze([SHAPE_INDEX.circle, SHAPE_INDEX.triangle, SHAPE_INDEX.square, SHAPE_INDEX.rectangle]);
 
+/** The fifth shape joins as a game progresses (see game.js, pentagonIsActive). */
+export const PENTAGON = SHAPE_INDEX.pentagon;
+export const ADVANCED_SHAPES = Object.freeze([...ACTIVE_SHAPES, PENTAGON]);
+
 export function shapeLabel(kind) {
-  return SHAPES[kind]?.label ?? "Empty";
+  return SHAPES[kind]?.spoken ?? "Empty";
 }
 
 /** How much longer the long side is than the short side, 1 for a square. */

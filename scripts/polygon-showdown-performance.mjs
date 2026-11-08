@@ -11,7 +11,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
-import { allLegalMoves, decodeBoard, encodeBoard, newGameState, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
+import { allLegalMoves, CONFIG, decodeBoard, encodeBoard, newGameState, SCHEDULES, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const ORIGIN = process.env.POLYGON_SHOWDOWN_URL ?? "http://127.0.0.1:3102";
 const CPU_SLOWDOWN = 4;
@@ -26,7 +26,7 @@ const owner = createHash("sha256").update(`perf-${seed}`).digest("hex");
 const hostToken = randomBytes(32).toString("base64url");
 const created = await admin.rpc("polygon_create_room", {
   p_code: code, p_owner_hash: owner, p_host_token_hash: hashToken("host", hostToken), p_player_token_hash: hashToken("player", randomBytes(32).toString("base64url")),
-  p_user: null, p_name: "Creator", p_emoji: null, p_duration: 300, p_seed: seed, p_state: newGameState(encodeBoard(startingBoard(seed)))
+  p_user: null, p_name: "Creator", p_emoji: null, p_duration: 300, p_seed: seed, p_state: newGameState(encodeBoard(startingBoard(seed)), CONFIG, SCHEDULES.standard)
 });
 if (created.error) throw created.error;
 

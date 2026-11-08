@@ -5,12 +5,14 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { achievementsFor, TIMING } from "@/public/internal-games/polygon-showdown/src/engine/economy.js";
 import {
+  CONFIG,
   createRefillStream,
   encodeBoard,
   isGameState,
   newGameState,
   refillWindow,
   replayMoves,
+  SCHEDULES,
   startingBoard,
   stateHash,
   type GameState,
@@ -107,8 +109,17 @@ export async function liveRoomGameForCode(code: string): Promise<LiveRoomGame> {
 
 // ------------------------------------------------------------------- games
 
-export function openingState(seed: string): GameState {
-  return newGameState(encodeBoard(startingBoard(seed)));
+/** A new Solo run: four shapes, then the Pentagon as the run progresses. */
+export function soloOpeningState(seed: string): GameState {
+  return newGameState(encodeBoard(startingBoard(seed)), CONFIG, SCHEDULES.solo);
+}
+
+export type ShowdownDifficulty = "standard" | "challenge";
+
+/** A Showdown's opening: the same board and the same Pentagon schedule for every seat. */
+export function showdownOpeningState(seed: string, difficulty: ShowdownDifficulty): GameState {
+  const kinds = difficulty === "challenge" ? CONFIG.advancedKinds : CONFIG.kinds;
+  return newGameState(encodeBoard(startingBoard(seed, CONFIG, kinds)), CONFIG, SCHEDULES[difficulty]);
 }
 
 /** A batch of swaps from a browser, or null if it is malformed. */
@@ -162,6 +173,7 @@ export function windowsFor(seed: string, cursors: readonly number[]): readonly s
 export function publicGameState(state: GameState): GameState {
   return {
     rules: state.rules,
+    ...(state.schedule ? { schedule: state.schedule } : {}),
     board: state.board,
     cursors: state.cursors,
     reshuffles: state.reshuffles,

@@ -14,7 +14,7 @@ import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 import { minGapAfter, TIMING } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/economy.js";
-import { allLegalMoves, applySwap, createKnownRefills, decodeBoard, encodeBoard, newGameState, startingBoard, stateHash } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
+import { allLegalMoves, applySwap, CONFIG, createKnownRefills, decodeBoard, encodeBoard, newGameState, SCHEDULES, startingBoard, stateHash } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -143,9 +143,9 @@ class Player {
     const moves = allLegalMoves(decodeBoard(this.state.board), 8, 8);
     if (moves.length === 0) return;
     const [a, b] = moves[Math.floor(this.random() * moves.length)];
-    const result = applySwap(this.state, a, b, this.known.at);
-    if (!result.ok) return;
     const t = Math.max(Math.round(nowT), this.nextT);
+    const result = applySwap(this.state, a, b, this.known.at, CONFIG, t);
+    if (!result.ok) return;
     this.nextT = t + minGapAfter(result.chain);
     this.pending.push({ move: [a, b, t], hash: stateHash(result.state) });
     this.state = result.state;
@@ -164,7 +164,7 @@ class Player {
 
 async function runRoom(count) {
   const seed = randomBytes(16).toString("hex");
-  const opening = newGameState(encodeBoard(startingBoard(seed)));
+  const opening = newGameState(encodeBoard(startingBoard(seed)), CONFIG, SCHEDULES.standard);
   const code = String(100000 + Math.floor(Math.random() * 899999));
   const ownerHash = createHash("sha256").update(`load-owner-${seed}`).digest("hex");
   const hostToken = newToken();
