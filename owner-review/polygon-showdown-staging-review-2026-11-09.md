@@ -139,7 +139,7 @@ Pentagons on staging. Standard Showdown, three seats in each of three runs: firs
 
 ## Real-device sheet
 
-Owner's result, 2026-11-09: **all passed**. This is the owner's own report; no automated check observed these devices. The report did not say whether a physical Smart Board was available, so that list is not claimed as passed.
+Owner's result, 2026-11-09: **all passed, on real iPhone, iPad and a physical Smart Board**. This is the owner's own report; no automated check observed these devices.
 
 **iPhone, Safari:** sign in; Solo; swap gestures; shapes breaking; Pentagon appearing after about ten swaps; music; autosave; Continue Solo; Shop; product pictures; avatar spin; swipe to turn; Try On; buy; equip; Create Showdown; QR join; playing a Showdown.
 
@@ -155,7 +155,7 @@ Owner's result, 2026-11-09: **all passed**. This is the owner's own report; no a
 
 ## Known limits
 
-- Real iPhone and iPad results are the owner's report. A physical Smart Board is unconfirmed.
+- Real iPhone, iPad and Smart Board results are the owner's report.
 - At 50 players the leaderboard lags, as described above.
 - Load came from one machine; a real class has 50 devices on one network.
 - Vercel's log query returned only 50 lines without a filter, so its "no errors" is backed by the load tests' own counts (0 server errors).
