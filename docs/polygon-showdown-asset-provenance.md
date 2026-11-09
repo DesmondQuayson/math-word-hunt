@@ -42,7 +42,7 @@ Categories from the brief: A acceptable 3D-render thumbnail; B 3D asset exists, 
 
 Six catalog entries are deliberately "nothing" (`hair-bald`, `fh-none`, `lip-none`, `shadow-none`, `blush-none`, `liner-none`). Their render is the bare head they describe.
 
-Also rebuilt or improved so the product view holds up close: trouser seat seam, pearl tessellation, Supernova Halo (crystals and rays added to the 25,000-coin item).
+Also rebuilt or improved so the product view and the turning avatar hold up close: the shape of the trouser seat, pearl tessellation, Supernova Halo (crystals and rays added to the 25,000-coin item), and the long coat, which now clears the legs at the hips.
 
 ## How a product is photographed
 
@@ -58,7 +58,7 @@ Defined per category in `src/avatar/product.js`. Studio rig, neutral light, tran
 | Necklaces | Dark velvet bust | Near-front |
 | Watches, bracelets | Velvet wrist form, dial to camera | 3/4 |
 | Earrings | Portrait, ear to camera | Side 3/4 |
-| Hair, hair colour, facial hair | Portrait | 3/4 |
+| Hair, hair colour, facial hair | Portrait, on the default avatar's skin and hair colour, so the card matches Try On for a new avatar | 3/4 |
 | Makeup | Close portrait | Near-front |
 
 Each category shares one camera distance (the median of its items), so a beanie and a sun hat are shown at one scale. An item larger than that gets just enough extra room not to be cut off.

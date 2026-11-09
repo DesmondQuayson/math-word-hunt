@@ -19,17 +19,31 @@ The gameplay concept is match-three, a long-established genre. All artwork, inte
 
 The board is 8 × 8. A game starts with **Circle, Triangle, Square, Rectangle**, and the **Pentagon** joins as it goes. A shape is identified by its outline, never its colour alone, and the Rectangle is drawn about two to one so it cannot be mistaken for a Square (`engine/shapes.js`; tests classify every shape from its geometry). The Pentagon is a regular five-sided polygon, read aloud as "Pentagon — five-sided polygon". Hexagon, Rhombus, Trapezoid and Octagon are already drawn for later.
 
-### Pentagon schedule
+### How the Pentagon arrives
 
-| Mode | When the Pentagon joins | Why |
+A new player meets four shapes. The Pentagon comes afterwards, a little at a time, into new shapes only: nothing already on the board ever changes.
+
+| Mode | Warm-up on four shapes | Then |
 | --- | --- | --- |
-| Solo | After 40 matches in the run | A warm-up on four shapes for anyone new |
-| Showdown, Standard | One minute into the round | The clock, so it never depends on who is winning |
-| Showdown, Challenge | From the first move | Chosen by the creator; the same for everyone |
+| Solo | 10 successful swaps | A wave every 70 swaps, lasting 10 swaps |
+| Showdown, Standard (the default) | The first 60 seconds of the room's clock | A wave every 110 seconds, lasting 15 seconds |
+| Showdown, Challenge | None | All five shapes, in every column, from the first move |
 
-The schedule lives in the game's state and is replayed by the server. In a Showdown every seat has the same schedule, the same opening board and the same refill sequences. Before the Pentagon has joined, a flagged refill draw stands for an ordinary shape, so what fell is fixed and only its reading depends on the schedule.
+| Wave | New shapes in its lane that become Pentagons | Most Pentagons on the board |
+| --- | --- | --- |
+| First | 20% | 4 |
+| Second | 30% | 6 |
+| Third and every one after | 40% | 8 |
 
-Opening boards are dealt until they offer 9 to 15 legal swaps (closest of 40 deals). A board is never dealt solved or with a ready-made match, and the free reshuffle is unchanged. A hint appears after 14 seconds without a move.
+Each wave falls through a lane of three neighbouring columns, and the lane moves from wave to wave. Three details follow from how a rare shape behaves:
+
+- **There is a ceiling.** A shape that is rare rarely lines up, so it piles up. In simulation, a plain 5% of new shapes reached 12% of the board and cost a third of the coins. Share alone could not meet the target of a 10 to 20% fall in earnings.
+- **There are waves, and a lane.** Pentagons kept close together can be cleared. A plain ceiling of 4 gave one Pentagon match per 140 swaps; waves in a lane give one per 40 at the same cost in coins.
+- **Showdown follows the clock, not progress.** A schedule counted in a player's own matches would make the board harder for whoever is ahead. The room's clock is the same for every seat, and the server replays it.
+
+Each drawn value is a shape plus a roll from 0 to 99 (`kind + 16 × roll`). The roll decides whether the Pentagon takes that place once its share has grown past the roll. The rolls are fixed by the seed, so every seat has the same draws, and the schedule is stored with the game's state.
+
+Opening boards are dealt until they offer 18 to 34 legal swaps (closest of 40 deals). A board is never dealt solved or with a ready-made match, and the free reshuffle is unchanged. A hint appears after 14 seconds without a move.
 
 | Event | Polygon Coins |
 | --- | --- |
