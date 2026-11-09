@@ -200,6 +200,7 @@ async function privileges() {
     group by 1, 2 order by 1, 2`);
   evidence.defaultPrivileges = sql(`select pg_get_userbyid(d.defaclrole) as owner, d.defaclnamespace::regnamespace::text as schema, d.defaclobjtype as type, d.defaclacl::text as acl from pg_default_acl d where d.defaclnamespace = 'public'::regnamespace order by 1, 3`);
   evidence.owner = sql("select pg_get_userbyid(relowner) as owner from pg_class where oid = 'public.polygon_ledger'::regclass")[0];
+  evidence.compute = sql("select current_setting('max_connections') as max_connections, current_setting('shared_buffers') as shared_buffers, version() as version")[0];
 }
 
 async function migrate() {

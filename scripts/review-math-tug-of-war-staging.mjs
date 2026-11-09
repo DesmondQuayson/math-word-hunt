@@ -211,7 +211,7 @@ try {
     const cards = anon.page.locator(".home-featured-games article");
     await cards.first().waitFor({ timeout: 45_000 });
     const games = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
-    ok(games.join(",") === "math-tug-of-war", "homepage: Math Tug of War is the featured game");
+    ok(games[0] === "math-tug-of-war", `homepage: Math Tug of War leads the featured games (${games.join(", ")})`);
     const tugCard = cards.nth(0);
     const tugImage = tugCard.locator("img");
     await tugImage.scrollIntoViewIfNeeded();

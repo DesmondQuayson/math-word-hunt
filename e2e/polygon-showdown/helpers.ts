@@ -5,6 +5,8 @@ import { allLegalMoves, decodeBoard, type GameState } from "../../apps/platform-
 
 export const PLAY_ROUTE = "/games/polygon-showdown/play";
 export const BASE_URL = process.env.POLYGON_SHOWDOWN_URL ?? "http://127.0.0.1:3102";
+const STAGING = process.env.POLYGON_STAGING === "1";
+const STORAGE_STATE = process.env.POLYGON_STORAGE_STATE;
 
 type Account = { email: string; password: string };
 const accounts = JSON.parse(process.env.POLYGON_ACCOUNTS ?? "{}") as Record<string, Account>;
@@ -55,17 +57,28 @@ export function watchErrors(page: Page): void {
 }
 
 export async function newPage(browser: Browser, options: BrowserContextOptions = {}): Promise<{ context: BrowserContext; page: Page }> {
-  const context = await browser.newContext({ baseURL: BASE_URL, ...options });
+  const context = await browser.newContext({ baseURL: BASE_URL, ...(STORAGE_STATE ? { storageState: STORAGE_STATE } : {}), ...options });
   const page = await context.newPage();
   watchErrors(page);
   return { context, page };
 }
 
+let formSignIns = 0;
+
 export async function signIn(page: Page, account: Account, next = PLAY_ROUTE): Promise<void> {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("Email address").fill(account.email);
-  await page.locator('input[name="password"]').first().fill(account.password);
-  await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
+  if (STAGING && formSignIns >= 1) {
+    // Staging's sign-in form allows 20 attempts per 15 minutes; once per spec file exercises it.
+    const { sessionCookies } = await import("../../scripts/polygon-showdown-staging-session.mjs");
+    const { cookies } = await sessionCookies(process.env.SUPABASE_TEST_URL!, process.env.SUPABASE_TEST_SECRET_KEY!, account.email, account.password);
+    await page.context().addCookies(cookies.map(({ name, value }) => ({ name, value, url: BASE_URL, sameSite: "Lax" as const })));
+    await page.goto(next);
+  } else {
+    formSignIns += 1;
+    await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
+    await page.getByLabel("Email address").fill(account.email);
+    await page.locator('input[name="password"]').first().fill(account.password);
+    await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
+  }
   await page.waitForURL((url) => url.pathname === next, { timeout: 120_000 });
   await page.waitForFunction(() => document.body.dataset.screen !== "loading", null, { timeout: 60_000 });
 }

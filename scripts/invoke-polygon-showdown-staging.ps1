@@ -1,7 +1,12 @@
 param(
-  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'load', 'attack', 'review')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'load', 'attack', 'review', 'crown')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
+  [string]$Players = '10,20,30,40,50',
+  [int]$Seconds = 60,
+  [string]$Out = '',
+  [string]$Projects = 'chromium,devices-chromium',
+  [string]$ReviewArgs = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 # STAGING-ONLY launcher for Polygon Showdown. Loads only the staging entries of
@@ -22,7 +27,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable.' }
-if ($Stage -in @('load', 'attack', 'review') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
+if ($Stage -in @('load', 'attack', 'review', 'crown') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
   $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
@@ -35,6 +40,7 @@ $stagingNames = switch ($Stage) {
   'load' { @('SUPABASE_SECRET_KEY', 'SUPABASE_DB_PASSWORD', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'attack' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'crown' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   default { @('SUPABASE_DB_PASSWORD') }
 }
 try {
@@ -49,13 +55,23 @@ try {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) { throw "The staging entry $name is not in the vault." }
   }
   Set-Location $repositoryRoot
-  if ($Stage -in @('load', 'attack', 'review')) {
+  if ($Stage -in @('load', 'attack', 'review', 'crown')) {
     $env:STAGING_ORIGIN = $Origin
+    $env:INSPECT_OUT = $Out
     $env:EXPECT_COMMIT = $ExpectCommit
+    $env:REVIEW_PROJECTS = $Projects
+    $env:REVIEW_ARGS = $ReviewArgs
     $script = switch ($Stage) {
-      'load' { 'scripts/polygon-showdown-load-staging.mjs' }
+      'load' { 'scripts/polygon-showdown-load.mjs' }
       'attack' { 'scripts/attack-polygon-showdown-staging.mjs' }
       'review' { 'scripts/review-polygon-showdown-staging.mjs' }
+      'crown' { 'scripts/inspect-polygon-showdown-crown-staging.mjs' }
+    }
+    if ($Stage -eq 'load') {
+      $loadArguments = @('--players', $Players, '--seconds', "$Seconds")
+      if ($Out) { $loadArguments += @('--out', $Out) }
+      & node --no-warnings $script @loadArguments
+      exit $LASTEXITCODE
     }
     & node --no-warnings $script
     exit $LASTEXITCODE
@@ -63,7 +79,7 @@ try {
   & node --no-warnings scripts/run-polygon-showdown-staging.mjs "--stage=$Stage"
   exit $LASTEXITCODE
 } finally {
-  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT', 'REVIEW_PROJECTS', 'REVIEW_ARGS', 'INSPECT_OUT')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
   foreach ($entry in $vault.Values.PSObject.Properties) { if ($entry.Value -is [IDisposable]) { $entry.Value.Dispose() } }
   $vault = $null
 }

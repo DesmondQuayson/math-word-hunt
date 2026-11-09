@@ -306,6 +306,41 @@ test.describe("one join page for every live game", () => {
 
 });
 
+test.describe("Showdown music", () => {
+  type AudioState = { source: string | null; paused: boolean };
+  const audio = (page: Page) => page.evaluate(() => (window as unknown as { __POLYGON_SHOWDOWN__: { audio: { snapshot: () => AudioState } } }).__POLYGON_SHOWDOWN__.audio.snapshot());
+  const TRACK = "/media/audio/cosmic-candy-catchers.mp3";
+
+  test("the creator's device plays the shared track; a guest's stays quiet unless its player turns it on", async ({ browser }) => {
+    const admin = adminClient();
+    await resetAccount(admin, CREATOR.email);
+    const host = await newPage(browser);
+    await signIn(host.page, CREATOR);
+    await waitForScreen(host.page, "hub");
+    await host.page.locator("#hub-title").click();
+    await expect.poll(async () => (await audio(host.page)).source).toBe(TRACK);
+    const code = await createShowdown(host.page, "Desmond");
+
+    const guest = await newPage(browser);
+    await guest.page.goto(`/join?code=${code}`);
+    await guest.page.locator("#name").fill("Quiet");
+    await guest.page.locator("#join-game").click();
+    await waitForScreen(guest.page, "lobby");
+    await guest.page.locator(".lobby-header").click();
+    await guest.page.waitForTimeout(600);
+    expect((await audio(guest.page)).source).toBeNull();
+
+    await guest.page.getByRole("button", { name: "Music" }).click();
+    await expect.poll(async () => (await audio(guest.page)).source).toBe(TRACK);
+    await guest.page.getByRole("button", { name: "Music" }).click();
+    await expect.poll(async () => (await audio(guest.page)).paused).toBe(true);
+
+    expect((await guest.page.request.get(TRACK)).status()).toBe(200);
+    await guest.context.close();
+    await host.context.close();
+  });
+});
+
 test.describe("Showdown difficulty", () => {
   test("Challenge puts the Pentagon on every board from the first move, and Standard waits", async ({ browser }) => {
     const admin = adminClient();

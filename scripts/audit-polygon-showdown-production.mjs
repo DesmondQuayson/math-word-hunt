@@ -29,6 +29,8 @@ const rows = (output) => {
 };
 
 const STATEMENT = `select
+  current_setting('max_connections') as max_connections,
+  current_setting('shared_buffers') as shared_buffers,
   (select count(*) from supabase_migrations.schema_migrations)::int as migration_count,
   (select max(version) from supabase_migrations.schema_migrations) as latest_migration,
   (select count(*) from information_schema.tables where table_schema = 'public' and table_name like 'polygon!_%' escape '!')::int as polygon_tables,
