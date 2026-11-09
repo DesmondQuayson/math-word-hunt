@@ -1,6 +1,6 @@
 # Polygon Showdown: staging review, 2026-11-09
 
-Status: **on staging, Draft, not published.** Hosted checks pass. Real iPhone, iPad and Smart Board checks are not done: they need your hands (see the sheet below). Production was not touched.
+Status: **READY FOR POLYGON SHOWDOWN PRODUCTION OWNER APPROVAL.** On staging, Draft, not published. Hosted checks pass, and the owner reported the real-device checks passed on 2026-11-09. Production was not touched.
 
 ## Open it
 
@@ -137,9 +137,9 @@ Pentagons on staging. Standard Showdown, three seats in each of three runs: firs
 
 **Where the time goes at 50.** Almost all of it is inside the two database calls per sync (1.4 to 1.6 s of 1.5 to 1.7 s). It is not Vercel or the network: time outside the function stays near 160 ms at every size, and the health route does not move. It is not Postgres: each statement takes about 4 ms and 1 ms on average, with no lock waits and at most two active connections. It is the Supabase API layer in front of Postgres: a plain one-row read rises from about 150 ms to 730 to 830 ms at p95 as the room fills. Staging and production both run the smallest compute (60 connections, 224 MB). This matches what Math Bingo Live showed. No upgrade was made. The options, for your decision: a larger Supabase compute, or combining the two calls per sync into one.
 
-## Real-device sheet (not done: needs you)
+## Real-device sheet
 
-Tick these on real hardware. I cannot reach physical devices.
+Owner's result, 2026-11-09: **all passed**. This is the owner's own report; no automated check observed these devices. The report did not say whether a physical Smart Board was available, so that list is not claimed as passed.
 
 **iPhone, Safari:** sign in; Solo; swap gestures; shapes breaking; Pentagon appearing after about ten swaps; music; autosave; Continue Solo; Shop; product pictures; avatar spin; swipe to turn; Try On; buy; equip; Create Showdown; QR join; playing a Showdown.
 
@@ -155,7 +155,7 @@ Tick these on real hardware. I cannot reach physical devices.
 
 ## Known limits
 
-- Real iPhone, iPad and Smart Board are untested. Hosted WebKit with device sizes is the nearest evidence, and it is not the same thing.
+- Real iPhone and iPad results are the owner's report. A physical Smart Board is unconfirmed.
 - At 50 players the leaderboard lags, as described above.
 - Load came from one machine; a real class has 50 devices on one network.
 - Vercel's log query returned only 50 lines without a filter, so its "no errors" is backed by the load tests' own counts (0 server errors).
