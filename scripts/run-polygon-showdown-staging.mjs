@@ -7,9 +7,10 @@
  *   --stage=identify read-only: the pooler database is the staging project,
  *                    which local migrations it has not applied, and the current
  *                    state of everything this game touches.
- *   --stage=migrate  applies the ONE pending migration (20261109100000), after a
- *                    dry run, and refuses if anything else is pending. Then runs
- *                    verify and confirms unrelated rows did not move.
+ *   --stage=migrate  applies the ONE pending Polygon migration, after a dry run,
+ *                    and refuses if anything else is pending. Then runs verify
+ *                    and confirms unrelated rows did not move.
+ *   --stage=privileges read-only: who holds what on this game's tables.
  *   --stage=verify   read-only: tables, RLS, grants, functions, the 153 shop
  *                    items, the Draft catalog row and the shared /join guard.
  *   --stage=smoke    the room contract through the service-role functions with
@@ -32,7 +33,8 @@ import { ITEMS } from "../apps/platform-web/public/internal-games/polygon-showdo
 import { CONFIG, encodeBoard, newGameState, SCHEDULES, startingBoard } from "../apps/platform-web/public/internal-games/polygon-showdown/src/engine/game.js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
-const MIGRATION = "20261109100000";
+// In order; `migrate` applies whichever single one is pending.
+const MIGRATIONS = Object.freeze(["20261109100000", "20261109110000"]);
 const GAME_KEY = "polygon-showdown";
 // Applied to staging only by the PH2-07 security-observability branch. The CLI
 // refuses to push while the remote has a version the local folder lacks, so its
@@ -162,9 +164,13 @@ function verifyApplied(sql) {
   evidence.shop = { items: shop.items, free: shop.free, total: shop.total, matchesGameCatalog: shop.digest === local };
   check(shop.items === 153 && shop.digest === local, "polygon-shop-catalog-differs-from-the-game");
 
-  const ledger = sql(`select count(*)::int as triggers from pg_trigger where tgrelid = 'public.polygon_ledger'::regclass and not tgisinternal`)[0];
-  evidence.ledgerGuardTriggers = ledger.triggers;
-  check(ledger.triggers > 0, "polygon-ledger-not-immutable");
+  // The ledger's immutability is a privilege: even the application may only add lines.
+  const ledger = sql(`select has_table_privilege('service_role', 'public.polygon_ledger', 'SELECT') as can_read,
+      has_table_privilege('service_role', 'public.polygon_ledger', 'INSERT') as can_add,
+      has_table_privilege('service_role', 'public.polygon_ledger', 'UPDATE') as can_update,
+      has_table_privilege('service_role', 'public.polygon_ledger', 'DELETE') as can_delete`)[0];
+  evidence.ledgerPrivileges = ledger;
+  check(ledger.can_read && ledger.can_add && !ledger.can_update && !ledger.can_delete, "polygon-ledger-not-immutable");
 
   const router = sql(`select
       (to_regprocedure('public.live_room_game_for_code(text)') is not null) as join_router,
@@ -181,8 +187,19 @@ function verifyApplied(sql) {
 async function verify() {
   const sql = querier(connect());
   evidence.latestVersions = sql("select version from supabase_migrations.schema_migrations order by version desc limit 2").map((row) => String(row.version));
-  check(evidence.latestVersions[0] === MIGRATION, "migration-not-applied");
+  check(evidence.latestVersions[0] === MIGRATIONS.at(-1), "migration-not-applied");
   verifyApplied(sql);
+}
+
+/** Read-only: exactly who holds what on this game's tables, and the defaults new tables inherit. */
+async function privileges() {
+  const sql = querier(connect());
+  evidence.tablePrivileges = sql(`select c.relname, grantee::regrole::text as grantee, string_agg(a.privilege_type, ',' order by a.privilege_type) as privileges
+    from pg_class c cross join lateral aclexplode(c.relacl) a(grantor, grantee, privilege_type, is_grantable)
+    where c.relnamespace = 'public'::regnamespace and c.relname like 'polygon!_%' escape '!' and a.grantee <> 0
+    group by 1, 2 order by 1, 2`);
+  evidence.defaultPrivileges = sql(`select pg_get_userbyid(d.defaclrole) as owner, d.defaclnamespace::regnamespace::text as schema, d.defaclobjtype as type, d.defaclacl::text as acl from pg_default_acl d where d.defaclnamespace = 'public'::regnamespace order by 1, 3`);
+  evidence.owner = sql("select pg_get_userbyid(relowner) as owner from pg_class where oid = 'public.polygon_ledger'::regclass")[0];
 }
 
 async function migrate() {
@@ -192,7 +209,9 @@ async function migrate() {
   evidence.pendingBefore = pending;
   check(remoteOnly.every((version) => STAGING_ONLY[version]), `refusing: staging has unknown migrations this branch does not: ${JSON.stringify(remoteOnly)}`);
   evidence.stagingOnlyRecorded = remoteOnly;
-  check(pending.length === 1 && pending[0] === MIGRATION, `refusing: pending migrations are ${JSON.stringify(pending)}`);
+  check(pending.length === 1 && MIGRATIONS.includes(pending[0]), `refusing: pending migrations are ${JSON.stringify(pending)}`);
+  const MIGRATION = pending[0];
+  evidence.applying = MIGRATION;
   const before = counts(sql);
 
   const workRoot = mkdtempSync(join(tmpdir(), "mathnexa-polygon-staging-"));
@@ -221,7 +240,7 @@ async function migrate() {
   const after = counts(sql);
   evidence.rowCountsBefore = before;
   evidence.rowCountsAfter = after;
-  check(after.catalog - before.catalog === 1, "catalog-row-count-changed-unexpectedly");
+  check(after.catalog - before.catalog === (MIGRATION === MIGRATIONS[0] ? 1 : 0), "catalog-row-count-changed-unexpectedly");
   check(after.accounts === before.accounts && after.entitlements === before.entitlements && after.subscriptions === before.subscriptions && after.auth_users === before.auth_users && after.bingo_rooms === before.bingo_rooms && after.other_games === before.other_games, "unrelated-rows-changed");
 }
 
@@ -285,6 +304,7 @@ try {
   if (stage === "identify") await identify();
   else if (stage === "migrate") await migrate();
   else if (stage === "verify") await verify();
+  else if (stage === "privileges") await privileges();
   else if (stage === "smoke") await smoke();
   else throw new Error(`unknown stage ${stage}`);
   evidence.result = "PASS";

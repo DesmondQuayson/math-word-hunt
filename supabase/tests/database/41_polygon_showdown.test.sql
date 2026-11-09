@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = extensions, public;
-select plan(99);
+select plan(101);
 
 -- ------------------------------------------------------------------- fixture
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
@@ -46,6 +46,8 @@ select ok(not has_function_privilege('authenticated','public.polygon_player_comm
 select ok(has_function_privilege('service_role','public.polygon_purchase(uuid,text,text)','execute'), 'the application server can');
 select ok(not has_table_privilege('service_role','public.polygon_ledger','update'), 'not even the application can rewrite the ledger');
 select ok(not has_table_privilege('service_role','public.polygon_ledger','delete'), 'not even the application can delete the ledger');
+select ok(not has_table_privilege('service_role','public.polygon_ledger','truncate'), 'not even the application can empty the ledger');
+select ok(not has_sequence_privilege('anon','public.polygon_ledger_id_seq','select,usage,update'), 'a browser cannot touch the ledger numbering');
 
 -- -------------------------------------------------------------------- Solo
 select is((public.polygon_bootstrap('11111111-1111-1111-1111-111111111111')->'wallet'->>'balance')::int, 0, 'a new account starts with no coins');
