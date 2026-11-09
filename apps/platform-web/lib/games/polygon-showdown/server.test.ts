@@ -61,6 +61,47 @@ describe("the draft can only be seen on a local review", () => {
   });
 });
 
+describe("the draft on the owner's staging review", () => {
+  const staging = "https://gcmuhzxkwvfireyrearl.supabase.co";
+  const preview = {
+    MVH_POLYGON_SHOWDOWN_PREVIEW: "staging-owner-review",
+    SUPABASE_URL: staging,
+    NEXT_PUBLIC_SUPABASE_URL: staging,
+    MVH_APPLICATION_ORIGIN: "https://mathnexa-platform-staging.vercel.app",
+    MVH_APP_ENVIRONMENT: "production-platform",
+    VERCEL: "1",
+    VERCEL_ENV: "preview"
+  };
+  const gatedAlias = { ...preview, VERCEL_ENV: "production", MVH_STAGING_ACCESS_TOKEN: "a".repeat(43) };
+
+  it("is served on a staging Preview or the gated staging alias", () => {
+    expect(server.isStagingOwnerPreview(preview)).toBe(true);
+    expect(server.isStagingOwnerPreview(gatedAlias)).toBe(true);
+  });
+
+  it("needs the exact staging flag, set per deployment", () => {
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_POLYGON_SHOWDOWN_PREVIEW: undefined })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_POLYGON_SHOWDOWN_PREVIEW: "local-owner-review" })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_POLYGON_SHOWDOWN_PREVIEW: "true" })).toBe(false);
+  });
+
+  it("is never on with production data, the production origin, or an open non-preview deployment", () => {
+    const production = "https://abcdefghijklmnopqrst.supabase.co";
+    expect(server.isStagingOwnerPreview({ ...preview, SUPABASE_URL: production })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, NEXT_PUBLIC_SUPABASE_URL: production })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, SUPABASE_URL: "https://gcmuhzxkwvfireyrearl.supabase.co.evil.example" })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: "https://mathnexa.com" })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: "https://www.mathnexa.com" })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, MVH_APPLICATION_ORIGIN: undefined })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...preview, VERCEL_ENV: "production" })).toBe(false);
+    expect(server.isStagingOwnerPreview({ ...gatedAlias, MVH_STAGING_ACCESS_REQUIRED: "false" })).toBe(false);
+  });
+
+  it("does not open the local review on a hosted deployment", () => {
+    expect(server.isLocalOwnerPreview(preview)).toBe(false);
+  });
+});
+
 describe("parsing a batch", () => {
   it("accepts well-formed swaps", () => {
     expect(server.parseMoves([[0, 1, 5]])).toEqual([[0, 1, 5]]);

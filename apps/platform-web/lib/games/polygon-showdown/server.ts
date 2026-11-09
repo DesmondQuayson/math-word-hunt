@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHash, createHmac, randomBytes } from "node:crypto";
 
+import { PRODUCTION_PUBLIC_CANONICAL_HOST, PRODUCTION_PUBLIC_WWW_HOST } from "@/lib/environment/production-public";
+import { isStagingAccessRequired } from "@/lib/staging-access/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { achievementsFor, TIMING } from "@/public/internal-games/polygon-showdown/src/engine/economy.js";
 import {
@@ -34,6 +36,9 @@ export const PLAY_ROUTE = "/games/polygon-showdown/play";
 export const JOIN_ROUTE = "/join";
 export const PREVIEW_FLAG = "MVH_POLYGON_SHOWDOWN_PREVIEW";
 export const PREVIEW_VALUE = "local-owner-review";
+export const STAGING_PREVIEW_VALUE = "staging-owner-review";
+/** The isolated staging Supabase project; production never points here. */
+const STAGING_SUPABASE_HOST = "gcmuhzxkwvfireyrearl.supabase.co";
 export const DURATIONS_SECONDS = Object.freeze([300, 420, 600, 900, 1200, 1800]);
 
 type Json = Record<string, unknown>;
@@ -78,16 +83,43 @@ export function isLocalOwnerPreview(source: Readonly<Record<string, string | und
   }
 }
 
+function hostOf(value: string | undefined): string | null {
+  try {
+    return new URL(value?.trim() ?? "").hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The draft may also be served for the owner's STAGING review, and only there:
+ *   * the flag says `staging-owner-review` (set per deployment with
+ *     `vercel deploy --env`, never as a project variable);
+ *   * both Supabase URLs are the isolated staging project, so no production
+ *     data or account can ever reach the draft;
+ *   * the application origin is not mathnexa.com;
+ *   * the deployment is a staging Preview (behind Vercel Deployment
+ *     Protection) or enforces the staging access gate.
+ * Production fails every one of these, whatever its variables.
+ */
+export function isStagingOwnerPreview(source: Readonly<Record<string, string | undefined>> = process.env): boolean {
+  if (source[PREVIEW_FLAG]?.trim() !== STAGING_PREVIEW_VALUE) return false;
+  if (hostOf(source.SUPABASE_URL) !== STAGING_SUPABASE_HOST || hostOf(source.NEXT_PUBLIC_SUPABASE_URL) !== STAGING_SUPABASE_HOST) return false;
+  const origin = hostOf(source.MVH_APPLICATION_ORIGIN);
+  if (!origin || origin === PRODUCTION_PUBLIC_CANONICAL_HOST || origin === PRODUCTION_PUBLIC_WWW_HOST) return false;
+  return source.VERCEL_ENV?.trim() === "preview" || isStagingAccessRequired(source);
+}
+
 let availabilityCache: { at: number; value: boolean } | null = null;
 
-/** Published in the catalog, or a draft under the local owner preview. */
+/** Published in the catalog, or a draft under the local or staging owner preview. */
 export async function isPolygonShowdownAvailable(now = Date.now()): Promise<boolean> {
   if (availabilityCache && now - availabilityCache.at < 15_000) return availabilityCache.value;
   const client = createServiceSupabaseClient();
   if (!client) return false;
   const { data, error } = await client.from("game_catalog_entries").select("status").eq("stable_key", GAME_KEY).maybeSingle();
   const status = error ? null : (data as { status?: string } | null)?.status ?? null;
-  const value = status === "published" || (status === "draft" && isLocalOwnerPreview());
+  const value = status === "published" || (status === "draft" && (isLocalOwnerPreview() || isStagingOwnerPreview()));
   availabilityCache = { at: now, value };
   return value;
 }
