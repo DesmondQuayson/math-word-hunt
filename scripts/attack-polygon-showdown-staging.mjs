@@ -280,6 +280,36 @@ async function main() {
   const forged = await account(other.cookie, { action: "solo-sync", run: soloRun.id, epoch: soloRun.epoch, from: 0, moves: [] });
   ok(forged.status === 404, `another account cannot touch this run (${forged.status})`);
 
+  // Solo's Pentagon follows the player's own swaps: four shapes for the first ten.
+  const opened = (await account(player.cookie, { action: "solo-open" })).body.run;
+  const openedAt = performance.now();
+  const soloKnown = createKnownRefills();
+  soloKnown.merge(opened.state.cursors, opened.windows);
+  let soloState = opened.state;
+  let soloNext = opened.nextT;
+  let firstSoloPentagon = null;
+  let soloRefused = null;
+  for (let index = 0; index < 34 && firstSoloPentagon === null && soloRefused === null; index += 1) {
+    const legal = allLegalMoves(decodeBoard(soloState.board), 8, 8);
+    const [x, y] = legal[index % legal.length];
+    const t = Math.max(Math.round(opened.nowT + performance.now() - openedAt), soloNext);
+    const result = applySwap(soloState, x, y, soloKnown.at, CONFIG, t);
+    if (!result.ok) throw new Error(`solo bot produced an illegal swap: ${result.reason}`);
+    const reply = await account(player.cookie, { action: "solo-sync", run: opened.id, epoch: opened.epoch, from: soloState.moves, moves: [[x, y, t]], h: stateHash(result.state) });
+    if (reply.status !== 200 || reply.body?.rejected) {
+      soloRefused = reply.body?.rejected ?? reply.status;
+      break;
+    }
+    soloState = result.state;
+    soloNext = t + minGapAfter(result.chain);
+    soloKnown.merge(reply.body.cursors, reply.body.windows);
+    if (decodeBoard(soloState.board).includes(PENTAGON)) firstSoloPentagon = soloState.moves;
+    await sleep(Math.max(0, soloNext - (opened.nowT + performance.now() - openedAt)) + 30);
+  }
+  console.log(`info Solo: first Pentagon after swap ${firstSoloPentagon}; swaps played ${soloState.moves}`);
+  ok(soloRefused === null, `honest Solo swaps are accepted by the hosted replay (${soloRefused ?? "none refused"})`);
+  ok(firstSoloPentagon === null || firstSoloPentagon >= 11, "Solo: no Pentagon during the first ten swaps");
+
   // Price tampering and duplicate purchase.
   const { error: fundError } = await admin.from("polygon_wallets").upsert({ user_id: player.id, balance: 1000 });
   if (fundError) throw fundError;
