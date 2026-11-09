@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ITEMS } from "@/public/internal-games/polygon-showdown/src/engine/catalog.js";
+import { DEFAULT_AVATAR, ITEMS } from "@/public/internal-games/polygon-showdown/src/engine/catalog.js";
 import { productView } from "@/public/internal-games/polygon-showdown/src/avatar/product.js";
 import { PRODUCT_RENDER_SOURCE } from "@/public/internal-games/polygon-showdown/src/product-images.js";
 
@@ -66,6 +66,14 @@ describe("shop product images", () => {
       const view = productView(item);
       expect(view.avatar[item.slot], item.id).toBe(item.id);
       expect(view.show.length, item.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("show hair and skin as a new avatar has them, so Try On matches the card", () => {
+    for (const item of ITEMS) {
+      const view = productView(item);
+      if (item.slot !== "hairColor") expect(view.avatar.hairColor, item.id).toBe(DEFAULT_AVATAR.hairColor);
+      expect(view.avatar.skin, item.id).toBe(DEFAULT_AVATAR.skin);
     }
   });
 });

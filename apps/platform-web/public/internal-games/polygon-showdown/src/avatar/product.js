@@ -9,7 +9,6 @@ const DISPLAY_AVATAR = Object.freeze({
   ...DEFAULT_AVATAR,
   skin: "skin-5",
   hair: "hair-bald",
-  hairColor: "hc-dark-brown",
   top: "top-long-gray",
   bottom: "bottom-denim-shorts",
   shoes: "shoes-simple-flats",
