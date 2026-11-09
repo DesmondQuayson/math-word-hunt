@@ -30,6 +30,7 @@ export function hatFit(model) {
     return { type: "cover", rim: hat.rim, rx: 0.45, ry: 0.446, rz: 0.43, cy: 0, rimRx: hat.rx * k - 0.006, rimRz: hat.rz * k - 0.006, flare: hat.flare };
   }
   if (model === "visor") return { type: "band", y0: 0.15, y1: 0.28, radius: 0.405, slope: 0.6 };
+  if (model === "crown") return { type: "crown" };
   return null;
 }
 

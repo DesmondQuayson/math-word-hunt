@@ -705,31 +705,37 @@ function slickCap(builder, tiePoint, options = {}) {
   addCap(builder, { line: PULLED_LINE, thickness: (az, v) => 0.034 + 0.016 * (1 - v), ridges: 26, ridgeDepth: 0.006, axis: tiePoint, nu: 96, nv: 18, edgeShade: 0.82, ...options });
 }
 
-function buildBun() {
+function buildBun(fit) {
   const main = new MeshBuilder();
   const tie = new MeshBuilder();
   const top = vec(0, 0.46, -0.1);
   slickCap(main, top);
   addBun(main, 0, 0.56, -0.1, 0.2);
   addTie(tie, vec(0, 0.455, -0.1), vec(0, 1, -0.2), 0.135, 0.02, color(TIE_TURQUOISE));
-  return { main, tie };
+  // The bun is narrower than a crown's ring, so a crown sits on the hair around it.
+  return { main, tie, crownOnScalp: fit?.type === "crown" };
 }
 
-function buildTwinBuns() {
+function buildTwinBuns(fit) {
   const main = new MeshBuilder();
   const tie = new MeshBuilder();
+  // A crown would otherwise balance on the two buns and float over the head.
+  // Under one they stand closer together, inside its ring, and it sits on the hair.
+  const crowned = fit?.type === "crown";
+  const reach = crowned ? 0.155 : 0.3;
+  const bunRadius = crowned ? 0.118 : 0.16;
   addCap(main, { line: PULLED_LINE, thickness: (az, v) => 0.034 + 0.014 * (1 - v), ridges: 28, ridgeDepth: 0.006, axis: vec(0, 0.2, 0.0).add(vec(1, 0, 0)), nu: 96, nv: 18, edgeShade: 0.82 });
   for (const side of [1, -1]) {
-    const center = vec(side * 0.3, 0.42, -0.04);
-    addBun(main, center.x, center.y, center.z, 0.16, side);
-    addTie(tie, center.clone().add(vec(-side * 0.08, -0.095, 0)), vec(side * 0.55, 0.8, 0), 0.1, 0.017, color(side > 0 ? TIE_PINK : TIE_TURQUOISE));
+    const center = vec(side * reach, crowned ? 0.455 : 0.42, -0.04);
+    addBun(main, center.x, center.y, center.z, bunRadius, side);
+    addTie(tie, center.clone().add(vec(-side * bunRadius * 0.5, -bunRadius * 0.6, 0)), vec(side * 0.55, 0.8, 0), bunRadius * 0.625, 0.017, color(side > 0 ? TIE_PINK : TIE_TURQUOISE));
   }
   // Two soft tendrils in front of the ears.
   for (const side of [1, -1]) {
     const points = [crownPoint(side * 1.0, 1.1, 0.03), vec(side * 0.432, 0.02, 0.14), vec(side * 0.445, -0.14, 0.16), vec(side * 0.425, -0.27, 0.17)];
     lock(main, points, 0.012, { segments: 14, flatten: 1.8, up: vec(side, 0, 0.4).normalize() });
   }
-  return { main, tie };
+  return { main, tie, crownOnScalp: crowned };
 }
 
 function buildPonytail() {
@@ -1017,7 +1023,7 @@ export function buildHair(model, fit, materials) {
   const info = { top: 0.432, halfWidth: 0.44, ringTop: (radius) => 0.432 * Math.sqrt(Math.max(0, 1 - (radius * radius) / (0.44 * 0.44))) };
   const build = BUILDERS[model];
   if (!build) return { parts: [], info };
-  const built = build();
+  const built = build(fit);
   const parts = [];
   const add = (builder, material, extra = {}) => {
     if (!builder) return;

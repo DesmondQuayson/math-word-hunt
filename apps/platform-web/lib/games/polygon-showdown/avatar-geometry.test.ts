@@ -4,6 +4,10 @@ import { ITEMS } from "@/public/internal-games/polygon-showdown/src/engine/catal
 // @ts-expect-error A browser module, with no declarations.
 import { frameFor } from "@/public/internal-games/polygon-showdown/src/avatar/frame.js";
 // @ts-expect-error A browser module, with no declarations.
+import { hatFit } from "@/public/internal-games/polygon-showdown/src/avatar/accessories.js";
+// @ts-expect-error A browser module, with no declarations.
+import { buildHair } from "@/public/internal-games/polygon-showdown/src/avatar/hair.js";
+// @ts-expect-error A browser module, with no declarations.
 import { buildShoes } from "@/public/internal-games/polygon-showdown/src/avatar/shoes.js";
 
 type Attribute = { count: number; getX(index: number): number; getY(index: number): number; getZ(index: number): number };
@@ -41,6 +45,22 @@ function facingOut(part: Part): number {
   }
   return outward / total;
 }
+
+describe("a crown", () => {
+  const SCALP_RING = 0.33;
+  const ringHeight = (model: string, fit: unknown) => buildHair(model, fit, materials).info.ringTop(0.31);
+
+  it("sits on the hair round buns instead of balancing on them", () => {
+    expect(ringHeight("twinbuns", hatFit("crown"))).toBeLessThan(SCALP_RING);
+    expect(ringHeight("bun", hatFit("crown"))).toBeLessThan(SCALP_RING);
+  });
+
+  it("changes nothing about the buns when no crown is worn", () => {
+    expect(ringHeight("twinbuns", null)).toBeGreaterThan(0.5);
+    expect(buildHair("twinbuns", null, materials).info.top).toBeGreaterThan(0.55);
+    expect(buildHair("bun", null, materials).info.top).toBeGreaterThan(0.7);
+  });
+});
 
 describe("shoes", () => {
   const shoes = ITEMS.filter((item) => item.slot === "shoes");
