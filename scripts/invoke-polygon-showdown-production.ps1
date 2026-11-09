@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'qa', 'publish', 'archive')] [string]$Stage = 'audit',
+  [ValidateSet('audit', 'migrate', 'verify', 'smoke', 'wallets', 'qa', 'publish', 'archive')] [string]$Stage = 'audit',
   [string]$ExpectBuild = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
@@ -30,7 +30,7 @@ function Open-SecureValue {
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
 }
 $names = @('SUPABASE_PRODUCTION_PROJECT_REF', 'SUPABASE_PRODUCTION_SECRET_KEY')
-if ($Stage -in @('audit', 'migrate', 'verify', 'publish', 'archive')) { $names += 'SUPABASE_PRODUCTION_DB_PASSWORD' }
+if ($Stage -in @('audit', 'migrate', 'verify', 'wallets', 'publish', 'archive')) { $names += 'SUPABASE_PRODUCTION_DB_PASSWORD' }
 $optional = @()
 if ($Stage -in @('smoke', 'qa')) { $optional += 'SUPABASE_PRODUCTION_PUBLISHABLE_KEY' }
 $vault = Import-Clixml -LiteralPath $VaultPath

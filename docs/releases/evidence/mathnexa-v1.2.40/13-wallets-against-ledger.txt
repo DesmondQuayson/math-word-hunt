@@ -1,0 +1,34 @@
+{
+  "stage": "wallets",
+  "startedAt": "2026-11-09T05:37:09.739Z",
+  "projectRef": "[production-ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production-ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 46,
+    "games": "crosscalc:published,math-bingo-live:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:published"
+  },
+  "environment": "PRODUCTION",
+  "accounts": [
+    {
+      "account": "371f8080",
+      "balance": 39,
+      "ledger_sum": 39,
+      "lifetime_earned": 89,
+      "owned": 2,
+      "purchases": 2,
+      "runs": 1,
+      "showdown_earnings": 1,
+      "solo_earnings": 6
+    }
+  ],
+  "duplicateKeys": 0,
+  "rooms": {
+    "open": 1,
+    "rooms": 1
+  },
+  "result": "PASS"
+}

@@ -1,0 +1,181 @@
+{
+  "stage": "publish",
+  "startedAt": "2026-11-09T05:17:51.908Z",
+  "projectRef": "[production-ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production-ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 46,
+    "games": "crosscalc:published,math-bingo-live:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:draft"
+  },
+  "environment": "PRODUCTION",
+  "releaseRecorded": [
+    "20261109100000",
+    "20261109110000"
+  ],
+  "tables": [
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_inventory",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_ledger",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_participants",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_profiles",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_rooms",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_shop_items",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_solo_runs",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "relforcerowsecurity": true,
+      "relname": "polygon_wallets",
+      "relrowsecurity": true
+    }
+  ],
+  "functions": [
+    "polygon_avatar_save",
+    "polygon_bootstrap",
+    "polygon_create_room",
+    "polygon_host_command",
+    "polygon_host_resume",
+    "polygon_join_room",
+    "polygon_leave",
+    "polygon_player_commit",
+    "polygon_player_load",
+    "polygon_purchase",
+    "polygon_solo_commit",
+    "polygon_solo_load",
+    "polygon_solo_open",
+    "polygon_solo_start"
+  ],
+  "privateHelpers": {
+    "browser_callable": 0,
+    "helpers": 14
+  },
+  "shop": {
+    "items": 153,
+    "free": 40,
+    "total": 183425,
+    "matchesGameCatalog": true
+  },
+  "rows": {
+    "inventory": 0,
+    "ledger": 0,
+    "participants": 0,
+    "profiles": 0,
+    "rooms": 0,
+    "solo_runs": 0,
+    "wallets": 0
+  },
+  "joinRouting": {
+    "bingo_code_guard": true,
+    "bingo_host_state": true,
+    "bingo_join_browser_execute": false,
+    "join_router": true,
+    "router_browser_execute": false
+  },
+  "ledgerPrivileges": {
+    "can_add": true,
+    "can_delete": false,
+    "can_read": true,
+    "can_truncate": false,
+    "can_update": false
+  },
+  "catalog": {
+    "category": "Geometry",
+    "description": "Match geometric shapes, build combos, earn coins, customize your avatar, or challenge friends in a live Showdown.",
+    "display_order": 35,
+    "identities": 1,
+    "internal_route": "/games/polygon-showdown/play",
+    "launch_type": "internal",
+    "slug": "polygon-showdown",
+    "stable_key": "polygon-showdown",
+    "status": "published",
+    "thumbnail_reference": "builtin:polygon-showdown",
+    "title": "Polygon Showdown",
+    "version": "1.0.0"
+  },
+  "otherGames": "crosscalc:published,math-bingo-live:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published",
+  "descriptionUpdated": true,
+  "transition": {
+    "from": "draft",
+    "to": "published",
+    "lockBefore": 2,
+    "actor": "the only active admin (owner)",
+    "lockAfter": 3
+  },
+  "snapshotBefore": {
+    "accounts": 46,
+    "auth_users": 46,
+    "bingo_rooms": 1,
+    "catalog": 7,
+    "catalog_versions": 15,
+    "entitlements": 5,
+    "history": 46,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261103100000:91,20261106100000:11,20261106110000:2,20261106120000:5,20261107100000:27,20261108100000:47,20261108110000:2",
+    "other_games": "crosscalc:published:32:0.2.0:3,math-bingo-live:published:34:1.0.0:2,math-tug-of-war:published:33:1.0.0:1,math-vocabulary-hunt:published:1:7.0.0:1,number-cross:published:30:1.0.0:5,number-logic:published:31:0.1.0:2",
+    "resources": 225,
+    "subscriptions": 5
+  },
+  "snapshotAfter": {
+    "accounts": 46,
+    "auth_users": 46,
+    "bingo_rooms": 1,
+    "catalog": 7,
+    "catalog_versions": 17,
+    "entitlements": 5,
+    "history": 46,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261103100000:91,20261106100000:11,20261106110000:2,20261106120000:5,20261107100000:27,20261108100000:47,20261108110000:2",
+    "other_games": "crosscalc:published:32:0.2.0:3,math-bingo-live:published:34:1.0.0:2,math-tug-of-war:published:33:1.0.0:1,math-vocabulary-hunt:published:1:7.0.0:1,number-cross:published:30:1.0.0:5,number-logic:published:31:0.1.0:2",
+    "resources": 225,
+    "subscriptions": 5
+  },
+  "audit": {
+    "action": "admin.game.publish",
+    "created_at": "2026-11-09T05:18:24.06451Z",
+    "status": "published"
+  },
+  "result": "PASS"
+}

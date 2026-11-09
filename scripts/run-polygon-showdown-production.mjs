@@ -19,6 +19,7 @@
  *   --stage=smoke    Service-role room contract with synthetic hashes only (no
  *                    account): create, route, join, load, a stranger's command,
  *                    close. A browser key cannot reach any of it. Deleted after.
+ *   --stage=wallets  READ ONLY. Every wallet against its ledger, without identities.
  *   --stage=publish  Owner-instructed. Sets the approved description, then moves
  *                    draft to published through the functions behind Super
  *                    Admin's buttons, recording the version and audit rows.
@@ -341,6 +342,25 @@ async function transition(target) {
   verifyApplied(sql, { expectStatus: target });
 }
 
+/** Read only. Every wallet against its ledger, with no identities: an account is a short hash. */
+async function wallets() {
+  const url = connect();
+  const sql = sqlFor(url);
+  await identify(sql);
+  evidence.accounts = sql(`select left(md5(w.user_id::text), 8) as account, w.balance, w.lifetime_earned,
+      (select coalesce(sum(l.amount), 0)::int from public.polygon_ledger l where l.user_id = w.user_id) as ledger_sum,
+      (select count(*)::int from public.polygon_ledger l where l.user_id = w.user_id and l.event = 'EARN_SOLO') as solo_earnings,
+      (select count(*)::int from public.polygon_ledger l where l.user_id = w.user_id and l.event = 'EARN_SHOWDOWN') as showdown_earnings,
+      (select count(*)::int from public.polygon_ledger l where l.user_id = w.user_id and l.event = 'PURCHASE_ITEM') as purchases,
+      (select count(*)::int from public.polygon_inventory i where i.user_id = w.user_id) as owned,
+      (select count(*)::int from public.polygon_solo_runs r where r.user_id = w.user_id) as runs
+    from public.polygon_wallets w order by w.updated_at desc limit 20`);
+  evidence.duplicateKeys = sql("select count(*)::int as duplicates from (select user_id, idempotency_key from public.polygon_ledger group by 1, 2 having count(*) > 1) d")[0].duplicates;
+  evidence.rooms = sql("select count(*)::int as rooms, count(*) filter (where status = 'open')::int as open from public.polygon_rooms")[0];
+  check(evidence.accounts.every((row) => Number(row.balance) === Number(row.ledger_sum)), "a-wallet-disagrees-with-its-ledger");
+  check(evidence.duplicateKeys === 0, "duplicate-ledger-key");
+}
+
 async function smoke() {
   const client = api();
   const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -401,9 +421,10 @@ try {
   else if (stage === "migrate") await migrate();
   else if (stage === "verify") await verify();
   else if (stage === "smoke") await smoke();
+  else if (stage === "wallets") await wallets();
   else if (stage === "publish") await transition("published");
   else if (stage === "archive") await transition("archived");
-  else throw new Error("usage: --stage=audit|migrate|verify|smoke|publish|archive");
+  else throw new Error("usage: --stage=audit|migrate|verify|smoke|wallets|publish|archive");
   evidence.result = "PASS";
   console.log(redact(JSON.stringify(evidence, null, 2)));
 } catch (error) {

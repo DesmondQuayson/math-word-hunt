@@ -1,0 +1,27 @@
+{
+  "stage": "smoke",
+  "startedAt": "2026-11-09T05:12:14.135Z",
+  "projectRef": "[production-ref]",
+  "smoke": {
+    "created": "created",
+    "routedTo": "polygon_showdown",
+    "joined": "joined",
+    "seatPhase": "LOBBY",
+    "strangerCommand": "not-found",
+    "closed": "closed",
+    "seatAfterClose": "not-found"
+  },
+  "browserIdentity": {
+    "polygon_inventory": "refused",
+    "polygon_ledger": "refused",
+    "polygon_participants": "refused",
+    "polygon_profiles": "refused",
+    "polygon_rooms": "refused",
+    "polygon_shop_items": "refused",
+    "polygon_solo_runs": "refused",
+    "polygon_wallets": "refused",
+    "rpc": "refused"
+  },
+  "smokeRoomsLeft": 0,
+  "result": "PASS"
+}

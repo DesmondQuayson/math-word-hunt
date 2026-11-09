@@ -1,0 +1,13 @@
+STEP 2026-11-09T05:16:16.007Z promoting https://mathnexa-platform-production-cd1bxw2h3-bright-path-ed-tech.vercel.app to the production alias
+PROMOTED {"promoted":"dpl_5r2ShXG5FkW2Cn7NBWNmL2GpNDn2","previous":"dpl_3ozmqjmDboK1fYShWL7BQUe5zPca"}
+PASS promote
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-promote-1794201395164.json
+node : (node:14012) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to 
+security vulnerabilities, as the arguments are not escaped, only concatenated.
+At line:1 char:624
++ ... -showdown'; node scripts/run-nextjs-hotfix-production.mjs --stage=pro ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:14012) [D...y concatenated.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where the warning was created)

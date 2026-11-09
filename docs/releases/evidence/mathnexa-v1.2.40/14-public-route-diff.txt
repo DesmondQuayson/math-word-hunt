@@ -1,0 +1,8 @@
+﻿DIFF /math-games: text
+   before: ...ction Host a Free Game Join with a code How to get access Create a free MathNexa account and confirm your email address. Start the free 24 -
+   after : ...ction Host a Free Game Join with a code Free with a MathNexa account · Grades 1–8 Polygon Showdown Match geometric shapes, build combos, ear
+DIFF /games/polygon-showdown: location /access?next=/games -> https://mathnexa.com/games/polygon-showdown/play; title MathNexa -> null; canonical https://mathnexa.com/games/polygon-showdown -> null; metaRobots index, follow -> null; text
+   before: ...MathNexa
+   after : ...
+DIFF /games/polygon-showdown/play: location /access?next=/games -> /access?next=/games/polygon-showdown/play
+30/33 routes identical
