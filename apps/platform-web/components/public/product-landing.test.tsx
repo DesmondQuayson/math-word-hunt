@@ -121,6 +121,27 @@ describe("public product pages", () => {
     expect(within(cards[0]).getByRole("list", { name: "Number Cross skills" }).textContent).toBe("mental mathaddition");
     expect(within(cards[0]).queryAllByRole("link")).toHaveLength(0);
     expect(within(cards[1]).getByRole("link", { name: "About Math Tug of War" }).getAttribute("href")).toBe("/math-games/math-tug-of-war");
+    expect(screen.getByText("Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War is free with any MathNexa account.")).toBeTruthy();
+  });
+
+  it("Math Games names every free game the catalog publishes, Polygon Showdown included, and no subscription game", async () => {
+    mocks.games.mockResolvedValue({
+      available: true,
+      games: [
+        ...GAMES.games,
+        { stableKey: "math-bingo-live", thumbnailReference: "builtin:math-bingo-live", title: "Math Bingo Live", description: "Solve math questions, mark your card, and race classmates to Bingo.", grades: "Grades 1–6", skills: [], freeToPlay: true },
+        { stableKey: "polygon-showdown", thumbnailReference: "builtin:polygon-showdown", title: "Polygon Showdown", description: "Match polygons and outscore your rivals.", grades: "Grades 3–8", skills: [], freeToPlay: true }
+      ]
+    });
+    await renderPage(MathGamesPage);
+    expect(screen.getByText("Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War, Math Bingo Live and Polygon Showdown are free with any MathNexa account.")).toBeTruthy();
+  });
+
+  it("Math Games names no free game when none is published", async () => {
+    mocks.games.mockResolvedValue({ available: true, games: [GAMES.games[0]] });
+    await renderPage(MathGamesPage);
+    expect(screen.getByText("Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription.")).toBeTruthy();
+    expect(screen.queryByText(/free with any MathNexa account/)).toBeNull();
   });
 
   it("Math Games: the free Math Bingo Live card offers Host a Free Game and Join with a code", async () => {
@@ -138,6 +159,7 @@ describe("public product pages", () => {
     const { container } = await renderPage(MathGamesPage);
     expect(screen.getByRole("heading", { level: 2, name: "Play for free" })).toBeTruthy();
     expect([...container.querySelectorAll("article h3")].map((heading) => heading.textContent)).toEqual(["Math Tug of War"]);
+    expect(screen.getByText(/Every game is included with a MathNexa subscription, and Math Tug of War is free with any MathNexa account\./)).toBeTruthy();
   });
 
   it("Math Tug of War states the game's own modes, rules and skills, and plays for free", async () => {

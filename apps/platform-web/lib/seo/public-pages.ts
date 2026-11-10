@@ -78,7 +78,9 @@ export const PUBLIC_PAGE_SEO = Object.freeze({
   },
   "/math-games": {
     title: "Math games for the classroom",
-    description: "Math games for whole-class play and quick practice, with the grades and skills for each game. Math Tug of War is free with any MathNexa account."
+    // Names no game: the page itself names the free games from the catalog
+    // and the access policy (lib/seo/free-games-statement.ts).
+    description: "Math games for whole-class play and quick practice, with the grades and skills for each game. Some are free with any MathNexa account."
   },
   "/math-games/math-tug-of-war": {
     title: "Math Tug of War: free online math game",

@@ -62,6 +62,8 @@ test("the Math Games page lists the free game from the catalog", async ({ page }
   const tug = page.locator('article[data-game="math-tug-of-war"]');
   await expect(tug.getByRole("heading", { level: 3, name: "Math Tug of War" })).toBeVisible();
   await expect(tug.getByRole("link", { name: "About Math Tug of War" })).toHaveAttribute("href", "/math-games/math-tug-of-war");
+  // The intro names the published free games (here only Math Tug of War) from the catalog and the access policy.
+  await expect(page.getByText("Every game is included with a MathNexa subscription, and Math Tug of War is free with any MathNexa account.", { exact: false })).toBeVisible();
 });
 
 test("the product pages pass axe (WCAG 2.2 A/AA) and do not scroll sideways at 320 px", async ({ page }) => {

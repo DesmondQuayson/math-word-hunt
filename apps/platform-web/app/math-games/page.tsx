@@ -7,6 +7,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { SCHOOL_ACCESS_DURATION_SECONDS } from "@/lib/school-access/session";
 import { loadGameCatalogSummary, type GameSummary } from "@/lib/seo/catalog-summaries";
+import { freeGamesStatement } from "@/lib/seo/free-games-statement";
 import { platformProductLabel } from "@/lib/seo/platform-positioning";
 import { PRODUCT_PAGE_PATHS } from "@/lib/seo/product-pages";
 import { publicPageMetadata } from "@/lib/seo/public-pages";
@@ -37,12 +38,15 @@ export default async function MathGamesPage() {
   if (!isProductionPlatformMode()) notFound();
   const summary = await loadGameCatalogSummary();
   const games = summary.available ? summary.games : [MATH_TUG_OF_WAR_FALLBACK];
+  // Names the free games listed below (published catalog + access policy), so
+  // a game made free later is named without editing this page.
+  const free = freeGamesStatement(games);
   const label = platformProductLabel("/games");
   return <ProductLanding
     path={PATH}
     eyebrow={label}
     title="Math games for the classroom"
-    description="Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War and Math Bingo Live are free with any MathNexa account."
+    description={`Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription${free ? `, and ${free}` : ""}.`}
     actions={<>
       <LinkButton href="/games">Open {label}</LinkButton>
       <LinkButton href={PRODUCT_PAGE_PATHS.mathTugOfWar} variant="secondary">Math Tug of War</LinkButton>

@@ -28,6 +28,11 @@ describe("public page search metadata", () => {
     }
   });
 
+  it("keeps game names out of the Math Games description, which the page's own free-games sentence covers", () => {
+    expect(PUBLIC_PAGE_SEO["/math-games"].description).toContain("Some are free with any MathNexa account.");
+    expect(PUBLIC_PAGE_SEO["/math-games"].description).not.toMatch(/Tug of War|Bingo|Polygon/);
+  });
+
   it("gives every page its own title", () => {
     const titles = Object.values(PUBLIC_PAGE_SEO).map((page) => typeof page.title === "string" ? page.title : page.title.absolute);
     expect(new Set(titles).size).toBe(titles.length);
