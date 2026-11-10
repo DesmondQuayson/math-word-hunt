@@ -17,12 +17,23 @@
 @media(max-width:22rem){.game-card-content{padding:var(--space-4)}.game-card-content .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.game-card-grid article{transition:none}.game-card-grid article:hover,.game-card-grid article:focus-within{transform:none}}
 @media(forced-colors:active){.game-card-grid article,.game-card-thumbnail,.game-tag-list li,.game-detail iframe,.admin-game-preview iframe{border-color:CanvasText;box-shadow:none}.game-card-thumbnail{background:Canvas;color:CanvasText}}
-/* Homepage featured games (Math Tug of War) reuse the Math Games card language. */
-.home-featured-games{display:grid;gap:var(--space-6);padding-block:0 clamp(var(--space-12),6vw,var(--space-20))}.home-featured-games-header{display:grid;gap:var(--space-2)}.home-featured-games-header h2{margin:0;font-size:clamp(1.75rem,3.6vw,2.6rem);line-height:1.05}
-.home-featured-games .game-card-content h3{margin:0;font-size:clamp(1.35rem,2.4vw,1.8rem);line-height:1.1;overflow-wrap:anywhere}.home-featured-games .game-card-content>p.home-featured-games-detail{font-size:var(--font-size-body-small,0.95rem)}
-.home-featured-games .game-card-content{grid-template-columns:minmax(0,1fr)}.home-featured-games .game-card-content .button{min-width:min(8rem,100%);max-width:100%;white-space:normal;text-align:center}
-/* One featured game: the card takes the whole row, and on wide screens its artwork sits beside the text so no column is left empty. */
-.home-featured-games .game-card-grid{grid-template-columns:minmax(0,1fr)}
-@media(min-width:60rem){.home-featured-games .game-card-grid article{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center}.home-featured-games .game-card-grid .game-card-thumbnail{align-self:stretch;aspect-ratio:auto;border-bottom:0;border-right:var(--border-width-thin) solid var(--color-border)}}
+/* Homepage game library: compact cards, several per row (owner, after v1.2.40). The section is the size container,
+   so the column count follows the room the cards really have at the visitor's text size: enlarged text gets fewer,
+   wider columns instead of clipped titles. Only .home-featured-games rules live here; /math-games and /games keep
+   the shared card rules above. */
+.home-featured-games{container:home-games/inline-size;display:grid;gap:var(--space-5);padding-block:0 clamp(var(--space-12),6vw,var(--space-20))}
+.home-featured-games-header{display:grid;gap:var(--space-2)}.home-featured-games-header h2{margin:0;font-size:clamp(1.75rem,3.6vw,2.6rem);line-height:1.05}.home-featured-games-header .home-featured-games-note{margin:0;color:var(--color-text-secondary)}
+.home-featured-games .game-card-grid{grid-template-columns:minmax(0,1fr);gap:var(--space-4)}.home-featured-games .game-card-grid article{display:flex;flex-direction:column}
+.home-featured-games .game-card-content{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);padding:var(--space-4)}
+.home-featured-games .game-card-content h3{margin:0;font-size:1.2rem;line-height:1.2;overflow-wrap:anywhere}
+.home-featured-games .home-game-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);margin:0}.home-featured-games .home-game-meta .game-free-badge{margin-right:0}
+.home-game-access{display:inline-flex;align-items:center;max-width:100%;padding:.1rem .55rem;border:var(--border-width-thin) solid var(--color-border-strong);border-radius:999px;color:var(--color-text-secondary);letter-spacing:.06em;overflow-wrap:anywhere}
+.home-featured-games .game-card-content>p.home-game-blurb{margin:0;font-size:var(--font-size-label);line-height:1.45}
+.home-game-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);width:100%;margin-top:auto;padding-top:var(--space-1)}
+.home-featured-games .home-game-actions .button{min-width:0;max-width:100%;min-height:2.75rem;margin-top:0;padding:.55rem 1.1rem;font-size:var(--font-size-label);white-space:normal;text-align:center}
+.home-game-secondary{display:inline-flex;align-items:center;min-height:2.75rem;font-size:var(--font-size-label);font-weight:750}
+@container home-games (min-width:20rem){.home-featured-games .game-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}.home-featured-games .game-card-content{padding:var(--space-3)}.home-featured-games .game-card-content h3{font-size:1.02rem}.home-featured-games .game-card-content>p.home-game-blurb{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;font-size:var(--font-size-caption)}.home-featured-games .home-game-actions .button{width:100%}}
+@container home-games (min-width:44rem){.home-featured-games .game-card-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-5)}.home-featured-games .game-card-content{padding:var(--space-4)}.home-featured-games .game-card-content h3{font-size:1.15rem}.home-featured-games .game-card-content>p.home-game-blurb{font-size:var(--font-size-label)}.home-featured-games .home-game-actions .button{width:auto}}
+@container home-games (min-width:64rem){.home-featured-games .game-card-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .game-free-badge{display:inline-flex;align-items:center;margin-right:var(--space-2);padding:.15rem .6rem;border-radius:999px;background:#065f69;color:#fff;font:900 var(--font-size-caption) var(--font-utility);letter-spacing:.06em;text-transform:uppercase}
 @media(forced-colors:active){.game-free-badge{border:1px solid CanvasText;background:Canvas;color:CanvasText}}

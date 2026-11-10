@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
 
+import { homeFeaturedGames } from "@/lib/games/home-featured-games";
+
 import { TeacherFirstHome } from "./teacher-first-home";
 
 vi.mock("@/app/auth-actions", () => ({
@@ -22,6 +24,8 @@ vi.mock("@/app/school-access-actions", () => ({
 afterEach(cleanup);
 
 const HEADLINE = "Online math prep that shows the thinking, not just the answer.";
+const LIBRARY_KEYS = ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "crosscalc", "number-logic", "number-cross", "math-vocabulary-hunt"];
+const LIBRARY_TITLES = ["Polygon Showdown", "Math Bingo Live", "Math Tug of War", "CrossCalc", "Number Logic", "Number Cross", "Math Vocabulary Hunt"];
 
 describe("teacher-first public homepage", () => {
   it("leads with online math prep: eyebrow, one H1, and the owner's description and audience lines unchanged", () => {
@@ -61,7 +65,7 @@ describe("teacher-first public homepage", () => {
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
     // The owner removed "Inside Online Math Prep" and "Made for the kitchen table and the classroom".
     expect(container.textContent).not.toMatch(/Inside Online Math Prep|A prep session|kitchen table|After school, at home|In the classroom|Explore Online Math Prep|Find a Homework PDF|Find a Quiz PDF/);
-    const after = ["Prepare online, practice on paper, check what stuck", "Featured games", "Math Tug of War", "Math Bingo Live"];
+    const after = ["Prepare online, practice on paper, check what stuck", "Featured games", ...LIBRARY_TITLES];
     // Headings: the H1, the authorized-code form heading, then the sections in order.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, "Authorize Code", ...after]);
     cleanup();
@@ -141,9 +145,9 @@ describe("teacher-first public homepage", () => {
       expect(labelled || scene.getAttribute("aria-hidden") === "true").toBeTruthy();
     }
     const sources = [...container.querySelectorAll("img")].map((image) => decodeURIComponent(image.getAttribute("src") ?? ""));
-    // Four product-shelf screens and the two featured games.
-    expect(sources.length).toBe(6);
-    for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z-]+\.webp/);
+    // Four product-shelf screens and the seven featured games.
+    expect(sources.length).toBe(11);
+    for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z0-9-]+\.webp/);
   });
 
   it("sizes the shelf images to their real slots, so phones and tablets get small files", () => {
@@ -157,41 +161,75 @@ describe("teacher-first public homepage", () => {
       // So the srcset now offers the 256 and 384 px files a phone thumbnail needs.
       expect(card.getAttribute("srcset")).toMatch(/ 256w, .* 384w, /);
     }
-    // Featured games keeps its own sizes.
-    expect(container.querySelector(".home-featured-games img")?.getAttribute("sizes")).toBe("(max-width: 48rem) 100vw, 50vw");
+    // Featured game thumbnails are sized to the compact library columns, never the 1200px original.
+    const featured = [...container.querySelectorAll(".home-featured-games img")];
+    expect(featured).toHaveLength(7);
+    for (const image of featured) {
+      expect(image.getAttribute("sizes")).toBe("(min-width: 68rem) 18rem, (min-width: 48rem) 32vw, (min-width: 22rem) 48vw, 100vw");
+      expect(image.getAttribute("srcset")).toMatch(/ 384w, .* 640w, /);
+      // Below the fold: lazy, never prioritised over the hero.
+      expect(image.getAttribute("loading")).toBe("lazy");
+      expect(image.getAttribute("fetchpriority")).not.toBe("high");
+    }
   });
 
-  it("features Math Tug of War then Math Bingo Live (no Math Vocabulary Hunt promotion), each with a free button to the game", () => {
+  it("features the game library in the owner's order: Polygon Showdown first, free games with free buttons, subscription games labelled", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
-      const cards = [...container.querySelectorAll(".home-featured-games article")];
-      expect(cards.map((card) => card.getAttribute("data-game"))).toEqual(["math-tug-of-war", "math-bingo-live"]);
-      const featured = container.querySelector(".home-featured-games")!;
-      expect(featured.textContent).not.toMatch(/Math Vocabulary Hunt|Included with MathNexa access/i);
-      expect(featured.querySelector('a[href="/play"]')).toBeNull();
-      const tug = cards[0];
-      expect(tug.querySelector("img")?.getAttribute("src")).toContain("math-tug-of-war.webp");
+      const cards = [...container.querySelectorAll<HTMLElement>(".home-featured-games article")];
+      expect(cards.map((card) => card.getAttribute("data-game"))).toEqual(LIBRARY_KEYS);
+      const card = (key: string) => cards.find((entry) => entry.getAttribute("data-game") === key)!;
+      const free = (key: string) => within(card(key)).queryByText("Free", { selector: ".game-free-badge" });
+      const subscription = (key: string) => within(card(key)).queryByText("Subscription", { selector: ".home-game-access" });
+
+      const polygon = card("polygon-showdown");
+      expect(polygon.querySelector("img")?.getAttribute("alt")).toMatch(/^Polygon Showdown gameplay: an 8 by 8 board/);
+      expect(decodeURIComponent(polygon.querySelector("img")?.getAttribute("src") ?? "")).toContain("/media/games/polygon-showdown.webp");
+      expect(polygon.textContent).toContain("Geometry");
+      expect(polygon.textContent).toContain("Match shapes, earn coins, and challenge friends.");
+      expect(within(polygon).getByRole("link", { name: "Play Free Polygon Showdown" }).getAttribute("href")).toBe("/games/polygon-showdown/play");
+
+      const tug = card("math-tug-of-war");
       expect(tug.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Tug of War gameplay artwork/);
       expect(tug.textContent).toContain("Solve the math. Pull the rope. Beat the other side!");
-      expect(tug.textContent).toContain("Free with a MathNexa account");
-      expect(tug.textContent).not.toMatch(/no sign-up|without an account|subscribe|trial/i);
-      const button = screen.getAllByRole("link", { name: "Play for Free Now" });
-      expect(button).toHaveLength(1);
-      expect(button[0].getAttribute("href")).toBe("/games/math-tug-of-war/play");
+      expect(within(tug).getByRole("link", { name: "Play Free Math Tug of War" }).getAttribute("href")).toBe("/games/math-tug-of-war/play");
+
       // Math Bingo Live: free to host; students join with a code (no account).
-      const bingo = cards[1];
-      expect(bingo.querySelector("img")?.getAttribute("src")).toContain("math-bingo-live.webp");
+      const bingo = card("math-bingo-live");
       expect(bingo.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Bingo Live gameplay/);
-      expect(bingo.textContent).toContain("Free to host with a MathNexa account");
-      expect(bingo.textContent).toContain("Solve math questions, mark your card, and race classmates to Bingo.");
-      expect(bingo.textContent).toContain("No student accounts.");
-      expect(bingo.textContent).not.toMatch(/subscribe|trial/i);
-      const host = screen.getAllByRole("link", { name: "Host a Free Game" });
-      expect(host).toHaveLength(1);
-      expect(host[0].getAttribute("href")).toBe("/games/math-bingo-live/host");
+      expect(within(bingo).getByRole("link", { name: "Host Game Math Bingo Live" }).getAttribute("href")).toBe("/games/math-bingo-live/host");
       expect(screen.getByRole("link", { name: "Join with a code" }).getAttribute("href")).toBe("/join");
+
+      for (const key of ["polygon-showdown", "math-bingo-live", "math-tug-of-war"]) {
+        expect(free(key), key).toBeTruthy();
+        expect(subscription(key), key).toBeNull();
+      }
+      // Subscription games are never marked Free and keep their own routes.
+      const paid = { "crosscalc": "/games/crosscalc/play", "number-logic": "/games/number-logic/play", "number-cross": "/games/number-cross/play", "math-vocabulary-hunt": "/play" } as const;
+      for (const [key, href] of Object.entries(paid)) {
+        expect(free(key), key).toBeNull();
+        expect(subscription(key), key).toBeTruthy();
+        const title = card(key).querySelector("h3")!.textContent!;
+        expect(within(card(key)).getByRole("link", { name: `Play Now ${title}` }).getAttribute("href")).toBe(href);
+      }
+      const featured = container.querySelector(".home-featured-games")!;
+      expect(featured.textContent).toContain("Free games need only a MathNexa account.");
+      expect(featured.textContent).not.toMatch(/no sign-up|without an account|subscribe|trial|pricing/i);
+      expect(featured.querySelector('a[href="/pricing"], a[href="/subscription"]')).toBeNull();
+      // Compact: one short line of copy per card, no long paragraph.
+      for (const entry of cards) expect(entry.querySelector(".home-game-blurb")!.textContent!.length).toBeLessThanOrEqual(60);
       cleanup();
     }
+  });
+
+  it("shows only the games the catalog has published, in homepage order, and no section when none are", () => {
+    const published = (keys: string[]) => homeFeaturedGames(keys.map((stableKey) => ({ stableKey, title: stableKey, thumbnailReference: `builtin:${stableKey}`, playHref: `/games/${stableKey}/play` })));
+    const { container } = render(<TeacherFirstHome featuredGames={published(["math-tug-of-war", "polygon-showdown"])} />);
+    expect([...container.querySelectorAll(".home-featured-games article")].map((card) => card.getAttribute("data-game"))).toEqual(["polygon-showdown", "math-tug-of-war"]);
+    cleanup();
+    const empty = render(<TeacherFirstHome featuredGames={published([])} />);
+    expect(empty.container.querySelector(".home-featured-games")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Featured games" })).toBeNull();
   });
 
   it("shows the authorized-code entry immediately on the signed-out homepage - zero clicks", () => {
@@ -282,7 +320,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/join"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/play", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/crosscalc/play", "/games/number-logic/play", "/games/number-cross/play", "/join"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

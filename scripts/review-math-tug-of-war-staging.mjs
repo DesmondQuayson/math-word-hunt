@@ -211,17 +211,17 @@ try {
     const cards = anon.page.locator(".home-featured-games article");
     await cards.first().waitFor({ timeout: 45_000 });
     const games = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
-    ok(games[0] === "math-tug-of-war", `homepage: Math Tug of War leads the featured games (${games.join(", ")})`);
-    const tugCard = cards.nth(0);
+    ok(games.includes("math-tug-of-war"), `homepage: Math Tug of War is in the featured games (${games.join(", ")})`);
+    const tugCard = anon.page.locator(".home-featured-games article[data-game='math-tug-of-war']");
     const tugImage = tugCard.locator("img");
     await tugImage.scrollIntoViewIfNeeded();
     await anon.page.waitForFunction((element) => element.complete && element.naturalWidth > 0, await tugImage.elementHandle());
-    ok((await tugCard.textContent()).includes("Solve the math. Pull the rope. Beat the other side!") && (await tugCard.textContent()).includes("Free with a MathNexa account"), "homepage card: thumbnail, title, description, free with an account");
+    ok((await tugCard.textContent()).includes("Solve the math. Pull the rope. Beat the other side!") && (await tugCard.locator(".game-free-badge").textContent()) === "Free", "homepage card: thumbnail, title, description, Free badge");
     await shot(anon.page, "00-homepage-featured-games");
-    await tugCard.getByRole("link", { name: "Play for Free Now" }).click();
+    await tugCard.getByRole("link", { name: "Play Free Math Tug of War" }).click();
     await anon.page.waitForURL(/\/access\?next=/, { timeout: 45_000 });
     const accessUrl = new URL(anon.page.url());
-    ok(accessUrl.searchParams.get("next") === route && !/pricing|checkout|subscription|trial/.test(accessUrl.pathname), "logged-out Play for Free Now → sign in / create account (not pricing)");
+    ok(accessUrl.searchParams.get("next") === route && !/pricing|checkout|subscription|trial/.test(accessUrl.pathname), "logged-out Play Free → sign in / create account (not pricing)");
     ok(await anon.page.getByRole("link", { name: "Sign in" }).getAttribute("href") === `/sign-in?next=${route}` && await anon.page.getByRole("link", { name: "Create account" }).getAttribute("href") === `/sign-up?next=${route}`, "auth screen offers Sign in and Create account, both returning to the game");
     ok((await anon.page.locator("main").textContent()).includes("Sign in or create a free MathNexa account to play."), "auth screen explains: free account, no subscription");
     await shot(anon.page, "00b-auth-for-free-game");
@@ -281,9 +281,9 @@ try {
   // ---- Signed-in non-subscriber: homepage CTA goes straight to the game; other products keep their rules
   const a = await session(browser, emailA, { width: 1366, height: 900 });
   await a.page.goto(`${origin}/`, { waitUntil: "domcontentloaded" });
-  await a.page.locator(".home-featured-games").getByRole("link", { name: "Play for Free Now" }).click();
+  await a.page.locator(".home-featured-games article[data-game='math-tug-of-war']").getByRole("link", { name: "Play Free Math Tug of War" }).click();
   await a.page.getByRole("heading", { level: 1, name: /Math Tug of War/ }).waitFor({ timeout: 45_000 });
-  ok(new URL(a.page.url()).pathname === route, "non-subscriber: Play for Free Now launches the game directly");
+  ok(new URL(a.page.url()).pathname === route, "non-subscriber: homepage Play Free launches the game directly");
   ok(await a.page.locator("body").getAttribute("data-exit-href") === "/" && !/subscribe|payment required|start trial|upgrade/i.test(await a.page.locator("body").innerText()), "non-subscriber sees no subscription prompt; in-game back goes Home");
   const response = await a.page.request.get(`${origin}${route}`);
   ok(response.status() === 200 && (response.headers()["content-security-policy"] ?? "").includes("connect-src 'self'"), "route 200 under the game CSP for a non-subscriber");

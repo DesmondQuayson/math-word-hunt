@@ -97,24 +97,34 @@ async function axe(page: Page) {
   });
 }
 
-test("anonymous: homepage features the free game; Play for Free Now and the direct route require sign-in, never pricing", async ({ browser }) => {
+const HOME_LIBRARY_ORDER = ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "crosscalc", "number-logic", "number-cross", "math-vocabulary-hunt"];
+
+test("anonymous: homepage features the free game; Play Free and the direct route require sign-in, never pricing", async ({ browser }) => {
   const { context, page } = await freshContext(browser);
   await page.goto("/");
   const featured = page.locator(".home-featured-games");
   await expect(featured.getByRole("heading", { name: "Math Tug of War" })).toBeVisible({ timeout: 90_000 });
-  // Math Tug of War is featured first, then Math Bingo Live (owner, 2026-11-06); Math Vocabulary Hunt is no longer promoted here.
+  // The library shows the catalog's published games in the owner's homepage order (lib/games/home-featured-games.ts).
   const cards = featured.locator("article");
-  await expect(cards).toHaveCount(2);
-  await expect(cards.nth(1)).toHaveAttribute("data-game", "math-bingo-live");
-  await expect(cards.nth(0)).toHaveAttribute("data-game", "math-tug-of-war");
-  await expect(featured).not.toContainText(/Math Vocabulary Hunt|Included with MathNexa access/i);
-  await expect(cards.nth(0).getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
-  await expect(cards.nth(0)).toContainText("Solve the math. Pull the rope. Beat the other side!");
-  await expect(cards.nth(0)).toContainText("Free with a MathNexa account");
+  const keys = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
+  expect(keys).toContain("math-tug-of-war");
+  expect(keys).toEqual(HOME_LIBRARY_ORDER.filter((key) => keys.includes(key)));
+  const tugCard = featured.locator("article[data-game='math-tug-of-war']");
+  await expect(tugCard.getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
+  await expect(tugCard).toContainText("Solve the math. Pull the rope. Beat the other side!");
+  await expect(tugCard.locator(".game-free-badge")).toHaveText("Free");
+  await expect(featured).toContainText("Free games need only a MathNexa account.");
+  // Only the free games carry the Free badge; the rest are labelled Subscription.
+  for (const key of keys) {
+    const card = featured.locator(`article[data-game='${key}']`);
+    const free = ["polygon-showdown", "math-bingo-live", "math-tug-of-war"].includes(key ?? "");
+    await expect(card.locator(".game-free-badge"), `${key}`).toHaveCount(free ? 1 : 0);
+    await expect(card.locator(".home-game-access"), `${key}`).toHaveCount(free ? 0 : 1);
+  }
   expect(await page.locator("body").innerText()).not.toMatch(/no sign-up required/i);
   expect(await axe(page)).toEqual([]);
 
-  await featured.getByRole("link", { name: "Play for Free Now" }).click();
+  await tugCard.getByRole("link", { name: "Play Free Math Tug of War" }).click();
   await page.waitForURL(/\/access\?next=/);
   expect(new URL(page.url()).searchParams.get("next")).toBe(GAME_ROUTE);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Continue to Math Tug of War");
@@ -138,7 +148,7 @@ test("anonymous: homepage features the free game; Play for Free Now and the dire
   await context.close();
 });
 
-test("create account: sign-up from Play for Free Now, confirm the email, land in the game without subscribing", async ({ browser }) => {
+test("create account: sign-up from the free game access page, confirm the email, land in the game without subscribing", async ({ browser }) => {
   const { context, page } = await freshContext(browser);
   await page.goto(`/access?next=${GAME_ROUTE}`);
   await page.getByRole("link", { name: "Create account" }).click();
@@ -177,10 +187,10 @@ test("create account: sign-up from Play for Free Now, confirm the email, land in
   await context.close();
 });
 
-test("sign in: a returning non-subscriber goes from Play for Free Now through Sign in straight to the game and can play", async ({ browser }) => {
+test("sign in: a returning non-subscriber goes from Play Free through Sign in straight to the game and can play", async ({ browser }) => {
   const { context, page } = await freshContext(browser);
   await page.goto("/");
-  await page.locator(".home-featured-games").getByRole("link", { name: "Play for Free Now" }).click();
+  await page.locator(".home-featured-games article[data-game='math-tug-of-war']").getByRole("link", { name: "Play Free Math Tug of War" }).click();
   await page.getByRole("link", { name: "Sign in" }).click();
   await expect(page.getByText("Sign in or create a free MathNexa account to play Math Tug of War. No subscription is needed.")).toBeVisible();
   await expect(page.locator("main .form-switch").getByRole("link", { name: "Create a free account" })).toHaveAttribute("href", `/sign-up?next=${GAME_ROUTE}`);
@@ -201,7 +211,7 @@ test("sign in: a returning non-subscriber goes from Play for Free Now through Si
 test("access matrix: non-subscriber and used-trial accounts play free; other games and products keep their rules", async ({ browser }) => {
   for (const email of [emails.free2, emails.usedTrial]) {
     const { context, page } = await signedIn(browser, email);
-    await page.locator(".home-featured-games").getByRole("link", { name: "Play for Free Now" }).click();
+    await page.locator(".home-featured-games article[data-game='math-tug-of-war']").getByRole("link", { name: "Play Free Math Tug of War" }).click();
     await gameReady(page);
     // Every other protected destination is exactly as before: a non-subscriber is sent to subscription review.
     for (const path of ["/games", "/games/number-logic/play", "/games/number-cross/play", "/games/crosscalc/play", "/play", "/map-prep", "/homework", "/quizzes", "/worksheets"]) {
@@ -213,9 +223,9 @@ test("access matrix: non-subscriber and used-trial accounts play free; other gam
   }
 });
 
-test("subscriber: Play for Free Now opens the game directly; Math Games shows Free to play and keeps other cards", async ({ browser }) => {
+test("subscriber: homepage Play Free opens the game directly; Math Games shows Free to play and keeps other cards", async ({ browser }) => {
   const { context, page } = await signedIn(browser, emails.subscriber);
-  await page.locator(".home-featured-games").getByRole("link", { name: "Play for Free Now" }).click();
+  await page.locator(".home-featured-games article[data-game='math-tug-of-war']").getByRole("link", { name: "Play Free Math Tug of War" }).click();
   await gameReady(page);
   await expect(page.locator(".games-link")).toHaveAttribute("href", "/games");
   await page.goto("/games");
@@ -325,7 +335,7 @@ test("online: a subscriber and a non-subscriber play the same match", async ({ b
   await guest.context.close();
 });
 
-test("homepage responsive: the featured card reflows cleanly at every width and at 200% text", async ({ browser }) => {
+test("homepage responsive: the compact game library reflows cleanly at every width and at 200% text", async ({ browser }) => {
   for (const [width, height] of [[304, 640], [320, 568], [375, 667], [390, 844], [430, 932], [768, 1024], [820, 1180], [1024, 768], [1180, 820], [1366, 768], [1920, 1080]] as Array<[number, number]>) {
     const { context, page } = await freshContext(browser, { width, height });
     await page.goto("/");
@@ -333,15 +343,35 @@ test("homepage responsive: the featured card reflows cleanly at every width and 
     await tug.scrollIntoViewIfNeeded();
     await expect(tug.getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
     await expect(tug.getByRole("heading", { name: "Math Tug of War" })).toBeVisible();
-    const button = tug.getByRole("link", { name: "Play for Free Now" });
+    const button = tug.getByRole("link", { name: "Play Free Math Tug of War" });
     await expect(button).toBeVisible();
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${width}`).toBeLessThanOrEqual(0);
-    // The one card fills the row: no empty column beside it.
-    const [section, card] = await Promise.all([page.locator(".home-featured-games .game-card-grid").boundingBox(), tug.boundingBox()]);
-    expect(Math.abs(section!.width - card!.width), `${width} fills the row`).toBeLessThanOrEqual(1);
+    // Compact library: one column below a 20rem grid, two up to 44rem, three up to 64rem, then four.
+    // Cards in a row share their top and height, so titles, copy and buttons line up.
+    const layout = await page.locator(".home-featured-games .game-card-grid").evaluate((grid) => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const gridBox = grid.getBoundingClientRect();
+      const boxes = [...grid.querySelectorAll("article")].map((card) => card.getBoundingClientRect());
+      const expected = gridBox.width >= 64 * rem ? 4 : gridBox.width >= 44 * rem ? 3 : gridBox.width >= 20 * rem ? 2 : 1;
+      const rows = new Map();
+      for (const box of boxes) rows.set(Math.round(box.top), [...(rows.get(Math.round(box.top)) ?? []), box]);
+      return {
+        expected,
+        firstRow: Math.min(boxes.length, expected),
+        perRow: [...rows.values()].map((row) => row.length),
+        widest: Math.max(...boxes.map((box) => box.width)),
+        column: (gridBox.width - (expected - 1) * parseFloat(getComputedStyle(grid).columnGap)) / expected,
+        aligned: [...rows.values()].every((row) => row.every((box) => Math.abs(box.height - row[0].height) <= 1)),
+        inside: boxes.every((box) => box.left >= gridBox.left - 1 && box.right <= gridBox.right + 1)
+      };
+    });
+    expect(layout.perRow[0], `${width} cards in the first row`).toBe(layout.firstRow);
+    expect(Math.abs(layout.widest - layout.column), `${width} column width`).toBeLessThanOrEqual(1);
+    expect(layout.aligned, `${width} rows aligned`).toBe(true);
+    expect(layout.inside, `${width} cards inside the grid`).toBe(true);
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
-    // At 200% text every part of the featured card stays inside the viewport and
+    // At 200% text every part of every library card stays inside the viewport and
     // inside its card. (The existing site footer and hero are outside this change.)
     const escaped = await page.locator(".home-featured-games").evaluate((section) => {
       const viewport = document.documentElement.clientWidth;

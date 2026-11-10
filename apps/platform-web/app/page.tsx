@@ -11,7 +11,8 @@ import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
 import { TeacherFirstHome } from "@/components/public/teacher-first-home";
 import { getGameAccessView } from "@/lib/game-access/server";
-import { loadPublicGameCatalog } from "@/lib/games/catalog";
+import { gamePlayHref, loadPublicGameCatalog } from "@/lib/games/catalog";
+import { homeFeaturedGames } from "@/lib/games/home-featured-games";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getSupportEmail } from "@/lib/commercial/support";
@@ -87,7 +88,12 @@ export default async function HomePage() {
         authState={authState}
         entitled={access.decision.allowed}
         schoolAccess={access.source === "school-access"}
-        numberCrossPublished={catalog.games.some((game) => game.stableKey === "number-cross")}
+        featuredGames={homeFeaturedGames(catalog.state === "unavailable" ? null : catalog.games.map((game) => ({
+          stableKey: game.stableKey,
+          title: game.title,
+          thumbnailReference: game.thumbnailReference,
+          playHref: gamePlayHref(game)
+        })))}
       />
       <JsonLd data={homeStructuredData({ supportEmail: getSupportEmail() })} />
     </>;
