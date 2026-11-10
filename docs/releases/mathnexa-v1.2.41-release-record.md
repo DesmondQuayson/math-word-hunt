@@ -101,9 +101,13 @@ switched to published by status flip, then restored exactly. Results:
 
 No viewport scrolls sideways. Side-by-side images: `compare-1366x768.webp` and `compare-390x844.webp`.
 
-**Signed-in check on Production.** Not run. The harness does not create accounts or enter passwords on Production, and
-the app's browser was no longer signed in. The same path passed locally with a real free account. The live play route
-and its free policy are unchanged since the v1.2.40 signed-in QA.
+**Signed-in check on Production: PASS** (2026-11-10, after release). The owner signed in in the app's browser; no
+password was entered by the harness. On the live homepage, Play Free on the Polygon Showdown card opened
+`/games/polygon-showdown/play` on the game's home screen (PLAY SOLO, SHOP, CREATE SHOWDOWN, Customize Avatar). There
+was no subscription, pricing or trial prompt, and the game's exit link goes to `/`.
+
+That account already has MathNexa access, so the free-account case itself rests on the local check. There, an account
+with no subscription took the same path with the same result.
 
 ## Rollback
 
