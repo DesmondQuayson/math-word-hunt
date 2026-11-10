@@ -7,7 +7,7 @@ import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
-import { homeFeaturedGames, type HomeFeaturedGame } from "@/lib/games/home-featured-games";
+import { homeFreeGames, type HomeFreeGame } from "@/lib/games/home-free-games";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
   PLATFORM_HERO_AUDIENCE,
@@ -29,10 +29,11 @@ type TeacherFirstHomeProps = Readonly<{
   /** The visitor's access comes from an authorized (school) code already entered in this session. */
   schoolAccess?: boolean;
   /**
-   * The homepage game library, built in app/page.tsx from the published
-   * catalog (lib/games/home-featured-games.ts). Omitted: the full curated list.
+   * The homepage free games, built in app/page.tsx from the published catalog
+   * and the access policy (lib/games/home-free-games.ts). Omitted: the free
+   * games MathNexa already has, as when the catalog cannot be read.
    */
-  featuredGames?: readonly HomeFeaturedGame[];
+  freeGames?: readonly HomeFreeGame[];
 }>;
 
 function HeroActions({ authState, entitled }: Readonly<{ authState: HomeAuthState; entitled: boolean }>) {
@@ -150,22 +151,23 @@ function ProductShelf() {
 const HOME_GAME_IMAGE_SIZES = "(min-width: 68rem) 18rem, (min-width: 48rem) 32vw, (min-width: 22rem) 48vw, 100vw";
 
 /**
- * Featured games: a compact library of the published MathNexa games
- * (lib/games/home-featured-games.ts decides which, in what order, with what
- * copy). Free games carry the Free badge and link straight to their play or
- * host route; the routes send a signed-out visitor through sign in or create
- * account and back. Students join Math Bingo Live and Polygon Showdown rooms
- * at /join with no account. Subscription games are labelled as such. Only the
- * thumbnails load here: no game code, avatar renderer or shop asset.
- * Nothing here decides access.
+ * Free math games: the published games any signed-in MathNexa account can play
+ * with no subscription (lib/games/home-free-games.ts decides which, from the
+ * catalog and the access policy, in what order, with what copy). Each card
+ * links straight to its game's play or host route; the routes send a
+ * signed-out visitor through sign in or create account and back. Students join
+ * Math Bingo Live and Polygon Showdown rooms at /join with no account.
+ * Subscription games are not shown here: "View all math games" leads to the
+ * full catalog at /math-games. Only the thumbnails load here: no game code,
+ * avatar renderer or shop asset. Nothing here decides access.
  */
-function FeaturedGames({ games }: Readonly<{ games: readonly HomeFeaturedGame[] }>) {
+function FreeGames({ games }: Readonly<{ games: readonly HomeFreeGame[] }>) {
   if (!games.length) return null;
-  return <section className="home-featured-games container" aria-labelledby="featured-games-title">
+  return <section className="home-featured-games container" aria-labelledby="free-games-title">
     <header className="home-featured-games-header">
       <p className="eyebrow">Play now</p>
-      <h2 id="featured-games-title">Featured games</h2>
-      <p className="home-featured-games-note">Free games need only a MathNexa account.</p>
+      <h2 id="free-games-title">Free math games</h2>
+      <p className="home-featured-games-note">Free with a MathNexa account. No subscription needed.</p>
     </header>
     <div className="game-card-grid">
       {games.map((game) => <article key={game.stableKey} data-game={game.stableKey}>
@@ -181,7 +183,7 @@ function FeaturedGames({ games }: Readonly<{ games: readonly HomeFeaturedGame[] 
         </div>
         <div className="game-card-content">
           <p className="game-path home-game-meta">
-            {game.free ? <span className="game-free-badge">Free</span> : <span className="home-game-access">Subscription</span>}
+            <span className="game-free-badge">Free</span>
             <span className="home-game-category">{game.category}</span>
           </p>
           <h3>{game.title}</h3>
@@ -193,6 +195,9 @@ function FeaturedGames({ games }: Readonly<{ games: readonly HomeFeaturedGame[] 
         </div>
       </article>)}
     </div>
+    <div className="home-featured-games-more">
+      <LinkButton variant="secondary" href="/math-games">View all math games</LinkButton>
+    </div>
   </section>;
 }
 
@@ -200,7 +205,7 @@ export function TeacherFirstHome({
   authState = "signed-out",
   entitled = false,
   schoolAccess = false,
-  featuredGames
+  freeGames
 }: TeacherFirstHomeProps) {
   // The band and its grid open on one line so the hero copy keeps the
   // original nesting depth: the Authorize Code block below is byte-identical
@@ -229,7 +234,7 @@ export function TeacherFirstHome({
 
     <ProductShelf />
 
-    <FeaturedGames games={featuredGames ?? homeFeaturedGames(null)} />
+    <FreeGames games={freeGames ?? homeFreeGames(null)} />
 
     {authState === "unconfirmed" ? <Container><ConfirmationReminder /></Container> : null}
   </>;

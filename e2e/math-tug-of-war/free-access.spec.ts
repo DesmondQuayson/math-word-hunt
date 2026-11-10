@@ -97,30 +97,29 @@ async function axe(page: Page) {
   });
 }
 
-const HOME_LIBRARY_ORDER = ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "crosscalc", "number-logic", "number-cross", "math-vocabulary-hunt"];
+// The homepage shows free games only (lib/games/home-free-games.ts), in the owner's order.
+const HOME_FREE_ORDER = ["polygon-showdown", "math-bingo-live", "math-tug-of-war"];
 
-test("anonymous: homepage features the free game; Play Free and the direct route require sign-in, never pricing", async ({ browser }) => {
+test("anonymous: homepage shows free games only; Play Free and the direct route require sign-in, never pricing", async ({ browser }) => {
   const { context, page } = await freshContext(browser);
   await page.goto("/");
-  const featured = page.locator(".home-featured-games");
+  const featured = page.getByRole("region", { name: "Free math games" });
   await expect(featured.getByRole("heading", { name: "Math Tug of War" })).toBeVisible({ timeout: 90_000 });
-  // The library shows the catalog's published games in the owner's homepage order (lib/games/home-featured-games.ts).
+  // Every card is a published free game, in homepage order; subscription games never appear here.
   const cards = featured.locator("article");
-  const keys = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
+  const keys = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game") ?? ""));
   expect(keys).toContain("math-tug-of-war");
-  expect(keys).toEqual(HOME_LIBRARY_ORDER.filter((key) => keys.includes(key)));
+  expect(keys).toEqual(HOME_FREE_ORDER.filter((key) => keys.includes(key)));
+  await expect(featured.locator(".game-free-badge")).toHaveCount(keys.length);
+  await expect(featured).not.toContainText(/Subscription|Play Now/);
+  // Math Vocabulary Hunt is published and needs a subscription: off the homepage, still in the full catalog.
+  await expect(featured.locator("article[data-game='math-vocabulary-hunt']")).toHaveCount(0);
   const tugCard = featured.locator("article[data-game='math-tug-of-war']");
   await expect(tugCard.getByAltText(/^Math Tug of War gameplay artwork/)).toBeVisible();
   await expect(tugCard).toContainText("Solve the math. Pull the rope. Beat the other side!");
   await expect(tugCard.locator(".game-free-badge")).toHaveText("Free");
-  await expect(featured).toContainText("Free games need only a MathNexa account.");
-  // Only the free games carry the Free badge; the rest are labelled Subscription.
-  for (const key of keys) {
-    const card = featured.locator(`article[data-game='${key}']`);
-    const free = ["polygon-showdown", "math-bingo-live", "math-tug-of-war"].includes(key ?? "");
-    await expect(card.locator(".game-free-badge"), `${key}`).toHaveCount(free ? 1 : 0);
-    await expect(card.locator(".home-game-access"), `${key}`).toHaveCount(free ? 0 : 1);
-  }
+  await expect(featured).toContainText("Free with a MathNexa account. No subscription needed.");
+  await expect(featured.getByRole("link", { name: "View all math games" })).toHaveAttribute("href", "/math-games");
   expect(await page.locator("body").innerText()).not.toMatch(/no sign-up required/i);
   expect(await axe(page)).toEqual([]);
 
@@ -145,6 +144,13 @@ test("anonymous: homepage features the free game; Play Free and the direct route
     data: { action: "create", name: "Anon", skill: "addition" }
   });
   expect(api.status()).toBe(401);
+
+  // View all math games: the full catalog keeps the subscription games the homepage leaves out.
+  await page.goto("/");
+  await page.getByRole("region", { name: "Free math games" }).getByRole("link", { name: "View all math games" }).click();
+  await page.waitForURL(/\/math-games$/);
+  await expect(page.getByRole("heading", { name: "Math Vocabulary Hunt", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Math Tug of War", exact: true })).toBeVisible();
   await context.close();
 });
 
@@ -335,7 +341,7 @@ test("online: a subscriber and a non-subscriber play the same match", async ({ b
   await guest.context.close();
 });
 
-test("homepage responsive: the compact game library reflows cleanly at every width and at 200% text", async ({ browser }) => {
+test("homepage responsive: the compact free games reflow cleanly at every width and at 200% text", async ({ browser }) => {
   for (const [width, height] of [[304, 640], [320, 568], [375, 667], [390, 844], [430, 932], [768, 1024], [820, 1180], [1024, 768], [1180, 820], [1366, 768], [1920, 1080]] as Array<[number, number]>) {
     const { context, page } = await freshContext(browser, { width, height });
     await page.goto("/");
@@ -347,7 +353,7 @@ test("homepage responsive: the compact game library reflows cleanly at every wid
     await expect(button).toBeVisible();
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${width}`).toBeLessThanOrEqual(0);
-    // Compact library: one column below a 20rem grid, two up to 44rem, three up to 64rem, then four.
+    // Compact cards: one column below a 20rem grid, two up to 44rem, three up to 64rem, then four.
     // Cards in a row share their top and height, so titles, copy and buttons line up.
     const layout = await page.locator(".home-featured-games .game-card-grid").evaluate((grid) => {
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -384,6 +390,9 @@ test("homepage responsive: the compact game library reflows cleanly at every wid
     expect(escaped, `${width} @200%`).toEqual([]);
     await button.scrollIntoViewIfNeeded();
     await expect(button).toBeVisible();
+    const viewAll = page.locator(".home-featured-games").getByRole("link", { name: "View all math games" });
+    await viewAll.scrollIntoViewIfNeeded();
+    expect((await viewAll.boundingBox())!.height, `${width} View all math games @200%`).toBeGreaterThanOrEqual(44);
     await context.close();
   }
 });

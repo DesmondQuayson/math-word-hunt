@@ -211,7 +211,7 @@ try {
     const cards = anon.page.locator(".home-featured-games article");
     await cards.first().waitFor({ timeout: 45_000 });
     const games = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-game")));
-    ok(games.includes("math-tug-of-war"), `homepage: Math Tug of War is in the featured games (${games.join(", ")})`);
+    ok(games.includes("math-tug-of-war"), `homepage: Math Tug of War is in the free games (${games.join(", ")})`);
     const tugCard = anon.page.locator(".home-featured-games article[data-game='math-tug-of-war']");
     const tugImage = tugCard.locator("img");
     await tugImage.scrollIntoViewIfNeeded();

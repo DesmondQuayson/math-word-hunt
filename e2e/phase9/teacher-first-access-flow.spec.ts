@@ -785,10 +785,11 @@ test("teacher-first homepage matches mobile, desktop, and smartboard visual base
     await page.setViewportSize(viewport);
     await page.goto("/");
     await page.evaluate(() => document.fonts.ready);
-    // The homepage gained Featured games in 4afa073; name it so a future layout change fails clearly, and
-    // load its lazily loaded card art before the full-page capture so the baseline is deterministic.
-    const featured = page.getByRole("region", { name: "Featured games" });
-    await expect(featured.getByRole("heading", { name: "Featured games", level: 2 })).toBeVisible();
+    // The homepage gained a games section in 4afa073 (free games only since v1.2.42); name it so a future layout
+    // change fails clearly, and load its lazily loaded card art before the full-page capture so the baseline is
+    // deterministic.
+    const featured = page.getByRole("region", { name: "Free math games" });
+    await expect(featured.getByRole("heading", { name: "Free math games", level: 2 })).toBeVisible();
     for (const image of await featured.locator("img").all()) {
       await image.scrollIntoViewIfNeeded();
       await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);

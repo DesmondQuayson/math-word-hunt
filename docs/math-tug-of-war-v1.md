@@ -127,8 +127,9 @@ authoritative pull counters.
 - Policy `authenticated-free`, declared once in `apps/platform-web/lib/games/access-policy.ts`
   (`GAME_ACCESS_POLICIES`). Only `math-tug-of-war` is listed; every other game (and any unknown
   key) resolves to `entitled`. Reverting access = delete that one entry (and the
-  `FREE_GAME_DESTINATIONS` entry in `lib/auth/access-intent.ts`); the Math Games badge follows the
-  policy automatically, the homepage "Featured games" card in `teacher-first-home.tsx` is removed by hand.
+  `FREE_GAME_DESTINATIONS` entry in `lib/auth/access-intent.ts`); the Math Games badge and the
+  homepage "Free math games" section (`lib/games/home-free-games.ts`, since v1.2.42) follow the
+  policy automatically.
 - Who plays: a signed-in consumer whose account is `active` with a confirmed email (no
   subscription, trial state or payment state is consulted), or a school access-code session.
   Anonymous visitors go to `/access?next=/games/math-tug-of-war/play` (sign in or create an
@@ -145,8 +146,9 @@ authoritative pull counters.
 - `/games` (the Math Games page) stays entitled. A non-subscriber reaches the game from the
   homepage card or the direct link; the in-game exit goes **Home** for players without Math
   Games access and **Math Games** for those with it (`data-exit-href` on the document body).
-- Homepage: "Featured games" section — Math Vocabulary Hunt, then Math Tug of War ("Free with a
-  MathNexa account", **Play for Free Now**). Math Games page: "Free to play" badge + the same CTA.
+- Homepage: "Free math games" section (free games only since v1.2.42; at release this was a
+  "Featured games" section with Math Vocabulary Hunt, then Math Tug of War). Math Games page:
+  "Free to play" badge + **Play for Free Now**.
 - Analytics: MathNexa has no existing privacy-safe analytics pipeline, so no events were added.
 
 ## 5. Verification
