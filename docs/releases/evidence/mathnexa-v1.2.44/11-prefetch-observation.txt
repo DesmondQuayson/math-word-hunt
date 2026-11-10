@@ -1,0 +1,22 @@
+Prefetched links to the gated free-game routes (observed on Production after promotion, signed out, Chromium, 1366x768)
+On a production build, Next.js prefetches the links in view. A link to a free game's play route
+(/games/<game>/play or /games/math-bingo-live/host) is prefetched as an RSC request that answers
+307 to /access?next=<route>. The browser then follows with a request for that /access URL, and
+Playwright still reports that follow-up request as open 25 s later, so "network idle" never comes.
+/help (v1.2.44), 25 s after load: 2 requests still open
+  GET /access?next=/games/polygon-showdown/play
+  GET /access?next=/games/math-bingo-live/host
+/ (homepage, unchanged since v1.2.42), free games section scrolled into view, 25 s after load: 4 open
+  GET /join?_rsc=...  (RSC prefetch of Join with a code)
+  GET /access?next=/games/math-bingo-live/host
+  GET /access?next=/games/math-tug-of-war/play
+  GET /access?next=/games/polygon-showdown/play
+The server is not holding these open. The same URLs fetched with curl finish quickly:
+  /access?next=/games/polygon-showdown/play with RSC + Next-Router-Prefetch: 200, 240 bytes, 0.22 s
+  the same as a document:                                              200, 23,618 bytes, 0.34 s
+  the same with RSC only:                                              200, 11,654 bytes, 0.33 s
+Each link is prefetched once per page view; nothing repeats.
+So this is pre-existing browser-side prefetch behaviour (the homepage cards have done it since v1.2.42),
+not a v1.2.44 regression, and visitors see nothing. The release review reads pages after "load" plus
+1.5 s instead of waiting for network idle. A possible later tidy-up: prefetch={false} on links to gated
+routes, which would also save the 307 and /access requests each such link costs per page view.

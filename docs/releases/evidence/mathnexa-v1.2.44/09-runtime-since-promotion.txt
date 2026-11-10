@@ -1,0 +1,14 @@
+Promotion: stage started 2026-11-10T12:01:19Z, completed 12:01:42Z (dpl_48RVKcdmUTbs8EFpCcfBf1wAzP7D -> dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q).
+Function invocations by HTTP status, production, 2026-11-10T12:05:00Z to 12:20:00Z (vercel metrics, aggregate only; includes the release checks):
+  200: 604
+  307: 45
+Runtime logs of dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q since 12:01Z (vercel logs, counts only, checked about 12:20Z):
+  requests httpStatus >= 500: 0 records
+  level:error: 0 records
+  level:fatal: 0 records
+  control: requests httpStatus < 300: 915 records
+Time to first byte, mathnexa.com, 8 samples each (ms; median):
+  before (v1.2.43, about 11:45Z):  /help 380, /about 325, /math-games 302, /privacy 315
+  just after promotion (12:10Z):    /help 590, /about 709, /math-games 657, /privacy 339 (spikes up to 10,302 ms on /privacy too, which this release does not touch)
+  warm (about 12:20Z):              /help 387, /about 329, /math-games 346, /privacy 305
+Every page answers private, no-store with x-vercel-cache MISS, before and after.

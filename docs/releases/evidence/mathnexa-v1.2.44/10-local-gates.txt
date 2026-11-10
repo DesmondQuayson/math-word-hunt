@@ -1,0 +1,17 @@
+typecheck exit 0 in 14 s
+lint exit 0 in 32 s
+unit exit 0 in 238 s
+build exit 0 in 42 s
+done
+
+e2e, first run:
+phase9 exit 1 in 406 s: 1 failed; 30 passed (6.4m)
+tug-free-access exit 0 in 160 s: 8 passed (2.3m)
+bingo-free-access exit 0 in 41 s: 1 passed (17.8s)
+polygon-anonymous exit 0 in 31 s: 1 passed (7.9s)
+done
+(the Phase 9 failure was the new spec's own locator: page.locator('li') also matched the header navigation; scoped to main li)
+
+e2e, Phase 9 rerun with the fixed spec:
+phase9 exit 0 in 403 s: 31 passed (6.3m)
+done

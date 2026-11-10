@@ -1,0 +1,201 @@
+{
+  "note": "Time to first byte on mathnexa.com, 8 samples per page, ms. before = v1.2.43; after-1 = just after promotion; after-2 = warm.",
+  "before": {
+    "/help": {
+      "ms": [
+        1060,
+        525,
+        380,
+        380,
+        394,
+        363,
+        352,
+        314
+      ],
+      "median": 380,
+      "max": 1060,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/about": {
+      "ms": [
+        270,
+        320,
+        338,
+        334,
+        332,
+        322,
+        321,
+        325
+      ],
+      "median": 325,
+      "max": 338,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/math-games": {
+      "ms": [
+        338,
+        366,
+        308,
+        294,
+        272,
+        302,
+        296,
+        283
+      ],
+      "median": 302,
+      "max": 366,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/privacy": {
+      "ms": [
+        304,
+        322,
+        309,
+        329,
+        284,
+        334,
+        271,
+        315
+      ],
+      "median": 315,
+      "max": 334,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    }
+  },
+  "after-1": {
+    "/help": {
+      "ms": [
+        2122,
+        2815,
+        590,
+        1033,
+        359,
+        331,
+        319,
+        318
+      ],
+      "median": 590,
+      "max": 2815,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/about": {
+      "ms": [
+        359,
+        549,
+        295,
+        2082,
+        709,
+        478,
+        1549,
+        1548
+      ],
+      "median": 709,
+      "max": 2082,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/math-games": {
+      "ms": [
+        1360,
+        547,
+        2033,
+        2888,
+        309,
+        295,
+        657,
+        304
+      ],
+      "median": 657,
+      "max": 2888,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/privacy": {
+      "ms": [
+        290,
+        322,
+        329,
+        339,
+        293,
+        3901,
+        394,
+        10302
+      ],
+      "median": 339,
+      "max": 10302,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    }
+  },
+  "after-2": {
+    "/help": {
+      "ms": [
+        872,
+        396,
+        386,
+        420,
+        364,
+        320,
+        387,
+        315
+      ],
+      "median": 387,
+      "max": 872,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/about": {
+      "ms": [
+        295,
+        329,
+        304,
+        330,
+        350,
+        264,
+        291,
+        429
+      ],
+      "median": 329,
+      "max": 429,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/math-games": {
+      "ms": [
+        305,
+        353,
+        346,
+        319,
+        295,
+        377,
+        350,
+        278
+      ],
+      "median": 346,
+      "max": 377,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    },
+    "/privacy": {
+      "ms": [
+        379,
+        309,
+        288,
+        273,
+        305,
+        331,
+        290,
+        305
+      ],
+      "median": 305,
+      "max": 379,
+      "xVercelCache": "MISS",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+    }
+  }
+}

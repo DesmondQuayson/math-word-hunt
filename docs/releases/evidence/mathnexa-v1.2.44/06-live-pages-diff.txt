@@ -1,0 +1,10 @@
+DIFF /math-games: text
+   before: ... recognition shape recognition strategy How to get access Create a free MathNexa account and confirm your email address. Start the free 24 -hour trial. Each eligible account gets o
+   after : ... recognition shape recognition strategy Play Free Polygon Showdown How to get access Create a free MathNexa account and confirm your email address. Start the free 24 -hour trial. E
+DIFF /about: text
+   before: ...lay and quick practice. Math Tug of War is free with any MathNexa account. Homework PDFs Printable homework by grade, topic, and lesson. Quiz PDFs Printable topic quizzes for check
+   after : ...lay and quick practice. Math Tug of War , Math Bingo Live and Polygon Showdown are free with any MathNexa account . Homework PDFs Printable homework by grade, topic, and lesson. Qu
+DIFF /help: description How to create a MathNexa account, start the free trial, play Math Tug of War for free, use a school access code, and manage your subscription. -> How to create a MathNexa account, start the free trial, play a game for free, use a school access code, and manage your subscription.; text
+   before: ...u. Play a game for free Math Tug of War is free with any MathNexa account. You do not need a trial or subscription to play it. Use a school access code If your school gave you a co
+   after : ...u. Play a game for free Math Tug of War , Math Bingo Live and Polygon Showdown are free with any MathNexa account . You do not need a trial or subscription to play them . Use a sch
+30/33 routes identical

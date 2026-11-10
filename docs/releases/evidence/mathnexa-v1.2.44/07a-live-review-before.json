@@ -1,0 +1,262 @@
+{
+  "origin": "https://mathnexa.com",
+  "results": [
+    {
+      "ok": true,
+      "name": "1366x768 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "/math-games intro still names the three free games (v1.2.43)",
+      "detail": "Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War, Math Bingo Live and Polygon Showdown are free with any MathNexa account."
+    },
+    {
+      "ok": false,
+      "name": "Polygon Showdown card has one button, Play Free, to its free play route",
+      "detail": "[]"
+    },
+    {
+      "ok": false,
+      "name": "its accessible name is \"Play Free Polygon Showdown\"",
+      "detail": ""
+    },
+    {
+      "ok": false,
+      "name": "its visible label is \"Play Free\", the homepage's label",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "Math Tug of War card unchanged (About Math Tug of War)",
+      "detail": "[[\"About Math Tug of War\",\"/math-games/math-tug-of-war\"]]"
+    },
+    {
+      "ok": true,
+      "name": "Math Bingo Live card unchanged (Host a Free Game, Join with a code)",
+      "detail": "[[\"Host a Free Game\",\"/games/math-bingo-live/host\"],[\"Join with a code\",\"/join\"]]"
+    },
+    {
+      "ok": true,
+      "name": "subscription game cards still have no button",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "signed out, Play Free goes to sign in and back to the game, never pricing",
+      "detail": "307 /access?next=/games/polygon-showdown/play"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /math-games no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /math-games axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /help answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": false,
+      "name": "/help names every free game",
+      "detail": "Math Tug of War is free with any MathNexa account. You do not need a trial or subscription to play it."
+    },
+    {
+      "ok": false,
+      "name": "/help links each name to its page or its free play route",
+      "detail": "[[\"Math Tug of War\",\"/math-games/math-tug-of-war\"]]"
+    },
+    {
+      "ok": true,
+      "name": "/help names no subscription game",
+      "detail": ""
+    },
+    {
+      "ok": false,
+      "name": "/help search description names no game",
+      "detail": "How to create a MathNexa account, start the free trial, play Math Tug of War for free, use a school access code, and manage your subscription."
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /help no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /help axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /about answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": false,
+      "name": "/about names every free game",
+      "detail": "Math games for whole-class play and quick practice. Math Tug of War is free with any MathNexa account."
+    },
+    {
+      "ok": false,
+      "name": "/about links each name to its page or its free play route",
+      "detail": "[[\"Math Tug of War\",\"/math-games/math-tug-of-war\"]]"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /about no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 /about axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "signed out, /pricing still goes to sign in",
+      "detail": "307 /access?next=/subscription"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /math-games no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /math-games axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "390x844 /help answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /help no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /help axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "390x844 /about answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /about no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "390x844 /about axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "320x800 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /math-games no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /math-games axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "320x800 /help answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /help no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /help axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "320x800 /about answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /about no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "320x800 /about axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    }
+  ],
+  "facts": {
+    "mathGames": {
+      "intro": "Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War, Math Bingo Live and Polygon Showdown are free with any MathNexa account.",
+      "polygonLinks": [],
+      "others": {
+        "math-tug-of-war": [
+          [
+            "About Math Tug of War",
+            "/math-games/math-tug-of-war"
+          ]
+        ],
+        "math-bingo-live": [
+          [
+            "Host a Free Game",
+            "/games/math-bingo-live/host"
+          ],
+          [
+            "Join with a code",
+            "/join"
+          ]
+        ],
+        "math-vocabulary-hunt": [],
+        "number-cross": [],
+        "number-logic": [],
+        "crosscalc": []
+      }
+    },
+    "help": {
+      "text": "Math Tug of War is free with any MathNexa account. You do not need a trial or subscription to play it.",
+      "links": [
+        [
+          "Math Tug of War",
+          "/math-games/math-tug-of-war"
+        ]
+      ],
+      "meta": "How to create a MathNexa account, start the free trial, play Math Tug of War for free, use a school access code, and manage your subscription."
+    },
+    "about": {
+      "text": "Math games for whole-class play and quick practice. Math Tug of War is free with any MathNexa account.",
+      "links": [
+        [
+          "Math Tug of War",
+          "/math-games/math-tug-of-war"
+        ]
+      ]
+    }
+  }
+}
