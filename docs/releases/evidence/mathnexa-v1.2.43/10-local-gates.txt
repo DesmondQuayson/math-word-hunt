@@ -1,0 +1,11 @@
+typecheck exit 0 in 13 s
+lint exit 0 in 32 s
+unit exit 0 in 236 s
+build exit 0 in 41 s
+done
+
+phase9 exit 0 in 398 s: 30 passed (6.3m)
+tug-free-access exit 0 in 161 s: 8 passed (2.3m)
+bingo-free-access exit 0 in 37 s: 1 passed (15.5s)
+polygon-anonymous exit 0 in 28 s: 1 passed (5.8s)
+done

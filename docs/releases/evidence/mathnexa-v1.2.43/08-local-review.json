@@ -1,0 +1,160 @@
+{
+  "origin": "http://127.0.0.1:3111",
+  "results": [
+    {
+      "ok": true,
+      "name": "1366x768 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "intro names the expected free games",
+      "detail": "Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War, Math Bingo Live and Polygon Showdown are free with any MathNexa account."
+    },
+    {
+      "ok": true,
+      "name": "Free badges are on exactly the expected games, in card order",
+      "detail": "Math Tug of War, Math Bingo Live, Polygon Showdown"
+    },
+    {
+      "ok": true,
+      "name": "intro names exactly the games whose card says Free",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "intro does not name subscription game Math Vocabulary Hunt",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "intro does not name subscription game Number Cross",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "intro does not name subscription game Number Logic",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "intro does not name subscription game CrossCalc",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "search description is the game-free sentence",
+      "detail": "Math games for whole-class play and quick practice, with the grades and skills for each game. Some are free with any MathNexa account."
+    },
+    {
+      "ok": true,
+      "name": "description meta is in the head, once",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "h1 unchanged",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "1366x768 no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "1366x768 axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "390x844 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "390x844 no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "390x844 axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "320x800 /math-games answers 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "name": "320x800 no sideways scroll",
+      "detail": "0px"
+    },
+    {
+      "ok": true,
+      "name": "320x800 axe WCAG 2.2 A/AA: 0 violations",
+      "detail": ""
+    }
+  ],
+  "facts": {
+    "cards": [
+      {
+        "key": "math-vocabulary-hunt",
+        "title": "Math Vocabulary Hunt",
+        "free": false,
+        "path": "Included with a subscription · Grades 5–8",
+        "links": []
+      },
+      {
+        "key": "math-tug-of-war",
+        "title": "Math Tug of War",
+        "free": true,
+        "path": "Free with a MathNexa account · Grades 1–7",
+        "links": [
+          "About Math Tug of War -> /math-games/math-tug-of-war"
+        ]
+      },
+      {
+        "key": "number-cross",
+        "title": "Number Cross",
+        "free": false,
+        "path": "Included with a subscription · Grades 3–9",
+        "links": []
+      },
+      {
+        "key": "number-logic",
+        "title": "Number Logic",
+        "free": false,
+        "path": "Included with a subscription · Grades 3–9",
+        "links": []
+      },
+      {
+        "key": "crosscalc",
+        "title": "CrossCalc",
+        "free": false,
+        "path": "Included with a subscription · Grades 3–9",
+        "links": []
+      },
+      {
+        "key": "math-bingo-live",
+        "title": "Math Bingo Live",
+        "free": true,
+        "path": "Free with a MathNexa account · Grades 1–6",
+        "links": [
+          "Host a Free Game -> /games/math-bingo-live/host",
+          "Join with a code -> /join"
+        ]
+      },
+      {
+        "key": "polygon-showdown",
+        "title": "Polygon Showdown",
+        "free": true,
+        "path": "Free with a MathNexa account · Grades 1–8",
+        "links": []
+      }
+    ],
+    "intro": "Games for whole-class play on a shared screen or smart board, and for quick practice. Every game is included with a MathNexa subscription, and Math Tug of War, Math Bingo Live and Polygon Showdown are free with any MathNexa account.",
+    "meta": "Math games for whole-class play and quick practice, with the grades and skills for each game. Some are free with any MathNexa account."
+  }
+}

@@ -1,0 +1,15 @@
+Promotion: stage started 2026-11-10T10:13:51Z, completed 10:14:12Z (dpl_9URSK6GmGqrZ623JRpiymn3Eu292 -> dpl_48RVKcdmUTbs8EFpCcfBf1wAzP7D).
+Function invocations by HTTP status, production, 2026-11-10T10:15:00Z to 10:25:00Z (vercel metrics, aggregate only):
+  200: 68
+  307: 12
+Function invocations by HTTP status, production, 2026-11-10T10:10:00Z to 10:20:00Z (first check; the 10:10 bucket includes the last minutes of v1.2.42 and the live probe):
+  200: 98
+  307: 37
+  401: 3
+  400: 2
+  404: 2
+Runtime logs of dpl_48RVKcdmUTbs8EFpCcfBf1wAzP7D since 10:13Z (vercel logs, counts only, checked 10:24Z):
+  requests httpStatus >= 500: 0 records
+  level:error: 0 records
+  level:fatal: 0 records
+  control: requests httpStatus < 300: 152 records
