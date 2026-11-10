@@ -1,0 +1,6 @@
+Public pages, capture before promotion vs after (status, redirect, main text hash, main links)
+CHANGED /: textHash "23a3d6952a4ab7c0" -> "d6da6c95b00ab4d3"; links ["/games","/games/math-bingo-live/host","/games/math-tug-of-war/play","/homework -> ["/games","/games/crosscalc/play","/games/math-bingo-live/host","/games/math-tug
+26/27 pages identical
+
+Stability control (two captures before promotion)
+27/27 pages identical

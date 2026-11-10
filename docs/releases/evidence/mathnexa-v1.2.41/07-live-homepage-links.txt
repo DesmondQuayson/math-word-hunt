@@ -1,0 +1,21 @@
+PASS live order (polygon-showdown,math-bingo-live,math-tug-of-war,crosscalc,number-logic,number-cross,math-vocabulary-hunt)
+PASS polygon-showdown label Free
+PASS math-bingo-live label Free
+PASS math-tug-of-war label Free
+PASS crosscalc label Subscription
+PASS number-logic label Subscription
+PASS number-cross label Subscription
+PASS math-vocabulary-hunt label Subscription
+PASS every thumbnail has descriptive alt text
+PASS homepage requests no Polygon game code, 3D or shop assets
+PASS polygon-showdown "Play Free Polygon Showdown" -> /games/polygon-showdown/play (307 /access?next=/games/polygon-showdown/play)
+PASS math-bingo-live "Host Game Math Bingo Live" -> /games/math-bingo-live/host (307 /access?next=/games/math-bingo-live/host)
+PASS math-bingo-live "Join with a code" -> /join (200 )
+PASS math-tug-of-war "Play Free Math Tug of War" -> /games/math-tug-of-war/play (307 /access?next=/games/math-tug-of-war/play)
+PASS crosscalc "Play Now CrossCalc" -> /games/crosscalc/play (307 /access?next=/games)
+PASS number-logic "Play Now Number Logic" -> /games/number-logic/play (307 /access?next=/games)
+PASS number-cross "Play Now Number Cross" -> /games/number-cross/play (307 /access?next=/games)
+PASS math-vocabulary-hunt "Play Now Math Vocabulary Hunt" -> /play (307 /access?next=/games)
+PASS Play Free (signed out) -> sign in or create account, then back to Polygon Showdown
+PASS access page: free with an account, no price
+ALL PASS

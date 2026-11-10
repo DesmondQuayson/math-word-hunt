@@ -1,0 +1,82 @@
+[
+  {
+    "ok": true,
+    "label": "homepage order",
+    "detail": "polygon-showdown,math-bingo-live,math-tug-of-war,crosscalc,number-logic,number-cross,math-vocabulary-hunt"
+  },
+  {
+    "ok": true,
+    "label": "homepage loads no Polygon game code, 3D or shop assets",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "anonymous polygon-showdown \"Play Free Polygon Showdown\" -> /games/polygon-showdown/play",
+    "detail": "307 /access?next=/games/polygon-showdown/play"
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-bingo-live \"Host Game Math Bingo Live\" -> /games/math-bingo-live/host",
+    "detail": "307 /access?next=/games/math-bingo-live/host"
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-bingo-live \"Join with a code\" -> /join",
+    "detail": "200 "
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-tug-of-war \"Play Free Math Tug of War\" -> /games/math-tug-of-war/play",
+    "detail": "307 /access?next=/games/math-tug-of-war/play"
+  },
+  {
+    "ok": true,
+    "label": "anonymous crosscalc \"Play Now CrossCalc\" -> /games/crosscalc/play",
+    "detail": "307 /access?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "anonymous number-logic \"Play Now Number Logic\" -> /games/number-logic/play",
+    "detail": "307 /access?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "anonymous number-cross \"Play Now Number Cross\" -> /games/number-cross/play",
+    "detail": "307 /access?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-vocabulary-hunt \"Play Now Math Vocabulary Hunt\" -> /play",
+    "detail": "307 /access?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "anonymous Play Free -> sign in / create account, back to Polygon Showdown",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "access page says free with an account",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "Polygon Play Free touch target at least 44px on a phone",
+    "detail": "145x44"
+  },
+  {
+    "ok": true,
+    "label": "signed-in free account lands on Polygon Showdown",
+    "detail": "/games/polygon-showdown/play"
+  },
+  {
+    "ok": true,
+    "label": "no subscription or pricing prompt in the game",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "subscription games still go to subscription review for a free account",
+    "detail": "307 /subscription?next=/games"
+  }
+]
