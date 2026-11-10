@@ -49,7 +49,9 @@ export const PUBLIC_PAGE_SEO = Object.freeze({
   },
   "/help": {
     title: "Help with accounts and access",
-    description: "How to create a MathNexa account, start the free trial, play Math Tug of War for free, use a school access code, and manage your subscription."
+    // Names no game: the page itself names the free games from the catalog
+    // and the access policy (lib/seo/free-games-statement.ts).
+    description: "How to create a MathNexa account, start the free trial, play a game for free, use a school access code, and manage your subscription."
   },
   "/support": {
     title: "Contact support",

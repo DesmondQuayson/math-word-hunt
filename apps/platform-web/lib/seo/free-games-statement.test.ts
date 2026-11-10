@@ -8,7 +8,15 @@ vi.mock("@/lib/resources/catalog", () => ({ loadPublicResourceLibrary: vi.fn() }
 import { gameAccessPolicy } from "@/lib/games/access-policy";
 
 import { summarizeGames } from "./catalog-summaries";
-import { freeGamesStatement, listInWords } from "./free-games-statement";
+import {
+  MATH_TUG_OF_WAR_FALLBACK,
+  freeGames,
+  freeGamesPredicate,
+  freeGamesStatement,
+  listInWords,
+  listSeparator,
+  listedGames
+} from "./free-games-statement";
 
 /** A published catalog entry with only the fields the summaries read. */
 function published(stableKey: string, title: string): PublicGame {
@@ -54,6 +62,34 @@ describe("listInWords", () => {
     expect(listInWords(["A", "B"])).toBe("A and B");
     expect(listInWords(["A", "B", "C"])).toBe("A, B and C");
     expect(listInWords(["A", "B", "C", "D"])).toBe("A, B, C and D");
+  });
+
+  it("is built from listSeparator, which the linked names on Help and About use", () => {
+    expect([0, 1, 2].map((index) => listSeparator(index, 3))).toEqual(["", ", ", " and "]);
+    expect([0, 1].map((index) => listSeparator(index, 2))).toEqual(["", " and "]);
+    expect(listSeparator(0, 1)).toBe("");
+  });
+});
+
+describe("freeGamesPredicate", () => {
+  it("agrees with the number of names", () => {
+    expect(freeGamesPredicate(1)).toBe("is free with any MathNexa account");
+    expect(freeGamesPredicate(3)).toBe("are free with any MathNexa account");
+  });
+});
+
+describe("listedGames and freeGames", () => {
+  it("lists the published catalog, and only Math Tug of War when the catalog cannot be read", () => {
+    const games = summarizeGames(PRODUCTION_CATALOG);
+    expect(listedGames({ available: true, games })).toBe(games);
+    expect(listedGames({ available: false, games: [] })).toEqual([MATH_TUG_OF_WAR_FALLBACK]);
+    expect(MATH_TUG_OF_WAR_FALLBACK).toMatchObject({ stableKey: "math-tug-of-war", title: "Math Tug of War", freeToPlay: true });
+    expect(freeGamesStatement(listedGames({ available: false, games: [] }))).toBe("Math Tug of War is free with any MathNexa account");
+  });
+
+  it("keeps the free games in catalog order", () => {
+    expect(freeGames(summarizeGames(PRODUCTION_CATALOG)).map((game) => game.stableKey)).toEqual(["math-tug-of-war", "math-bingo-live", "polygon-showdown"]);
+    expect(freeGames(summarizeGames(PRODUCTION_CATALOG.filter((game) => gameAccessPolicy(game.stableKey) === "entitled")))).toEqual([]);
   });
 });
 

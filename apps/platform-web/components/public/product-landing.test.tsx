@@ -154,6 +154,37 @@ describe("public product pages", () => {
     expect(screen.getByText(/Math Tug of War and Math Bingo Live are free with any MathNexa account/)).toBeTruthy();
   });
 
+  it("Math Games: Polygon Showdown's card offers Play Free, to the route the play gate admits any signed-in account to", async () => {
+    mocks.games.mockResolvedValue({
+      available: true,
+      games: [
+        ...GAMES.games,
+        { stableKey: "math-bingo-live", thumbnailReference: "builtin:math-bingo-live", title: "Math Bingo Live", description: "Solve math questions, mark your card, and race classmates to Bingo.", grades: "Grades 1–6", skills: [], freeToPlay: true },
+        { stableKey: "polygon-showdown", thumbnailReference: "builtin:polygon-showdown", title: "Polygon Showdown", description: "Match polygons and outscore your rivals.", grades: "Grades 1–8", skills: [], freeToPlay: true }
+      ]
+    });
+    const { container } = await renderPage(MathGamesPage);
+    const card = (key: string) => container.querySelector(`article[data-game="${key}"]`) as HTMLElement;
+    const polygon = within(card("polygon-showdown")).getAllByRole("link");
+    expect(polygon).toHaveLength(1);
+    // The visible label is "Play Free"; the game's name completes the accessible name, as on the homepage.
+    expect(polygon[0].getAttribute("href")).toBe("/games/polygon-showdown/play");
+    expect(within(card("polygon-showdown")).getByRole("link", { name: "Play Free Polygon Showdown" })).toBe(polygon[0]);
+    expect(polygon[0].querySelector(".visually-hidden")?.textContent).toBe(" Polygon Showdown");
+    expect(polygon[0].className).toBe("button button-primary");
+    // The other cards keep their own buttons, and a subscription game still has none.
+    expect(within(card("math-tug-of-war")).getAllByRole("link").map((link) => link.textContent)).toEqual(["About Math Tug of War"]);
+    expect(within(card("math-bingo-live")).getAllByRole("link").map((link) => link.textContent)).toEqual(["Host a Free Game", "Join with a code"]);
+    expect(within(card("number-cross")).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("Math Games: a game marked free that has no free play route gets no Play Free button", async () => {
+    // freeToPlay alone never makes a link: the route must be one the play gate admits a free account to.
+    mocks.games.mockResolvedValue({ available: true, games: [{ ...GAMES.games[0], stableKey: "fraction-frenzy", title: "Fraction Frenzy", freeToPlay: true }] });
+    const { container } = await renderPage(MathGamesPage);
+    expect(within(container.querySelector('article[data-game="fraction-frenzy"]') as HTMLElement).queryAllByRole("link")).toHaveLength(0);
+  });
+
   it("Math Games still offers the free game when the catalog cannot be read", async () => {
     mocks.games.mockResolvedValue({ available: false, games: [] });
     const { container } = await renderPage(MathGamesPage);

@@ -29,6 +29,15 @@ export const PRODUCT_PAGE_FOR_ROUTE: Readonly<Record<PlatformProductPath, Produc
   "/quizzes": PRODUCT_PAGE_PATHS.quizPdfs
 });
 
+const PRODUCT_PAGE_FOR_GAME: ReadonlyMap<string, ProductPagePath> = new Map([
+  ["math-tug-of-war", PRODUCT_PAGE_PATHS.mathTugOfWar]
+]);
+
+/** The public page about a game, keyed by catalog stable key, or null when the game has none. */
+export function productPageForGame(stableKey: string): ProductPagePath | null {
+  return PRODUCT_PAGE_FOR_GAME.get(stableKey) ?? null;
+}
+
 export type ProductPageLink = Readonly<{ path: ProductPagePath; label: string }>;
 
 /** Every product page, in navigation order, with the names the navigation uses. */

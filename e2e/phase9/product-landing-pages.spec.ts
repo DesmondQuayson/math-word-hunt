@@ -66,6 +66,19 @@ test("the Math Games page lists the free game from the catalog", async ({ page }
   await expect(page.getByText("Every game is included with a MathNexa subscription, and Math Tug of War is free with any MathNexa account.", { exact: false })).toBeVisible();
 });
 
+test("Help and About name the published free games from the catalog, with a link to each", async ({ page }) => {
+  // Here only Math Tug of War is a published free game; Production names all of them the same way (v1.2.44).
+  await page.goto("/help");
+  const free = page.getByRole("region", { name: "Play a game for free" });
+  await expect(free.locator("p")).toHaveText("Math Tug of War is free with any MathNexa account. You do not need a trial or subscription to play it.");
+  await expect(free.getByRole("link", { name: "Math Tug of War" })).toHaveAttribute("href", "/math-games/math-tug-of-war");
+  await page.goto("/about");
+  // In main: the header navigation has a "Math Games" link in a list item too.
+  const games = page.locator("main li").filter({ has: page.getByRole("link", { name: "Math Games", exact: true }) });
+  await expect(games.locator("span")).toHaveText("Math games for whole-class play and quick practice. Math Tug of War is free with any MathNexa account.");
+  await expect(games.getByRole("link", { name: "Math Tug of War" })).toHaveAttribute("href", "/math-games/math-tug-of-war");
+});
+
 test("the product pages pass axe (WCAG 2.2 A/AA) and do not scroll sideways at 320 px", async ({ page }) => {
   for (const entry of PAGES) {
     await page.setViewportSize({ width: 1280, height: 900 });

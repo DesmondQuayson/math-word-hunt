@@ -6,8 +6,8 @@ import { ProductLanding } from "@/components/public/product-landing";
 import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { SCHOOL_ACCESS_DURATION_SECONDS } from "@/lib/school-access/session";
-import { loadGameCatalogSummary, type GameSummary } from "@/lib/seo/catalog-summaries";
-import { freeGamesStatement } from "@/lib/seo/free-games-statement";
+import { loadGameCatalogSummary } from "@/lib/seo/catalog-summaries";
+import { freeGamesStatement, listedGames } from "@/lib/seo/free-games-statement";
 import { platformProductLabel } from "@/lib/seo/platform-positioning";
 import { PRODUCT_PAGE_PATHS } from "@/lib/seo/product-pages";
 import { publicPageMetadata } from "@/lib/seo/public-pages";
@@ -18,17 +18,6 @@ const PATH = PRODUCT_PAGE_PATHS.mathGames;
 // homepage do), never at build time.
 export const dynamic = "force-dynamic";
 
-/** Shown only when the catalog cannot be read: the free game is always offered. */
-const MATH_TUG_OF_WAR_FALLBACK: GameSummary = Object.freeze({
-  stableKey: "math-tug-of-war",
-  thumbnailReference: "",
-  title: "Math Tug of War",
-  description: "Solve the math. Pull the rope. Beat the other side!",
-  grades: null,
-  skills: [],
-  freeToPlay: true
-});
-
 export function generateMetadata(): Metadata {
   return isProductionPlatformMode() ? publicPageMetadata(PATH) : {};
 }
@@ -37,7 +26,8 @@ export function generateMetadata(): Metadata {
 export default async function MathGamesPage() {
   if (!isProductionPlatformMode()) notFound();
   const summary = await loadGameCatalogSummary();
-  const games = summary.available ? summary.games : [MATH_TUG_OF_WAR_FALLBACK];
+  // Math Tug of War alone when the catalog cannot be read: the free game is always offered.
+  const games = listedGames(summary);
   // Names the free games listed below (published catalog + access policy), so
   // a game made free later is named without editing this page.
   const free = freeGamesStatement(games);

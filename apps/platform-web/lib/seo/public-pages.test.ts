@@ -33,6 +33,11 @@ describe("public page search metadata", () => {
     expect(PUBLIC_PAGE_SEO["/math-games"].description).not.toMatch(/Tug of War|Bingo|Polygon/);
   });
 
+  it("keeps game names out of the Help description too: the page names the free games itself", () => {
+    expect(PUBLIC_PAGE_SEO["/help"].description).toContain("play a game for free");
+    expect(PUBLIC_PAGE_SEO["/help"].description).not.toMatch(/Tug of War|Bingo|Polygon/);
+  });
+
   it("gives every page its own title", () => {
     const titles = Object.values(PUBLIC_PAGE_SEO).map((page) => typeof page.title === "string" ? page.title : page.title.absolute);
     expect(new Set(titles).size).toBe(titles.length);

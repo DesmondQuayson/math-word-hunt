@@ -129,11 +129,13 @@ test("free access: a free teacher hosts Bingo but still cannot open protected ga
   }
   const games = await host.page.request.get("/games", { failOnStatusCode: false, maxRedirects: 0 });
   expect(games.status()).not.toBe(200);
-  // Since v1.2.43 the public Math Games page names only published games: its free-games
-  // sentence comes from the published catalog and the access policy. This run keeps the entry
-  // a DRAFT, so the page answers but names neither the card nor the game.
-  const catalog = await host.page.request.get("/math-games", { failOnStatusCode: false });
-  expect(catalog.status()).toBe(200);
-  expect(await catalog.text()).not.toContain("Math Bingo Live");
+  // Since v1.2.43 (Math Games) and v1.2.44 (Help, About) the public pages name only published
+  // games: their free-games sentences come from the published catalog and the access policy.
+  // This run keeps the entry a DRAFT, so each page answers but names neither the card nor the game.
+  for (const path of ["/math-games", "/help", "/about"]) {
+    const page = await host.page.request.get(path, { failOnStatusCode: false });
+    expect(page.status(), path).toBe(200);
+    expect(await page.text(), path).not.toContain("Math Bingo Live");
+  }
   await host.context.close();
 });

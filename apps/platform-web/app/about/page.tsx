@@ -3,9 +3,12 @@ import Link from "next/link";
 import { Notice } from "@/components/feedback/notice";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
+import { FreeGameNames } from "@/components/public/free-game-names";
 import { LinkButton } from "@/components/ui/link-button";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import type { Metadata } from "next";
+import { loadGameCatalogSummary, type GameSummary } from "@/lib/seo/catalog-summaries";
+import { freeGames, freeGamesPredicate, listedGames } from "@/lib/seo/free-games-statement";
 import { MONTHLY_PRICE_LABEL, TRIAL_HOURS, publicPageMetadata } from "@/lib/seo/public-pages";
 import {
   MISSOURI_ALIGNMENT_NOTE,
@@ -16,7 +19,12 @@ import {
   PRAXIS_NON_AFFILIATION,
   ROADMAP_MIDDLE_SCHOOL_REVIEW
 } from "@/lib/seo/platform-positioning";
-import { PRODUCT_PAGE_FOR_ROUTE, PRODUCT_PAGE_PATHS } from "@/lib/seo/product-pages";
+import { PRODUCT_PAGE_FOR_ROUTE } from "@/lib/seo/product-pages";
+
+// The Math Games line names the free games from the live catalog and the
+// access policy (lib/seo/free-games-statement.ts), read on request as
+// /math-games does, never at build time.
+export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Metadata {
   return isProductionPlatformMode() ? publicPageMetadata("/about") : { title: "About" };
@@ -28,7 +36,7 @@ export function generateMetadata(): Metadata {
  * account-free public Math Vocabulary Hunt site, which mathnexa.com no longer
  * is. The public-site branch below is unchanged for that deployment mode.
  */
-function PlatformAboutPage() {
+function PlatformAboutPage({ free }: Readonly<{ free: readonly GameSummary[] }>) {
   const [games, mathPrep, homework, quizzes] = PLATFORM_PRODUCTS;
   return <Container className="page-stack">
     <PageHeader eyebrow="About MathNexa" title="Online math resources for Grades 3–8 teachers and families" description={PLATFORM_HOMEPAGE_DESCRIPTION} />
@@ -36,7 +44,7 @@ function PlatformAboutPage() {
       <h2 id="about-included">What one subscription includes</h2>
       <ul className="principle-list">
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[mathPrep.href]}>{mathPrep.cardTitle}</Link></strong><span>Lessons, practice and review for Grades 3–8, with a worksheet generator for printing practice. {MISSOURI_ALIGNMENT_NOTE}</span></li>
-        <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[games.href]}>{games.cardTitle}</Link></strong><span>Math games for whole-class play and quick practice. <Link href={PRODUCT_PAGE_PATHS.mathTugOfWar}>Math Tug of War</Link> is free with any MathNexa account.</span></li>
+        <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[games.href]}>{games.cardTitle}</Link></strong><span>Math games for whole-class play and quick practice.{free.length ? <> <FreeGameNames games={free} /> {freeGamesPredicate(free.length)}.</> : null}</span></li>
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[homework.href]}>{homework.cardTitle}</Link></strong><span>Printable homework by grade, topic, and lesson.</span></li>
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[quizzes.href]}>{quizzes.cardTitle}</Link></strong><span>Printable topic quizzes for checking understanding.</span></li>
       </ul>
@@ -67,8 +75,8 @@ function PlatformAboutPage() {
   </Container>;
 }
 
-export default function AboutPage() {
-  if (isProductionPlatformMode()) return <PlatformAboutPage />;
+export default async function AboutPage() {
+  if (isProductionPlatformMode()) return <PlatformAboutPage free={freeGames(listedGames(await loadGameCatalogSummary()))} />;
   return <Container className="page-stack"><PageHeader eyebrow="About MathNexa" title="Language practice for mathematical thinking" description="MathNexa makes the preserved Math Vocabulary Hunt available as a public, teacher-led classroom resource." />
     <Notice label="Public service boundary" tone="information"><strong>No account is required.</strong><p>The public site does not provide teacher accounts, saved workspaces, billing, invitations, pilot participation, or student-data collection.</p></Notice>
     <section aria-labelledby="about-game"><h2 id="about-game">A discussion-first classroom game</h2><p>Teachers choose an available grade and lesson, then guide teams through vocabulary recognition and conversation using keyboard, pointer, touch, or a shared display.</p></section>

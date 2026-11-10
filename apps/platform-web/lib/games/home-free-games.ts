@@ -1,6 +1,5 @@
 import { resolveGameCatalogThumbnail } from "@/components/games/game-catalog-thumbnail";
-import { isFreeGameDestination } from "@/lib/auth/access-intent";
-import { freeGamePlayRoute } from "@/lib/games/access-policy";
+import { freeGameEntryRoute } from "@/lib/games/free-game-entry";
 
 /**
  * The homepage Free math games section: which games it shows, in what order,
@@ -16,7 +15,8 @@ import { freeGamePlayRoute } from "@/lib/games/access-policy";
  *   lib/access/server.ts, which admits a non-subscriber only when the policy
  *   says authenticated-free and the game has a free play route that sign in can
  *   return to (FREE_GAME_DESTINATIONS in lib/auth/access-intent.ts).
- *   MATHNEXA_HOME_SOURCES.freePlayRoute asks exactly that.
+ *   MATHNEXA_HOME_SOURCES.freePlayRoute asks exactly that
+ *   (freeGameEntryRoute in lib/games/free-game-entry.ts).
  * The policy's default is "entitled", so a game added to the catalog without a
  * free classification never reaches the homepage. Nothing here can make a game
  * free: subscription games keep their routes, their entitlement rule and their
@@ -66,10 +66,7 @@ export type HomeGameSources = Readonly<{
 }>;
 
 export const MATHNEXA_HOME_SOURCES: HomeGameSources = Object.freeze({
-  freePlayRoute(stableKey: string): string | null {
-    const route = freeGamePlayRoute(stableKey);
-    return route !== null && isFreeGameDestination(route) ? route : null;
-  },
+  freePlayRoute: freeGameEntryRoute,
   thumbnail: resolveGameCatalogThumbnail
 });
 

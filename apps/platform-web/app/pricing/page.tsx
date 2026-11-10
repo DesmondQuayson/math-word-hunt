@@ -16,6 +16,8 @@ import { resolveConsumerContext } from "@/lib/auth/consumer-context";
 import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-config";
 import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { getGameAccessView } from "@/lib/game-access/server";
+import { loadGameCatalogSummary } from "@/lib/seo/catalog-summaries";
+import { freeGamesStatement, listedGames } from "@/lib/seo/free-games-statement";
 import { redirect } from "next/navigation";
 import { accessIntentHref, confirmationRequiredHref } from "@/lib/auth/access-intent";
 import type { Metadata } from "next";
@@ -36,7 +38,10 @@ function money(amount: number | null, currency: string | null): string {
 }
 
 async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: string; billing?: string; consent?: string }) {
-  const [context, access] = await Promise.all([resolveConsumerContext(), getGameAccessView()]);
+  // The free games are named from the published catalog and the access policy
+  // (lib/seo/free-games-statement.ts). The catalog read never rejects and is
+  // bounded at four seconds; when it fails, Math Tug of War alone is named.
+  const [context, access, catalog] = await Promise.all([resolveConsumerContext(), getGameAccessView(), loadGameCatalogSummary()]);
   if (access.source === "school-access") redirect("/account");
   if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
   if (context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref("/subscription"));
@@ -56,8 +61,9 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
     (access.decision.nextAction === "start-checkout" || (access.decision.nextAction === "manage-subscription" && !liveSubscription)) &&
     config?.checkoutEnabled === true;
   const manageSubscription = context.status === "active" && !access.decision.allowed && liveSubscription;
+  const free = freeGamesStatement(listedGames(catalog));
   return <Container width="compact" className="page-stack">
-    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description="One monthly subscription for every MathNexa resource. No annual plan. Math Tug of War is free with any MathNexa account." />
+    <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description={`One monthly subscription for every MathNexa resource. No annual plan.${free ? ` ${free}.` : ""}`} />
     {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {billing === "unavailable" ? <Notice label="Billing status" tone="warning" live><strong>Billing is temporarily unavailable.</strong><p>No access or subscription change was made. Try again later.</p></Notice> : null}
     {consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}

@@ -144,9 +144,11 @@ test.describe("signed-in Solo", () => {
       data: { action: "bootstrap" }
     });
     expect(response.status()).toBe(401);
-    // A draft is never listed.
-    await page.goto("/math-games");
-    await expect(page.locator("main")).not.toContainText("Polygon Showdown");
+    // A draft is never listed, and never named as a free game (Help and About since v1.2.44).
+    for (const path of ["/math-games", "/help", "/about"]) {
+      await page.goto(path);
+      await expect(page.locator("main"), path).not.toContainText("Polygon Showdown");
+    }
     await context.close();
   });
 });
