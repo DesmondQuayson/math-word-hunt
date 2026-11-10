@@ -1,0 +1,128 @@
+{
+  "at": "2026-11-10T06:12:19.890Z",
+  "cards": [
+    {
+      "key": "polygon-showdown",
+      "title": "Polygon Showdown",
+      "badges": [
+        "Free"
+      ],
+      "alt": "Polygon Showdown gameplay: an 8 by 8 board of circles, triangles, squares, and rectangles beside the run's matches and score",
+      "links": [
+        {
+          "name": "Play Free Polygon Showdown",
+          "href": "/games/polygon-showdown/play"
+        }
+      ]
+    },
+    {
+      "key": "math-bingo-live",
+      "title": "Math Bingo Live",
+      "badges": [
+        "Free"
+      ],
+      "alt": "Math Bingo Live gameplay: a student's 5 by 5 Bingo card with a completed row beside the live question and the class standings",
+      "links": [
+        {
+          "name": "Host Game Math Bingo Live",
+          "href": "/games/math-bingo-live/host"
+        },
+        {
+          "name": "Join with a code",
+          "href": "/join"
+        }
+      ]
+    },
+    {
+      "key": "math-tug-of-war",
+      "title": "Math Tug of War",
+      "badges": [
+        "Free"
+      ],
+      "alt": "Math Tug of War gameplay artwork: the Turquoise and Pink teams pulling a rope while each side answers integer questions on a keypad",
+      "links": [
+        {
+          "name": "Play Free Math Tug of War",
+          "href": "/games/math-tug-of-war/play"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "ok": true,
+      "label": "section heading Free math games",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "note: free with a MathNexa account, no subscription",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "live homepage shows only the free games, Polygon Showdown first",
+      "detail": "Polygon Showdown, Math Bingo Live, Math Tug of War"
+    },
+    {
+      "ok": true,
+      "label": "every card carries the Free badge",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "no subscription game, label or button in the section",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "every thumbnail has descriptive alt text",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "homepage requests no game code, 3D or shop assets",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "polygon-showdown \"Play Free Polygon Showdown\" -> /games/polygon-showdown/play",
+      "detail": "307 /access?next=/games/polygon-showdown/play"
+    },
+    {
+      "ok": true,
+      "label": "math-bingo-live \"Host Game Math Bingo Live\" -> /games/math-bingo-live/host",
+      "detail": "307 /access?next=/games/math-bingo-live/host"
+    },
+    {
+      "ok": true,
+      "label": "math-bingo-live \"Join with a code\" -> /join",
+      "detail": "200 "
+    },
+    {
+      "ok": true,
+      "label": "math-tug-of-war \"Play Free Math Tug of War\" -> /games/math-tug-of-war/play",
+      "detail": "307 /access?next=/games/math-tug-of-war/play"
+    },
+    {
+      "ok": true,
+      "label": "View all math games -> /math-games",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "Play Free (signed out) -> sign in or create account, then back to Polygon Showdown",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "access page: free with an account, no price",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "/math-games lists the full catalog (7 games)",
+      "detail": "Math Vocabulary Hunt, Number Cross, Number Logic, CrossCalc, Math Tug of War, Math Bingo Live, Polygon Showdown"
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "ok": true,
+    "label": "anonymous homepage shows exactly the free games, Polygon Showdown first",
+    "detail": "polygon-showdown,math-bingo-live,math-tug-of-war"
+  },
+  {
+    "ok": true,
+    "label": "every homepage card carries the Free badge",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "no subscription game, label or button in the section",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "section says free with a MathNexa account",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "homepage loads no game code, 3D or shop assets",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "anonymous polygon-showdown \"Play Free Polygon Showdown\" -> /games/polygon-showdown/play",
+    "detail": "307 /access?next=/games/polygon-showdown/play"
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-bingo-live \"Host Game Math Bingo Live\" -> /games/math-bingo-live/host",
+    "detail": "307 /access?next=/games/math-bingo-live/host"
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-bingo-live \"Join with a code\" -> /join",
+    "detail": "200 "
+  },
+  {
+    "ok": true,
+    "label": "anonymous math-tug-of-war \"Play Free Math Tug of War\" -> /games/math-tug-of-war/play",
+    "detail": "307 /access?next=/games/math-tug-of-war/play"
+  },
+  {
+    "ok": true,
+    "label": "View all math games -> /math-games",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "/math-games still lists the full catalog (7 games)",
+    "detail": "Math Vocabulary Hunt, Math Tug of War, Number Cross, Number Logic, CrossCalc, Math Bingo Live, Polygon Showdown"
+  },
+  {
+    "ok": true,
+    "label": "free account sees the same three free games",
+    "detail": "polygon-showdown,math-bingo-live,math-tug-of-war"
+  },
+  {
+    "ok": true,
+    "label": "polygon-showdown button is at least 44px tall on a phone",
+    "detail": "145x44"
+  },
+  {
+    "ok": true,
+    "label": "free account: polygon-showdown opens its game",
+    "detail": "/games/polygon-showdown/play"
+  },
+  {
+    "ok": true,
+    "label": "free account: polygon-showdown shows no trial, pricing or purchase prompt",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "math-bingo-live button is at least 44px tall on a phone",
+    "detail": "145x44"
+  },
+  {
+    "ok": true,
+    "label": "free account: math-bingo-live opens its game",
+    "detail": "/games/math-bingo-live/host"
+  },
+  {
+    "ok": true,
+    "label": "free account: math-bingo-live shows no trial, pricing or purchase prompt",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "math-tug-of-war button is at least 44px tall on a phone",
+    "detail": "145x44"
+  },
+  {
+    "ok": true,
+    "label": "free account: math-tug-of-war opens its game",
+    "detail": "/games/math-tug-of-war/play"
+  },
+  {
+    "ok": true,
+    "label": "free account: math-tug-of-war shows no trial, pricing or purchase prompt",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "Join with a code opens /join",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "label": "free account: subscription game crosscalc still goes to subscription review",
+    "detail": "307 /subscription?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "free account: subscription game number-logic still goes to subscription review",
+    "detail": "307 /subscription?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "free account: subscription game number-cross still goes to subscription review",
+    "detail": "307 /subscription?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "free account: subscription game math-vocabulary-hunt still goes to subscription review",
+    "detail": "307 /subscription?next=/games"
+  },
+  {
+    "ok": true,
+    "label": "subscriber homepage also shows free games only",
+    "detail": "polygon-showdown,math-bingo-live,math-tug-of-war"
+  },
+  {
+    "ok": true,
+    "label": "subscriber: subscription game crosscalc opens (/games/crosscalc/play)",
+    "detail": "200  -> 200 /games/crosscalc/play"
+  },
+  {
+    "ok": true,
+    "label": "subscriber: subscription game number-logic opens (/games/number-logic/play)",
+    "detail": "200  -> 200 /games/number-logic/play"
+  },
+  {
+    "ok": true,
+    "label": "subscriber: subscription game number-cross opens (/games/number-cross/play)",
+    "detail": "200  -> 200 /games/number-cross/play"
+  },
+  {
+    "ok": true,
+    "label": "subscriber: subscription game math-vocabulary-hunt opens (/play)",
+    "detail": "307 /game/runtime/index.html?launch=94a94ec6f913 -> 200 /game/runtime/index.html"
+  },
+  {
+    "ok": true,
+    "label": "subscriber: /games catalog lists all seven games",
+    "detail": "Math Vocabulary Hunt, Math Tug of War, Number Cross, Number Logic, CrossCalc, Math Bingo Live, Polygon Showdown"
+  }
+]

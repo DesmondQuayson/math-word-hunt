@@ -1,0 +1,12 @@
+Function invocations by HTTP status, production, 2026-11-10T06:10:00.000Z to 2026-11-10T06:15:00.000Z (vercel metrics, aggregate):
+  200: 1178
+  307: 91
+  401: 3
+  400: 2
+  404: 2
+
+Runtime logs of the new deployment since promotion (vercel logs, counts only):
+  requests httpStatus >= 500: 0 records (exit 0)
+  level:error: 0 records (exit 0)
+  level:fatal: 0 records (exit 0)
+  control: requests httpStatus < 300: 953 records (exit 0)

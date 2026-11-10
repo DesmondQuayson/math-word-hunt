@@ -1,0 +1,225 @@
+{
+  "note": "Production catalog read (read-only SELECT, no account data) and how Production treats each game for a signed-out visitor, before and after promotion.",
+  "productionCatalog": [
+    {
+      "stable_key": "math-vocabulary-hunt",
+      "slug": "math-vocabulary-hunt",
+      "title": "Math Vocabulary Hunt",
+      "status": "published",
+      "display_order": 1,
+      "launch_type": "canonical",
+      "version": "7.0.0",
+      "thumbnail_reference": "builtin:math-vocabulary-hunt",
+      "changed": "2026-08-06 01:45"
+    },
+    {
+      "stable_key": "number-cross",
+      "slug": "number-cross",
+      "title": "Number Cross",
+      "status": "published",
+      "display_order": 30,
+      "launch_type": "internal",
+      "version": "1.0.0",
+      "thumbnail_reference": "builtin:number-cross",
+      "changed": "2026-08-08 06:08"
+    },
+    {
+      "stable_key": "number-logic",
+      "slug": "number-logic",
+      "title": "Number Logic",
+      "status": "published",
+      "display_order": 31,
+      "launch_type": "internal",
+      "version": "0.1.0",
+      "thumbnail_reference": "builtin:number-logic",
+      "changed": "2026-08-10 18:03"
+    },
+    {
+      "stable_key": "crosscalc",
+      "slug": "crosscalc",
+      "title": "CrossCalc",
+      "status": "published",
+      "display_order": 32,
+      "launch_type": "internal",
+      "version": "0.2.0",
+      "thumbnail_reference": "builtin:crosscalc-v2",
+      "changed": "2026-08-16 17:44"
+    },
+    {
+      "stable_key": "math-tug-of-war",
+      "slug": "math-tug-of-war",
+      "title": "Math Tug of War",
+      "status": "published",
+      "display_order": 33,
+      "launch_type": "internal",
+      "version": "1.0.0",
+      "thumbnail_reference": "builtin:math-tug-of-war",
+      "changed": "2026-09-27 14:48"
+    },
+    {
+      "stable_key": "math-bingo-live",
+      "slug": "math-bingo-live",
+      "title": "Math Bingo Live",
+      "status": "published",
+      "display_order": 34,
+      "launch_type": "internal",
+      "version": "1.0.0",
+      "thumbnail_reference": "builtin:math-bingo-live",
+      "changed": "2026-11-05 11:43"
+    },
+    {
+      "stable_key": "polygon-showdown",
+      "slug": "polygon-showdown",
+      "title": "Polygon Showdown",
+      "status": "published",
+      "display_order": 35,
+      "launch_type": "internal",
+      "version": "1.0.0",
+      "thumbnail_reference": "builtin:polygon-showdown",
+      "changed": "2026-11-09 05:18"
+    }
+  ],
+  "signedOutAccessBefore": {
+    "polygon-showdown": {
+      "path": "/games/polygon-showdown/play",
+      "status": 307,
+      "location": "/access?next=/games/polygon-showdown/play",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "math-bingo-live": {
+      "path": "/games/math-bingo-live/host",
+      "status": 307,
+      "location": "/access?next=/games/math-bingo-live/host",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "math-tug-of-war": {
+      "path": "/games/math-tug-of-war/play",
+      "status": 307,
+      "location": "/access?next=/games/math-tug-of-war/play",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "crosscalc": {
+      "path": "/games/crosscalc/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "number-logic": {
+      "path": "/games/number-logic/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "number-cross": {
+      "path": "/games/number-cross/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "math-vocabulary-hunt": {
+      "path": "/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    }
+  },
+  "signedOutAccessAfter": {
+    "polygon-showdown": {
+      "path": "/games/polygon-showdown/play",
+      "status": 307,
+      "location": "/access?next=/games/polygon-showdown/play",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "math-bingo-live": {
+      "path": "/games/math-bingo-live/host",
+      "status": 307,
+      "location": "/access?next=/games/math-bingo-live/host",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "math-tug-of-war": {
+      "path": "/games/math-tug-of-war/play",
+      "status": 307,
+      "location": "/access?next=/games/math-tug-of-war/play",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": true,
+      "accessMentionsPrice": false
+    },
+    "crosscalc": {
+      "path": "/games/crosscalc/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "number-logic": {
+      "path": "/games/number-logic/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "number-cross": {
+      "path": "/games/number-cross/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    },
+    "math-vocabulary-hunt": {
+      "path": "/play",
+      "status": 307,
+      "location": "/access?next=/games",
+      "accessStatus": 200,
+      "accessSaysFreeWithAccount": false,
+      "accessMentionsPrice": false
+    }
+  },
+  "homepageBefore": [
+    "Polygon Showdown",
+    "Math Bingo Live",
+    "Math Tug of War",
+    "CrossCalc",
+    "Number Logic",
+    "Number Cross",
+    "Math Vocabulary Hunt"
+  ],
+  "homepageAfter": [
+    "Polygon Showdown",
+    "Math Bingo Live",
+    "Math Tug of War"
+  ],
+  "mathGamesAfter": [
+    "Math Vocabulary Hunt",
+    "Number Cross",
+    "Number Logic",
+    "CrossCalc",
+    "Math Tug of War",
+    "Math Bingo Live",
+    "Polygon Showdown"
+  ],
+  "gamesAfter": {
+    "status": 200,
+    "finalPath": "/access?next=/games"
+  }
+}

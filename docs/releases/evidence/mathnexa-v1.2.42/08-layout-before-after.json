@@ -1,0 +1,798 @@
+{
+  "before": [
+    {
+      "size": "390x844",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 1430,
+      "cardsPerRow": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "173x292",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "173x292",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "173x292",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "173x292",
+          "image": "169x94"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "173x311",
+          "image": "169x94"
+        }
+      ]
+    },
+    {
+      "size": "768x1024",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 1228,
+      "cardsPerRow": [
+        3,
+        3,
+        1
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "222x333",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "222x333",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "222x333",
+          "image": "218x122"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "222x333",
+          "image": "218x122"
+        }
+      ]
+    },
+    {
+      "size": "1024x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 1303,
+      "cardsPerRow": [
+        3,
+        3,
+        1
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "307x361",
+          "image": "303x169"
+        }
+      ]
+    },
+    {
+      "size": "1280x720",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 914,
+      "cardsPerRow": [
+        4,
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "281x347",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1366x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 917,
+      "cardsPerRow": [
+        4,
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "281x347",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1440x900",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 917,
+      "cardsPerRow": [
+        4,
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "281x347",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1920x1080",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 917,
+      "cardsPerRow": [
+        4,
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/crosscalc/play",
+          "title": "CrossCalc",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-logic/play",
+          "title": "Number Logic",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/number-cross/play",
+          "title": "Number Cross",
+          "box": "281x347",
+          "image": "277x155"
+        },
+        {
+          "game": "/play",
+          "title": "Math Vocabulary Hunt",
+          "box": "281x347",
+          "image": "277x155"
+        }
+      ]
+    }
+  ],
+  "afterLive": [
+    {
+      "size": "390x844",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 876,
+      "cardsPerRow": [
+        2,
+        1
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "173x272",
+          "image": "169x94"
+        }
+      ]
+    },
+    {
+      "size": "768x1024",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 588,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "222x365",
+          "image": "218x122"
+        }
+      ]
+    },
+    {
+      "size": "1024x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 606,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "307x361",
+          "image": "303x169"
+        }
+      ]
+    },
+    {
+      "size": "1280x720",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 612,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1366x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1440x900",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1920x1080",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    }
+  ],
+  "localReview": [
+    {
+      "size": "390x844",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 876,
+      "cardsPerRow": [
+        2,
+        1
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "173x343",
+          "image": "169x94"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "173x272",
+          "image": "169x94"
+        }
+      ]
+    },
+    {
+      "size": "768x1024",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 588,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "222x365",
+          "image": "218x122"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "222x365",
+          "image": "218x122"
+        }
+      ]
+    },
+    {
+      "size": "1024x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 606,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "307x361",
+          "image": "303x169"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "307x361",
+          "image": "303x169"
+        }
+      ]
+    },
+    {
+      "size": "1280x720",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 612,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1366x768",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1440x900",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    },
+    {
+      "size": "1920x1080",
+      "status": 200,
+      "horizontalOverflow": false,
+      "sectionHeight": 616,
+      "cardsPerRow": [
+        3
+      ],
+      "cards": [
+        {
+          "game": "/games/polygon-showdown/play",
+          "title": "Polygon Showdown",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-bingo-live/host",
+          "title": "Math Bingo Live",
+          "box": "281x346",
+          "image": "277x155"
+        },
+        {
+          "game": "/games/math-tug-of-war/play",
+          "title": "Math Tug of War",
+          "box": "281x346",
+          "image": "277x155"
+        }
+      ]
+    }
+  ]
+}
