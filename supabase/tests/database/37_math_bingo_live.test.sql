@@ -234,7 +234,13 @@ select is(public.bingo_host_command(repeat('3',64),repeat('9',64),'close','{}')-
 select is(public.bingo_player_state(repeat('e',64),null,null)->>'result','not-found','its players are deleted too');
 
 -- "Everyone can win": when the last player without a Bingo is removed, the game ends.
-select is(public.bingo_create_room('500004',repeat('c',64),repeat('d',64),jsonb_set(pg_temp.settings(0,0),'{winners}','0'))->>'result','created','an everyone-wins room');
+-- A NEW room cannot store "everyone" (0) since 20261111100000; a room created
+-- before it keeps 0 and its rules, which this part checks (the stored value is
+-- set directly, as such a room would have it).
+select is(public.bingo_create_room('500004',repeat('c',64),repeat('d',64),jsonb_set(pg_temp.settings(0,0),'{winners}','0'))->>'result','invalid-settings','a new room cannot ask for 0 winners');
+select is(public.bingo_create_room('500004',repeat('c',64),repeat('d',64),jsonb_set(pg_temp.settings(0,0),'{winners}','2'))->>'result','created','a room created before the winner-target release');
+update public.bingo_rooms set settings=jsonb_set(settings,'{winners}','0') where code='500004' and status='open';
+select is((select settings->>'winners' from public.bingo_rooms where code='500004' and status='open'),'0','still stores "everyone" (the table accepts it for such rooms)');
 select is(public.bingo_join_room('500004','Win',repeat('f',60)||'0001',repeat('5',64))->>'result','joined','winner-to-be joins');
 select is(public.bingo_join_room('500004','Wait',repeat('f',60)||'0002',repeat('5',64))->>'result','joined','second player joins');
 select is(public.bingo_host_start(repeat('c',64),repeat('d',64),'start',jsonb_set(pg_temp.settings(0,0),'{winners}','0'),repeat('a',32),pg_temp.pool(),pg_temp.deck())->>'result','started','everyone game starts');

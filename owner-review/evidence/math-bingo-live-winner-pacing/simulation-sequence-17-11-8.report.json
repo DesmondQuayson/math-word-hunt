@@ -1,0 +1,167 @@
+{
+  "seed": "mathnexa-bingo-winner-targets-2026-11-11",
+  "sequence": [
+    17,
+    11,
+    8
+  ],
+  "matches": 20,
+  "startedAt": "2026-11-11T16:25:00.847Z",
+  "seconds": 22,
+  "groups": [
+    {
+      "group": "addition/facts-20 · 20 players · 3 winners",
+      "matches": 10,
+      "played": 10,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 10
+      },
+      "gapsDrawn": {
+        "8": 7,
+        "9": 2,
+        "10": 0,
+        "11": 11
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.4,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 6,
+        "max": 13
+      },
+      "reachedTargetOrEveryone": "10/10",
+      "completedReason": {
+        "winners": 10
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 11,
+      "events": 20,
+      "overTarget": 30,
+      "pendingLines": 34,
+      "stuckCalls": 9,
+      "callsPerMatch": {
+        "mean": 27,
+        "max": 36
+      },
+      "msPerMatch": {
+        "mean": 4232.6,
+        "max": 5303
+      },
+      "coverageShare": {
+        "zero": 1.1,
+        "single": 5.2,
+        "limited": 23.7,
+        "broad": 70
+      },
+      "longestZeroMatchStreak": 1,
+      "fourOfFiveBeforeGate": {
+        "mean": 11.3,
+        "max": 15
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 20 players · 3 winners",
+      "matches": 10,
+      "played": 10,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 10
+      },
+      "gapsDrawn": {
+        "8": 11,
+        "9": 4,
+        "10": 2,
+        "11": 13
+      },
+      "firstWinnerCall": {
+        "mean": 17.2,
+        "p50": 17,
+        "max": 18,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.95,
+        "max": 14,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 3,
+        "max": 3
+      },
+      "reachedTargetOrEveryone": "10/10",
+      "completedReason": {
+        "winners": 10
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 30,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 37.1,
+        "max": 39
+      },
+      "msPerMatch": {
+        "mean": 4622.2,
+        "max": 5110
+      },
+      "coverageShare": {
+        "zero": 8.1,
+        "single": 3,
+        "limited": 19.9,
+        "broad": 69
+      },
+      "longestZeroMatchStreak": 1,
+      "fourOfFiveBeforeGate": {
+        "mean": 2.9,
+        "max": 3
+      },
+      "uniqueQuestions": true
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "played": 20,
+    "violations": 0,
+    "firstGates": {
+      "17": 20
+    },
+    "gapsDrawn": {
+      "8": 18,
+      "9": 6,
+      "10": 2,
+      "11": 24
+    },
+    "earliestBingoMinusGate": 0,
+    "smallestEventGapMinusDrawn": 0,
+    "sequences": {
+      "14,8,11,9,10": 0,
+      "17,11,8": 17
+    },
+    "tiedWinners": 10,
+    "overTarget": 30,
+    "reachedTargetOrEveryone": "20/20",
+    "seatWins": {
+      "firstHalf": 28,
+      "secondHalf": 28
+    }
+  },
+  "violationsTotal": 0
+}

@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 import {
   PAGE_ERRORS,
+  expectedPlacements,
+  roomPacing,
   cardLayout,
   cardSignature,
   closeRoom,
@@ -28,17 +30,17 @@ const ORDINALS = ["1st", "2nd", "3rd"];
 
 /**
  * The owner's scenario: a free teacher hosts, Ava, Zion and Omar join with a
- * code and a name, Omar uses his Free Space, everyone plays their best, the
- * first Bingo comes at the first gate (call 15), the first winner keeps
- * watching as a spectator but can never win again, the next Bingos are ten
- * calls apart (the server decides the order), and with three winners
- * configured the game ends at once.
+ * code and a name, Omar uses his Free Space, everyone plays their best. The
+ * server drew this game's first winner gate (one of calls 14-17) and draws a
+ * fresh gap of 8-11 calls after every new winner event; no screen shows
+ * either. A winner keeps watching but can never win again, players who
+ * finish on the same call share the place, and with three winners wanted the
+ * game ends when the third (or a same-call tie) is in and the call closes.
  */
-test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced Bingos, game complete, rematch", async ({ browser }) => {
+test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, hidden variable gates, three or more Bingos, game complete, rematch", async ({ browser }) => {
   // A paced three-winner game is 35+ calls with three players and a host; WebKit drives it in about 20 minutes.
   test.setTimeout(1_800_000);
   const host = await signInTeacher(browser);
-  // Within 50 holds 240 different questions: Bingo pacing allows three winners.
   const created = await createGame(host.page, { mode: "addition", level: "within-50", questionSeconds: 0, revealSeconds: 0, winners: 3 });
   const code = created.code;
   await expect(host.page.locator(".join-url")).toHaveText(/\/join$/);
@@ -67,12 +69,16 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
     expect(current.me!.board![12]).toEqual({ free: true });
     expect(new Set(cardSignature(current.me!.board!).split(",")).size).toBe(24);
   }
-  // The pacing contract is on every screen before the first call.
-  const pacedHost = await waitFor(host.page, current => current.pacing !== null, "pacing on the host");
-  expect(pacedHost.pacing).toMatchObject({ firstWinCall: 15, spacing: 10, nextEligibleCall: 15, gateOpen: false });
-  expect(pacedHost.pacing!.maxWinners).toBeGreaterThanOrEqual(3);
-  await expect(host.page.locator(".head-pacing")).toContainText(/First Bingo opportunity in \d+ calls?/);
-  await expect(ava.page.locator(".pacing-line")).toContainText(/First Bingo opportunity: \d+ calls?/);
+  // The server drew this game's first gate; no screen is told it.
+  const pacing = (await roomPacing(code))!;
+  expect([14, 15, 16, 17]).toContain(pacing.firstWinCall);
+  expect(pacing.nextEligibleCall).toBe(pacing.firstWinCall);
+  expect(pacing.gaps).toEqual([]);
+  const firstGate = pacing.firstWinCall;
+  await expect(host.page.locator(".head-pacing")).toHaveCount(0);
+  await expect(ava.page.locator(".pacing-line")).toHaveCount(0);
+  expect(JSON.stringify(await state(host.page))).not.toMatch(/nextEligibleCall|firstWinCall|winnerEvents/);
+  expect(JSON.stringify(await state(ava.page))).not.toMatch(/nextEligibleCall|firstWinCall|winnerEvents/);
   await expect(ava.page.locator(".card-cell")).toHaveCount(25);
 
   const first = await waitFor(host.page, current => current.phase === "QUESTION_ACTIVE", "question 1");
@@ -100,20 +106,13 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
   }
 
   let sawOneAway = false;
-  let sawOpen = false;
-  let sawNext = false;
   const order: string[] = [];
   for (let guard = 0; guard < 200; guard += 1) {
     const hostState = await state(host.page);
     if (hostState.phase === "WINNER_REVEAL" || hostState.phase === "GAME_COMPLETE") break;
     if (hostState.phase === "QUESTION_ACTIVE") {
-      // Nobody can finish a line before call 15, and nobody can be the next
-      // winner within ten calls of the last one: the server paces the game.
-      expect(hostState.winners.length === 0 ? hostState.questionNumber < 15 || hostState.pacing!.gateOpen : true).toBe(true);
-      // The chip before anyone marks: "OPEN" while the gate is open and untaken, "Next … in N calls" during a cooldown.
-      const chipBefore = (await host.page.locator(".head-pacing").textContent()) ?? "";
-      if (/Bingo opportunity OPEN/.test(chipBefore)) sawOpen = true;
-      if (/Next Bingo opportunity in \d+ calls?/.test(chipBefore)) sawNext = true;
+      // Nobody can win before the drawn first gate: the server paces the game.
+      if (hostState.questionNumber < firstGate) expect(hostState.winnerCount).toBe(0);
       // Everyone plays their best; the server decides who is next.
       for (const name of ["Ava", "Zion", "Omar"]) {
         const page = players[name];
@@ -136,9 +135,6 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
       }
       // The host screen must have caught up with every confirmed Bingo before Next.
       const after = await waitFor(host.page, current => current.winnerCount === order.length, "host sees the winners");
-      const chip = (await host.page.locator(".head-pacing").textContent()) ?? "";
-      if (/Bingo opportunity OPEN/.test(chip)) sawOpen = true;
-      if (/Next Bingo opportunity in \d+ calls?/.test(chip)) sawNext = true;
       if (order.length > 0 && order.length < 3) {
         // The host board keeps every confirmed winner listed in Bingo Winners, in order.
         await expect(host.page.locator(".panel-winners .winner-name")).toHaveText(order);
@@ -150,19 +146,23 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
     await hostNext(host.page);
   }
 
-  // Server-confirmed order: three different winners in places 1..3, each once,
-  // the first at call 15 and every next one at least ten calls later.
+  // Server-confirmed winners: each once; same-call winners share the place
+  // (competition ranking); the first not before the drawn gate; every new
+  // winner event at least the gap drawn after the previous one.
   const final = await waitFor(host.page, current => current.phase === "WINNER_REVEAL" || current.phase === "GAME_COMPLETE", "final winner");
-  expect(final.winners.map(winner => winner.placement)).toEqual([1, 2, 3]);
-  expect(new Set(final.winners.map(winner => winner.name)).size).toBe(3);
+  expect(final.winnerCount).toBeGreaterThanOrEqual(3);
+  expect(new Set(final.winners.map(winner => winner.name)).size).toBe(final.winnerCount);
   expect(order).toEqual(final.winners.map(winner => winner.name));
-  expect(final.winnerCount).toBe(3);
-  expect(final.winners[0].question).toBeGreaterThanOrEqual(15);
-  expect(final.winners[1].question).toBeGreaterThanOrEqual(final.winners[0].question + 10);
-  expect(final.winners[2].question).toBeGreaterThanOrEqual(final.winners[1].question + 10);
+  expect(final.winners.map(winner => winner.placement)).toEqual(expectedPlacements(final.winners));
+  expect(final.winners[0].question).toBeGreaterThanOrEqual(firstGate);
+  const played = (await roomPacing(code))!;
+  expect(played.firstWinCall).toBe(firstGate);
+  expect(played.winnerEvents.map(event => event.n)).toEqual([...new Set(final.winners.map(winner => winner.question))]);
+  for (const gap of played.gaps) expect([8, 9, 10, 11]).toContain(gap);
+  for (let index = 1; index < played.winnerEvents.length; index += 1) {
+    expect(played.winnerEvents[index].n).toBeGreaterThanOrEqual(played.winnerEvents[index - 1].n + played.gaps[index - 1]);
+  }
   expect(sawOneAway).toBe(true);
-  expect(sawOpen).toBe(true);
-  expect(sawNext).toBe(true);
   const endedAt = final.questionNumber;
   const firstWinner = players[final.winners[0].name];
 
@@ -202,8 +202,11 @@ test("host + Ava, Zion, Omar: paced cards, live marks, Free Space, three paced B
   await host.page.getByRole("button", { name: "Play Again" }).click();
   const again = await waitFor(host.page, current => current.gameNumber === complete.gameNumber + 1 && current.phase === "COUNTDOWN", "rematch countdown");
   expect(again.winnerCount).toBe(0);
-  // Play Again resets the pacing: the first gate is call 15 again.
-  expect(again.pacing).toMatchObject({ nextEligibleCall: 15, lastWinnerCall: null, gateOpen: false });
+  // Play Again draws a new first gate and forgets the gaps; still nothing on screen.
+  expect(again).not.toHaveProperty("pacing");
+  const replayed = (await roomPacing(code))!;
+  expect([14, 15, 16, 17]).toContain(replayed.firstWinCall);
+  expect(replayed).toMatchObject({ nextEligibleCall: replayed.firstWinCall, lastWinnerCall: null, gaps: [] });
   expect(again.players?.map(player => player.name).sort()).toEqual(["Ava", "Omar", "Zion"]);
   const rematch = await Promise.all(Object.values(players).map(page => waitFor(page, current => current.gameNumber === again.gameNumber && Boolean(current.me?.board), "new card")));
   for (const [index, current] of rematch.entries()) {

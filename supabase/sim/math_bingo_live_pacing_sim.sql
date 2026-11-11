@@ -36,7 +36,13 @@ declare
   v_count integer;
   v_lines record;
   v_first integer;
-  v_spacing integer;
+  v_win_call integer;
+  v_last_event_call integer := null;
+  v_event_count integer := 0;
+  v_event_placement integer;
+  v_needed_gap integer;
+  v_ties integer := 0;
+  v_bounds integer[];
   v_winner_calls jsonb := '[]'::jsonb;
   v_timeline jsonb := '[]'::jsonb;
   v_violations jsonb := '[]'::jsonb;
@@ -59,7 +65,10 @@ begin
   if r.id is null then return jsonb_build_object('error','room-not-found'); end if;
   if r.pacing is null then return jsonb_build_object('error','room-not-paced'); end if;
   v_first := (r.pacing->>'firstWinCall')::integer;
-  v_spacing := (r.pacing->>'spacing')::integer;
+  v_bounds := private.bingo_first_gate_bounds((r.pacing->>'universe')::integer);
+  if v_first < v_bounds[1] or v_first > v_bounds[2] then
+    v_violations := v_violations || jsonb_build_object('call',0,'kind','first-gate-outside-window','first',v_first);
+  end if;
 
   -- Out of the countdown.
   v_cmd := public.bingo_host_command(p_owner_hash, p_token_hash, 'next', jsonb_build_object('phase','COUNTDOWN','question',0));
@@ -135,13 +144,33 @@ begin
     if v_completed_now > 0 and v_call < v_first then
       v_violations := v_violations || jsonb_build_object('call',v_call,'kind','line-completed-before-first-gate','players',v_completed_now);
     end if;
-    -- New official winners this call.
+    -- New official winners since the last look (the winners list only grows, in order).
     if r.winner_count > v_prev_winners then
-      for v_lines in select w from jsonb_array_elements(r.winners) w where (w->>'placement')::integer > v_prev_winners loop
-        v_winner_calls := v_winner_calls || to_jsonb(v_call);
-        if v_call < v_first then v_violations := v_violations || jsonb_build_object('call',v_call,'kind','winner-before-first-gate'); end if;
-        if jsonb_array_length(v_winner_calls) >= 2 and v_call - (v_winner_calls->(jsonb_array_length(v_winner_calls)-2))::integer < v_spacing then
-          v_violations := v_violations || jsonb_build_object('call',v_call,'kind','winner-gap-short','gap',v_call - (v_winner_calls->(jsonb_array_length(v_winner_calls)-2))::integer);
+      for v_lines in select x.e as w from jsonb_array_elements(r.winners) with ordinality x(e, i) where x.i > v_prev_winners order by x.i loop
+        v_win_call := (v_lines.w->>'question')::integer;
+        v_winner_calls := v_winner_calls || to_jsonb(v_win_call);
+        if v_win_call < v_first then v_violations := v_violations || jsonb_build_object('call',v_win_call,'kind','winner-before-first-gate'); end if;
+        if v_last_event_call is null or v_win_call <> v_last_event_call then
+          -- A new winner event: not before the gap drawn after the previous one.
+          if v_last_event_call is not null then
+            v_needed_gap := (r.pacing->'gaps'->>(v_event_count - 1))::integer;
+            if v_needed_gap is null or v_win_call < v_last_event_call + v_needed_gap then
+              v_violations := v_violations || jsonb_build_object('call',v_win_call,'kind','winner-gap-short','gap',v_win_call - v_last_event_call,'drawn',v_needed_gap);
+            end if;
+          end if;
+          v_event_count := v_event_count + 1;
+          v_last_event_call := v_win_call;
+          v_event_placement := (v_lines.w->>'placement')::integer;
+          -- Competition ranking: an event is placed after every earlier winner.
+          if v_event_placement <> jsonb_array_length(v_winner_calls) then
+            v_violations := v_violations || jsonb_build_object('call',v_win_call,'kind','placement-not-after-earlier-winners','placement',v_event_placement);
+          end if;
+        else
+          -- Same call as the event in progress: a tie, same placement.
+          v_ties := v_ties + 1;
+          if (v_lines.w->>'placement')::integer <> v_event_placement then
+            v_violations := v_violations || jsonb_build_object('call',v_win_call,'kind','tie-placement-differs');
+          end if;
         end if;
         -- Which seat won (join order index), for the fairness audit.
         select px->>'index' into v_index from jsonb_array_elements(p_players) px join public.bingo_participants p on p.token_hash = px->>'token' where p.id = (v_lines.w->>'id')::uuid;
@@ -164,6 +193,15 @@ begin
 
   select * into r from public.bingo_rooms where id=r.id;
   v_calls_log := coalesce(r.pacing->'calls','[]'::jsonb);
+  if exists (select 1 from jsonb_array_elements_text(coalesce(r.pacing->'gaps','[]'::jsonb)) g where g::integer not between 8 and 11) then
+    v_violations := v_violations || jsonb_build_object('call',0,'kind','gap-outside-8-11','gaps',r.pacing->'gaps');
+  end if;
+  if jsonb_typeof(r.pacing->'closing')='number' and exists (select 1 from jsonb_array_elements(r.winners) w where (w->>'question')::integer > (r.pacing->>'closing')::integer) then
+    v_violations := v_violations || jsonb_build_object('call',0,'kind','winner-after-target-call');
+  end if;
+  if (select count(distinct w->>'id') from jsonb_array_elements(r.winners) w) <> jsonb_array_length(r.winners) or jsonb_array_length(r.winners) <> r.winner_count then
+    v_violations := v_violations || jsonb_build_object('call',0,'kind','duplicate-or-missing-winner-record');
+  end if;
   -- The first call at which some player held a line one away whose last cell was callable while the gate was open.
   select min((e->>'n')::integer) into v_opportunity_first from jsonb_array_elements(v_calls_log) e where (e->>'o')::boolean and (e->>'w')::integer >= 1;
   select count(*) into v_gate_open_calls from jsonb_array_elements(v_calls_log) e where (e->>'o')::boolean;
@@ -173,6 +211,12 @@ begin
     'completedReason', r.completed_reason,
     'winnerCalls', v_winner_calls,
     'winners', r.winner_count,
+    'target', (r.settings->>'winners')::integer,
+    'firstWinCall', v_first,
+    'gaps', coalesce(r.pacing->'gaps','[]'::jsonb),
+    'winnerEvents', coalesce(r.pacing->'winnerEvents','[]'::jsonb),
+    'ties', v_ties,
+    'closing', r.pacing->'closing',
     'pending', v_pending_total,
     'violations', v_violations,
     'timeline', v_timeline,

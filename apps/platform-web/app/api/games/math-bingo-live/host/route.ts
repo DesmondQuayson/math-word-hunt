@@ -107,16 +107,6 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
       const mapped = ERRORS[result];
       return mapped ? refused(mapped[0], mapped[1]) : refused("live-unavailable", 503);
     }
-    // Start refused because the winners do not fit the level's unique questions: say how many would.
-    if (result === "winners-exceed-capacity") {
-      const capacity = {
-        maxWinners: isInteger(data.maxWinners, 0, 60) ? data.maxWinners : 0,
-        requestedWinners: isInteger(data.requestedWinners, 0, 1000) ? data.requestedWinners : 0,
-        requiredCalls: isInteger(data.requiredCalls, 0, 100000) ? data.requiredCalls : 0,
-        availableQuestions: isInteger(data.availableQuestions, 0, 100000) ? data.availableQuestions : 0
-      };
-      return reply({ result, state: toHostState(data), capacity, ...extra });
-    }
     return reply({ result, state: toHostState(data), ...extra });
   };
 
@@ -166,15 +156,16 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
   if (action === "start" || action === "again") {
     const current = await call("bingo_host_state", { ...seat, p_since_version: null, p_since_progress: null });
     if (!current || !isRoomRecord(current)) return roomReply(current);
-    const settings = normalizeSettings(current.settings);
+    // The room's stored settings (a room from before winner targets keeps its "everyone").
+    const settings = normalizeSettings(current.settings, { legacyWinners: true });
     if (!settings.ok) return refused("invalid-settings", 400);
     const seed = newGameSeed();
     // A paced game: the question universe, the pacing plan and every joined
     // student's card, all dealt here from the secret seed and re-checked by
     // the database, in one request (the database then chooses each call).
     const players = Array.isArray(current.players) ? (current.players as Json[]).map((player) => player?.id) : [];
-    // The class size bounds the winners the level can pace (see maxWinnersFor).
-    const game = buildPacedGame(settings.settings, seed, players.length);
+    // Any winner target is played; the database draws the winner gates.
+    const game = buildPacedGame(settings.settings, seed);
     const data = await call("bingo_host_start_paced", {
       ...seat,
       p_kind: action,

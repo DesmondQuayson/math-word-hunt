@@ -33,6 +33,7 @@ export const MESSAGES = Object.freeze({
   "no-live-room": "You have no live game right now.",
   "not-available": "Math Bingo Live is not available yet.",
   "pattern-required": "Choose at least one way to win.",
+  "invalid-winners": "Choose a whole number of winners from 1 to 60.",
   unavailable: "Math Bingo Live is having trouble connecting. Trying again…"
 });
 

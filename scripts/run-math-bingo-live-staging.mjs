@@ -32,9 +32,10 @@ import { createClient } from "@supabase/supabase-js";
 
 const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
 // Bingo migrations in order; `migrate` applies whichever single one is pending.
-const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000", "20261108100000", "20261108110000"]);
+const BINGO_MIGRATIONS = Object.freeze(["20261103100000", "20261106100000", "20261106110000", "20261106120000", "20261107100000", "20261108100000", "20261108110000", "20261111100000"]);
 const PACING_MIGRATION = "20261108100000";
 const PACING_TUNE_MIGRATION = "20261108110000";
+const WINNER_TARGETS_MIGRATION = "20261111100000";
 const FINAL_GAMEPLAY_MIGRATION = "20261107100000";
 const FIRST_MIGRATION = BINGO_MIGRATIONS[0];
 // Applied to staging only by the PH2-07 security-observability branch (not on
@@ -194,6 +195,21 @@ async function migrate() {
       position('v_urgent' in pg_get_functiondef('private.bingo_schedule(public.bingo_rooms)'::regprocedure)) > 0 as urgency_term,
       has_function_privilege('anon','private.bingo_schedule(public.bingo_rooms)','EXECUTE') or has_function_privilege('authenticated','private.bingo_schedule(public.bingo_rooms)','EXECUTE') as scheduler_browser_execute`)[0];
     check(evidence.pacingTune.scheduler && evidence.pacingTune.urgency_term && !evidence.pacingTune.scheduler_browser_execute, "pacing-tune-missing-or-open");
+  }
+  if (MIGRATION === WINNER_TARGETS_MIGRATION) {
+    evidence.winnerTargets = sql(`select
+      (to_regprocedure('private.bingo_first_gate(text,integer)') is not null) as first_gate,
+      (to_regprocedure('private.bingo_winner_gap(text,integer)') is not null) as winner_gap,
+      (to_regprocedure('private.bingo_new_settings_valid(jsonb)') is not null) as new_settings_check,
+      private.bingo_first_gate_bounds(240) = array[14,17] as first_window,
+      (select bool_and(private.bingo_winner_gap(md5(g::text), 1) between 8 and 11) from generate_series(1,200) g) as gaps_in_range,
+      to_regclass('public.bingo_participants_placement_idx') is null as unique_placement_index_dropped,
+      to_regclass('public.bingo_participants_room_placement_idx') is not null as placement_index,
+      position('winners-exceed-capacity' in pg_get_functiondef('public.bingo_host_start_paced(text,text,text,jsonb,text,jsonb,jsonb,jsonb)'::regprocedure)) = 0 as capacity_refusal_gone,
+      has_function_privilege('anon','private.bingo_winner_gap(text,integer)','EXECUTE') or has_function_privilege('authenticated','private.bingo_winner_gap(text,integer)','EXECUTE')
+        or has_function_privilege('anon','private.bingo_first_gate(text,integer)','EXECUTE') or has_function_privilege('authenticated','private.bingo_first_gate(text,integer)','EXECUTE') as draws_browser_execute`)[0];
+    const w = evidence.winnerTargets;
+    check(w.first_gate && w.winner_gap && w.new_settings_check && w.first_window && w.gaps_in_range && w.unique_placement_index_dropped && w.placement_index && w.capacity_refusal_gone && !w.draws_browser_execute, "winner-targets-missing-or-open");
   }
   if (MIGRATION === FINAL_GAMEPLAY_MIGRATION) {
     evidence.finalGameplay = sql(`select

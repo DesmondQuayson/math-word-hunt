@@ -163,6 +163,13 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
   await expect.poll(() => bannersSeen(host.page), { timeout: 30_000 }).toContain("\u{1F981} MIA USED FREE SPACE!");
   await expect.poll(() => bannersSeen(ava.page), { timeout: 30_000 }).toContain("\u{1F981} MIA USED FREE SPACE!");
 
+  // The host screen drops a click while its previous command is still on the way, so every
+  // click here waits for its own reply before the next one.
+  const hostClick = async (locator: ReturnType<typeof host.page.locator>, action: string) => {
+    const reply = host.page.waitForResponse(response => response.url().endsWith("/api/games/math-bingo-live/host") && (response.request().postData() ?? "").includes(`"action":"${action}"`));
+    await locator.click();
+    await reply;
+  };
   // Ava plays to Bingo; the others do not tap (answer independence is covered by the 50-player checks).
   for (let guard = 0; guard < 40; guard += 1) {
     const current = await waitFor(host.page, now => now.phase === "QUESTION_ACTIVE" || now.phase === "WINNER_REVEAL" || now.phase === "GAME_COMPLETE", "question or end");
@@ -171,10 +178,10 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
     await markBest(ava.page);
     const after = await state(host.page);
     if (after.phase !== "QUESTION_ACTIVE") break;
-    await host.page.locator(".controls .button-primary").click();
+    await hostClick(host.page.locator(".controls .button-primary"), "next");
     await waitFor(host.page, now => now.phase !== "QUESTION_ACTIVE" || now.questionNumber !== current.questionNumber, "reveal");
     const revealed = await state(host.page);
-    if (revealed.phase === "ANSWER_REVEAL") await host.page.locator(".controls .button-primary").click();
+    if (revealed.phase === "ANSWER_REVEAL") await hostClick(host.page.locator(".controls .button-primary"), "next");
   }
   const won = await waitFor(host.page, now => now.winnerCount === 1, "Ava's Bingo");
   expect(won.winners[0].name).toBe("Ava");
@@ -186,7 +193,7 @@ test("QR join, numeric code, Lock Join, late join, and emoji everywhere", async 
   // The teacher ends the game; the final podium (host and student) keeps the emoji.
   await front(host.page);
   await host.page.locator(".controls").getByRole("button", { name: "End game" }).click();
-  await host.page.locator("dialog").getByRole("button", { name: "End game" }).click();
+  await hostClick(host.page.locator("dialog").getByRole("button", { name: "End game" }), "end");
   await waitFor(host.page, now => now.phase === "GAME_COMPLETE", "game complete", 60_000);
   await expect(host.page.locator(".podium")).toContainText("\u{1F981} Ava");
   await waitFor(omar.page, now => now.phase === "GAME_COMPLETE", "Omar sees the end", 60_000);

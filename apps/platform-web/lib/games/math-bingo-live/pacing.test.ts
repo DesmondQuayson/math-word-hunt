@@ -5,19 +5,15 @@ import {
   COVERAGE_TARGETS,
   PACING,
   buildUniverse,
-  capacityFor,
   cellClass,
   classesFromCallable,
   dealPacedBoard,
+  firstGateWindow,
   isValidPacedBoard,
-  maxWinnersFor,
-  oneAwayShare,
-  pacingNumbers,
   pacingPlan,
-  requiredCalls,
   universeClasses
 } from "@/public/internal-games/math-bingo-live/src/engine/pacing.js";
-import { DEFAULT_SETTINGS, MODES, normalizeSettings, type BingoSettings } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
+import { DEFAULT_SETTINGS, MAX_WINNERS, MIN_WINNERS, MODES, normalizeSettings, type BingoSettings } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
 
 import { buildPacedGame, dealFor, dealPacedBoards, pacingPayload, toHostState, toPlayerState } from "./server";
 
@@ -31,51 +27,54 @@ const SEED = "0123456789abcdef0123456789abcdef";
 const ids = Array.from({ length: 50 }, (_, index) => `${String(index).padStart(8, "0")}-0000-4000-8000-000000000000`);
 
 describe("the pacing contract", () => {
-  it("is 15 / 10 for every mode with enough questions, scaled down (never repeated) for small universes", () => {
-    expect(PACING.firstWinCall).toBe(15);
-    expect(PACING.spacing).toBe(10);
-    expect(pacingNumbers(500)).toMatchObject({ firstWinCall: 15, spacing: 10, buffer: 10, scaled: false });
-    expect(pacingNumbers(35)).toMatchObject({ firstWinCall: 15, buffer: 5, scaled: false });
-    expect(pacingNumbers(22)).toMatchObject({ firstWinCall: 15, spacing: 10, scaled: false });
-    expect(pacingNumbers(15)).toMatchObject({ firstWinCall: 10, scaled: true });
-    expect(pacingNumbers(10)).toMatchObject({ firstWinCall: 7, scaled: true });
-    expect(requiredCalls(pacingNumbers(500), 1)).toBe(25);
-    expect(requiredCalls(pacingNumbers(500), 3)).toBe(45);
-    expect(requiredCalls(pacingNumbers(500), 5)).toBe(65);
-    expect(requiredCalls(pacingNumbers(500), 10)).toBe(115);
+  it("draws the first gate from 14-17 (database) and gaps of 8-11; small levels get a window that still fits", () => {
+    expect(PACING.firstGateCalls).toEqual([14, 15, 16, 17]);
+    expect(PACING.winnerGapCalls).toEqual([8, 9, 10, 11]);
+    // Must match private.bingo_first_gate_bounds (checked by pgTAP 41).
+    expect(firstGateWindow(600)).toEqual([14, 17]);
+    expect(firstGateWindow(22)).toEqual([14, 17]);
+    expect(firstGateWindow(20)).toEqual([14, 17]);
+    expect(firstGateWindow(19)).toEqual([13, 16]);
+    expect(firstGateWindow(15)).toEqual([9, 12]);
+    expect(firstGateWindow(10)).toEqual([4, 7]);
     expect(Object.values(COVERAGE_TARGETS).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
   });
 
-  it("caps winners by unique questions and, for levels with few answers, by answer classes", () => {
-    expect(maxWinnersFor(500, 81)).toBe(48);
-    expect(maxWinnersFor(35, 10)).toBe(1);
-    expect(maxWinnersFor(51, 16)).toBe(2);
-    expect(maxWinnersFor(66, 43)).toBe(5);
-    expect(maxWinnersFor(10, 10)).toBe(1);
+  it("keeps enough early questions for the latest first gate of every level, and no winner cap anywhere", () => {
     for (const { mode, level } of LEVELS) {
-      const capacity = capacityFor(settingsFor(mode, level));
-      expect(capacity.maxWinners, `${mode}/${level}`).toBeGreaterThanOrEqual(1);
-      expect(capacity.universe).toBeGreaterThanOrEqual(capacity.firstWinCall);
+      const settings = settingsFor(mode, level);
+      const universe = buildUniverse(settings, SEED);
+      const plan = pacingPlan(settings, universe, SEED);
+      const early = new Set(plan.early.concat(plan.reserve));
+      const earlyQuestions = universe.filter(question => early.has(question.class)).length;
+      expect(earlyQuestions, `${mode}/${level}`).toBeGreaterThanOrEqual(plan.firstGateWindow[1] - 1);
+      expect(plan.late.length).toBeGreaterThanOrEqual(1);
+      expect(Object.keys(plan)).not.toContain("maxWinners");
+      expect(plan.scaled).toBe(plan.firstGateWindow[0] < 14);
     }
-    expect(capacityFor(settingsFor("fractions", "to-fifths"))).toMatchObject({ universe: 10, firstWinCall: 7, maxWinners: 1, scaled: true });
-    expect(capacityFor(settingsFor("fractions", "to-eighths"))).toMatchObject({ universe: 22, firstWinCall: 15, maxWinners: 1 });
-    // Single-question classes (every fraction is one question) cannot be re-called: 28 % are kept out of the winner count.
-    expect(capacityFor(settingsFor("fractions", "to-tenths")).maxWinners).toBe(2);
-    expect(capacityFor(settingsFor("fractions", "to-twelfths")).maxWinners).toBe(3);
-    // The class size: a level whose 14 early calls cover every early class has nearly everyone one away at
-    // the first gate, so beyond a small class one call would finish several lines at once (single winner).
-    expect(capacityFor(settingsFor("addition", "facts-20"), 10).maxWinners).toBe(2);
-    expect(capacityFor(settingsFor("addition", "facts-20"), 20).maxWinners).toBe(1);
-    expect(capacityFor(settingsFor("addition", "facts-20")).playersForMultipleWinners).toBeGreaterThanOrEqual(10);
-    expect(capacityFor(settingsFor("addition", "facts-20")).playersForMultipleWinners).toBeLessThan(20);
-    expect(capacityFor(settingsFor("addition", "within-50"), 50).maxWinners).toBeGreaterThanOrEqual(5);
-    expect(capacityFor(settingsFor("fractions", "to-twelfths"), 50).maxWinners).toBe(3);
-    expect(capacityFor(settingsFor("mixed", "core"), 40).maxWinners).toBe(3);
-    expect(capacityFor(settingsFor("addition", "within-50")).playersForMultipleWinners).toBeNull();
-    expect(oneAwayShare(11)).toBeCloseTo(0.6, 5);
-    expect(oneAwayShare(30)).toBeLessThan(0.25);
-    expect(capacityFor(settingsFor("addition", "facts-20")).maxWinners).toBe(2);
-    expect(capacityFor(settingsFor("multiplication", "x0-12")).maxWinners).toBe(5);
+    expect(pacingPlan(settingsFor("fractions", "to-fifths"), buildUniverse(settingsFor("fractions", "to-fifths"), SEED), SEED).scaled).toBe(true);
+    expect(pacingPlan(settingsFor("fractions", "to-eighths"), buildUniverse(settingsFor("fractions", "to-eighths"), SEED), SEED).scaled).toBe(false);
+  });
+});
+
+describe("the winner target", () => {
+  it("is any whole number from 1 to 60, checked on the server (no presets)", () => {
+    for (const winners of [1, 2, 4, 7, 12, 18, 25, 40, 59, 60]) {
+      expect(normalizeSettings({ ...DEFAULT_SETTINGS, winners }).ok, String(winners)).toBe(true);
+    }
+    for (const winners of [0, -1, 1.5, 61, 100, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, "5", "", null, undefined, [3], { n: 3 }, true]) {
+      const result = normalizeSettings({ ...DEFAULT_SETTINGS, winners });
+      expect(result.ok, String(winners)).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid-winners");
+    }
+    expect(MIN_WINNERS).toBe(1);
+    expect(MAX_WINNERS).toBe(60);
+  });
+
+  it("reads a room stored before winner targets ('everyone' = 0) only when asked to", () => {
+    expect(normalizeSettings({ ...DEFAULT_SETTINGS, winners: 0 }).ok).toBe(false);
+    expect(normalizeSettings({ ...DEFAULT_SETTINGS, winners: 0 }, { legacyWinners: true }).ok).toBe(true);
+    expect(normalizeSettings({ ...DEFAULT_SETTINGS, winners: -1 }, { legacyWinners: true }).ok).toBe(false);
   });
 });
 
@@ -184,7 +183,8 @@ describe("the server's paced game", () => {
     const game = buildPacedGame(settings, SEED);
     expect(game.questions.length).toBe(game.universe.length);
     expect(new Set(game.questions.map(q => q.q)).size).toBe(game.questions.length);
-    expect(pacingPayload(game.plan)).toMatchObject({ firstWinCall: 15, spacing: 10, maxWinners: 2 });
+    // The database draws the gates: the payload carries only the early/late plan.
+    expect(pacingPayload(game.plan)).toEqual({ late: [...game.plan.late], reserve: [...game.plan.reserve] });
     const boards = dealPacedBoards(settings, game, SEED, [...ids.slice(0, 5), "not-a-uuid", ids[0]]);
     expect(Object.keys(boards)).toEqual(ids.slice(0, 5));
     const callable = universeClasses(game.universe).map(item => ({ c: item.key, n: item.questions }));
@@ -195,10 +195,13 @@ describe("the server's paced game", () => {
     expect(dealFor({ settings, seed: SEED }, ids[7])).toBeNull();
   });
 
-  it("passes pacing, ties and pending lines to the screens, never the late classes", () => {
+  it("passes ties and pending lines to the screens, never the pacing gates or the late classes", () => {
     const record = {
       result: "ok", code: "482391", status: "open", phase: "QUESTION_ACTIVE", gameNumber: 1, settings: DEFAULT_SETTINGS, questionNumber: 11, deckLength: 60,
-      serverNow: 1, phaseStartedAt: 1, phaseDeadline: null, questionStartedAt: 1, winners: [], winnerCount: 0, events: [], eventSeq: 0, completedReason: null, joinLocked: false, version: 3, expiresAt: 9, playerCount: 3, called: [],
+      serverNow: 1, phaseStartedAt: 1, phaseDeadline: null, questionStartedAt: 1, winners: [{ id: "a", name: "Ava", placement: 1, tie: false, line: "row-1", lineType: "row", question: 15, mask: 31, cells: [] }, { id: "b", name: "Zion", placement: 1, tie: true, line: "row-1", lineType: "row", question: 15, mask: 31, cells: [] }],
+      winnerCount: 2,
+      events: [{ seq: 1, type: "bingo", name: "Ava", participant: "a", placement: 1, count: 1, tie: false, lineType: "row", cap: 3 }, { seq: 2, type: "bingo", name: "Zion", participant: "b", placement: 1, count: 2, tie: true, lineType: "row", cap: 3 }],
+      eventSeq: 2, completedReason: null, joinLocked: false, version: 3, expiresAt: 9, playerCount: 3, called: [],
       pacing: { firstWinCall: 15, spacing: 10, nextEligibleCall: 15, lastWinnerCall: null, maxWinners: 3, scaled: false, late: ["1/1"], calls: [{ n: 1 }] },
       leaderboard: [
         { id: "a", name: "Ava", rank: 1, tied: true, won: false, placement: null, best: 4, type: "row", bestLines: 1, pending: false, correct: 4 },
@@ -209,16 +212,17 @@ describe("the server's paced game", () => {
       me: { id: "c", name: "Omar", status: "active", gameNumber: 1, board: null, marks: 0, freeUsed: false, markQuestion: 0, attemptQuestion: 0, attempts: 0, correct: 3, hasWon: false, placement: null, winLine: null, pendingLine: "column-2", best: 3, bestType: "column", bestLines: 2, version: 2 }
     };
     const host = toHostState(record);
-    expect(host.pacing).toEqual({ firstWinCall: 15, spacing: 10, nextEligibleCall: 15, lastWinnerCall: null, maxWinners: 3, scaled: false, callsUntilOpportunity: 4, gateOpen: false });
+    expect(host).not.toHaveProperty("pacing");
+    expect(JSON.stringify(host)).not.toMatch(/nextEligibleCall|firstWinCall|spacing|gaps/);
+    expect(host.winners.map(winner => [winner.name, winner.placement, winner.tie])).toEqual([["Ava", 1, false], ["Zion", 1, true]]);
+    expect(host.events.map(event => [event.name, event.placement, event.count, event.tie])).toEqual([["Ava", 1, 1, false], ["Zion", 1, 2, true]]);
     expect(host.leaderboard[0]).toMatchObject({ rank: 1, tied: true, bestLines: 1 });
     expect(host.leaderboard[2]).toMatchObject({ rank: 3, pending: true, bestLines: 2 });
     expect(host.players[0]).toMatchObject({ bestLines: 1, pending: false });
     expect(JSON.stringify(host)).not.toContain("late");
     const player = toPlayerState(record);
     expect(player.me).toMatchObject({ pendingLine: "column-2", bestLines: 2, rank: 3, tied: false });
-    expect(player.pacing?.callsUntilOpportunity).toBe(4);
-    expect(toHostState({ ...record, questionNumber: 15 }).pacing).toMatchObject({ gateOpen: true, callsUntilOpportunity: 0 });
-    expect(toHostState({ ...record, questionNumber: 15, winnerCount: 3 }).pacing?.callsUntilOpportunity).toBeNull();
-    expect(toHostState({ ...record, pacing: null }).pacing).toBeNull();
+    expect(player).not.toHaveProperty("pacing");
+    expect(JSON.stringify(player)).not.toMatch(/nextEligibleCall|firstWinCall|gaps|"late"/);
   });
 });

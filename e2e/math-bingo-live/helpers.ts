@@ -1,4 +1,5 @@
 import { expect, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 export const HOST_ROUTE = "/games/math-bingo-live/host";
 export const JOIN_ROUTE = "/join";
@@ -15,11 +16,10 @@ export type LiveState = {
   question: Question | null;
   called: Question[];
   settings: { mode: string; patterns: { rows: boolean; columns: boolean; diagonals: boolean }; equivalentFractions: boolean; freeSpace: boolean; winners: number };
-  winners: Array<{ name: string; placement: number; lineType: string; line: string; question: number }>;
+  winners: Array<{ name: string; placement: number; tie: boolean; lineType: string; line: string; question: number }>;
   completedReason: string | null;
-  pacing: { firstWinCall: number; spacing: number; nextEligibleCall: number; lastWinnerCall: number | null; maxWinners: number; scaled: boolean; callsUntilOpportunity: number; gateOpen: boolean } | null;
   winnerCount: number;
-  events: Array<{ seq: number; type: string; name: string; placement: number | null }>;
+  events: Array<{ seq: number; type: string; name: string; placement: number | null; count: number | null; tie: boolean }>;
   leaderboard: Array<{ name: string; rank: number; won: boolean; placement: number | null; best: number; type: string | null }>;
   players?: Array<{ id: string; name: string }>;
   me?: { name: string; board: Cell[] | null; marks: number; freeUsed: boolean; markUsed: boolean; hasWon: boolean; placement: number | null; best: number; rank: number | null; attemptsLeft: number };
@@ -180,10 +180,8 @@ export async function createGame(page: Page, options: GameOptions = {}): Promise
   if (options.level) await radio("level", options.level);
   if (options.questionSeconds !== undefined) await radio("questionSeconds", options.questionSeconds);
   if (options.revealSeconds !== undefined) await radio("revealSeconds", options.revealSeconds);
-  if (options.winners !== undefined) {
-    if ([1, 2, 3, 5, 10, 0].includes(options.winners)) await radio("winners", options.winners);
-    else await page.locator("#winners-custom").fill(String(options.winners));
-  }
+  // Number of winners: one box (typed, or stepped with − / +); no presets.
+  if (options.winners !== undefined) await page.locator("#winners-count").fill(String(options.winners));
   for (const key of ["rows", "columns", "diagonals", "freeSpace", "equivalentFractions"] as const) {
     if (options[key] !== undefined) await setCheckbox(page, key, options[key]!);
   }
@@ -304,5 +302,39 @@ export async function closeRoom(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const token = sessionStorage.getItem("mathnexa:math-bingo-live:host-token");
     if (token) await fetch("/api/games/math-bingo-live/host", { method: "POST", headers: { "Content-Type": "application/json", "X-MathNexa-Game": "math-bingo-live" }, referrerPolicy: "same-origin", body: JSON.stringify({ action: "close", hostToken: token }) });
+  });
+}
+
+export type RoomPacing = {
+  firstWinCall: number;
+  nextEligibleCall: number;
+  lastWinnerCall: number | null;
+  gaps: number[];
+  winnerEvents: Array<{ n: number; placement: number; gap: number; next: number; winners: number }>;
+  closing: number | null;
+};
+
+/**
+ * The room's winner pacing as the database keeps it (local test database
+ * only, through the service key the runner provides). No screen is ever sent
+ * these numbers; the tests read them here to check the gates exactly.
+ */
+export async function roomPacing(code: string): Promise<RoomPacing | null> {
+  const url = process.env.SUPABASE_TEST_URL ?? "";
+  if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(url)) throw new Error("roomPacing reads the local test database only");
+  const admin = createClient(url, process.env.SUPABASE_TEST_SECRET_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await admin.from("bingo_rooms").select("pacing").eq("code", code).eq("status", "open").maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.pacing as RoomPacing | null) ?? null;
+}
+
+/**
+ * The placements a list of winners must have: competition ranking, and
+ * winners on the same call (one winner event) share their placement.
+ */
+export function expectedPlacements(winners: Array<{ question: number }>): number[] {
+  return winners.map((winner, index) => {
+    const first = winners.findIndex(other => other.question === winner.question);
+    return first === index ? index + 1 : first + 1;
   });
 }

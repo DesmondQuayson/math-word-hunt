@@ -17,7 +17,6 @@ import {
   LINE_LABEL,
   announcedName,
   bingoBannerChildren,
-  pacingText,
   calledList,
   createBanner,
   createTimer,
@@ -364,7 +363,6 @@ function buildGame() {
   const band = h("section", { class: "question-band", "aria-live": "off" });
   const toast = h("p", { class: "toast", role: "status", "aria-live": "polite" });
   const winnerRibbon = h("p", { class: "winner-ribbon", hidden: true });
-  const pacingLine = h("p", { class: "pacing-line", "aria-live": "polite" });
   const calledButton = h("button", { type: "button", class: "called-toggle", "aria-expanded": "false", "aria-controls": "called-panel", onclick: () => {
     calledOpen = !calledOpen;
     updateGame();
@@ -387,10 +385,10 @@ function buildGame() {
     leaders,
     h("div", { class: "card-holder" }, card.element, overlay),
     toast,
-    h("footer", { class: "play-footer" }, rules, pacingLine, calledButton, calledPanel));
+    h("footer", { class: "play-footer" }, rules, calledButton, calledPanel));
   fill(app, main);
   const banner = createBanner(document.body);
-  game = { card, timer, strip, band, toast, winnerRibbon, pacingLine, calledButton, calledPanel, rules, leaders, overlay, banner, rulesKey: "", leadersKey: "" };
+  game = { card, timer, strip, band, toast, winnerRibbon, calledButton, calledPanel, rules, leaders, overlay, banner, rulesKey: "", leadersKey: "" };
   tick();
 }
 
@@ -412,12 +410,10 @@ function updateGame() {
   body.classList.toggle("is-fractions", fractions);
 
   game.strip.name.textContent = withEmoji(me.name, me.emoji);
-  game.strip.rank.textContent = me.rank ? `${me.tied && !me.hasWon ? "T-" : "#"}${me.rank}` : "";
-  game.strip.rank.setAttribute("aria-label", me.rank ? (me.tied && !me.hasWon ? `Tied for rank ${me.rank}` : `Rank ${me.rank}`) : "");
+  game.strip.rank.textContent = me.rank ? `${me.tied ? "T-" : "#"}${me.rank}` : "";
+  game.strip.rank.setAttribute("aria-label", me.rank ? (me.tied ? `Tied for rank ${me.rank}` : `Rank ${me.rank}`) : "");
   game.strip.best.textContent = me.hasWon ? "BINGO" : me.pendingLine ? "5/5 waiting" : `${me.best}/5${me.bestType ? ` ${LINE_LABEL[me.bestType]}` : ""}`;
-  game.strip.best.setAttribute("aria-label", me.hasWon ? "You have Bingo" : me.pendingLine ? "Line complete, waiting for the next Bingo opportunity" : `Best line ${me.best} of 5${me.bestType ? `, ${LINE_LABEL[me.bestType]}` : ""}`);
-  game.pacingLine.textContent = pacingText(state);
-  game.pacingLine.hidden = !game.pacingLine.textContent;
+  game.strip.best.setAttribute("aria-label", me.hasWon ? "You have Bingo" : me.pendingLine ? "Line complete, waiting to be confirmed" : `Best line ${me.best} of 5${me.bestType ? `, ${LINE_LABEL[me.bestType]}` : ""}`);
 
   const rulesKey = JSON.stringify(settings?.patterns ?? {});
   if (rulesKey !== game.rulesKey) {
@@ -428,14 +424,13 @@ function updateGame() {
   if (me.hasWon && me.placement) {
     game.winnerRibbon.hidden = false;
     game.winnerRibbon.className = "winner-ribbon";
-    game.winnerRibbon.textContent = `${medal(me.placement)} BINGO! You finished ${ordinal(me.placement)}`;
+    game.winnerRibbon.textContent = `${medal(me.placement)} BINGO! You finished ${ordinal(me.placement)}${me.tied ? " (tie)" : ""}`;
   } else if (me.pendingLine) {
-    // A line completed on the same call as the winner: it is kept, and it is
-    // confirmed at the next Bingo opportunity (never announced as a Bingo now).
-    const calls = state.pacing?.callsUntilOpportunity;
+    // A line completed while no new winner could be accepted yet: it is kept
+    // and confirmed soon (never announced as a Bingo now; no countdown shown).
     game.winnerRibbon.hidden = false;
     game.winnerRibbon.className = "winner-ribbon is-pending";
-    game.winnerRibbon.textContent = calls ? `Line complete! Your Bingo is confirmed at the next opportunity (${calls} call${calls === 1 ? "" : "s"})` : "Line complete! Your Bingo is confirmed at the next opportunity";
+    game.winnerRibbon.textContent = "Line complete! Your Bingo is waiting to be confirmed.";
   } else {
     game.winnerRibbon.hidden = true;
   }
@@ -526,7 +521,7 @@ function completeView() {
           h("span", { class: "podium-name", text: playerName(winner) }),
           h("span", { class: "sr-only", text: `, ${ordinal(winner.placement)}` }))))
       : h("p", { class: "complete-text", text: "No Bingo this time — great effort!" }),
-    h("p", { class: "complete-text", text: me.hasWon ? `You finished ${ordinal(me.placement)}!` : `Your best line: ${me.best}/5.` }),
+    h("p", { class: "complete-text", text: me.hasWon ? `You finished ${ordinal(me.placement)}${me.tied ? " (tie)" : ""}!` : `Your best line: ${me.best}/5.` }),
     h("p", { class: "complete-wait", text: "Waiting for your teacher…" }));
 }
 
@@ -551,9 +546,10 @@ function processEvents() {
       });
       announce(event.you ? "You used your Free Space." : `${spokenName(event)} used Free Space.`, { assertive: true });
     } else if (event.type === "bingo") {
-      const winner = state.winners.find(item => item.placement === event.placement);
+      // Players who won on the same call share a placement: find this winner by name (unique in a room).
+      const winner = state.winners.find(item => item.placement === event.placement && item.name === event.name) ?? state.winners.find(item => item.placement === event.placement);
       game.banner.show({ tone: "bingo", duration: 3600, children: bingoBannerChildren(event, winner) });
-      announce(event.you ? `Bingo! You finished ${ordinal(event.placement)}.` : `${spokenName(event)}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo.`, { assertive: true });
+      announce(event.you ? `Bingo! You finished ${ordinal(event.placement)}${event.tie ? ", tied" : ""}.` : `${spokenName(event)}, Bingo! ${placeWord(event.placement).toLowerCase()} Bingo${event.tie ? ", tied" : ""}.`, { assertive: true });
       if (state.settings?.celebration === "all") {
         if (event.you) audio.bingo();
         else audio.winnerAnnouncement();

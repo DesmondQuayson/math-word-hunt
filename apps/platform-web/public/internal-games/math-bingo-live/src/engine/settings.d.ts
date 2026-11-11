@@ -22,9 +22,9 @@ export type BingoSettings = Readonly<{
 export const MODES: readonly BingoMode[];
 export const QUESTION_SECONDS: readonly number[];
 export const REVEAL_SECONDS: readonly number[];
-export const WINNER_PRESETS: readonly number[];
 export const AUDIO_TARGETS: readonly AudioTarget[];
 export const MAX_PARTICIPANTS: number;
+export const MIN_WINNERS: number;
 export const MAX_WINNERS: number;
 export const NAME_MIN: number;
 export const NAME_MAX: number;
@@ -37,5 +37,5 @@ export const DEFAULT_SETTINGS: BingoSettings;
 
 export function getMode(modeId: unknown): BingoMode | null;
 export function getLevel(modeId: unknown, levelId: unknown): BingoLevel | null;
-export function normalizeSettings(raw: unknown): { ok: true; settings: BingoSettings } | { ok: false; error: string };
+export function normalizeSettings(raw: unknown, options?: { legacyWinners?: boolean }): { ok: true; settings: BingoSettings } | { ok: false; error: string };
 export function sanitizeDisplayName(raw: unknown): { ok: true; name: string } | { ok: false; error: string };

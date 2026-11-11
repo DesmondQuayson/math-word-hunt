@@ -6,23 +6,27 @@
  * engine exactly as the host route deals it, and supabase/sim/
  * math_bingo_live_pacing_sim.sql (loaded here, test only) plays each match
  * inside the database with seeded, imperfect students. Then it judges the
- * pacing contract across modes, class sizes, winner counts and student models:
+ * pacing contract across modes, class sizes, winner targets and student models:
  *
- *   A no Bingo before the first gate     B an opportunity at/after it
- *   C ≥ spacing calls between winners     D the configured winners are reached
- *   E one win per player                  F no question repeats
- *   G/H/I zero-, single- and multi-player matches occur   J/K progress spreads
- *   L Free Space never breaks a gate      M only enabled lines count
- *   fairness: no seat (join order) wins systematically more often
+ *   A no Bingo before the game's first gate (drawn 14-17)   B an opportunity at/after it
+ *   C every NEW winner event waits the gap drawn after the previous one (8-11)
+ *   D same-call winners share the placement; the count may pass the target
+ *   E the target, or everyone, or the questions end the game; no invented winner
+ *   F one win per player, no question repeats
+ *   distributions of the first gate and of the gaps; fairness by seat
  *
  *   node scripts/math-bingo-live-pacing-simulation.mjs [--matches 40] [--players 10,20,30,40,50]
- *        [--modes addition,subtraction,...] [--winners 1,2,3,5] [--out qa-artifacts/math-bingo-live/pacing-simulation]
+ *        [--modes addition,subtraction,...] [--winners 1,2,3,5] [--sequence 14,8,11,9,10]
+ *        [--out qa-artifacts/math-bingo-live/pacing-simulation]
+ *
+ * --sequence: every match uses a game seed whose draws are exactly that first
+ * gate and those gaps (searched with the database's own md5 rule).
  *
  * Needs SUPABASE_TEST_URL (loopback) and SUPABASE_TEST_SECRET_KEY.
  */
 import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -32,7 +36,7 @@ import { createClient } from "@supabase/supabase-js";
 process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 const engine = "../apps/platform-web/public/internal-games/math-bingo-live/src/engine/";
 const { DEFAULT_SETTINGS, MODES, normalizeSettings } = await import(`${engine}settings.js`);
-const { buildUniverse, universeClasses, pacingPlan, dealPacedBoard, isValidPacedBoard } = await import(`${engine}pacing.js`);
+const { buildUniverse, universeClasses, pacingPlan, dealPacedBoard, isValidPacedBoard, firstGateWindow } = await import(`${engine}pacing.js`);
 
 const argument = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
@@ -44,7 +48,8 @@ const MODE_FILTER = argument("modes", "").split(",").filter(Boolean);
 const WINNERS = argument("winners", "1,2,3,5").split(",").map(Number);
 const OUT = resolve(argument("out", "qa-artifacts/math-bingo-live/pacing-simulation"));
 const PARALLEL = Number(argument("parallel", 6));
-const SEED_TEXT = argument("seed", "mathnexa-bingo-pacing-2026-11-07");
+const SEED_TEXT = argument("seed", "mathnexa-bingo-winner-targets-2026-11-11");
+const SEQUENCE = argument("sequence", "").split(",").filter(Boolean).map(Number);
 
 const url = process.env.SUPABASE_TEST_URL ?? "";
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(url)) throw new Error("Local Supabase only (SUPABASE_TEST_URL).");
@@ -59,6 +64,15 @@ try {
 }
 
 const hash = value => createHash("sha256").update(value).digest("hex");
+const md5 = value => createHash("md5").update(value).digest("hex");
+// The database's draws, replayed (private.bingo_first_gate / bingo_winner_gap).
+const firstGateOf = (seed, universeSize) => {
+  const [low, high] = firstGateWindow(universeSize);
+  return low + (parseInt(md5(`${seed}:first-winner-gate`).slice(0, 8), 16) % (high - low + 1));
+};
+const gapOf = (seed, event) => 8 + (parseInt(md5(`${seed}:winner-gap:${event}`).slice(0, 8), 16) % 4);
+const drawsMatch = (seed, universeSize, sequence) => firstGateOf(seed, universeSize) === sequence[0]
+  && sequence.slice(1).every((gap, index) => gapOf(seed, index + 1) === gap);
 const rpc = async (fn, args) => {
   const { data, error } = await admin.rpc(fn, args);
   if (error) throw new Error(`${fn}: ${error.message}`);
@@ -123,7 +137,7 @@ async function playMatch({ settings, players, winners, matchSeed, gameSeed }) {
       roster.push({ ...student, token, id: joined.me.id });
     }
     const universe = buildUniverse(settings, gameSeed);
-    const plan = pacingPlan(settings, universe, gameSeed, roster.length);
+    const plan = pacingPlan(settings, universe, gameSeed);
     const classes = universeClasses(universe).filter(item => !plan.reserve.includes(item.key));
     const usage = new Map();
     const boards = {};
@@ -136,12 +150,17 @@ async function playMatch({ settings, players, winners, matchSeed, gameSeed }) {
     const started = await rpc("bingo_host_start_paced", {
       p_owner_hash: owner, p_token_hash: hostToken, p_kind: "start", p_settings: settings, p_seed: gameSeed,
       p_questions: universe.map(question => ({ q: question.id, c: question.class, t: question.text, s: question.spoken, k: question.kind, n: question.n, d: question.d })),
-      p_boards: boards, p_pacing: { firstWinCall: plan.firstWinCall, spacing: plan.spacing, buffer: plan.buffer, maxWinners: plan.maxWinners, scaled: plan.scaled, players: plan.players, late: plan.late, reserve: plan.reserve }
+      p_boards: boards, p_pacing: { late: plan.late, reserve: plan.reserve }
     });
-    if (started.result !== "started") return { skipped: started.result, maxWinners: started.maxWinners ?? plan.maxWinners, plan };
-    const result = await simPlay({ owner, hostToken, players: roster.map(({ index, token, accuracy, attention, free }) => ({ index, token, accuracy, attention, free })), seed: matchSeed, maxCalls: 160 });
+    if (started.result !== "started") return { skipped: started.result, plan };
+    const playStarted = Date.now();
+    const result = await simPlay({ owner, hostToken, players: roster.map(({ index, token, accuracy, attention, free }) => ({ index, token, accuracy, attention, free })), seed: matchSeed, maxCalls: 400 });
     if (result.error) throw new Error(result.error);
-    return { ...result, plan, dealt: Number(started.dealt), winnersWanted: winners };
+    // The database's draws must be the ones its md5 rule gives (replayed here).
+    const replayed = firstGateOf(gameSeed, universe.length) === result.firstWinCall
+      && result.gaps.every((gap, index) => gap === gapOf(gameSeed, index + 1));
+    if (!replayed) result.violations.push({ call: 0, kind: "draws-differ-from-the-md5-rule" });
+    return { ...result, plan, universe: universe.length, dealt: Number(started.dealt), winnersWanted: winners, players: roster.length, ms: Date.now() - playStarted };
   } finally {
     await rpc("bingo_host_command", { p_owner_hash: owner, p_token_hash: hostToken, p_command: "close", p_args: {} }).catch(() => {});
     await admin.from("bingo_rooms").delete().eq("host_token_hash", hostToken);
@@ -161,13 +180,23 @@ for (const mode of MODES) {
   for (const level of LEVELS[mode.id] ?? []) {
     for (const count of PLAYER_COUNTS) {
       for (const winners of WINNERS) {
-        for (let match = 0; match < MATCHES; match += 1) jobs.push({ mode: mode.id, level, count, winners, match });
+        for (let match = 0; match < MATCHES; match += 1) jobs.push({ mode: mode.id, level, count, winners, wanted: winners, match });
       }
     }
   }
 }
-console.log(`${jobs.length} matches queued (${PARALLEL} at a time)`);
-const results = [];
+// Resumable: every finished game is appended to matches.jsonl; a re-run with the same
+// --out skips the games already there (a session break loses nothing).
+mkdirSync(OUT, { recursive: true });
+const LOG = resolve(OUT, "matches.jsonl");
+const jobKey = job => `${job.mode}/${job.level}/${job.count}/${job.wanted}/${job.match}`;
+const results = existsSync(LOG) ? readFileSync(LOG, "utf8").split(String.fromCharCode(10)).filter(Boolean).map(line => JSON.parse(line)) : [];
+const finished = new Set(results.filter(item => !item.failed).map(jobKey));
+for (let index = results.length - 1; index >= 0; index -= 1) if (results[index].failed) results.splice(index, 1);
+const pending = jobs.filter(job => !finished.has(jobKey(job)));
+jobs.length = 0;
+jobs.push(...pending);
+console.log(`${jobs.length} matches queued (${PARALLEL} at a time; ${results.length} already in ${LOG})`);
 let cursor = 0;
 let done = 0;
 const startedAt = Date.now();
@@ -177,10 +206,17 @@ async function worker() {
     const settingsResult = normalizeSettings({ ...DEFAULT_SETTINGS, mode: job.mode, level: job.level, winners: job.winners, questionSeconds: 0, revealSeconds: 0, music: "off", celebration: "off" });
     if (!settingsResult.ok) throw new Error(settingsResult.error);
     const matchSeed = `${SEED_TEXT}:${job.mode}:${job.level}:${job.count}:${job.winners}:${job.match}`;
-    const gameSeed = hash(matchSeed).slice(0, 32);
+    let gameSeed = hash(matchSeed).slice(0, 32);
+    if (SEQUENCE.length) {
+      const universeSize = buildUniverse(settingsResult.settings).length;
+      for (let attempt = 0; !drawsMatch(gameSeed, universeSize, SEQUENCE); attempt += 1) gameSeed = hash(`${matchSeed}:sequence:${attempt}`).slice(0, 32);
+    }
     try {
       const played = await playMatch({ settings: settingsResult.settings, players: studentsFor(job.count, matchSeed), winners: job.winners, matchSeed, gameSeed });
-      results.push({ ...job, ...played });
+      const record = { ...job, ...played };
+      delete record.callLog;
+      results.push(record);
+      appendFileSync(LOG, JSON.stringify(record) + String.fromCharCode(10));
     } catch (error) {
       results.push({ ...job, failed: String(error.message ?? error) });
     }
@@ -193,58 +229,77 @@ await Promise.all(Array.from({ length: PARALLEL }, worker));
 // ---------------------------------------------------------------- judge
 const groups = new Map();
 for (const result of results) {
-  const key = `${result.mode}/${result.level} · ${result.count} players · ${result.winners} winners`;
+  const key = `${result.mode}/${result.level} · ${result.count} players · ${result.wanted} winners`;
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(result);
 }
-const report = { seed: SEED_TEXT, matches: results.length, startedAt: new Date(startedAt).toISOString(), seconds: Math.round((Date.now() - startedAt) / 1000), groups: [], failures: [] };
+const tally = (values, keys) => Object.fromEntries(keys.map(key => [key, values.filter(value => value === key).length]));
+const report = {
+  seed: SEED_TEXT, sequence: SEQUENCE.length ? SEQUENCE : null, matches: results.length,
+  startedAt: new Date(startedAt).toISOString(), seconds: Math.round((Date.now() - startedAt) / 1000), groups: [], failures: []
+};
 let violationsTotal = 0;
+const allPlayed = results.filter(item => !item.skipped && !item.failed);
 for (const [key, list] of groups) {
   const played = list.filter(item => !item.skipped && !item.failed);
-  const skipped = list.filter(item => item.skipped);
   const failed = list.filter(item => item.failed);
   for (const item of failed) report.failures.push({ group: key, match: item.match, error: item.failed });
   const violations = played.flatMap(item => item.violations.map(v => ({ match: item.match, ...v })));
   violationsTotal += violations.length;
-  const winnerCalls = played.flatMap(item => item.winnerCalls);
-  const gaps = played.flatMap(item => item.winnerCalls.slice(1).map((call, index) => call - item.winnerCalls[index]));
-  const reached = played.filter(item => item.winners >= item.winnersWanted).length;
+  const eventCalls = played.map(item => item.winnerEvents.map(event => event.n));
+  const actualGaps = eventCalls.flatMap(calls => calls.slice(1).map((call, index) => call - calls[index]));
+  const slack = played.flatMap(item => item.winnerEvents.slice(1).map((event, index) => event.n - item.winnerEvents[index].n - item.gaps[index]));
+  const effective = item => Math.min(item.target, item.players);
+  const reached = played.filter(item => item.winners >= effective(item)).length;
   const coverage = { zero: 0, single: 0, limited: 0, broad: 0 };
   for (const item of played) for (const kind of Object.keys(coverage)) coverage[kind] += item.coverage?.[kind] ?? 0;
   const calls = played.reduce((sum, item) => sum + item.calls, 0);
-  const fourAt10 = played.map(item => item.timeline.find(t => t.n === 10)).filter(Boolean).map(t => t.four);
-  const fourAt14 = played.map(item => item.timeline.find(t => t.n === Math.min(14, item.plan.firstWinCall - 1))).filter(Boolean).map(t => t.four);
-  const threeAt14 = played.map(item => item.timeline.find(t => t.n === Math.min(14, item.plan.firstWinCall - 1))).filter(Boolean).map(t => t.three);
-  const twoAt8 = played.map(item => item.timeline.find(t => t.n === 8)).filter(Boolean).map(t => t.two + t.three + t.four);
-  const seatWins = {};
-  for (const item of played) for (const [seat, wins] of Object.entries(item.seatWins ?? {})) seatWins[seat] = (seatWins[seat] ?? 0) + wins;
-  const seatValues = Object.values(seatWins);
-  const expectedPerSeat = winnerCalls.length / Math.max(1, list[0].count);
-  const seatMax = Math.max(0, ...seatValues);
+  const firstWinners = played.map(item => item.winnerCalls[0]).filter(Number.isFinite);
+  const fourAtGate = played.map(item => item.timeline.find(step => step.n === item.firstWinCall - 1)).filter(Boolean).map(step => step.four);
   report.groups.push({
-    group: key, matches: list.length, played: played.length, skipped: skipped.length, skippedReason: skipped[0]?.skipped ?? null, maxWinners: list[0]?.maxWinners ?? played[0]?.plan?.maxWinners ?? null,
-    firstWinCall: played[0]?.plan?.firstWinCall ?? null,
+    group: key, matches: list.length, played: played.length, failed: failed.length,
     violations: violations.length, violationSample: violations.slice(0, 3),
-    reachedConfiguredWinners: `${reached}/${played.length}`,
-    completedReason: Object.fromEntries(["winners", "deck", "host", "everyone", null].map(reason => [String(reason), played.filter(item => item.completedReason === reason).length]).filter(([, n]) => n)),
-    earliestBingo: Math.min(...winnerCalls, Infinity) === Infinity ? null : Math.min(...winnerCalls),
-    firstWinnerCall: { mean: mean(played.map(item => item.winnerCalls[0]).filter(Number.isFinite)), p50: percentile(played.map(item => item.winnerCalls[0]).filter(Number.isFinite), 0.5), max: Math.max(...played.map(item => item.winnerCalls[0] ?? 0)) },
-    winnerGaps: { min: gaps.length ? Math.min(...gaps) : null, mean: mean(gaps), max: gaps.length ? Math.max(...gaps) : null },
-    averageWinnerCalls: mean(winnerCalls),
-    firstOpportunityCall: { mean: mean(played.map(item => item.firstOpportunityCall).filter(Number.isFinite)), max: Math.max(...played.map(item => item.firstOpportunityCall ?? 0)) },
+    firstGates: tally(played.map(item => item.firstWinCall), [...new Set(played.map(item => item.firstWinCall))].sort((a, b) => a - b)),
+    gapsDrawn: tally(played.flatMap(item => item.gaps), [8, 9, 10, 11]),
+    firstWinnerCall: { mean: mean(firstWinners), p50: percentile(firstWinners, 0.5), max: firstWinners.length ? Math.max(...firstWinners) : null, minMinusGate: played.length ? Math.min(...played.filter(item => item.winnerCalls.length).map(item => item.winnerCalls[0] - item.firstWinCall)) : null },
+    eventGaps: { min: actualGaps.length ? Math.min(...actualGaps) : null, mean: mean(actualGaps), max: actualGaps.length ? Math.max(...actualGaps) : null, minSlackOverDrawn: slack.length ? Math.min(...slack) : null },
+    winners: { mean: mean(played.map(item => item.winners)), max: Math.max(0, ...played.map(item => item.winners)) },
+    reachedTargetOrEveryone: `${reached}/${played.length}`,
+    completedReason: Object.fromEntries(["winners", "everyone", "deck", "host", null].map(reason => [String(reason), played.filter(item => item.completedReason === reason).length]).filter(([, n]) => n)),
+    tiedWinners: played.reduce((sum, item) => sum + item.ties, 0),
+    eventsWithTies: played.reduce((sum, item) => sum + item.winnerEvents.filter(event => event.winners > 1).length, 0),
+    events: played.reduce((sum, item) => sum + item.winnerEvents.length, 0),
+    overTarget: played.reduce((sum, item) => sum + Math.max(0, item.winners - item.target), 0),
     pendingLines: played.reduce((sum, item) => sum + item.pending, 0),
     stuckCalls: played.reduce((sum, item) => sum + item.stuck, 0),
-    callsPerMatch: mean(played.map(item => item.calls)),
+    callsPerMatch: { mean: mean(played.map(item => item.calls)), max: Math.max(0, ...played.map(item => item.calls)) },
+    msPerMatch: { mean: mean(played.map(item => item.ms)), max: Math.max(0, ...played.map(item => item.ms)) },
     coverageShare: Object.fromEntries(Object.entries(coverage).map(([kind, n]) => [kind, calls ? Math.round((n / calls) * 1000) / 10 : 0])),
     longestZeroMatchStreak: Math.max(0, ...played.map(item => item.longestZeroMatchStreak)),
-    fourOfFiveAt10: { mean: mean(fourAt10), max: Math.max(0, ...fourAt10) },
-    fourOfFiveBeforeGate: { mean: mean(fourAt14), max: Math.max(0, ...fourAt14) },
-    threeOfFiveBeforeGate: { mean: mean(threeAt14) },
-    anyProgressAt8: { mean: mean(twoAt8) },
-    uniqueQuestions: played.every(item => item.uniqueQuestions === item.calledQuestions),
-    seatFairness: { expectedWinsPerSeat: Math.round(expectedPerSeat * 100) / 100, mostWinsAnySeat: seatMax, seatsThatWon: seatValues.length }
+    fourOfFiveBeforeGate: { mean: mean(fourAtGate), max: Math.max(0, ...fourAtGate) },
+    uniqueQuestions: played.every(item => item.uniqueQuestions === item.calledQuestions)
   });
 }
+// Across every played match: the draws, the explicit sequences, seat fairness.
+const sequences = allPlayed.map(item => [item.firstWinCall, ...item.gaps]);
+const startsWith = prefix => sequences.filter(sequence => prefix.every((value, index) => sequence[index] === value)).length;
+const seatWins = { firstHalf: 0, secondHalf: 0 };
+for (const item of allPlayed) for (const [seat, wins] of Object.entries(item.seatWins ?? {})) {
+  if (Number(seat) < item.players / 2) seatWins.firstHalf += wins; else seatWins.secondHalf += wins;
+}
+report.summary = {
+  played: allPlayed.length,
+  violations: violationsTotal,
+  firstGates: tally(allPlayed.map(item => item.firstWinCall), [...new Set(allPlayed.map(item => item.firstWinCall))].sort((a, b) => a - b)),
+  gapsDrawn: tally(allPlayed.flatMap(item => item.gaps), [8, 9, 10, 11]),
+  earliestBingoMinusGate: allPlayed.filter(item => item.winnerCalls.length).length ? Math.min(...allPlayed.filter(item => item.winnerCalls.length).map(item => item.winnerCalls[0] - item.firstWinCall)) : null,
+  smallestEventGapMinusDrawn: (() => { const values = allPlayed.flatMap(item => item.winnerEvents.slice(1).map((event, index) => event.n - item.winnerEvents[index].n - item.gaps[index])); return values.length ? Math.min(...values) : null; })(),
+  sequences: { "14,8,11,9,10": startsWith([14, 8, 11, 9, 10]), "17,11,8": startsWith([17, 11, 8]) },
+  tiedWinners: allPlayed.reduce((sum, item) => sum + item.ties, 0),
+  overTarget: allPlayed.reduce((sum, item) => sum + Math.max(0, item.winners - item.target), 0),
+  reachedTargetOrEveryone: `${allPlayed.filter(item => item.winners >= Math.min(item.target, item.players)).length}/${allPlayed.length}`,
+  seatWins
+};
 report.violationsTotal = violationsTotal;
 mkdirSync(OUT, { recursive: true });
 writeFileSync(resolve(OUT, "report.json"), JSON.stringify(report, null, 2));
@@ -254,8 +309,8 @@ writeFileSync(resolve(OUT, "matches.json"), JSON.stringify(results.map(item => {
   return { ...rest, timelineLength: timeline?.length };
 }), null, 1));
 for (const group of report.groups) {
-  console.log(`${group.group.padEnd(52)} played ${String(group.played).padStart(3)}/${group.matches} viol ${group.violations} win1 ${group.firstWinnerCall.p50 ?? "-"} (max ${group.firstWinnerCall.max}) gap min ${group.winnerGaps.min ?? "-"} reached ${group.reachedConfiguredWinners} pend ${group.pendingLines} stuck ${group.stuckCalls} cov z${group.coverageShare.zero} s${group.coverageShare.single} l${group.coverageShare.limited} b${group.coverageShare.broad} 4/5@gate ${group.fourOfFiveBeforeGate.mean?.toFixed(1)} seatMax ${group.seatFairness.mostWinsAnySeat}/${group.seatFairness.expectedWinsPerSeat}${group.skipped ? ` skipped ${group.skipped} (${group.skippedReason})` : ""}`);
+  console.log(`${group.group.padEnd(52)} played ${String(group.played).padStart(3)}/${group.matches} viol ${group.violations} first ${group.firstWinnerCall.mean?.toFixed(1)} (max ${group.firstWinnerCall.max}) gaps ${group.eventGaps.min}-${group.eventGaps.max} reached ${group.reachedTargetOrEveryone} ties ${group.tiedWinners} over ${group.overTarget} ${JSON.stringify(group.completedReason)} calls ${group.callsPerMatch.mean?.toFixed(0)} ms ${group.msPerMatch.mean?.toFixed(0)}`);
 }
+console.log(JSON.stringify(report.summary));
 console.log(`\n${results.length} matches in ${report.seconds} s; violations: ${violationsTotal}; failures: ${report.failures.length}`);
-if (report.failures.length) console.log(report.failures.slice(0, 5));
 process.exit(violationsTotal === 0 && report.failures.length === 0 ? 0 : 1);

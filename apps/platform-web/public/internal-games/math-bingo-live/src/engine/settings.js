@@ -61,11 +61,16 @@ export const MODES = Object.freeze([
 
 export const QUESTION_SECONDS = Object.freeze([5, 10, 15, 20, 30, 45, 60, 0]);
 export const REVEAL_SECONDS = Object.freeze([2, 3, 5, 0]);
-/** 0 means "Everyone / until the teacher ends the game". */
-export const WINNER_PRESETS = Object.freeze([1, 2, 3, 5, 10, 0]);
 export const AUDIO_TARGETS = Object.freeze(["host", "all", "off"]);
 
 export const MAX_PARTICIPANTS = 60;
+/**
+ * A winner target is any whole number from 1 to 60. There is no preset list
+ * and no limit from the level's questions; 60 is the room's player capacity,
+ * the most winners any room can have. A room with fewer players than its
+ * target ends when every player has Bingo.
+ */
+export const MIN_WINNERS = 1;
 export const MAX_WINNERS = MAX_PARTICIPANTS;
 export const NAME_MIN = 2;
 export const NAME_MAX = 20;
@@ -103,8 +108,11 @@ const isBoolean = value => typeof value === "boolean";
 /**
  * Validate a settings object exactly. Anything unknown, missing or out of
  * range is refused (never silently replaced), so the host sees the error.
+ * `legacyWinners`: the settings a room stored before winner targets (its
+ * "everyone" is 0) are read as they are, so such a room can still play again;
+ * new settings never accept 0.
  */
-export function normalizeSettings(raw) {
+export function normalizeSettings(raw, { legacyWinners = false } = {}) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "invalid-settings" };
   const mode = getMode(raw.mode);
   if (!mode) return { ok: false, error: "invalid-mode" };
@@ -116,7 +124,8 @@ export function normalizeSettings(raw) {
     return { ok: false, error: "invalid-patterns" };
   }
   if (!patterns.rows && !patterns.columns && !patterns.diagonals) return { ok: false, error: "pattern-required" };
-  if (!Number.isInteger(raw.winners) || raw.winners < 0 || raw.winners > MAX_WINNERS) return { ok: false, error: "invalid-winners" };
+  const winnersOk = Number.isInteger(raw.winners) && raw.winners >= MIN_WINNERS && raw.winners <= MAX_WINNERS;
+  if (!winnersOk && !(legacyWinners && raw.winners === 0)) return { ok: false, error: "invalid-winners" };
   if (!isBoolean(raw.freeSpace) || !isBoolean(raw.equivalentFractions)) return { ok: false, error: "invalid-settings" };
   if (!AUDIO_TARGETS.includes(raw.music) || !AUDIO_TARGETS.includes(raw.celebration)) return { ok: false, error: "invalid-audio" };
   return {

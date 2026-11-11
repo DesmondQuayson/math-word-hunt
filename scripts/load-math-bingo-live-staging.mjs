@@ -44,6 +44,10 @@ if (secretKey.length < 20) throw new Error("missing secret key");
 const expectCommit = (process.env.EXPECT_COMMIT ?? "").trim();
 const PLAYERS = Number(process.env.LOAD_PLAYERS ?? 50);
 const LOAD_SECONDS = Number(process.env.LOAD_SECONDS ?? 480);
+/** The winner target and level: a large target (e.g. 30 of 50) exercises many winners per game. */
+const LOAD_WINNERS = Number(process.env.LOAD_WINNERS ?? 2);
+const LOAD_LEVEL = process.env.LOAD_LEVEL ?? "within-50";
+if (!Number.isInteger(LOAD_WINNERS) || LOAD_WINNERS < 1 || LOAD_WINNERS > 60) throw new Error("LOAD_WINNERS must be 1–60");
 if (!Number.isInteger(PLAYERS) || PLAYERS < 1 || PLAYERS > 60) throw new Error("LOAD_PLAYERS must be 1–60 (the room limit)");
 const out = resolve(process.env.REVIEW_OUT ?? "qa-artifacts/math-bingo-live/staging-load");
 mkdirSync(out, { recursive: true });
@@ -268,15 +272,16 @@ try {
   await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
   await page.waitForURL((url) => url.pathname === HOST, { timeout: 120_000 });
   await page.waitForFunction(() => document.body.dataset.screen === "setup", null, { timeout: 60_000 });
-  for (const [name, setting] of [["mode", "addition"], ["level", "within-50"], ["questionSeconds", "10"], ["revealSeconds", "3"], ["winners", "2"]]) {
+  for (const [name, setting] of [["mode", "addition"], ["level", LOAD_LEVEL], ["questionSeconds", "10"], ["revealSeconds", "3"]]) {
     await page.locator(`input[name="${name}"][value="${setting}"]`).click({ force: true });
   }
+  await page.locator("#winners-count").fill(String(LOAD_WINNERS));
   await page.getByRole("button", { name: "CREATE GAME" }).click();
   await page.waitForFunction(() => /^\d{6}$/.test(window.__MATH_BINGO_LIVE__?.state?.code ?? ""), null, { timeout: 60_000 });
   const hostState = () => page.evaluate(() => window.__MATH_BINGO_LIVE__?.state ?? null);
   const room = await hostState();
   codes.add(room.code);
-  ok(room.settings.questionSeconds === 10 && room.settings.winners === 2, `room ${room.code.slice(0, 2)}···· is timed (10 s questions, 2 winners)`);
+  ok(room.settings.questionSeconds === 10 && room.settings.winners === LOAD_WINNERS, `room ${room.code.slice(0, 2)}···· is timed (10 s questions, ${LOAD_WINNERS} winners, Addition ${LOAD_LEVEL})`);
 
   // A class of fifty joins within about ten seconds.
   for (let index = 0; index < PLAYERS; index += 1) students.push(student(index, room.code));
@@ -337,7 +342,11 @@ try {
       lastGame = s.gameNumber;
       const calledIds = s.called.map((item) => item.id);
       emojiInStandings = Math.max(emojiInStandings, s.leaderboard.filter((row) => row.emoji).length);
+      // The gates of this game, from the database (never sent to a screen), before Play Again redraws them.
+      const pacing = (await admin.from("bingo_rooms").select("pacing").eq("code", room.code).eq("status", "open").maybeSingle()).data?.pacing ?? null;
       games.push({ game: s.gameNumber, questions: s.questionNumber, calledIds: calledIds.length, uniqueCalledIds: new Set(calledIds).size,
+        completedReason: s.completedReason,
+        firstWinCall: pacing?.firstWinCall ?? null, gaps: pacing?.gaps ?? [], winnerEvents: (pacing?.winnerEvents ?? []).map((event) => ({ n: event.n, winners: event.winners })),
         winners: s.winners.map((winner) => ({ placement: winner.placement, name: winner.name, emoji: winner.emoji, question: winner.question })) });
       await page.screenshot({ path: resolve(out, `host-complete-game-${s.gameNumber}.png`) });
       if (Date.now() - playStarted > (LOAD_SECONDS - 45) * 1000) break;
@@ -418,8 +427,15 @@ try {
   const limited = samples.filter((sample) => sample.status === 429);
   ok(serverErrors.length === 0, `no server or network errors (${serverErrors.length}${serverErrors.length ? `: ${[...new Set(serverErrors.map((sample) => `${sample.action} ${sample.status} ${sample.result}`))].slice(0, 5).join("; ")}` : ""})`);
   ok(limited.length === 0, `no request was rate-limited from one shared address (${limited.length})`);
-  ok(games.length >= 1 && games.every((game) => game.winners.length >= 1 && game.winners.length <= 2 && new Set(game.winners.map((winner) => winner.placement)).size === game.winners.length), `${games.length} game(s) completed with 1–2 winners in distinct places`);
-  ok(games.every((game) => game.winners.every((winner, index) => winner.question >= (index === 0 ? 15 : game.winners[index - 1].question + 10))), `every Bingo kept the pacing: ${games.map((game) => game.winners.map((winner) => winner.question).join("/")).join(", ")}`);
+  const placementsOk = (game) => game.winners.every((winner, index) => {
+    const first = game.winners.findIndex((other) => other.question === winner.question);
+    return winner.placement === (first === index ? index + 1 : first + 1);
+  });
+  ok(games.length >= 1 && games.every((game) => game.winners.length >= 1 && new Set(game.winners.map((winner) => winner.name)).size === game.winners.length && placementsOk(game)),
+    `${games.length} game(s) completed: ${games.map((game) => `${game.winners.length} winners (${game.completedReason})`).join(", ")}; each winner once, same-call winners sharing the place`);
+  ok(games.every((game) => game.firstWinCall !== null && [14, 15, 16, 17].includes(game.firstWinCall) && game.gaps.every((gap) => gap >= 8 && gap <= 11)
+    && game.winnerEvents.every((event, index) => (index === 0 ? event.n >= game.firstWinCall : event.n >= game.winnerEvents[index - 1].n + game.gaps[index - 1]))),
+    `every Bingo kept its drawn gates: ${games.map((game) => `first ${game.firstWinCall}, events ${game.winnerEvents.map((event) => `${event.n}×${event.winners}`).join(" ")}, gaps ${game.gaps.join("/")}`).join("; ")}`);
   ok(report.boardsDealt === joined.filter(Boolean).length, `every student got a card (${report.boardsDealt})`);
   ok(burst.valid >= joined.filter(Boolean).length * 0.9 && burst.accepted === burst.valid, `same-answer burst: ${burst.accepted}/${burst.valid} simultaneous taps of the same answer accepted (${Object.entries(burst.results).map(([result, count]) => `${result} ${count}`).join(", ")}; p95 ${report.sameAnswerBurst.latency.p95} ms)`);
   ok(burst.repeats > 0 && burst.repeatsCounted === 0, `no repeated submission counted (${burst.repeatsCounted}/${burst.repeats})`);

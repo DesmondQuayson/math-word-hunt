@@ -1,0 +1,5143 @@
+{
+  "seed": "mathnexa-bingo-winner-targets-2026-11-11",
+  "sequence": null,
+  "matches": 81,
+  "startedAt": "2026-11-11T16:25:23.909Z",
+  "seconds": 358,
+  "groups": [
+    {
+      "group": "addition/facts-20 · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 0,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10.333333333333334,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 28,
+        "max": 28
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 24,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 13,
+      "stuckCalls": 8,
+      "callsPerMatch": {
+        "mean": 51,
+        "max": 51
+      },
+      "msPerMatch": {
+        "mean": 6516,
+        "max": 6516
+      },
+      "coverageShare": {
+        "zero": 9.8,
+        "single": 11.8,
+        "limited": 21.6,
+        "broad": 56.9
+      },
+      "longestZeroMatchStreak": 2,
+      "fourOfFiveBeforeGate": {
+        "mean": 16,
+        "max": 16
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.666666666666666,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 19,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 14,
+      "stuckCalls": 5,
+      "callsPerMatch": {
+        "mean": 42,
+        "max": 42
+      },
+      "msPerMatch": {
+        "mean": 7033,
+        "max": 7033
+      },
+      "coverageShare": {
+        "zero": 2.4,
+        "single": 9.5,
+        "limited": 23.8,
+        "broad": 64.3
+      },
+      "longestZeroMatchStreak": 1,
+      "fourOfFiveBeforeGate": {
+        "mean": 19,
+        "max": 19
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 2,
+        "10": 0,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.5,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 24,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 15,
+      "stuckCalls": 18,
+      "callsPerMatch": {
+        "mean": 51,
+        "max": 51
+      },
+      "msPerMatch": {
+        "mean": 7393,
+        "max": 7393
+      },
+      "coverageShare": {
+        "zero": 3.9,
+        "single": 7.8,
+        "limited": 27.5,
+        "broad": 60.8
+      },
+      "longestZeroMatchStreak": 1,
+      "fourOfFiveBeforeGate": {
+        "mean": 17,
+        "max": 17
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 0,
+        "10": 0,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.5,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 35,
+        "max": 35
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 18,
+      "eventsWithTies": 3,
+      "events": 3,
+      "overTarget": 10,
+      "pendingLines": 16,
+      "stuckCalls": 8,
+      "callsPerMatch": {
+        "mean": 35,
+        "max": 35
+      },
+      "msPerMatch": {
+        "mean": 8400,
+        "max": 8400
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 2.9,
+        "limited": 25.7,
+        "broad": 71.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 25,
+        "max": 25
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 3,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 9,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 33,
+        "max": 33
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 21,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 3,
+      "pendingLines": 13,
+      "stuckCalls": 9,
+      "callsPerMatch": {
+        "mean": 40,
+        "max": 40
+      },
+      "msPerMatch": {
+        "mean": 8397,
+        "max": 8397
+      },
+      "coverageShare": {
+        "zero": 5,
+        "single": 2.5,
+        "limited": 25,
+        "broad": 67.5
+      },
+      "longestZeroMatchStreak": 2,
+      "fourOfFiveBeforeGate": {
+        "mean": 22,
+        "max": 22
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 3,
+        "10": 0,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.75,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 36,
+        "max": 36
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 31,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 21,
+      "stuckCalls": 19,
+      "callsPerMatch": {
+        "mean": 51,
+        "max": 51
+      },
+      "msPerMatch": {
+        "mean": 8918,
+        "max": 8918
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 2,
+        "limited": 21.6,
+        "broad": 76.5
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 22,
+        "max": 22
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 3,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 10,
+        "mean": 10,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 36,
+        "max": 36
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 3,
+      "events": 3,
+      "overTarget": 11,
+      "pendingLines": 27,
+      "stuckCalls": 11,
+      "callsPerMatch": {
+        "mean": 35,
+        "max": 35
+      },
+      "msPerMatch": {
+        "mean": 11647,
+        "max": 11647
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 28.6,
+        "broad": 71.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 30,
+        "max": 30
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 9,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 33,
+        "max": 33
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 3,
+      "events": 3,
+      "overTarget": 3,
+      "pendingLines": 25,
+      "stuckCalls": 11,
+      "callsPerMatch": {
+        "mean": 31,
+        "max": 31
+      },
+      "msPerMatch": {
+        "mean": 10388,
+        "max": 10388
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 22.6,
+        "broad": 77.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 22,
+        "max": 22
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/facts-20 · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 2,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 47,
+        "max": 47
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 34,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 7,
+      "pendingLines": 27,
+      "stuckCalls": 12,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 10652,
+        "max": 10652
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 4.4,
+        "limited": 31.1,
+        "broad": 64.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 32,
+        "max": 32
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 4,
+        "10": 4,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.533333333333333,
+        "max": 12,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 9,
+      "eventsWithTies": 7,
+      "events": 16,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 160,
+        "max": 160
+      },
+      "msPerMatch": {
+        "mean": 12708,
+        "max": 12708
+      },
+      "coverageShare": {
+        "zero": 39.4,
+        "single": 14.4,
+        "limited": 26.9,
+        "broad": 19.4
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 7,
+        "10": 3,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.533333333333333,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 14,
+      "eventsWithTies": 8,
+      "events": 16,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 158,
+        "max": 158
+      },
+      "msPerMatch": {
+        "mean": 12255,
+        "max": 12255
+      },
+      "coverageShare": {
+        "zero": 41.1,
+        "single": 13.9,
+        "limited": 24.1,
+        "broad": 20.9
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 3,
+        "max": 3
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 3,
+        "10": 3,
+        "11": 9
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.263157894736842,
+        "max": 14,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "everyone": 1
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 9,
+      "events": 20,
+      "overTarget": 0,
+      "pendingLines": 3,
+      "stuckCalls": 1,
+      "callsPerMatch": {
+        "mean": 210,
+        "max": 210
+      },
+      "msPerMatch": {
+        "mean": 14662,
+        "max": 14662
+      },
+      "coverageShare": {
+        "zero": 49.5,
+        "single": 14.3,
+        "limited": 19.5,
+        "broad": 16.7
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 6,
+        "max": 6
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 3,
+        "10": 0,
+        "11": 9
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.384615384615385,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 11,
+      "eventsWithTies": 5,
+      "events": 14,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 151,
+        "max": 151
+      },
+      "msPerMatch": {
+        "mean": 16421,
+        "max": 16421
+      },
+      "coverageShare": {
+        "zero": 23.8,
+        "single": 23.2,
+        "limited": 33.8,
+        "broad": 19.2
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 6,
+        "max": 6
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 6,
+        "10": 6,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.6875,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 31,
+        "max": 31
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 14,
+      "eventsWithTies": 9,
+      "events": 17,
+      "overTarget": 1,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 169,
+        "max": 169
+      },
+      "msPerMatch": {
+        "mean": 17444,
+        "max": 17444
+      },
+      "coverageShare": {
+        "zero": 32,
+        "single": 13.6,
+        "limited": 36.7,
+        "broad": 17.8
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 6,
+        "10": 4,
+        "11": 6
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.75,
+        "max": 12,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 40,
+        "max": 40
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 19,
+      "eventsWithTies": 10,
+      "events": 21,
+      "overTarget": 0,
+      "pendingLines": 3,
+      "stuckCalls": 3,
+      "callsPerMatch": {
+        "mean": 212,
+        "max": 212
+      },
+      "msPerMatch": {
+        "mean": 20271,
+        "max": 20271
+      },
+      "coverageShare": {
+        "zero": 38.7,
+        "single": 19.3,
+        "limited": 25.5,
+        "broad": 16.5
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 7,
+        "max": 7
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 4,
+        "9": 3,
+        "10": 7,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10.2,
+        "max": 15,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 6,
+      "events": 16,
+      "overTarget": 4,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 167,
+        "max": 167
+      },
+      "msPerMatch": {
+        "mean": 22415,
+        "max": 22415
+      },
+      "coverageShare": {
+        "zero": 34.1,
+        "single": 14.4,
+        "limited": 34.7,
+        "broad": 16.8
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.5,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 20,
+        "max": 20
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 4,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 14,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 9173,
+        "max": 9173
+      },
+      "coverageShare": {
+        "zero": 14.8,
+        "single": 1.6,
+        "limited": 18,
+        "broad": 65.6
+      },
+      "longestZeroMatchStreak": 3,
+      "fourOfFiveBeforeGate": {
+        "mean": 6,
+        "max": 6
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 0,
+        "10": 0,
+        "11": 4
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 1
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.25,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 20,
+        "max": 20
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 4,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 14,
+      "stuckCalls": 14,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 8521,
+        "max": 8521
+      },
+      "coverageShare": {
+        "zero": 13.1,
+        "single": 3.3,
+        "limited": 18,
+        "broad": 65.6
+      },
+      "longestZeroMatchStreak": 4,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 2,
+        "10": 2,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.2,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 24,
+        "max": 24
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 18,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 13,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 8008,
+        "max": 8008
+      },
+      "coverageShare": {
+        "zero": 11.5,
+        "single": 6.6,
+        "limited": 16.4,
+        "broad": 65.6
+      },
+      "longestZeroMatchStreak": 4,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 6,
+        "9": 5,
+        "10": 5,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.8125,
+        "max": 16,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 31,
+        "max": 31
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 14,
+      "eventsWithTies": 6,
+      "events": 17,
+      "overTarget": 1,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 173,
+        "max": 173
+      },
+      "msPerMatch": {
+        "mean": 27029,
+        "max": 27029
+      },
+      "coverageShare": {
+        "zero": 27.7,
+        "single": 18.5,
+        "limited": 36.4,
+        "broad": 17.3
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "addition/within-50 · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 5,
+        "10": 6,
+        "11": 5
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.352941176470589,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 46,
+        "max": 46
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 18,
+      "eventsWithTies": 7,
+      "events": 18,
+      "overTarget": 6,
+      "pendingLines": 11,
+      "stuckCalls": 3,
+      "callsPerMatch": {
+        "mean": 191,
+        "max": 191
+      },
+      "msPerMatch": {
+        "mean": 29479,
+        "max": 29479
+      },
+      "coverageShare": {
+        "zero": 37.7,
+        "single": 13.6,
+        "limited": 32.5,
+        "broad": 16.2
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 9,
+        "max": 9
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 0,
+        "10": 2,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 10,
+        "mean": 10.5,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 27,
+        "max": 27
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 20,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 2,
+      "pendingLines": 16,
+      "stuckCalls": 13,
+      "callsPerMatch": {
+        "mean": 56,
+        "max": 56
+      },
+      "msPerMatch": {
+        "mean": 10644,
+        "max": 10644
+      },
+      "coverageShare": {
+        "zero": 12.5,
+        "single": 5.4,
+        "limited": 16.1,
+        "broad": 66.1
+      },
+      "longestZeroMatchStreak": 3,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 1,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 9.75,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 27,
+        "max": 27
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 22,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 18,
+      "stuckCalls": 18,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 11491,
+        "max": 11491
+      },
+      "coverageShare": {
+        "zero": 11.5,
+        "single": 3.3,
+        "limited": 18,
+        "broad": 67.2
+      },
+      "longestZeroMatchStreak": 3,
+      "fourOfFiveBeforeGate": {
+        "mean": 9,
+        "max": 9
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 1,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10.25,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 26,
+        "max": 26
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 21,
+      "eventsWithTies": 4,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 18,
+      "stuckCalls": 21,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 11780,
+        "max": 11780
+      },
+      "coverageShare": {
+        "zero": 13.1,
+        "single": 3.3,
+        "limited": 18,
+        "broad": 65.6
+      },
+      "longestZeroMatchStreak": 3,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 2,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 12,
+      "eventsWithTies": 3,
+      "events": 4,
+      "overTarget": 4,
+      "pendingLines": 16,
+      "stuckCalls": 10,
+      "callsPerMatch": {
+        "mean": 44,
+        "max": 44
+      },
+      "msPerMatch": {
+        "mean": 12981,
+        "max": 12981
+      },
+      "coverageShare": {
+        "zero": 13.6,
+        "single": 0,
+        "limited": 13.6,
+        "broad": 72.7
+      },
+      "longestZeroMatchStreak": 3,
+      "fourOfFiveBeforeGate": {
+        "mean": 9,
+        "max": 9
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 4,
+        "9": 0,
+        "10": 1,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.142857142857142,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 21,
+        "max": 21
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 7,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 5,
+      "stuckCalls": 10,
+      "callsPerMatch": {
+        "mean": 84,
+        "max": 84
+      },
+      "msPerMatch": {
+        "mean": 10134,
+        "max": 10134
+      },
+      "coverageShare": {
+        "zero": 19,
+        "single": 2.4,
+        "limited": 27.4,
+        "broad": 51.2
+      },
+      "longestZeroMatchStreak": 5,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 0,
+        "10": 1,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 38,
+        "max": 38
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 8,
+      "pendingLines": 20,
+      "stuckCalls": 12,
+      "callsPerMatch": {
+        "mean": 56,
+        "max": 56
+      },
+      "msPerMatch": {
+        "mean": 15216,
+        "max": 15216
+      },
+      "coverageShare": {
+        "zero": 10.7,
+        "single": 0,
+        "limited": 21.4,
+        "broad": 67.9
+      },
+      "longestZeroMatchStreak": 2,
+      "fourOfFiveBeforeGate": {
+        "mean": 12,
+        "max": 12
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-10 · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 3,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 10,
+        "mean": 10.25,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 35,
+        "max": 35
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 30,
+      "eventsWithTies": 5,
+      "events": 5,
+      "overTarget": 0,
+      "pendingLines": 21,
+      "stuckCalls": 19,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 14728,
+        "max": 14728
+      },
+      "coverageShare": {
+        "zero": 13.1,
+        "single": 1.6,
+        "limited": 18,
+        "broad": 67.2
+      },
+      "longestZeroMatchStreak": 5,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 3,
+        "10": 3,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.428571428571429,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 17,
+      "eventsWithTies": 6,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 7,
+      "stuckCalls": 12,
+      "callsPerMatch": {
+        "mean": 84,
+        "max": 84
+      },
+      "msPerMatch": {
+        "mean": 10297,
+        "max": 10297
+      },
+      "coverageShare": {
+        "zero": 14.3,
+        "single": 6,
+        "limited": 28.6,
+        "broad": 51.2
+      },
+      "longestZeroMatchStreak": 5,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 1,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.857142857142858,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 20,
+        "max": 20
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 12,
+      "eventsWithTies": 7,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 11,
+      "stuckCalls": 12,
+      "callsPerMatch": {
+        "mean": 84,
+        "max": 84
+      },
+      "msPerMatch": {
+        "mean": 9504,
+        "max": 9504
+      },
+      "coverageShare": {
+        "zero": 15.5,
+        "single": 9.5,
+        "limited": 28.6,
+        "broad": 46.4
+      },
+      "longestZeroMatchStreak": 6,
+      "fourOfFiveBeforeGate": {
+        "mean": 2,
+        "max": 2
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 3,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 7,
+      "events": 7,
+      "overTarget": 4,
+      "pendingLines": 12,
+      "stuckCalls": 10,
+      "callsPerMatch": {
+        "mean": 76,
+        "max": 76
+      },
+      "msPerMatch": {
+        "mean": 11556,
+        "max": 11556
+      },
+      "coverageShare": {
+        "zero": 22.4,
+        "single": 0,
+        "limited": 17.1,
+        "broad": 60.5
+      },
+      "longestZeroMatchStreak": 5,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 3,
+        "10": 2,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.428571428571429,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 14,
+      "eventsWithTies": 6,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 16,
+      "stuckCalls": 19,
+      "callsPerMatch": {
+        "mean": 82,
+        "max": 82
+      },
+      "msPerMatch": {
+        "mean": 11218,
+        "max": 11218
+      },
+      "coverageShare": {
+        "zero": 19.5,
+        "single": 1.2,
+        "limited": 17.1,
+        "broad": 62.2
+      },
+      "longestZeroMatchStreak": 7,
+      "fourOfFiveBeforeGate": {
+        "mean": 2,
+        "max": 2
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 4,
+        "10": 1,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.285714285714286,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 21,
+      "eventsWithTies": 6,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 7,
+      "stuckCalls": 13,
+      "callsPerMatch": {
+        "mean": 84,
+        "max": 84
+      },
+      "msPerMatch": {
+        "mean": 10422,
+        "max": 10422
+      },
+      "coverageShare": {
+        "zero": 17.9,
+        "single": 4.8,
+        "limited": 25,
+        "broad": 52.4
+      },
+      "longestZeroMatchStreak": 7,
+      "fourOfFiveBeforeGate": {
+        "mean": 6,
+        "max": 6
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 1,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 19,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 6,
+      "stuckCalls": 9,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 12222,
+        "max": 12222
+      },
+      "coverageShare": {
+        "zero": 22.7,
+        "single": 1.5,
+        "limited": 12.1,
+        "broad": 63.6
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 4,
+        "9": 4,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.875,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 6,
+      "events": 9,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 87,
+        "max": 87
+      },
+      "msPerMatch": {
+        "mean": 9358,
+        "max": 9358
+      },
+      "coverageShare": {
+        "zero": 33.3,
+        "single": 12.6,
+        "limited": 26.4,
+        "broad": 27.6
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 16,
+        "max": 16
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 2,
+        "10": 3,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.714285714285714,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 40,
+        "max": 40
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 22,
+      "eventsWithTies": 7,
+      "events": 8,
+      "overTarget": 10,
+      "pendingLines": 18,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 82,
+        "max": 82
+      },
+      "msPerMatch": {
+        "mean": 15803,
+        "max": 15803
+      },
+      "coverageShare": {
+        "zero": 17.1,
+        "single": 0,
+        "limited": 19.5,
+        "broad": 63.4
+      },
+      "longestZeroMatchStreak": 5,
+      "fourOfFiveBeforeGate": {
+        "mean": 2,
+        "max": 2
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "multiplication/x0-12 · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 1,
+        "10": 0,
+        "11": 4
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.428571428571429,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 38,
+        "max": 38
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 30,
+      "eventsWithTies": 6,
+      "events": 8,
+      "overTarget": 0,
+      "pendingLines": 23,
+      "stuckCalls": 28,
+      "callsPerMatch": {
+        "mean": 84,
+        "max": 84
+      },
+      "msPerMatch": {
+        "mean": 16029,
+        "max": 16029
+      },
+      "coverageShare": {
+        "zero": 16.7,
+        "single": 4.8,
+        "limited": 15.5,
+        "broad": 63.1
+      },
+      "longestZeroMatchStreak": 4,
+      "fourOfFiveBeforeGate": {
+        "mean": 6,
+        "max": 6
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 2,
+        "10": 2,
+        "11": 4
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.88888888888889,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 20,
+      "eventsWithTies": 7,
+      "events": 10,
+      "overTarget": 0,
+      "pendingLines": 16,
+      "stuckCalls": 9,
+      "callsPerMatch": {
+        "mean": 105,
+        "max": 105
+      },
+      "msPerMatch": {
+        "mean": 9812,
+        "max": 9812
+      },
+      "coverageShare": {
+        "zero": 41.9,
+        "single": 13.3,
+        "limited": 20,
+        "broad": 24.8
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 17,
+        "max": 17
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 4,
+        "10": 2,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.5,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 18,
+      "eventsWithTies": 5,
+      "events": 11,
+      "overTarget": 0,
+      "pendingLines": 19,
+      "stuckCalls": 15,
+      "callsPerMatch": {
+        "mean": 120,
+        "max": 120
+      },
+      "msPerMatch": {
+        "mean": 10372,
+        "max": 10372
+      },
+      "coverageShare": {
+        "zero": 42.5,
+        "single": 12.5,
+        "limited": 20,
+        "broad": 25
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 14,
+        "max": 14
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 1,
+        "10": 0,
+        "11": 4
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.857142857142858,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 34,
+        "max": 34
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 4,
+      "eventsWithTies": 4,
+      "events": 8,
+      "overTarget": 9,
+      "pendingLines": 23,
+      "stuckCalls": 4,
+      "callsPerMatch": {
+        "mean": 82,
+        "max": 82
+      },
+      "msPerMatch": {
+        "mean": 12231,
+        "max": 12231
+      },
+      "coverageShare": {
+        "zero": 34.1,
+        "single": 8.5,
+        "limited": 28,
+        "broad": 29.3
+      },
+      "longestZeroMatchStreak": 7,
+      "fourOfFiveBeforeGate": {
+        "mean": 17,
+        "max": 17
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 5,
+        "9": 2,
+        "10": 4,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 40,
+        "max": 40
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 29,
+      "eventsWithTies": 8,
+      "events": 11,
+      "overTarget": 0,
+      "pendingLines": 15,
+      "stuckCalls": 10,
+      "callsPerMatch": {
+        "mean": 105,
+        "max": 105
+      },
+      "msPerMatch": {
+        "mean": 12247,
+        "max": 12247
+      },
+      "coverageShare": {
+        "zero": 40,
+        "single": 9.5,
+        "limited": 26.7,
+        "broad": 23.8
+      },
+      "longestZeroMatchStreak": 7,
+      "fourOfFiveBeforeGate": {
+        "mean": 18,
+        "max": 18
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 4,
+        "10": 2,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.11111111111111,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 37,
+        "max": 37
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 5,
+      "events": 10,
+      "overTarget": 7,
+      "pendingLines": 26,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 97,
+        "max": 97
+      },
+      "msPerMatch": {
+        "mean": 12644,
+        "max": 12644
+      },
+      "coverageShare": {
+        "zero": 30.9,
+        "single": 13.4,
+        "limited": 32,
+        "broad": 23.7
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 17,
+        "max": 17
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 5,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10.166666666666666,
+        "max": 12,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 6,
+      "eventsWithTies": 4,
+      "events": 7,
+      "overTarget": 4,
+      "pendingLines": 17,
+      "stuckCalls": 3,
+      "callsPerMatch": {
+        "mean": 76,
+        "max": 76
+      },
+      "msPerMatch": {
+        "mean": 13821,
+        "max": 13821
+      },
+      "coverageShare": {
+        "zero": 25,
+        "single": 9.2,
+        "limited": 35.5,
+        "broad": 30.3
+      },
+      "longestZeroMatchStreak": 6,
+      "fourOfFiveBeforeGate": {
+        "mean": 24,
+        "max": 24
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 0,
+        "10": 5,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.833333333333334,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 31,
+        "max": 31
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 7,
+      "eventsWithTies": 7,
+      "events": 7,
+      "overTarget": 1,
+      "pendingLines": 18,
+      "stuckCalls": 2,
+      "callsPerMatch": {
+        "mean": 73,
+        "max": 73
+      },
+      "msPerMatch": {
+        "mean": 13685,
+        "max": 13685
+      },
+      "coverageShare": {
+        "zero": 31.5,
+        "single": 8.2,
+        "limited": 32.9,
+        "broad": 27.4
+      },
+      "longestZeroMatchStreak": 7,
+      "fourOfFiveBeforeGate": {
+        "mean": 18,
+        "max": 18
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/core · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 3,
+        "10": 3,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.125,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 47,
+        "max": 47
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 29,
+      "eventsWithTies": 7,
+      "events": 9,
+      "overTarget": 7,
+      "pendingLines": 10,
+      "stuckCalls": 3,
+      "callsPerMatch": {
+        "mean": 97,
+        "max": 97
+      },
+      "msPerMatch": {
+        "mean": 16973,
+        "max": 16973
+      },
+      "coverageShare": {
+        "zero": 36.1,
+        "single": 10.3,
+        "limited": 25.8,
+        "broad": 27.8
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 31,
+        "max": 31
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 7,
+        "9": 4,
+        "10": 8,
+        "11": 6
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.25,
+        "max": 14,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 25,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 260,
+        "max": 260
+      },
+      "msPerMatch": {
+        "mean": 36652,
+        "max": 36652
+      },
+      "coverageShare": {
+        "zero": 29.2,
+        "single": 31.2,
+        "limited": 36.2,
+        "broad": 3.5
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 1,
+        "max": 1
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 8,
+        "9": 7,
+        "10": 9,
+        "11": 6
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.241379310344827,
+        "max": 15,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 30,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 313,
+        "max": 313
+      },
+      "msPerMatch": {
+        "mean": 46807,
+        "max": 46807
+      },
+      "coverageShare": {
+        "zero": 39.3,
+        "single": 24.9,
+        "limited": 32.3,
+        "broad": 3.5
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 3,
+        "max": 3
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 7,
+        "9": 7,
+        "10": 10,
+        "11": 6
+      },
+      "firstWinnerCall": {
+        "mean": 18,
+        "p50": 18,
+        "max": 18,
+        "minMinusGate": 1
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.10344827586207,
+        "max": 12,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "everyone": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 30,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 311,
+        "max": 311
+      },
+      "msPerMatch": {
+        "mean": 44132,
+        "max": 44132
+      },
+      "coverageShare": {
+        "zero": 34.1,
+        "single": 32.2,
+        "limited": 30.2,
+        "broad": 3.5
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 2,
+        "max": 2
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 8,
+        "9": 6,
+        "10": 6,
+        "11": 5
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.958333333333334,
+        "max": 14,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 25,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 253,
+        "max": 253
+      },
+      "msPerMatch": {
+        "mean": 44019,
+        "max": 44019
+      },
+      "coverageShare": {
+        "zero": 28.9,
+        "single": 30.8,
+        "limited": 36.8,
+        "broad": 3.6
+      },
+      "longestZeroMatchStreak": 8,
+      "fourOfFiveBeforeGate": {
+        "mean": 2,
+        "max": 2
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 8,
+        "9": 7,
+        "10": 11,
+        "11": 4
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 1
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.379310344827585,
+        "max": 17,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 30,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 318,
+        "max": 318
+      },
+      "msPerMatch": {
+        "mean": 44337,
+        "max": 44337
+      },
+      "coverageShare": {
+        "zero": 37.1,
+        "single": 28.9,
+        "limited": 30.8,
+        "broad": 3.1
+      },
+      "longestZeroMatchStreak": 9,
+      "fourOfFiveBeforeGate": {
+        "mean": 1,
+        "max": 1
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 6,
+        "9": 7,
+        "10": 7,
+        "11": 5
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.166666666666666,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 25,
+        "max": 25
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 0,
+      "eventsWithTies": 0,
+      "events": 25,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 260,
+        "max": 260
+      },
+      "msPerMatch": {
+        "mean": 49152,
+        "max": 49152
+      },
+      "coverageShare": {
+        "zero": 28.1,
+        "single": 26.5,
+        "limited": 41.9,
+        "broad": 3.5
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 1,
+        "max": 1
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 17,
+        "9": 9,
+        "10": 8,
+        "11": 5
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.868421052631579,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 40,
+        "max": 40
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 1,
+      "eventsWithTies": 1,
+      "events": 39,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 391,
+        "max": 391
+      },
+      "msPerMatch": {
+        "mean": 56401,
+        "max": 56401
+      },
+      "coverageShare": {
+        "zero": 46.3,
+        "single": 25.1,
+        "limited": 26.6,
+        "broad": 2
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 0,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 11,
+        "max": 11
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 11,
+      "stuckCalls": 5,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 6548,
+        "max": 6548
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 24,
+        "max": 24
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 7,
+        "max": 7
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 6,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 15,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 5504,
+        "max": 5504
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 15,
+        "max": 15
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 10,
+        "max": 10
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 9,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 11,
+      "stuckCalls": 8,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 5410,
+        "max": 5410
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 16,
+        "max": 16
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 8,
+        "9": 8,
+        "10": 8,
+        "11": 5
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.857142857142858,
+        "max": 13,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 1,
+      "eventsWithTies": 1,
+      "events": 29,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 290,
+        "max": 290
+      },
+      "msPerMatch": {
+        "mean": 55588,
+        "max": 55588
+      },
+      "coverageShare": {
+        "zero": 38.3,
+        "single": 19.7,
+        "limited": 39,
+        "broad": 3.1
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 1,
+        "max": 1
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 10,
+        "max": 10
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 9,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 21,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 7780,
+        "max": 7780
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 24,
+        "max": 24
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 12,
+        "max": 12
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 11,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 19,
+      "stuckCalls": 7,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 7771,
+        "max": 7771
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 29,
+        "max": 29
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 11,
+        "max": 11
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 18,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 8034,
+        "max": 8034
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 26,
+        "max": 26
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8,
+        "max": 8,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 33,
+        "max": 33
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 9,
+      "eventsWithTies": 2,
+      "events": 2,
+      "overTarget": 8,
+      "pendingLines": 23,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 21,
+        "max": 21
+      },
+      "msPerMatch": {
+        "mean": 10957,
+        "max": 10957
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 26,
+        "max": 26
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 15,
+        "max": 15
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 14,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 23,
+      "stuckCalls": 7,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 10526,
+        "max": 10526
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 33,
+        "max": 33
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-eighths · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": null,
+        "mean": null,
+        "max": null,
+        "minSlackOverDrawn": null
+      },
+      "winners": {
+        "mean": 17,
+        "max": 17
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 1,
+      "events": 1,
+      "overTarget": 0,
+      "pendingLines": 22,
+      "stuckCalls": 6,
+      "callsPerMatch": {
+        "mean": 22,
+        "max": 22
+      },
+      "msPerMatch": {
+        "mean": 9910,
+        "max": 9910
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 31,
+        "max": 31
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "mixed/challenge · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 7,
+        "9": 13,
+        "10": 7,
+        "11": 9
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 10.371428571428572,
+        "max": 16,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 40,
+        "max": 40
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 4,
+      "eventsWithTies": 4,
+      "events": 36,
+      "overTarget": 0,
+      "pendingLines": 0,
+      "stuckCalls": 0,
+      "callsPerMatch": {
+        "mean": 380,
+        "max": 380
+      },
+      "msPerMatch": {
+        "mean": 59218,
+        "max": 59218
+      },
+      "coverageShare": {
+        "zero": 38.9,
+        "single": 26.1,
+        "limited": 32.4,
+        "broad": 2.6
+      },
+      "longestZeroMatchStreak": 10,
+      "fourOfFiveBeforeGate": {
+        "mean": 3,
+        "max": 3
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 2,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.666666666666666,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 17,
+        "max": 17
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 2,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 19,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 6894,
+        "max": 6894
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 2.2,
+        "broad": 97.8
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 1,
+        "10": 2,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 23,
+        "max": 23
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 13,
+      "eventsWithTies": 3,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 16,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 6628,
+        "max": 6628
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 2,
+        "10": 2,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 9.333333333333334,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 20,
+        "max": 20
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 13,
+      "stuckCalls": 14,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 7004,
+        "max": 7004
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 2.2,
+        "broad": 97.8
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 9,
+        "max": 9
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 11,
+        "mean": 11,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 18,
+        "max": 18
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 3,
+      "events": 3,
+      "overTarget": 0,
+      "pendingLines": 23,
+      "stuckCalls": 22,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 9964,
+        "max": 9964
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 7,
+        "max": 7
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 0,
+        "9": 0,
+        "10": 3,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 10,
+        "mean": 10,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 28,
+        "max": 28
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 17,
+      "stuckCalls": 17,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 9473,
+        "max": 9473
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 12,
+        "max": 12
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 2,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.666666666666666,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 24,
+        "max": 24
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 20,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 19,
+      "stuckCalls": 17,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 9380,
+        "max": 9380
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 10,
+        "max": 10
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 9,
+        "mean": 10,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 35,
+        "max": 35
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 16,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 10,
+      "pendingLines": 27,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 43,
+        "max": 43
+      },
+      "msPerMatch": {
+        "mean": 11770,
+        "max": 11770
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 30 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 0,
+        "10": 5,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 10,
+        "mean": 10,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 21,
+        "max": 21
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 6,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 11,
+      "stuckCalls": 19,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 7312,
+        "max": 7312
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 1.5,
+        "limited": 71.2,
+        "broad": 27.3
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "15": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 0,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 15,
+        "p50": 15,
+        "max": 15,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.666666666666666,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 33,
+        "max": 33
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 19,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 3,
+      "pendingLines": 19,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 43,
+        "max": 43
+      },
+      "msPerMatch": {
+        "mean": 11523,
+        "max": 11523
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 8,
+        "max": 8
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 30 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "14": 1
+      },
+      "gapsDrawn": {
+        "8": 3,
+        "9": 1,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 14,
+        "p50": 14,
+        "max": 14,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 16,
+        "max": 16
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 10,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 5,
+      "stuckCalls": 9,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 6945,
+        "max": 6945
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 72.7,
+        "broad": 27.3
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-tenths · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 0,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.666666666666666,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 36,
+        "max": 36
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 23,
+      "eventsWithTies": 4,
+      "events": 4,
+      "overTarget": 0,
+      "pendingLines": 23,
+      "stuckCalls": 18,
+      "callsPerMatch": {
+        "mean": 45,
+        "max": 45
+      },
+      "msPerMatch": {
+        "mean": 12029,
+        "max": 12029
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 0,
+        "broad": 100
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 14,
+        "max": 14
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 30 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 0,
+        "10": 3,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.8,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 21,
+        "max": 21
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 8,
+      "stuckCalls": 14,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 7501,
+        "max": 7501
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 69.7,
+        "broad": 30.3
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 40 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 4,
+        "10": 0,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.2,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 26,
+        "max": 26
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 11,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 1,
+      "pendingLines": 17,
+      "stuckCalls": 19,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 10231,
+        "max": 10231
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 57.4,
+        "broad": 42.6
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 40 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 3
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.8,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 28,
+        "max": 28
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 22,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 19,
+      "stuckCalls": 25,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 10680,
+        "max": 10680
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 66.7,
+        "broad": 33.3
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 40 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 2,
+        "10": 1,
+        "11": 2
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9.8,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 28,
+        "max": 28
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 22,
+      "eventsWithTies": 6,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 21,
+      "stuckCalls": 24,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 10485,
+        "max": 10485
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 60.6,
+        "broad": 39.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 50 players · 25 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "17": 1
+      },
+      "gapsDrawn": {
+        "8": 4,
+        "9": 0,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 17,
+        "p50": 17,
+        "max": 17,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 9,
+        "max": 11,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 32,
+        "max": 32
+      },
+      "reachedTargetOrEveryone": "1/1",
+      "completedReason": {
+        "winners": 1
+      },
+      "tiedWinners": 15,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 7,
+      "pendingLines": 18,
+      "stuckCalls": 16,
+      "callsPerMatch": {
+        "mean": 61,
+        "max": 61
+      },
+      "msPerMatch": {
+        "mean": 13184,
+        "max": 13184
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 75.4,
+        "broad": 24.6
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 7,
+        "max": 7
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 50 players · 30 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 2,
+        "9": 2,
+        "10": 1,
+        "11": 1
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.8,
+        "max": 10,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 29,
+        "max": 29
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 23,
+      "eventsWithTies": 5,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 24,
+      "stuckCalls": 23,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 13798,
+        "max": 13798
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 75.8,
+        "broad": 24.2
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 4,
+        "max": 4
+      },
+      "uniqueQuestions": true
+    },
+    {
+      "group": "fractions/to-twelfths · 50 players · 40 winners",
+      "matches": 1,
+      "played": 1,
+      "failed": 0,
+      "violations": 0,
+      "violationSample": [],
+      "firstGates": {
+        "16": 1
+      },
+      "gapsDrawn": {
+        "8": 1,
+        "9": 4,
+        "10": 1,
+        "11": 0
+      },
+      "firstWinnerCall": {
+        "mean": 16,
+        "p50": 16,
+        "max": 16,
+        "minMinusGate": 0
+      },
+      "eventGaps": {
+        "min": 8,
+        "mean": 8.8,
+        "max": 9,
+        "minSlackOverDrawn": 0
+      },
+      "winners": {
+        "mean": 30,
+        "max": 30
+      },
+      "reachedTargetOrEveryone": "0/1",
+      "completedReason": {
+        "deck": 1
+      },
+      "tiedWinners": 24,
+      "eventsWithTies": 6,
+      "events": 6,
+      "overTarget": 0,
+      "pendingLines": 31,
+      "stuckCalls": 27,
+      "callsPerMatch": {
+        "mean": 66,
+        "max": 66
+      },
+      "msPerMatch": {
+        "mean": 13294,
+        "max": 13294
+      },
+      "coverageShare": {
+        "zero": 0,
+        "single": 0,
+        "limited": 60.6,
+        "broad": 39.4
+      },
+      "longestZeroMatchStreak": 0,
+      "fourOfFiveBeforeGate": {
+        "mean": 5,
+        "max": 5
+      },
+      "uniqueQuestions": true
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "played": 81,
+    "violations": 0,
+    "firstGates": {
+      "14": 20,
+      "15": 14,
+      "16": 31,
+      "17": 16
+    },
+    "gapsDrawn": {
+      "8": 191,
+      "9": 193,
+      "10": 204,
+      "11": 166
+    },
+    "earliestBingoMinusGate": 0,
+    "smallestEventGapMinusDrawn": 0,
+    "sequences": {
+      "14,8,11,9,10": 0,
+      "17,11,8": 2
+    },
+    "tiedWinners": 1198,
+    "overTarget": 131,
+    "reachedTargetOrEveryone": "44/81",
+    "seatWins": {
+      "firstHalf": 976,
+      "secondHalf": 950
+    }
+  },
+  "violationsTotal": 0
+}

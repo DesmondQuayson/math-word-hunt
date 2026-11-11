@@ -176,13 +176,14 @@ export function buildGame(settings: BingoSettings, seed: string): Readonly<{ poo
 }
 
 /**
- * A paced game (winner pacing, 20261108100000): the room's question universe
- * (every unique question with its answer class) and the pacing plan built
- * from the game's secret seed. The database re-checks both at Start.
+ * A paced game (winner pacing, 20261108100000 + 20261111100000): the room's
+ * question universe (every unique question with its answer class) and the
+ * early/late plan built from the game's secret seed. The database re-checks
+ * both at Start and draws the gates itself; no winner target is capped here.
  */
-export function buildPacedGame(settings: BingoSettings, seed: string, players: number | null = null): Readonly<{ universe: readonly UniverseQuestion[]; plan: PacingPlan; questions: readonly StoredUniverseQuestion[] }> {
+export function buildPacedGame(settings: BingoSettings, seed: string): Readonly<{ universe: readonly UniverseQuestion[]; plan: PacingPlan; questions: readonly StoredUniverseQuestion[] }> {
   const universe = buildUniverse(settings, seed);
-  const plan = pacingPlan(settings, universe, seed, players);
+  const plan = pacingPlan(settings, universe, seed);
   const questions = universe.map((question) => Object.freeze({ q: question.id, c: question.class, t: question.text, s: question.spoken, k: question.kind, n: question.n, d: question.d }));
   if (new Set(questions.map((question) => question.q)).size !== questions.length) throw new Error("A question would repeat in this game.");
   return Object.freeze({ universe, plan, questions: Object.freeze(questions) });
@@ -191,9 +192,9 @@ export function buildPacedGame(settings: BingoSettings, seed: string, players: n
 /** Universe entries as sent to and stored by the database. */
 export type StoredUniverseQuestion = Readonly<{ q: string; c: string; t: string; s: string; k: "arithmetic" | "fraction"; n: number; d: number }>;
 
-/** The pacing plan as the Start call sends it (the database keeps its own live state). */
+/** The plan as the Start call sends it: which classes are late and which are kept off the cards. */
 export function pacingPayload(plan: PacingPlan): Json {
-  return { firstWinCall: plan.firstWinCall, spacing: plan.spacing, buffer: plan.buffer, maxWinners: plan.maxWinners, scaled: plan.scaled, players: plan.players, late: [...plan.late], reserve: [...plan.reserve] };
+  return { late: [...plan.late], reserve: [...plan.reserve] };
 }
 
 /**
@@ -308,31 +309,6 @@ function questionView(entry: Json, number: number, revealed: boolean) {
   });
 }
 
-/**
- * The pacing the screens show: the gate numbers and how many calls until the
- * next Bingo opportunity. Never which player is close, never an answer.
- */
-function pacingView(record: Json) {
-  const pacing = record.pacing;
-  if (!pacing || typeof pacing !== "object") return null;
-  const source = pacing as Json;
-  const questionNumber = int(record.questionNumber);
-  const nextEligibleCall = int(source.nextEligibleCall);
-  const cap = int((record.settings as Json | undefined)?.winners);
-  const capReached = cap > 0 && int(record.winnerCount) >= cap;
-  return Object.freeze({
-    firstWinCall: int(source.firstWinCall),
-    spacing: int(source.spacing),
-    nextEligibleCall,
-    lastWinnerCall: Number.isInteger(source.lastWinnerCall) ? (source.lastWinnerCall as number) : null,
-    maxWinners: int(source.maxWinners),
-    scaled: source.scaled === true,
-    /** Calls still to be made before a Bingo can become possible (0 = the gate is open). */
-    callsUntilOpportunity: capReached ? null : Math.max(0, nextEligibleCall - questionNumber),
-    gateOpen: !capReached && questionNumber >= nextEligibleCall
-  });
-}
-
 function common(record: Json) {
   const settings = cleanSettings(record.settings);
   const called = list(record.called);
@@ -367,13 +343,18 @@ function common(record: Json) {
     version: int(record.version),
     eventSeq: int(record.eventSeq),
     playerCount: int(record.playerCount),
-    pacing: pacingView(record),
+    // The winner gates (first gate, gaps, next gate) stay in the database:
+    // no screen is told when the next Bingo becomes possible.
     events: Object.freeze(list(record.events).map((event) => Object.freeze({
       seq: int(event.seq),
       type: text(event.type),
       name: text(event.name),
       emoji: emoji(event.emoji),
       placement: Number.isInteger(event.placement) ? (event.placement as number) : null,
+      /** Winners so far, this one included (events before 20261111100000 carry none). */
+      count: Number.isInteger(event.count) ? (event.count as number) : null,
+      /** Won on the same call as the winner event in progress: shares its placement. */
+      tie: event.tie === true,
       lineType: typeof event.lineType === "string" ? event.lineType : null,
       cap: Number.isInteger(event.cap) ? (event.cap as number) : null,
       participant: text(event.participant)
@@ -387,6 +368,7 @@ function common(record: Json) {
         name: text(winner.name),
         emoji: emoji(winner.emoji),
         placement: int(winner.placement),
+        tie: winner.tie === true,
         line: text(winner.line),
         lineType: text(winner.lineType),
         // The call the Bingo was confirmed on (a line completed while a gate

@@ -90,18 +90,18 @@ select is(public.bingo_create_room('811001',:owner,:token,pg_temp.settings(2))->
 select is(public.bingo_join_room('811001','Ava',:ava,:subject,'🦁')->>'result','joined','Ava');
 select is(public.bingo_join_room('811001','Zion',:zion,:subject,'🚀')->>'result','joined','Zion');
 select is(public.bingo_join_room('811001','Omar',:omar,:subject,null)->>'result','joined','Omar');
-select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),pg_temp.universe() || jsonb_build_array(pg_temp.q(1,0)),pg_temp.boards(:token),pg_temp.pacing(2))->>'result','invalid-game','a universe that repeats a question is refused');
-select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),jsonb_set(pg_temp.universe(),'{0,n}','5'),pg_temp.boards(:token),pg_temp.pacing(2))->>'result','invalid-game','a question whose answer is wrong is refused');
-select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),pg_temp.universe(),pg_temp.boards(:token),jsonb_set(pg_temp.pacing(2),'{late}','["99/1"]'))->>'result','invalid-game','a late class outside the universe is refused');
-select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),pg_temp.universe(),pg_temp.boards(:token),pg_temp.pacing(1))->>'result','winners-exceed-capacity','two winners beyond the plan''s capacity are refused');
-select is((public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),pg_temp.universe(),pg_temp.boards(:token),pg_temp.pacing(1))->>'maxWinners')::integer,1,'and the reply says how many fit');
-select is((pg_temp.room(:token)).phase,'LOBBY','nothing started');
+select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('4',32),pg_temp.universe() || jsonb_build_array(pg_temp.q(1,0)),pg_temp.boards(:token),pg_temp.pacing(2))->>'result','invalid-game','a universe that repeats a question is refused');
+select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('4',32),jsonb_set(pg_temp.universe(),'{0,n}','5'),pg_temp.boards(:token),pg_temp.pacing(2))->>'result','invalid-game','a question whose answer is wrong is refused');
+select is(public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('4',32),pg_temp.universe(),pg_temp.boards(:token),jsonb_set(pg_temp.pacing(2),'{late}','["99/1"]'))->>'result','invalid-game','a late class outside the universe is refused');
+select is((pg_temp.room(:token)).phase,'LOBBY','nothing started yet');
 -- A card with a row that has no late cell is not stored (that player is dealt later).
-select is((public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('e',32),pg_temp.universe(),
+select is((public.bingo_host_start_paced(:owner,:token,'start',pg_temp.settings(2),repeat('4',32),pg_temp.universe(),
   jsonb_set(pg_temp.boards(:token), array[(select id::text from public.bingo_participants where token_hash=:omar),'4'], pg_temp.cell(5)),pg_temp.pacing(2))->>'dealt')::integer,2,'Start keeps only cards whose every enabled line holds a late cell');
 select is((select count(*)::integer from public.bingo_room_questions where room_id=(pg_temp.room(:token)).id),31,'the universe is stored with the room');
 select is((pg_temp.room(:token)).deck,'[]'::jsonb,'the Called history starts empty');
-select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,15,'the first gate is call 15');
+select is(((pg_temp.room(:token)).pacing->>'firstWinCall')::integer,private.bingo_first_gate(repeat('4',32),31),'the first gate is the one drawn from the game seed (the payload''s number is ignored)');
+select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,15,'for this seed: call 15 (one of 14 to 17)');
+select ok(public.bingo_host_state(:owner,:token,null,null) ? 'pacing' is false and public.bingo_player_state(:ava,null,null) ? 'pacing' is false, 'no screen is sent the gate numbers');
 select is((public.bingo_player_state(:omar,null,null)->>'needsBoard')::boolean,true,'Omar needs a card');
 select ok(public.bingo_player_state(:omar,null,null)->'late' = '["13/1","14/1","15/1","16/1"]'::jsonb, 'his reply names the late classes');
 select is(jsonb_array_length(public.bingo_player_state(:omar,null,null)->'callable'),16,'and the classes still callable');
@@ -142,40 +142,32 @@ select is(pg_temp.advance(:owner,:token),15,'call 15');
 select ok(pg_temp.current_class(:token) in ('13/1','14/1','15/1','16/1'), 'call 15 is a late class (a real Bingo opportunity)');
 select is(pg_temp.mark(:token,:ava),'correct','Ava completes a row');
 select is((pg_temp.room(:token)).winner_count,1,'Ava is the first winner');
-select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,25,'the next gate is call 25');
+select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,15 + private.bingo_winner_gap(repeat('4',32),1),'the next new winner waits the gap drawn after this event');
+select is(private.bingo_winner_gap(repeat('4',32),1),10,'for this seed: 10 calls (one of 8 to 11), so call 25');
 select is(((pg_temp.room(:token)).pacing->>'lastWinnerCall')::integer,15,'the winner call is recorded');
--- Zion holds the same row: his correct mark on the same call completes a line while the gate is closed.
+select is((pg_temp.room(:token)).pacing->'gaps','[10]'::jsonb,'and the gap, for the record');
+-- Zion holds the same row: his correct mark on the same call completes it too: a tie.
 select is(pg_temp.mark(:token,:zion),'correct','Zion''s mark on the same call is correct');
-select is((pg_temp.room(:token)).winner_count,1,'but it is not a second Bingo on the same gate');
-select is((select pending_line from public.bingo_participants where token_hash=:zion),(select win_line from public.bingo_participants where token_hash=:ava),'his completed line (the same row) is pending');
-select is((select count(*)::integer from jsonb_array_elements((pg_temp.room(:token)).events) e where e->>'type'='bingo'),1,'only one Bingo was announced');
-select is((select e->>'rank' from jsonb_array_elements(public.bingo_host_state(:owner,:token,null,null)->'leaderboard') e where e->>'name'='Zion'),'2','a pending line ranks just under the winner');
-select is((select e->>'pending' from jsonb_array_elements(public.bingo_host_state(:owner,:token,null,null)->'leaderboard') e where e->>'name'='Zion'),'true','and is marked pending');
-select is(public.bingo_player_state(:zion,null,null)->'me'->>'pendingLine',(select win_line from public.bingo_participants where token_hash=:ava),'Zion''s own view says his line is waiting');
-select is((public.bingo_player_state(:zion,null,null)->'me'->>'hasWon')::boolean,false,'and that he has not won');
-
--- Calls 16..24: the gate is closed; no call completes any line ----------------------------------------
-do $$
-declare n integer;
-begin
-  for n in 16..24 loop
-    perform pg_temp.advance('1111111111111111111111111111111111111111111111111111111111111111','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-    perform pg_temp.mark('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','cccc000000000000000000000000000000000000000000000000000000000003');
-  end loop;
-end $$;
-select is((pg_temp.room(:token)).question_number,24,'call 24');
-select is((pg_temp.room(:token)).winner_count,1,'still one winner at call 24');
-select is((select has_won from public.bingo_participants where token_hash=:omar),false,'Omar has not won during the cooldown');
-
--- Call 25: the gate opens again; the pending line is confirmed first --------------------------------
-select is(pg_temp.advance(:owner,:token),24,'the gate of call 25 opens; the game ends before a 25th question is asked');
-select is((pg_temp.room(:token)).winner_count,2,'Zion''s pending line is confirmed at the gate');
-select is((select e->>'question' from jsonb_array_elements((pg_temp.room(:token)).winners) e where e->>'name'='Zion'),'25','his Bingo is recorded at call 25 (ten calls after the first)');
-select is((select placement from public.bingo_participants where token_hash=:zion),2,'as the second winner');
-select is((select pending_line from public.bingo_participants where token_hash=:zion),null,'and is no longer pending');
-select is((pg_temp.room(:token)).phase,'WINNER_REVEAL','two winners: the game ends');
-select is((pg_temp.room(:token)).completed_reason,'winners','because the configured winners were reached');
-select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,35,'the next gate would have been call 35');
+select is((pg_temp.room(:token)).winner_count,2,'it is a Bingo on the same call (tap order does not separate them)');
+select is((select placement from public.bingo_participants where token_hash=:zion),1,'Zion shares first place with Ava');
+select is((select count(*)::integer from public.bingo_participants where room_id=(pg_temp.room(:token)).id and pending_line is not null),0,'nothing is left pending');
+select is((select count(*)::integer from jsonb_array_elements((pg_temp.room(:token)).events) e where e->>'type'='bingo'),2,'both Bingos are announced');
+select is((select e->>'tie' from jsonb_array_elements((pg_temp.room(:token)).events) e where e->>'type'='bingo' and e->>'name'='Zion'),'true','his is announced as a tie');
+select is(((pg_temp.room(:token)).pacing->>'nextEligibleCall')::integer,25,'a tie does not draw a new gap');
+select is((select array_agg(e->>'rank' order by e->>'name') from jsonb_array_elements(public.bingo_host_state(:owner,:token,null,null)->'leaderboard') e where e->>'name' in ('Ava','Zion')),array['1','1'],'both rank first');
+select is((select bool_and((e->>'tied')::boolean) from jsonb_array_elements(public.bingo_host_state(:owner,:token,null,null)->'leaderboard') e where e->>'name' in ('Ava','Zion')),true,'shown as tied');
+-- The target (2) is reached: the rest of call 15 still counts, the game ends when it closes.
+select is((pg_temp.room(:token)).phase,'QUESTION_ACTIVE','the target reached does not cut call 15 short');
+select is(((pg_temp.room(:token)).pacing->>'closing')::integer,15,'the room knows it closes with this call');
+select is(pg_temp.mark(:token,:omar),'correct','Omar completes the same row on the same call');
+select is((pg_temp.room(:token)).winner_count,3,'a third same-call winner counts, past the target of 2');
+select is((select placement from public.bingo_participants where token_hash=:omar),1,'sharing first place');
+-- All three players have now won: nobody is left to tie, so the game ends at once.
+select is((pg_temp.room(:token)).phase,'WINNER_REVEAL','everyone has Bingo: the game ends at once');
+select is(pg_temp.next(:owner,:token),'stale','there is no call left for the host to close');
+select is((pg_temp.room(:token)).completed_reason,'winners','because the target was reached');
+select is((pg_temp.room(:token)).question_number,15,'no further question was asked');
+select is((select count(distinct e->>'id')::integer from jsonb_array_elements((pg_temp.room(:token)).winners) e),3,'three different winners, each recorded once');
 select is((select count(distinct e->>'q')::integer from jsonb_array_elements((pg_temp.room(:token)).deck) e),jsonb_array_length((pg_temp.room(:token)).deck),'no question repeated');
 
 -- Standings ranking contract -----------------------------------------------------------------------------

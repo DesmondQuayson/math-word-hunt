@@ -1,0 +1,442 @@
+{
+  "games": 913,
+  "played": 913,
+  "failed": 0,
+  "violations": 0,
+  "byClassSize": {
+    "3": {
+      "games": 96,
+      "violations": 0,
+      "reachedTargetOrEveryone": "79/96",
+      "reachedPct": 82,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.42
+      },
+      "msPerGame": {
+        "p50": 1790,
+        "max": 5714
+      },
+      "tiedWinners": 6
+    },
+    "5": {
+      "games": 96,
+      "violations": 0,
+      "reachedTargetOrEveryone": "82/96",
+      "reachedPct": 85,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.22
+      },
+      "msPerGame": {
+        "p50": 2207,
+        "max": 6068
+      },
+      "tiedWinners": 22
+    },
+    "10": {
+      "games": 120,
+      "violations": 0,
+      "reachedTargetOrEveryone": "95/120",
+      "reachedPct": 79,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.21
+      },
+      "msPerGame": {
+        "p50": 3152,
+        "max": 23660
+      },
+      "tiedWinners": 117
+    },
+    "20": {
+      "games": 160,
+      "violations": 0,
+      "reachedTargetOrEveryone": "147/160",
+      "reachedPct": 92,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.13
+      },
+      "msPerGame": {
+        "p50": 4911,
+        "max": 27375
+      },
+      "tiedWinners": 304
+    },
+    "30": {
+      "games": 147,
+      "violations": 0,
+      "reachedTargetOrEveryone": "123/147",
+      "reachedPct": 84,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.08
+      },
+      "msPerGame": {
+        "p50": 7393,
+        "max": 53292
+      },
+      "tiedWinners": 707
+    },
+    "40": {
+      "games": 147,
+      "violations": 0,
+      "reachedTargetOrEveryone": "130/147",
+      "reachedPct": 88,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.09
+      },
+      "msPerGame": {
+        "p50": 9530,
+        "max": 56401
+      },
+      "tiedWinners": 804
+    },
+    "50": {
+      "games": 147,
+      "violations": 0,
+      "reachedTargetOrEveryone": "137/147",
+      "reachedPct": 93,
+      "firstBingoAfterGate": {
+        "min": 0,
+        "mean": 0.13
+      },
+      "msPerGame": {
+        "p50": 12451,
+        "max": 60038
+      },
+      "tiedWinners": 859
+    }
+  },
+  "byMode": {
+    "addition": {
+      "levels": [
+        "facts-20",
+        "within-50"
+      ],
+      "games": 190,
+      "violations": 0,
+      "reachedTargetOrEveryone": "181/190",
+      "endedByDeck": 9,
+      "tiedWinners": 599,
+      "uniqueQuestions": true
+    },
+    "subtraction": {
+      "levels": [
+        "facts-20",
+        "within-50"
+      ],
+      "games": 132,
+      "violations": 0,
+      "reachedTargetOrEveryone": "132/132",
+      "endedByDeck": 0,
+      "tiedWinners": 237,
+      "uniqueQuestions": true
+    },
+    "multiplication": {
+      "levels": [
+        "x0-10",
+        "x0-12"
+      ],
+      "games": 150,
+      "violations": 0,
+      "reachedTargetOrEveryone": "117/150",
+      "endedByDeck": 33,
+      "tiedWinners": 575,
+      "uniqueQuestions": true
+    },
+    "division": {
+      "levels": [
+        "facts-10"
+      ],
+      "games": 66,
+      "violations": 0,
+      "reachedTargetOrEveryone": "66/66",
+      "endedByDeck": 0,
+      "tiedWinners": 198,
+      "uniqueQuestions": true
+    },
+    "mixed": {
+      "levels": [
+        "core",
+        "challenge"
+      ],
+      "games": 150,
+      "violations": 0,
+      "reachedTargetOrEveryone": "149/150",
+      "endedByDeck": 1,
+      "tiedWinners": 278,
+      "uniqueQuestions": true
+    },
+    "fractions": {
+      "levels": [
+        "to-eighths",
+        "to-tenths",
+        "to-twelfths"
+      ],
+      "games": 225,
+      "violations": 0,
+      "reachedTargetOrEveryone": "148/225",
+      "endedByDeck": 77,
+      "tiedWinners": 932,
+      "uniqueQuestions": true
+    }
+  },
+  "byTarget": {
+    "1": {
+      "games": 168,
+      "reached": 168,
+      "exactlyTheTarget": 135,
+      "overTargetWinners": 100,
+      "callsMean": 16,
+      "reasons": {
+        "winners": 168
+      }
+    },
+    "2": {
+      "games": 48,
+      "reached": 47,
+      "exactlyTheTarget": 47,
+      "overTargetWinners": 0,
+      "callsMean": 25,
+      "reasons": {
+        "winners": 47,
+        "deck": 1
+      }
+    },
+    "3": {
+      "games": 140,
+      "reached": 138,
+      "exactlyTheTarget": 105,
+      "overTargetWinners": 117,
+      "callsMean": 30,
+      "reasons": {
+        "winners": 138,
+        "deck": 2
+      }
+    },
+    "5": {
+      "games": 168,
+      "reached": 147,
+      "exactlyTheTarget": 100,
+      "overTargetWinners": 254,
+      "callsMean": 44,
+      "reasons": {
+        "winners": 132,
+        "deck": 21,
+        "everyone": 15
+      }
+    },
+    "6": {
+      "games": 20,
+      "reached": 20,
+      "exactlyTheTarget": 10,
+      "overTargetWinners": 66,
+      "callsMean": 49,
+      "reasons": {
+        "winners": 20
+      }
+    },
+    "10": {
+      "games": 168,
+      "reached": 140,
+      "exactlyTheTarget": 83,
+      "overTargetWinners": 399,
+      "callsMean": 58,
+      "reasons": {
+        "deck": 28,
+        "winners": 104,
+        "everyone": 36
+      }
+    },
+    "20": {
+      "games": 120,
+      "reached": 89,
+      "exactlyTheTarget": 37,
+      "overTargetWinners": 344,
+      "callsMean": 82,
+      "reasons": {
+        "everyone": 13,
+        "deck": 31,
+        "winners": 76
+      }
+    },
+    "25": {
+      "games": 27,
+      "reached": 20,
+      "exactlyTheTarget": 8,
+      "overTargetWinners": 74,
+      "callsMean": 88,
+      "reasons": {
+        "winners": 20,
+        "deck": 7
+      }
+    },
+    "30": {
+      "games": 27,
+      "reached": 15,
+      "exactlyTheTarget": 6,
+      "overTargetWinners": 37,
+      "callsMean": 98,
+      "reasons": {
+        "deck": 12,
+        "winners": 15
+      }
+    },
+    "40": {
+      "games": 27,
+      "reached": 9,
+      "exactlyTheTarget": 6,
+      "overTargetWinners": 20,
+      "callsMean": 111,
+      "reasons": {
+        "deck": 18,
+        "winners": 7,
+        "everyone": 2
+      }
+    }
+  },
+  "targetAbovePlayers": {
+    "games": 105,
+    "phantomWinners": 0,
+    "endedEveryone": 66,
+    "endedDeck": 39,
+    "endedWinners": 0
+  },
+  "targetEqualsPlayers": {
+    "games": 90,
+    "reached": 45,
+    "reasons": {
+      "deck": 45,
+      "winners": 45
+    }
+  },
+  "seatFairness": {
+    "winsPerSeatEarlierJoinedHalf": 0.284,
+    "winsPerSeatLaterJoinedHalf": 0.278,
+    "winsEarly": 3270,
+    "seatsEarly": 11500,
+    "winsLate": 3148,
+    "seatsLate": 11308
+  },
+  "firstGatesInGames": {
+    "14": 242,
+    "15": 215,
+    "16": 227,
+    "17": 229
+  },
+  "gapsInGames": {
+    "8": 961,
+    "9": 968,
+    "10": 931,
+    "11": 943
+  },
+  "events": {
+    "total": 3803,
+    "withTies": 1220,
+    "largestTie": 33
+  },
+  "earliestBingoMinusGate": 0,
+  "smallestEventGapMinusDrawn": 0,
+  "sequencesObserved": {
+    "14,8,11,9,10": 15,
+    "17,11,8": 20
+  },
+  "target1SharedFirstPlace": {
+    "facts-20": "12/12 games (30-50 players) shared first place",
+    "within-50": "0/12 games (30-50 players) shared first place",
+    "x0-10": "0/6 games (30-50 players) shared first place",
+    "x0-12": "0/6 games (30-50 players) shared first place",
+    "facts-10": "6/6 games (30-50 players) shared first place",
+    "core": "0/6 games (30-50 players) shared first place",
+    "challenge": "0/6 games (30-50 players) shared first place",
+    "to-eighths": "5/6 games (30-50 players) shared first place",
+    "to-tenths": "0/6 games (30-50 players) shared first place",
+    "to-twelfths": "0/6 games (30-50 players) shared first place"
+  },
+  "largeTargets": {
+    "addition/facts-20 30p target 40": "28 winners in 51 calls (deck), 4 events, 7 s",
+    "addition/facts-20 30p target 25": "25 winners in 42 calls (winners), 4 events, 7 s",
+    "addition/facts-20 30p target 30": "29 winners in 51 calls (deck), 5 events, 7 s",
+    "addition/facts-20 40p target 25": "35 winners in 35 calls (winners), 3 events, 8 s",
+    "addition/facts-20 40p target 30": "33 winners in 40 calls (winners), 4 events, 8 s",
+    "addition/facts-20 40p target 40": "36 winners in 51 calls (deck), 5 events, 9 s",
+    "addition/facts-20 50p target 25": "36 winners in 35 calls (winners), 3 events, 12 s",
+    "addition/facts-20 50p target 30": "33 winners in 31 calls (winners), 3 events, 10 s",
+    "addition/facts-20 50p target 40": "47 winners in 45 calls (winners), 4 events, 11 s",
+    "addition/within-50 30p target 25": "25 winners in 160 calls (winners), 16 events, 13 s",
+    "addition/within-50 30p target 30": "30 winners in 158 calls (winners), 16 events, 12 s",
+    "addition/within-50 30p target 40": "30 winners in 210 calls (everyone), 20 events, 15 s",
+    "addition/within-50 40p target 25": "25 winners in 151 calls (winners), 14 events, 16 s",
+    "addition/within-50 40p target 30": "31 winners in 169 calls (winners), 17 events, 17 s",
+    "addition/within-50 40p target 40": "40 winners in 212 calls (winners), 21 events, 20 s",
+    "addition/within-50 50p target 25": "29 winners in 167 calls (winners), 16 events, 22 s",
+    "multiplication/x0-10 30p target 25": "20 winners in 61 calls (deck), 5 events, 9 s",
+    "multiplication/x0-10 30p target 30": "20 winners in 61 calls (deck), 5 events, 9 s",
+    "multiplication/x0-10 30p target 40": "24 winners in 61 calls (deck), 6 events, 8 s",
+    "addition/within-50 50p target 30": "31 winners in 173 calls (winners), 17 events, 27 s",
+    "addition/within-50 50p target 40": "46 winners in 191 calls (winners), 18 events, 29 s",
+    "multiplication/x0-10 40p target 25": "27 winners in 56 calls (winners), 5 events, 11 s",
+    "multiplication/x0-10 40p target 30": "27 winners in 61 calls (deck), 5 events, 11 s",
+    "multiplication/x0-10 40p target 40": "26 winners in 61 calls (deck), 5 events, 12 s",
+    "multiplication/x0-10 50p target 25": "29 winners in 44 calls (winners), 4 events, 13 s",
+    "multiplication/x0-12 30p target 25": "21 winners in 84 calls (deck), 8 events, 10 s",
+    "multiplication/x0-10 50p target 30": "38 winners in 56 calls (winners), 5 events, 15 s",
+    "multiplication/x0-10 50p target 40": "35 winners in 61 calls (deck), 5 events, 15 s",
+    "multiplication/x0-12 30p target 30": "25 winners in 84 calls (deck), 8 events, 10 s",
+    "multiplication/x0-12 30p target 40": "20 winners in 84 calls (deck), 8 events, 10 s",
+    "multiplication/x0-12 40p target 25": "29 winners in 76 calls (winners), 7 events, 12 s",
+    "multiplication/x0-12 40p target 30": "30 winners in 82 calls (winners), 8 events, 11 s",
+    "multiplication/x0-12 40p target 40": "29 winners in 84 calls (deck), 8 events, 10 s",
+    "multiplication/x0-12 50p target 25": "25 winners in 66 calls (winners), 6 events, 12 s",
+    "mixed/core 30p target 25": "25 winners in 87 calls (winners), 9 events, 9 s",
+    "multiplication/x0-12 50p target 30": "40 winners in 82 calls (winners), 8 events, 16 s",
+    "multiplication/x0-12 50p target 40": "38 winners in 84 calls (deck), 8 events, 16 s",
+    "mixed/core 30p target 30": "30 winners in 105 calls (winners), 10 events, 10 s",
+    "mixed/core 30p target 40": "29 winners in 120 calls (deck), 11 events, 10 s",
+    "mixed/core 40p target 25": "34 winners in 82 calls (winners), 8 events, 12 s",
+    "mixed/core 40p target 40": "40 winners in 105 calls (winners), 11 events, 12 s",
+    "mixed/core 40p target 30": "37 winners in 97 calls (winners), 10 events, 13 s",
+    "mixed/core 50p target 25": "29 winners in 76 calls (winners), 7 events, 14 s",
+    "mixed/core 50p target 30": "31 winners in 73 calls (winners), 7 events, 14 s",
+    "mixed/core 50p target 40": "47 winners in 97 calls (winners), 9 events, 17 s",
+    "mixed/challenge 30p target 25": "25 winners in 260 calls (winners), 25 events, 37 s",
+    "mixed/challenge 30p target 30": "30 winners in 313 calls (winners), 30 events, 47 s",
+    "mixed/challenge 30p target 40": "30 winners in 311 calls (everyone), 30 events, 44 s",
+    "mixed/challenge 40p target 25": "25 winners in 253 calls (winners), 25 events, 44 s",
+    "mixed/challenge 40p target 30": "30 winners in 318 calls (winners), 30 events, 44 s",
+    "mixed/challenge 50p target 25": "25 winners in 260 calls (winners), 25 events, 49 s",
+    "mixed/challenge 40p target 40": "40 winners in 391 calls (winners), 39 events, 56 s",
+    "fractions/to-eighths 30p target 25": "11 winners in 22 calls (deck), 1 events, 7 s",
+    "fractions/to-eighths 30p target 30": "7 winners in 22 calls (deck), 1 events, 6 s",
+    "fractions/to-eighths 30p target 40": "10 winners in 22 calls (deck), 1 events, 5 s",
+    "mixed/challenge 50p target 30": "30 winners in 290 calls (winners), 29 events, 56 s",
+    "fractions/to-eighths 40p target 25": "10 winners in 22 calls (deck), 1 events, 8 s",
+    "fractions/to-eighths 40p target 30": "12 winners in 22 calls (deck), 1 events, 8 s",
+    "fractions/to-eighths 40p target 40": "11 winners in 22 calls (deck), 1 events, 8 s",
+    "fractions/to-eighths 50p target 25": "33 winners in 21 calls (winners), 2 events, 11 s",
+    "fractions/to-eighths 50p target 30": "15 winners in 22 calls (deck), 1 events, 11 s",
+    "fractions/to-eighths 50p target 40": "17 winners in 22 calls (deck), 1 events, 10 s",
+    "mixed/challenge 50p target 40": "40 winners in 380 calls (winners), 36 events, 59 s",
+    "fractions/to-tenths 30p target 25": "17 winners in 45 calls (deck), 4 events, 7 s",
+    "fractions/to-tenths 30p target 40": "23 winners in 45 calls (deck), 4 events, 7 s",
+    "fractions/to-tenths 30p target 30": "20 winners in 45 calls (deck), 4 events, 7 s",
+    "fractions/to-tenths 40p target 25": "18 winners in 45 calls (deck), 3 events, 10 s",
+    "fractions/to-tenths 40p target 30": "28 winners in 45 calls (deck), 4 events, 9 s",
+    "fractions/to-tenths 40p target 40": "24 winners in 45 calls (deck), 4 events, 9 s",
+    "fractions/to-tenths 50p target 25": "35 winners in 43 calls (winners), 4 events, 12 s",
+    "fractions/to-twelfths 30p target 25": "21 winners in 66 calls (deck), 6 events, 7 s",
+    "fractions/to-tenths 50p target 30": "33 winners in 43 calls (winners), 4 events, 12 s",
+    "fractions/to-twelfths 30p target 30": "16 winners in 66 calls (deck), 6 events, 7 s",
+    "fractions/to-tenths 50p target 40": "36 winners in 45 calls (deck), 4 events, 12 s",
+    "fractions/to-twelfths 30p target 40": "21 winners in 66 calls (deck), 6 events, 8 s",
+    "fractions/to-twelfths 40p target 25": "26 winners in 61 calls (winners), 6 events, 10 s",
+    "fractions/to-twelfths 40p target 30": "28 winners in 66 calls (deck), 6 events, 11 s",
+    "fractions/to-twelfths 40p target 40": "28 winners in 66 calls (deck), 6 events, 10 s",
+    "fractions/to-twelfths 50p target 25": "32 winners in 61 calls (winners), 6 events, 13 s",
+    "fractions/to-twelfths 50p target 30": "29 winners in 66 calls (deck), 6 events, 14 s",
+    "fractions/to-twelfths 50p target 40": "30 winners in 66 calls (deck), 6 events, 13 s"
+  }
+}

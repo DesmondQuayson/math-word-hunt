@@ -1,28 +1,34 @@
 // Math Bingo Live — winner pacing contract (shared by every mode).
 //
-// A game no longer calls a deck fixed at Start. Instead the room holds a
-// QUESTION UNIVERSE (every unique question of the mode and level, each with
-// its canonical identity and its ANSWER CLASS), the cards are dealt against
-// that universe, and the database chooses every call as it is made, from the
-// cards' current marks (see 20261108100000_math_bingo_live_pacing.sql):
+// A game does not call a deck fixed at Start. The room holds a QUESTION
+// UNIVERSE (every unique question of the mode and level, each with its
+// canonical identity and its ANSWER CLASS), the cards are dealt against that
+// universe, and the database chooses every call as it is made, from the
+// cards' current marks (20261108100000 + 20261111100000):
 //
-//   * FIRST WIN GATE: no card can complete an enabled line before call
-//     `firstWinCall` (15). Every answer class is EARLY or LATE for the game;
-//     every enabled line of every card holds at least one LATE cell, and the
-//     calls before the gate use only EARLY questions, so no line can finish
-//     whatever the students do (Free Space included: the centre is treated as
-//     already marked).
-//   * WINNER SPACING: once a winner is confirmed at call N, the next winner
-//     cannot be confirmed before call N + `spacing` (10). While that gate is
-//     closed the scheduler calls only questions that cannot complete any
-//     player's line (a question that nobody holds is always such a question).
-//   * When a gate is open, the scheduler prefers a question that gives ONE
-//     player (then as few as possible) a real chance to complete a line; it
-//     never awards a Bingo by itself.
+//   * FIRST WIN GATE: drawn by the database once per game, from the secret
+//     game seed: one of calls 14, 15, 16 or 17 (a level with fewer than 20
+//     questions: the four calls ending three before its last question). Every
+//     answer class is EARLY or LATE for the game; every enabled line of every
+//     card holds at least one LATE cell, and the calls before the gate use
+//     only EARLY questions, so no line can finish before it whatever the
+//     students do (Free Space included).
+//   * WINNER GAPS: after every NEW winner event the database draws a fresh
+//     gap of 8, 9, 10 or 11 calls; the next new winner cannot come sooner.
+//     While that gate is closed the scheduler calls only questions that
+//     cannot complete any player's line.
+//   * When a gate is open the scheduler prefers a question that gives ONE
+//     player a real chance (more, only when many winners are still wanted
+//     and the questions left would not otherwise allow them); it never
+//     awards a Bingo by itself. Players who complete a line on the same call
+//     share the placement.
+//   * Nothing here limits how many winners a host may ask for (1-60).
 //
 // Modes contribute only their unique questions and their answer-class rule
 // (questions.js); everything here is mode-independent, so a future mode
-// inherits the same pacing.
+// inherits the same pacing. The draws themselves live in the database
+// (private.bingo_first_gate, private.bingo_winner_gap) and never reach a
+// browser.
 
 import { createRandom } from "./random.js";
 import { answerClass, questionGroups, fractionQuestion, poolCandidates } from "./questions.js";
@@ -31,12 +37,10 @@ import { allowedShapes, properFractions } from "./fractions.js";
 import { CELL_COUNT, CENTER, LINES, enabledLines } from "./board.js";
 
 export const PACING = Object.freeze({
-  /** No official Bingo before this call. */
-  firstWinCall: 15,
-  /** Calls between one confirmed winner and the next. */
-  spacing: 10,
-  /** Extra unique questions kept in reserve for missed opportunities. */
-  buffer: 10,
+  /** The first winner gate is one of these calls, drawn per game by the database. */
+  firstGateCalls: Object.freeze([14, 15, 16, 17]),
+  /** After every new winner event, the next one waits one of these gaps (drawn by the database). */
+  winnerGapCalls: Object.freeze([8, 9, 10, 11]),
   /** Questions kept per answer class in the room's universe (a game calls far fewer). */
   questionsPerClass: 6,
   /** Share of answer classes held back until a gate opens. */
@@ -102,111 +106,16 @@ export function universeClasses(universe) {
 }
 
 /**
- * The pacing numbers for a universe of Q questions. The standard contract is
- * 15 / 10; a level with fewer questions than that (Fraction Bingo has one
- * question per fraction) gets the same shape scaled down and says so
- * (`scaled`), never a repeated question.
- *
- * A class with a single question cannot be asked again once it has been
- * called, so part of such a universe is not available as a safe call while a
- * gate is closed: the pacing simulations show cooldowns running out of safe
- * calls when the winners need more than about 70 % of a single-question
- * universe (Fraction Bingo), so 28 % of those classes are kept out of the
- * winner count. One winner is always possible once the universe reaches the
- * first gate (no cooldown is needed for a single winner).
+ * The calls the first winner gate can be drawn from for a universe of
+ * `universeSize` questions: 14 to 17; a level with fewer than 20 questions
+ * gets the four calls ending three calls before its last question (Fraction
+ * Bingo halves to fifths: 4-7, to sixths: 9-12). Must match the database's
+ * private.bingo_first_gate_bounds.
  */
-export function pacingNumbers(universeSize, singleQuestionClasses = 0) {
-  const Q = universeSize;
-  const firstWinCall = Math.min(PACING.firstWinCall, Math.max(3, Math.floor(Q * 0.7)));
-  const buffer = Math.min(PACING.buffer, Math.max(2, Math.floor(Q * 0.15)));
-  const usable = Q - Math.round(0.28 * Math.max(0, singleQuestionClasses));
-  const maxByQuestions = Q >= firstWinCall ? Math.max(1, 1 + Math.floor((usable - firstWinCall - buffer) / PACING.spacing)) : 0;
-  return Object.freeze({
-    firstWinCall,
-    spacing: PACING.spacing,
-    buffer,
-    maxWinnersByQuestions: Math.max(0, maxByQuestions),
-    scaled: firstWinCall < PACING.firstWinCall
-  });
-}
-
-/**
- * The share of a class expected to be one away when the first gate opens,
- * from the number of EARLY classes on the cards: when the 14 early calls can
- * cover every early class, nearly everyone who keeps up is one away; with
- * more early classes than early calls the share falls quickly. Calibrated on
- * the pacing simulations (observed 0.52–0.62 at 11–13 early classes on the
- * cards, 0.41–0.43 at 16, about 0.17 at 26–29, 0.07 at 43).
- */
-export function oneAwayShare(earlyClasses) {
-  const earlyCalls = PACING.firstWinCall - 1;
-  return Math.min(0.6, 0.6 * Math.pow(earlyCalls / Math.max(1, earlyClasses), 2.7));
-}
-
-/**
- * The nominal class split of a level (the seeded plan may move a class or
- * two): how many classes are LATE, how many are the RESERVE on no card, and
- * how many EARLY classes the cards hold.
- */
-export function nominalSplit(classCount) {
-  let late = Math.min(12, Math.max(2, Math.round(classCount * PACING.lateShare)));
-  late = Math.min(late, Math.max(1, classCount - 3));
-  const reserve = classCount >= 20 ? Math.max(1, Math.round(classCount * PACING.reserveShare)) : 0;
-  return Object.freeze({ late, reserve, early: Math.max(1, classCount - late - reserve) });
-}
-
-/**
- * How many winners the pacing can space out at this level: bounded by the
- * number of unique questions (`singles`: classes with one question, see
- * pacingNumbers), by the number of answer classes for levels with few
- * different answers (every card holds nearly every value, so safe calls run
- * out while a gate is closed), and — once the class is known — by how many
- * students share the LATE classes: when the students expected to be one away
- * at a gate outnumber the late classes by more than about 2.2 to 1, one call
- * completes several lines at once and lines queue up as pending, so such a
- * class is paced to a single winner. Every bound follows the pacing
- * simulations (scripts/math-bingo-live-pacing-simulation.mjs).
- */
-export function maxWinnersFor(universeSize, classCount, { singles = 0, early = null, late = null, players = null } = {}) {
-  const numbers = pacingNumbers(universeSize, singles);
-  const byClasses = classCount <= 12 ? 1 : classCount <= 20 ? 2 : classCount <= 30 ? 3 : 60;
-  const split = early === null || late === null ? nominalSplit(classCount) : { early, late };
-  const byPlayers = players === null || players * oneAwayShare(split.early) <= 2.2 * split.late ? 60 : 1;
-  return Math.max(0, Math.min(numbers.maxWinnersByQuestions, byClasses, byPlayers));
-}
-
-/** The most students a level can pace with more than one winner (null: any class size). */
-export function playersForMultipleWinners(classCount) {
-  const split = nominalSplit(classCount);
-  const most = Math.floor((2.2 * split.late) / oneAwayShare(split.early));
-  return most >= 60 ? null : most;
-}
-
-/** Calls a game needs for `winners` winners, with the buffer for missed chances. */
-export function requiredCalls(numbers, winners) {
-  return numbers.firstWinCall + numbers.spacing * Math.max(0, winners - 1) + numbers.buffer;
-}
-
-/**
- * What the host setup form shows for a mode and level (no seed needed), and
- * what the lobby shows once the class size is known (`players`).
- */
-export function capacityFor(settings, players = null) {
-  const universe = buildUniverse(settings);
-  const classList = universeClasses(universe);
-  const classes = classList.length;
-  const singles = classList.filter(item => item.questions === 1).length;
-  const numbers = pacingNumbers(universe.length, singles);
-  return Object.freeze({
-    ...numbers,
-    universe: universe.length,
-    classes,
-    singles,
-    players,
-    maxWinners: maxWinnersFor(universe.length, classes, { singles, players }),
-    maxWinnersAnyClass: maxWinnersFor(universe.length, classes, { singles }),
-    playersForMultipleWinners: playersForMultipleWinners(classes)
-  });
+export function firstGateWindow(universeSize) {
+  if (universeSize >= 20) return Object.freeze([PACING.firstGateCalls[0], PACING.firstGateCalls[PACING.firstGateCalls.length - 1]]);
+  const high = Math.max(1, universeSize - 3);
+  return Object.freeze([Math.max(1, high - 3), high]);
 }
 
 /**
@@ -214,29 +123,27 @@ export function capacityFor(settings, players = null) {
  * opens), which are the RESERVE (on no card), and the numbers. Seeded, so the
  * same seed gives the same plan.
  */
-export function pacingPlan(settings, universe, seed, players = null) {
+export function pacingPlan(settings, universe, seed) {
   const random = createRandom(`${seed}:pacing`);
   const classes = universeClasses(universe);
-  const singles = classes.filter(item => item.questions === 1).length;
-  const numbers = pacingNumbers(universe.length, singles);
+  const window = firstGateWindow(universe.length);
   const shuffled = random.shuffle(classes);
   let lateCount = Math.min(12, Math.max(2, Math.round(classes.length * PACING.lateShare)));
   lateCount = Math.min(lateCount, Math.max(1, classes.length - 3));
-  // Enough EARLY questions for the calls before the first gate.
+  // Enough EARLY questions for the calls before the latest first gate the database may draw.
   const late = [];
   const early = [];
   for (const item of shuffled) (late.length < lateCount ? late : early).push(item);
-  while (late.length > 1 && early.reduce((sum, item) => sum + item.questions, 0) < numbers.firstWinCall - 1) early.push(late.pop());
+  while (late.length > 1 && early.reduce((sum, item) => sum + item.questions, 0) < window[1] - 1) early.push(late.pop());
   const reserveCount = classes.length >= 20 ? Math.max(1, Math.round(classes.length * PACING.reserveShare)) : 0;
   const reserve = [];
   for (const item of early) if (reserve.length < reserveCount && item.questions >= 2) reserve.push(item);
   const reserveKeys = new Set(reserve.map(item => item.key));
   return Object.freeze({
-    ...numbers,
+    firstGateWindow: window,
+    scaled: window[0] < PACING.firstGateCalls[0],
     universe: universe.length,
     classes: classes.length,
-    players,
-    maxWinners: maxWinnersFor(universe.length, classes.length, { singles, early: early.length - reserve.length, late: late.length, players }),
     late: Object.freeze(late.map(item => item.key).sort()),
     reserve: Object.freeze(reserve.map(item => item.key).sort()),
     early: Object.freeze(early.filter(item => !reserveKeys.has(item.key)).map(item => item.key).sort())

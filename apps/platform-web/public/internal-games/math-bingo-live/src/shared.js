@@ -172,26 +172,11 @@ export function progressText(row) {
   return `${row.best}/5 · ${LINE_LABEL[row.type] ?? ""}`;
 }
 
-/** "1", or "T-2" for players who share a rank (equal progress is a tie, never an order). */
+/** "1", or "T-2" for players who share a rank (equal progress, or a Bingo on the same call, is a tie, never an order). */
 export function rankLabel(row) {
-  return row.tied && !row.won ? `T-${row.rank}` : String(row.rank);
+  return row.tied ? `T-${row.rank}` : String(row.rank);
 }
 
-/**
- * The pacing line every screen can show: how many calls until a Bingo can
- * become possible. Says nothing about who is close or what the answers are.
- */
-export function pacingText(state, { first = false } = {}) {
-  const pacing = state?.pacing;
-  if (!pacing || state.phase === "LOBBY" || state.phase === "GAME_COMPLETE") return "";
-  if (pacing.callsUntilOpportunity === null) return "";
-  const noWinnerYet = state.winnerCount === 0;
-  const calls = pacing.callsUntilOpportunity;
-  if (calls === 0) return "Bingo opportunity OPEN";
-  const noun = calls === 1 ? "call" : "calls";
-  if (noWinnerYet) return first ? `First Bingo opportunity in ${calls} ${noun}` : `First Bingo opportunity: ${calls} ${noun}`;
-  return first ? `Next Bingo opportunity in ${calls} ${noun}` : `Next Bingo opportunity: ${calls} ${noun}`;
-}
 
 /** The live leaderboard. Winners keep their medal and place. */
 export function leaderboardList(rows, { limit = 10, highlightYou = false } = {}) {
@@ -298,8 +283,8 @@ function confetti(container) {
 export function bingoBannerChildren(event, winner) {
   return [
     h("p", { class: "banner-title", text: `${announcedName(event)} — BINGO!` }),
-    h("p", { class: "banner-subtitle", text: `${placeWord(event.placement)} BINGO` }),
-    event.cap > 0 ? h("p", { class: "banner-count", text: `${event.placement} / ${event.cap}` }) : null,
+    h("p", { class: "banner-subtitle", text: `${placeWord(event.placement)} BINGO${event.tie ? " · TIE" : ""}` }),
+    event.cap > 0 ? h("p", { class: "banner-count", text: `${event.count ?? event.placement} / ${event.cap}` }) : null,
     event.lineType ? h("p", { class: "banner-line", text: `${(LINE_LABEL[event.lineType] ?? "").toUpperCase()} BINGO` }) : null,
     winner?.cells?.length === 5 ? winningStrip(winner.cells, event.lineType) : null
   ];

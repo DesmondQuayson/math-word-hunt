@@ -121,9 +121,9 @@ select is((select emoji from public.bingo_participants where token_hash=repeat('
 select is(((pg_temp.room(repeat('a',64))).events->-1)->>'emoji',null,'and from past announcements');
 
 -- Every player's answer is independent: 50 players, one question, the same answer --------------------
-select is(public.bingo_create_room('713050',repeat('5',64),repeat('6',64),jsonb_set(pg_temp.settings(),'{winners}','0'))->>'result','created','a 50-player room');
+select is(public.bingo_create_room('713050',repeat('5',64),repeat('6',64),jsonb_set(pg_temp.settings(),'{winners}','50'))->>'result','created','a 50-player room (50 winners wanted)');
 select is((select count(*)::integer from (select public.bingo_join_room('713050','Kid '||g,repeat('b',60)||lpad(g::text,4,'0'),:subject,'🚀')->>'result' as r from generate_series(1,50) g) s where r='joined'),50,'50 players join (all 🚀)');
-select is(public.bingo_host_start(repeat('5',64),repeat('6',64),'start',jsonb_set(pg_temp.settings(),'{winners}','0'),repeat('f',32),pg_temp.pool(),pg_temp.deck(),pg_temp.boards(repeat('6',64),pg_temp.card()))->>'dealt','50','every card is dealt at Start');
+select is(public.bingo_host_start(repeat('5',64),repeat('6',64),'start',jsonb_set(pg_temp.settings(),'{winners}','50'),repeat('f',32),pg_temp.pool(),pg_temp.deck(),pg_temp.boards(repeat('6',64),pg_temp.card()))->>'dealt','50','every card is dealt at Start');
 select is(pg_temp.next(repeat('5',64),repeat('6',64)),'ok','question 1: 1 + 0');
 select is((select count(*)::integer from (select pg_temp.mark(repeat('6',64), repeat('b',60)||lpad(g::text,4,'0'), 0) as r from generate_series(1,50) g) s where r='correct'),50,
   'all 50 players mark their own 1: nobody consumes the answer');

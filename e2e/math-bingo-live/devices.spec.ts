@@ -37,7 +37,7 @@ test("every target screen: the card dominates and fits, cells are touch-sized, n
   test.setTimeout(600_000);
   const engine = testInfo.project.name.includes("webkit") ? "webkit" : "chromium";
   const host = await signInTeacher(browser, { viewport: { width: 1920, height: 1080 } });
-  // Halves to sixths holds 15 different fractions: Bingo pacing allows one winner.
+  // Halves to sixths: 15 different fractions (its first winner gate is drawn from calls 9-12).
   const room = await createGame(host.page, { mode: "fractions", level: "to-sixths", questionSeconds: 0, revealSeconds: 0, winners: 1 });
   const players = [];
   for (const viewport of PLAYER_VIEWPORTS) {
