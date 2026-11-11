@@ -1,0 +1,44 @@
+ok   staging build 29d01fd18b4ce52f732c52d67e202df59f8da5a1 is 29d01fd18b4ce52f732c52d67e202df59f8da5a1
+ok   production /join serves the published game (status 200)
+ok   staging /join serves the student page with its CSP (200)
+ok   anonymous host screen goes to sign-in (307)
+ok   /games/math-bingo-live/play points at the host screen (307)
+ok   a free MathNexa account (no subscription) opens the host screen
+ok   the room's winning ways are rows + columns
+ok   the host lobby lists Ava, Zion and Omar
+ok   every card holds 24 different answers in its own layout, Free Space in the middle
+ok   the server drew this game's first winner gate: call 16 (one of 14-17)
+ok   no screen shows or receives the winner gates (no countdown on the host or a student screen)
+ok   host and student winning ways match the room (rows, columns; no diagonals)
+ok   question 1280x720: page does not scroll (1280x720)
+ok   question 1280x720: header, winning ways, standings, winners, question, timer, called and controls on screen
+ok   question 1280x720: standings left, question top right, winners under standings, called under the question
+ok   question 1920x1080: page does not scroll (1920x1080)
+ok   question 1920x1080: header, winning ways, standings, winners, question, timer, called and controls on screen
+ok   question 1920x1080: standings left, question top right, winners under standings, called under the question
+ok   Ava's tap on question 1 is correct
+ok   Ava's tap on question 2 is correct
+ok   Ava's tap on question 4 is correct
+ok   Ava's tap on question 5 is correct
+ok   Ava's tap on question 6 is correct
+ok   Ava's tap on question 8 is correct
+ok   Ava's tap on question 10 is correct
+ok   Ava's tap on question 12 is correct
+ok   Ava's tap on question 16 is correct
+ok   the first Bingo (Ava) came at call 16, not before the drawn gate 16
+ok   Bingo Winners lists Ava
+ok   Winners 1 / 3
+ok   the Bingo announcement has no stray text
+ok   one-winner 1280x720: page does not scroll (1280x720)
+ok   one-winner 1280x720: header, winning ways, standings, winners, question, timer, called and controls on screen
+ok   one-winner 1280x720: standings left, question top right, winners under standings, called under the question
+ok   one-winner 1920x1080: page does not scroll (1920x1080)
+ok   one-winner 1920x1080: header, winning ways, standings, winners, question, timer, called and controls on screen
+ok   one-winner 1920x1080: standings left, question top right, winners under standings, called under the question
+ok   three winners: 1. Ava, 2. Omar, 3. Zion (same-call winners share the place)
+ok   Bingos at calls 16, 26, 35: first gate 16, gaps drawn 10, 9, 11 — no new winner before its gate
+ok   every Bingo is a row or a column (diagonals are off)
+ok   MATH BINGO COMPLETE shown on the host
+cleanup: 1 synthetic account(s) and 1 room(s) deleted
+41/41 checks passed
+review exit 0

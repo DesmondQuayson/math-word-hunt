@@ -2,9 +2,32 @@
 -- function exactly as 20261103100000 / 20261108100000 / 20261108110000 left it
 -- (fixed first gate of 15 from the server's payload, 10 calls between winners,
 -- the capacity refusal), drops the new helpers and restores the unique
--- placement index. Close rooms whose winners share a placement first (the
--- unique index cannot be rebuilt over them). Run inside one transaction.
+-- placement index. Run inside one transaction, after the previous application
+-- build (v1.2.44) is live again: the restored Start refuses this build's pacing
+-- payload.
+--
+-- Rooms the restored functions cannot run are closed first, exactly as the
+-- host's Close command closes a room: a game in progress under these rules (its
+-- pacing has no fixed spacing, buffer or capacity) and any room whose winners
+-- share a placement (the unique index cannot be rebuilt over them). Every other
+-- room keeps playing.
 begin;
+
+with doomed as (
+  select r.id from public.bingo_rooms r
+  where (r.pacing ? 'winnerEvents' and r.phase not in ('LOBBY','GAME_COMPLETE'))
+     or exists (select 1 from public.bingo_participants p where p.room_id=r.id and p.placement is not null
+                group by p.placement having count(*) > 1)
+), gone_players as (
+  delete from public.bingo_participants where room_id in (select id from doomed)
+), gone_questions as (
+  delete from public.bingo_room_questions where room_id in (select id from doomed)
+)
+update public.bingo_rooms set status='closed', phase=case when game_number=0 then 'LOBBY' else 'GAME_COMPLETE' end,
+  paused_phase=null, paused_remaining_ms=null,
+  phase_deadline=null, pool=null, deck=null, game_seed=null, pacing=null, winners='[]'::jsonb, events='[]'::jsonb,
+  leaderboard='[]'::jsonb, version=version+1, updated_at=statement_timestamp()
+  where id in (select id from doomed);
 
 create or replace function private.bingo_pacing_valid(p jsonb)
 returns boolean language sql immutable set search_path=''

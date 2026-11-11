@@ -1,0 +1,625 @@
+{
+  "origin": "https://mathnexa-platform-staging-21fi3d0k6-bright-path-ed-tech.vercel.app",
+  "deployment": "dpl_7f4JyjbevwmqupAkMizdPeMjP6yr",
+  "build": "29d01fd18b4ce52f732c52d67e202df59f8da5a1",
+  "note": "Each run: one synthetic free teacher (deleted afterwards), N virtual students from this one machine polling like the real page, 10 s questions + 3 s reveal. Latency limits (polls 1000 ms, marks 1500 ms, host 1500 ms) are the harness limits; above ~30 students they were already exceeded in v1.2.38 (Supabase API layer). serverStallWindows = 10 s windows whose slowest poll exceeded 5 s, with the independent one-row Supabase probe in the same window.",
+  "runs": [
+    {
+      "players": 10,
+      "target": 2,
+      "level": "within-50",
+      "playSeconds": 480,
+      "games": [
+        {
+          "calls": 24,
+          "completedReason": "winners",
+          "winners": 2,
+          "firstGate": 16,
+          "gaps": [
+            8,
+            11
+          ],
+          "winnerEvents": [
+            {
+              "n": 16,
+              "winners": 1
+            },
+            {
+              "n": 24,
+              "winners": 1
+            }
+          ],
+          "placements": [
+            1,
+            2
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 420,
+        "marks": 379,
+        "host": 822
+      },
+      "p50": {
+        "polls": 224,
+        "marks": 242,
+        "host": 295
+      },
+      "serverTimingDbP95": {
+        "polls": 277,
+        "marks": 249
+      },
+      "outsideP95": {
+        "polls": 172
+      },
+      "worstCoverage": 100,
+      "statuses": {
+        "200": 4545,
+        "404": 1
+      },
+      "notOk": {},
+      "sameAnswerBurst": {
+        "valid": 6,
+        "accepted": 6,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 211,
+        "p50": 124,
+        "p95": 218,
+        "p99": 540,
+        "max": 1224,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 211,
+        "p50": 121,
+        "p95": 179,
+        "p99": 315,
+        "max": 777,
+        "failed": 0
+      },
+      "serverStallWindows": [
+        {
+          "second": 70,
+          "slowestPollMs": 8566,
+          "probeMaxMs": 1046
+        }
+      ]
+    },
+    {
+      "players": 20,
+      "target": 5,
+      "level": "facts-20",
+      "playSeconds": 660,
+      "games": [
+        {
+          "calls": 30,
+          "completedReason": "winners",
+          "winners": 13,
+          "firstGate": 14,
+          "gaps": [
+            9,
+            8,
+            8
+          ],
+          "winnerEvents": [
+            {
+              "n": 14,
+              "winners": 3
+            },
+            {
+              "n": 23,
+              "winners": 1
+            },
+            {
+              "n": 31,
+              "winners": 9
+            }
+          ],
+          "placements": [
+            1,
+            4,
+            5
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 532,
+        "marks": 755,
+        "host": 867
+      },
+      "p50": {
+        "polls": 229,
+        "marks": 239,
+        "host": 322
+      },
+      "serverTimingDbP95": {
+        "polls": 382,
+        "marks": 633
+      },
+      "outsideP95": {
+        "polls": 170
+      },
+      "worstCoverage": 100,
+      "statuses": {
+        "0": 1,
+        "200": 11759,
+        "404": 1
+      },
+      "notOk": {
+        "host 0 net::ERR_ABORTED": 1
+      },
+      "sameAnswerBurst": {
+        "valid": 20,
+        "accepted": 20,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 283,
+        "p50": 144,
+        "p95": 402,
+        "p99": 2352,
+        "max": 3290,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 283,
+        "p50": 113,
+        "p95": 176,
+        "p99": 318,
+        "max": 560,
+        "failed": 0
+      },
+      "serverStallWindows": [
+        {
+          "second": 280,
+          "slowestPollMs": 5105,
+          "probeMaxMs": 2079
+        },
+        {
+          "second": 290,
+          "slowestPollMs": 7968,
+          "probeMaxMs": 2442
+        }
+      ]
+    },
+    {
+      "players": 30,
+      "target": 10,
+      "level": "facts-20",
+      "playSeconds": 660,
+      "games": [
+        {
+          "calls": 33,
+          "completedReason": "winners",
+          "winners": 19,
+          "firstGate": 14,
+          "gaps": [
+            9,
+            11,
+            11
+          ],
+          "winnerEvents": [
+            {
+              "n": 14,
+              "winners": 2
+            },
+            {
+              "n": 23,
+              "winners": 2
+            },
+            {
+              "n": 34,
+              "winners": 15
+            }
+          ],
+          "placements": [
+            1,
+            3,
+            5
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 731,
+        "marks": 1422,
+        "host": 1139
+      },
+      "p50": {
+        "polls": 242,
+        "marks": 276,
+        "host": 377
+      },
+      "serverTimingDbP95": {
+        "polls": 594,
+        "marks": 1293
+      },
+      "outsideP95": {
+        "polls": 169
+      },
+      "worstCoverage": 97.5,
+      "statuses": {
+        "0": 2,
+        "200": 16204,
+        "404": 1,
+        "503": 8
+      },
+      "notOk": {
+        "host 0 net::ERR_ABORTED": 2,
+        "state 503 live-unavailable": 8
+      },
+      "sameAnswerBurst": {
+        "valid": 30,
+        "accepted": 30,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 272,
+        "p50": 152,
+        "p95": 606,
+        "p99": 2134,
+        "max": 11362,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 272,
+        "p50": 109,
+        "p95": 173,
+        "p99": 461,
+        "max": 706,
+        "failed": 0
+      },
+      "serverStallWindows": [
+        {
+          "second": 200,
+          "slowestPollMs": 10733,
+          "probeMaxMs": 9547
+        },
+        {
+          "second": 210,
+          "slowestPollMs": 17695,
+          "probeMaxMs": null
+        },
+        {
+          "second": 220,
+          "slowestPollMs": 17557,
+          "probeMaxMs": 11362
+        }
+      ]
+    },
+    {
+      "players": 40,
+      "target": 20,
+      "level": "facts-20",
+      "playSeconds": 721,
+      "games": [
+        {
+          "calls": 31,
+          "completedReason": "winners",
+          "winners": 21,
+          "firstGate": 16,
+          "gaps": [
+            8,
+            8,
+            9
+          ],
+          "winnerEvents": [
+            {
+              "n": 16,
+              "winners": 3
+            },
+            {
+              "n": 24,
+              "winners": 1
+            },
+            {
+              "n": 32,
+              "winners": 17
+            }
+          ],
+          "placements": [
+            1,
+            4,
+            5
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 1286,
+        "marks": 3051,
+        "host": 2094
+      },
+      "p50": {
+        "polls": 304,
+        "marks": 369,
+        "host": 588
+      },
+      "serverTimingDbP95": {
+        "polls": 1152,
+        "marks": 2915
+      },
+      "outsideP95": {
+        "polls": 172
+      },
+      "worstCoverage": 95.3,
+      "statuses": {
+        "0": 4,
+        "200": 17635,
+        "404": 1,
+        "503": 12
+      },
+      "notOk": {
+        "host 0 net::ERR_ABORTED": 4,
+        "state 503 live-unavailable": 9,
+        "mark 503 live-unavailable": 3
+      },
+      "sameAnswerBurst": {
+        "valid": 40,
+        "accepted": 40,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 274,
+        "p50": 179,
+        "p95": 1064,
+        "p99": 4080,
+        "max": 36610,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 274,
+        "p50": 106,
+        "p95": 163,
+        "p99": 324,
+        "max": 938,
+        "failed": 0
+      },
+      "serverStallWindows": [
+        {
+          "second": 90,
+          "slowestPollMs": 16193,
+          "probeMaxMs": 14425
+        },
+        {
+          "second": 100,
+          "slowestPollMs": 5014,
+          "probeMaxMs": 4080
+        },
+        {
+          "second": 120,
+          "slowestPollMs": 15468,
+          "probeMaxMs": null
+        },
+        {
+          "second": 130,
+          "slowestPollMs": 25170,
+          "probeMaxMs": null
+        },
+        {
+          "second": 140,
+          "slowestPollMs": 33392,
+          "probeMaxMs": null
+        },
+        {
+          "second": 150,
+          "slowestPollMs": 39173,
+          "probeMaxMs": 36610
+        }
+      ]
+    },
+    {
+      "players": 50,
+      "target": 30,
+      "level": "facts-20",
+      "playSeconds": 720,
+      "games": [
+        {
+          "calls": 35,
+          "completedReason": "winners",
+          "winners": 38,
+          "firstGate": 14,
+          "gaps": [
+            11,
+            11,
+            9
+          ],
+          "winnerEvents": [
+            {
+              "n": 14,
+              "winners": 5
+            },
+            {
+              "n": 25,
+              "winners": 4
+            },
+            {
+              "n": 36,
+              "winners": 29
+            }
+          ],
+          "placements": [
+            1,
+            6,
+            10
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 1323,
+        "marks": 1775,
+        "host": 1953
+      },
+      "p50": {
+        "polls": 359,
+        "marks": 380,
+        "host": 699
+      },
+      "serverTimingDbP95": {
+        "polls": 1180,
+        "marks": 1646
+      },
+      "outsideP95": {
+        "polls": 190
+      },
+      "worstCoverage": 100,
+      "statuses": {
+        "200": 19653,
+        "404": 1
+      },
+      "notOk": {},
+      "sameAnswerBurst": {
+        "valid": 50,
+        "accepted": 50,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 277,
+        "p50": 279,
+        "p95": 1300,
+        "p99": 2765,
+        "max": 8127,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 277,
+        "p50": 109,
+        "p95": 181,
+        "p99": 327,
+        "max": 555,
+        "failed": 0
+      },
+      "serverStallWindows": []
+    },
+    {
+      "players": 50,
+      "target": 30,
+      "level": "facts-20",
+      "rerun": "quiet machine (nothing else running locally)",
+      "playSeconds": 720,
+      "games": [
+        {
+          "calls": 33,
+          "completedReason": "winners",
+          "winners": 36,
+          "firstGate": 15,
+          "gaps": [
+            8,
+            11,
+            10
+          ],
+          "winnerEvents": [
+            {
+              "n": 15,
+              "winners": 5
+            },
+            {
+              "n": 23,
+              "winners": 18
+            },
+            {
+              "n": 34,
+              "winners": 13
+            }
+          ],
+          "placements": [
+            1,
+            6,
+            24
+          ],
+          "uniqueQuestions": true
+        }
+      ],
+      "p95": {
+        "polls": 1494,
+        "marks": 1594,
+        "host": 2165
+      },
+      "p50": {
+        "polls": 398,
+        "marks": 433,
+        "host": 776
+      },
+      "serverTimingDbP95": {
+        "polls": 1364,
+        "marks": 1472
+      },
+      "outsideP95": {
+        "polls": 174
+      },
+      "worstCoverage": 100,
+      "statuses": {
+        "0": 4,
+        "200": 19111,
+        "404": 1
+      },
+      "notOk": {
+        "state 0 ECONNRESET": 4
+      },
+      "sameAnswerBurst": {
+        "valid": 50,
+        "accepted": 50,
+        "repeatsCounted": 0
+      },
+      "supabaseProbe": {
+        "n": 276,
+        "p50": 318,
+        "p95": 1215,
+        "p99": 2376,
+        "max": 5222,
+        "failed": 0
+      },
+      "vercelHealth": {
+        "n": 276,
+        "p50": 108,
+        "p95": 176,
+        "p99": 305,
+        "max": 679,
+        "failed": 0
+      },
+      "serverStallWindows": [
+        {
+          "second": 310,
+          "slowestPollMs": 5652,
+          "probeMaxMs": 5222
+        }
+      ],
+      "stagingDatabaseDuringRun": {
+        "source": "pg_stat_statements delta (before/after the run), toplevel RPC statements",
+        "meanExecMs": {
+          "bingo_player_state": {
+            "calls": 17056,
+            "ms": 18.05
+          },
+          "bingo_mark": {
+            "calls": 1564,
+            "ms": 34.85
+          },
+          "bingo_host_state": {
+            "calls": 341,
+            "ms": 24.72
+          },
+          "bingo_free_space": {
+            "calls": 100,
+            "ms": 65.1
+          },
+          "bingo_join_room": {
+            "calls": 50,
+            "ms": 11.44
+          },
+          "bingo_host_start_paced": {
+            "calls": 2,
+            "ms": 413.41
+          }
+        },
+        "newMaximumDuringRun": false,
+        "lockWaitsAtSnapshots": 0
+      }
+    }
+  ]
+}
