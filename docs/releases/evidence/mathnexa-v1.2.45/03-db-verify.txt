@@ -1,0 +1,109 @@
+{
+  "stage": "verify",
+  "startedAt": "2026-11-11T18:59:46.928Z",
+  "projectRef": "[production-ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production-ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 48,
+    "games": "crosscalc:published,math-bingo-live:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:published"
+  },
+  "environment": "PRODUCTION",
+  "stagingSelected": false,
+  "releaseRecorded": [
+    "20261103100000",
+    "20261106100000",
+    "20261106110000",
+    "20261106120000",
+    "20261107100000",
+    "20261108100000",
+    "20261108110000",
+    "20261111100000"
+  ],
+  "speedFunctions": {
+    "host_state_with_progress_locked": true,
+    "progress_helper_locked": true
+  },
+  "finalGameplay": {
+    "deck_check_locked": true,
+    "emoji_check": true,
+    "emoji_check_locked": true,
+    "emoji_column": true,
+    "join_with_emoji_locked": true
+  },
+  "catalog": {
+    "display_order": 34,
+    "identities": 1,
+    "internal_route": "/games/math-bingo-live/host",
+    "launch_type": "internal",
+    "recommended_grade_max": 6,
+    "recommended_grade_min": 1,
+    "slug": "math-bingo-live",
+    "stable_key": "math-bingo-live",
+    "status": "published",
+    "thumbnail_reference": "builtin:math-bingo-live",
+    "title": "Math Bingo Live",
+    "version": "1.0.0"
+  },
+  "tables": [
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "policies": 0,
+      "relforcerowsecurity": true,
+      "relname": "bingo_join_failures",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "policies": 0,
+      "relforcerowsecurity": true,
+      "relname": "bingo_participants",
+      "relrowsecurity": true
+    },
+    {
+      "anon_any": false,
+      "authenticated_any": false,
+      "policies": 0,
+      "relforcerowsecurity": true,
+      "relname": "bingo_rooms",
+      "relrowsecurity": true
+    }
+  ],
+  "functions": [
+    "bingo_create_room",
+    "bingo_free_space",
+    "bingo_host_command",
+    "bingo_host_resume",
+    "bingo_host_start",
+    "bingo_host_start",
+    "bingo_host_start_paced",
+    "bingo_host_state",
+    "bingo_host_state",
+    "bingo_join_room",
+    "bingo_join_room",
+    "bingo_leave",
+    "bingo_mark",
+    "bingo_player_state",
+    "bingo_set_board"
+  ],
+  "otherGames": "crosscalc:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:published",
+  "snapshot": {
+    "accounts": 48,
+    "auth_users": 48,
+    "catalog": 7,
+    "catalog_versions": 17,
+    "entitlements": 6,
+    "history": 47,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261109100000:104,20261109110000:17",
+    "other_games": "crosscalc:published:32:0.2.0:3,math-tug-of-war:published:33:1.0.0:1,math-vocabulary-hunt:published:1:7.0.0:1,number-cross:published:30:1.0.0:5,number-logic:published:31:0.1.0:2,polygon-showdown:published:35:1.0.0:3",
+    "resources": 225,
+    "subscriptions": 6
+  },
+  "result": "PASS",
+  "finishedAt": "2026-11-11T19:00:05.078Z"
+}

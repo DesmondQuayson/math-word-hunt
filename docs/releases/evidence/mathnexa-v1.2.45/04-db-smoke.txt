@@ -1,0 +1,29 @@
+{
+  "stage": "smoke",
+  "startedAt": "2026-11-11T19:00:06.049Z",
+  "projectRef": "[production-ref]",
+  "smoke": {
+    "created": "created",
+    "joined": "joined",
+    "duplicateName": "release ava 2",
+    "unknownCode": "not-found",
+    "hostPhase": "LOBBY",
+    "hostPatterns": {
+      "rows": true,
+      "columns": true,
+      "diagonals": false
+    },
+    "strangerHost": "not-found",
+    "playerPhase": "LOBBY",
+    "closed": "closed",
+    "seatAfterClose": "not-found"
+  },
+  "browserRead": "refused",
+  "browserRpc": "refused",
+  "syntheticRowsRemaining": {
+    "rooms": 0,
+    "joinFailures": 0
+  },
+  "result": "PASS",
+  "finishedAt": "2026-11-11T19:00:08.921Z"
+}

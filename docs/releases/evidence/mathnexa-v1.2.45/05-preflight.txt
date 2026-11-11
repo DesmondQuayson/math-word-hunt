@@ -1,0 +1,112 @@
+{
+  "stage": "preflight",
+  "startedAt": "2026-11-11T18:53:48.832Z",
+  "rollbackTarget": {
+    "id": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+    "url": "https://mathnexa-platform-production-19jftwh8i-bright-path-ed-tech.vercel.app",
+    "retained": true
+  },
+  "currentProductionDeployment": {
+    "id": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+    "name": "mathnexa-platform-production",
+    "target": "production",
+    "status": "● Ready",
+    "url": "https://mathnexa-platform-production-19jftwh8i-bright-path-ed-tech.vercel.app",
+    "created": "Tue Nov 10 2026 05:53:15 GMT-0600 (Central Standard Time) [1d ago]",
+    "aliases": []
+  },
+  "before": {
+    "health": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/health",
+      "contentType": "application/json",
+      "bytes": 150,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"status\":\"ready\",\"environment\":\"production-platform\",\"build\":\"af44f4f542e2556b524b9b7905e7bfbe2520e3b5\",\"searchIndexing\":\"enabled\",\"payments\":\"live\"}"
+    },
+    "webhookApex": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/api/billing/webhook",
+      "contentType": "application/json",
+      "bytes": 46,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"received\":false,\"state\":\"invalid-signature\"}"
+    },
+    "webhookConfiguredHost": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/api/billing/webhook",
+      "contentType": "application/json",
+      "bytes": 46,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"received\":false,\"state\":\"invalid-signature\"}"
+    },
+    "home": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 61133,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "optimizerIcon": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/icon.png",
+      "contentType": "image/webp",
+      "bytes": 2502,
+      "security": {
+        "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "RIFF�\t\u0000\u0000WEBPVP8X\n\u0000\u0000\u0000\u0010\u0000\u0000\u0000?\u0000\u0000?\u0000\u0000ALPHb\u0002\u0000\u0000\u0001���\u001a9?I��\u0005��\f'w��\u0010K\u0015u�\u0012/0\u0010�C0'=C��/3����yb�-�\u0003D\u0004\u0003��\u0014\r�v����\u00048�\n\u0014`��Ԟ~�X'���>k�\u001e2�\n4<�\u000e���[?���;�oVʀ��Qh>�����0�����0\"-�^l�2\u0005Q���b����\t�ve��\u0002c��0�fhØ�\u001a��s'\u00038�\np�"
+    }
+  },
+  "runtime": {
+    "certified": "5dc155fff847870d54e09a6c4b41ad68436c874e",
+    "nextVersion": "16.4.2",
+    "sharpVersion": "0.35.5"
+  },
+  "completedAt": "2026-11-11T18:54:05.672Z",
+  "outcome": "PASS"
+}

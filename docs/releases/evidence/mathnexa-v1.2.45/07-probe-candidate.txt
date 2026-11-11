@@ -1,0 +1,226 @@
+{
+  "stage": "probe-preview",
+  "startedAt": "2026-11-11T18:57:00.445Z",
+  "rollbackTarget": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+  "previewProbes": {
+    "health": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/health",
+      "contentType": "application/json",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"status\":\"ready\",\"environment\":\"production-platform\",\"build\":\"5dc155fff847870d54e09a6c4b41ad68436c874e\",\"searchIndexing\":\"enabled\",\"payments\":\"live\"}\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"verc"
+    },
+    "webhookUnsigned": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/api/billing/webhook",
+      "contentType": "application/json",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"received\":false,\"state\":\"invalid-signature\"}\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.c"
+    },
+    "home": {
+      "status": 308,
+      "location": "https://mathnexa.com/",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "account": {
+      "status": 308,
+      "location": "https://mathnexa.com/account",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "pricing": {
+      "status": 308,
+      "location": "https://mathnexa.com/pricing",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "admin": {
+      "status": 308,
+      "location": "https://mathnexa.com/admin",
+      "cacheControl": "no-store",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "scheduler": {
+      "status": 401,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/internal/billing/reconcile",
+      "contentType": "application/json",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"error\":\"unauthorized\"}\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "fixture": {
+      "status": 308,
+      "location": "https://mathnexa.com/api/internal/billing/fixture",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n> [debug] [2026-11-"
+    },
+    "gameRuntime": {
+      "status": 308,
+      "location": "https://mathnexa.com/game/runtime/index.html",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "forgedAccess": {
+      "status": 308,
+      "location": "https://mathnexa.com/play?access=active&trialEndsAt=2099-01-01",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    },
+    "optimizerIcon": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/icon.png",
+      "contentType": "image/webp",
+      "security": {
+        "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "RIFF�\t\u0000\u0000WEBPVP8X\n\u0000\u0000\u0000\u0010\u0000\u0000\u0000?\u0000\u0000?\u0000\u0000ALPHb\u0002\u0000\u0000\u0001���\u001a9?I��\u0005��\f'w��\u0010K\u0015u�\u0012/0\u0010�C0'=C��/3����yb�-�\u0003D\u0004\u0003��\u0014\r�v����\u00048�\n\u0014`��Ԟ~�X'���>k�\u001e2�\n4<�\u000e���[?���;�oVʀ��Qh>�����0�����0\"-�^l�2\u0005Q���b����\t�ve��\u0002c��0�fhØ�\u001a��s'\u00038�\np�"
+    },
+    "optimizerRemote": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain; charset=utf-8",
+      "security": {
+        "csp": null,
+        "hsts": "max-age=63072000; includeSubDomains; preload",
+        "frame": null,
+        "nosniff": null,
+        "referrer": null,
+        "permissions": null
+      },
+      "body": "Bad request\n\nINVALID_IMAGE_OPTIMIZE_REQUEST\n\ncle1::vnvjd-1794423525215-7c6bb9a6683f\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0"
+    },
+    "thumbnailAvif": {
+      "status": 308,
+      "location": "https://mathnexa.com/media/games/number-cross.avif",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n\n<claude-code-hint v=\"1\" type=\"plugin\" value=\"vercel@claude-plugins-official\" />\nVercel CLI 59.26.0 (Node.js 24.18.0) | curl is in beta — https://vercel.com/feedback\n"
+    }
+  },
+  "previewChecks": {
+    "health": true,
+    "webhook": true,
+    "canonicalHost": true,
+    "schedulerReachesRouteClosed": true,
+    "noServerErrors": true,
+    "optimizer": true,
+    "optimizerRemoteRefused": true
+  },
+  "completedAt": "2026-11-11T18:58:53.773Z",
+  "outcome": "PASS"
+}

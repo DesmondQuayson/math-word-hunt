@@ -1,0 +1,22 @@
+# Live checks after promotion (2026-11-11T19:05:32Z)
+
+## /api/health
+{"status":"ready","environment":"production-platform","build":"5dc155fff847870d54e09a6c4b41ad68436c874e","searchIndexing":"enabled","payments":"live"}
+
+## Public routes
+/ 200
+/join 200
+/math-games 200
+/sitemap.xml 200
+/robots.txt 200
+/games/math-bingo-live/host (signed out) 307 -> https://mathnexa.com/access?next=/games/math-bingo-live/host
+/games/math-bingo-live/play 307 -> https://mathnexa.com/games/math-bingo-live/host
+
+## Student runtime referenced by /join
+math-bingo-live/src/player.js?v=fdbf0e6a67d3e50a
+
+## Served runtime files (counts of markers)
+src/host.js            winners-count:1 pacingText:0 'Bingo opportunity':0 WINNER_PRESETS:0 'MAX_WINNERS = MAX_PARTICIPANTS':0
+src/player.js          winners-count:0 pacingText:0 'Bingo opportunity':0 WINNER_PRESETS:0 'MAX_WINNERS = MAX_PARTICIPANTS':0
+src/shared.js          winners-count:0 pacingText:0 'Bingo opportunity':0 WINNER_PRESETS:0 'MAX_WINNERS = MAX_PARTICIPANTS':0
+src/engine/settings.js winners-count:0 pacingText:0 'Bingo opportunity':0 WINNER_PRESETS:0 'MAX_WINNERS = MAX_PARTICIPANTS':1

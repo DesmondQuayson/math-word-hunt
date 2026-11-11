@@ -1,0 +1,737 @@
+{
+  "stage": "probe-live",
+  "startedAt": "2026-11-11T19:01:04.431Z",
+  "rollbackTarget": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+  "aliasServes": {
+    "id": "dpl_2KufePPCeqSs1msZRq3hmccwLDGr",
+    "url": "https://mathnexa-platform-production-dvwsepgfg-bright-path-ed-tech.vercel.app"
+  },
+  "liveProbes": {
+    "apexHtmlDeployment": "dpl_2KufePPCeqSs1msZRq3hmccwLDGr",
+    "configuredWebhookHost": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/api/billing/webhook",
+      "contentType": "application/json",
+      "bytes": 46,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"received\":false,\"state\":\"invalid-signature\"}"
+    },
+    "apexWebhook": {
+      "status": 400,
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/api/billing/webhook",
+      "contentType": "application/json",
+      "bytes": 46,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"received\":false,\"state\":\"invalid-signature\"}"
+    },
+    "wwwWebhook": {
+      "status": 308,
+      "location": "https://mathnexa.com/api/billing/webhook",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "bytes": 15,
+      "security": {
+        "csp": null,
+        "hsts": "max-age=63072000",
+        "frame": null,
+        "nosniff": null,
+        "referrer": null,
+        "permissions": null
+      },
+      "body": "Redirecting...\n"
+    },
+    "health": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/health",
+      "contentType": "application/json",
+      "bytes": 150,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"status\":\"ready\",\"environment\":\"production-platform\",\"build\":\"5dc155fff847870d54e09a6c4b41ad68436c874e\",\"searchIndexing\":\"enabled\",\"payments\":\"live\"}"
+    },
+    "configuredHostHealth": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/health",
+      "contentType": "application/json",
+      "bytes": 150,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"status\":\"ready\",\"environment\":\"production-platform\",\"build\":\"5dc155fff847870d54e09a6c4b41ad68436c874e\",\"searchIndexing\":\"enabled\",\"payments\":\"live\"}"
+    },
+    "browserHostStillRedirects": {
+      "status": 308,
+      "location": "https://mathnexa.com/pricing",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "bytes": 15,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "Redirecting...\n"
+    },
+    "www": {
+      "status": 308,
+      "location": "https://mathnexa.com/",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": null,
+      "contentType": "text/plain",
+      "bytes": 15,
+      "security": {
+        "csp": null,
+        "hsts": "max-age=63072000",
+        "frame": null,
+        "nosniff": null,
+        "referrer": null,
+        "permissions": null
+      },
+      "body": "Redirecting...\n"
+    },
+    "home": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 61133,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "signIn": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/sign-in",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 25303,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "signUp": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/sign-up",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 26213,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "access": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/access",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 23216,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "pricing": {
+      "status": 307,
+      "location": "/access?next=/subscription",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/pricing",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15401,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "games": {
+      "status": 307,
+      "location": "/access?next=/games",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/games",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15617,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "mapPrep": {
+      "status": 307,
+      "location": "/access?next=/map-prep",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/map-prep",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15485,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "homework": {
+      "status": 307,
+      "location": "/access?next=/homework",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/homework",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15592,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "quizzes": {
+      "status": 307,
+      "location": "/access?next=/quizzes",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/quizzes",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15558,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "account": {
+      "status": 307,
+      "location": "/access?next=/account",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/account",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15396,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "subscription": {
+      "status": 307,
+      "location": "/access?next=/subscription",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/subscription",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15493,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "gameAccess": {
+      "status": 307,
+      "location": "/sign-in?next=/game-access",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/game-access",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15246,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "admin": {
+      "status": 404,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/admin",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15629,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "adminSignIn": {
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/admin/sign-in",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 23116,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" lang=\"en\" data-scroll-behavior=\"smooth\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scal"
+    },
+    "scheduler": {
+      "status": 401,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/internal/billing/reconcile",
+      "contentType": "application/json",
+      "bytes": 24,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    "fixtureRoute": {
+      "status": 404,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/internal/billing/fixture",
+      "contentType": "application/json",
+      "bytes": 21,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"error\":\"not-found\"}"
+    },
+    "gameRuntime": {
+      "status": 401,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/game/runtime/[...asset]",
+      "contentType": "application/json",
+      "bytes": 88,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"error\":\"game-access-denied\",\"reason\":\"authentication-required\",\"nextAction\":\"sign-in\"}"
+    },
+    "forgedAccess": {
+      "status": 307,
+      "location": "/access?next=/games",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "matchedPath": "/play",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 15205,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "<!DOCTYPE html><html data-dpl-id=\"dpl_2KufePPCeqSs1msZRq3hmccwLDGr\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"pre"
+    },
+    "tugRoute": {
+      "status": 307,
+      "location": "/access?next=/games/math-tug-of-war/play",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/games/[resourceId]/play",
+      "contentType": null,
+      "bytes": 0,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": ""
+    },
+    "tugApi": {
+      "status": 401,
+      "location": null,
+      "cacheControl": "no-store",
+      "matchedPath": "/api/games/math-tug-of-war/online",
+      "contentType": "application/json",
+      "bytes": 32,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": "{\"error\":\"game-access-required\"}"
+    },
+    "otherGameRoute": {
+      "status": 307,
+      "location": "/access?next=/games",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "matchedPath": "/games/[resourceId]/play",
+      "contentType": null,
+      "bytes": 0,
+      "security": {
+        "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "hsts": "max-age=63072000; includeSubDomains",
+        "frame": "SAMEORIGIN",
+        "nosniff": "nosniff",
+        "referrer": "strict-origin-when-cross-origin",
+        "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+      },
+      "body": ""
+    },
+    "images": {
+      "brandMark": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/brand/mathnexa-mark.png",
+        "contentType": "image/png",
+        "bytes": 12164,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "�PNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0000�\u0000\u0000\u0000�\b\u0003\u0000\u0000\u0000И\u0012�\u0000\u0000\u0003\u0000PLTELiq\u0000��\u0000��\u0000\\bF��\u0000��D��\u0000��\u0000��\u0000��\u00003Ah��\b��\u0000��\u0000#0>��\u001b�ҫ��:��\u00006=K��\u0000��J��\u0000��H��\u0015�����\u0000��1�ā�����\u0000�����������u��'��p��4��\u0000)5���#��\u0000��\u0000��K���ñ��̡�����U��D�����[��s����"
+      },
+      "icon": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/icon.png",
+        "contentType": "image/png",
+        "bytes": 17559,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "�PNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0000�\u0000\u0000\u0000�\b\u0003\u0000\u0000\u0000e\u0002�5\u0000\u0000\u0003\u0000PLTELiqQ�լ�����\u0015�����������]�����������������������������������������������������L�ؒ��v����\u0010������������K��m�߾��{������ƾ���������������������������������\u0001��������\u0000"
+      },
+      "thumbnailAvif": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/number-cross.avif",
+        "contentType": "image/avif",
+        "bytes": 18194,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "\u0000\u0000\u0000\u001cftypavif\u0000\u0000\u0000\u0000mif1avifmiaf\u0000\u0000\u0000�meta\u0000\u0000\u0000\u0000\u0000\u0000\u0000!hdlr\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000pict\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\"iloc\u0000\u0000\u0000\u0000D@\u0000\u0001\u0000\u0001\u0000\u0000\u0000\u0000\u0000�\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000F\u001a\u0000\u0000\u0000#iinf\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0015infe\u0002\u0000\u0000\u0000\u0000\u0001\u0000\u0000av01\u0000\u0000\u0000\u0000\u000epitm\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000Tiprp\u0000\u0000\u00006ipco\u0000\u0000\u0000\fav1C�\u0005\f\u0000\u0000\u0000\u0000\u0014ispe\u0000\u0000\u0000\u0000\u0000\u0000\u0004�"
+      },
+      "thumbnailWebp": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/number-cross.webp",
+        "contentType": "image/webp",
+        "bytes": 28066,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFF�m\u0000\u0000WEBPVP8 �m\u0000\u0000�,\u0002�\u0001*�\u0004�\u0002>a.�H$\"$��\u0012IX�\f\tgn��\u0019��y�N`Ő\u000e�>C�� ����O��򿹾8[��\u001e�8�u��ɹ����ϟ�\u001f�}�b�\u0002�����\u0017���\u001d�<��J�3�s�'������u�&�\u0000?��������}���g�?pO���}g��~��'q���o�7�\u001b���`\u000f�>�\u001f�}@=o�+�G�����"
+      },
+      "vocabularyWebp": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/math-vocabulary-hunt.webp",
+        "contentType": "image/webp",
+        "bytes": 104550,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFF^�\u0001\u0000WEBPVP8 R�\u0001\u0000p�\u0005�\u0001*�\u0004�\u0002>a*�F$\"�&'rl8�\f\tdn�x�O�\u001aʮ�{\t�f�{ޱ�%�l\u0015�o��v�j��\u0003�i�{ծB����ْ~\u0001�o�ޒ\u001c�ݧĿ\u0001�w����v��?��k�*�\f=o�\u001f���?1~h�������\u0007ß�?���������\u0011���w�\u0007�����l������c�?���?�?���������\u0003��������T"
+      },
+      "crosscalcSvg": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/crosscalc.svg",
+        "contentType": "image/svg+xml",
+        "bytes": 4570,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"675\" viewBox=\"0 0 1200 675\" role=\"img\" aria-labelledby=\"title description\">\n  <title id=\"title\">CrossCalc arithmetic crossword</title>\n  <d"
+      },
+      "tugWebp": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/math-tug-of-war.webp",
+        "contentType": "image/webp",
+        "bytes": 44952,
+        "security": {
+          "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://[production-ref].supabase.co wss://[production-ref].supabase.co; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFF��\u0000\u0000WEBPVP8 ��\u0000\u0000�\f\u0003�\u0001*�\u0004�\u0002>a0�G�\"��\"ӺiP\f\tcn�\u000b[9Q����{=�\u000f\u0012ݮg�o~�\u001d\n���\t�\u0015����O�����Y�~[�򟻿�~\u000f�W�oS~\u0003����?�y1��y��\u001f�O�_�?<�����\u000f�������\u001f��?���S�����?���7�7�\u001fݯ�O�_п���\u0015�����?����?��?i��|�G���S"
+      },
+      "optimizerIcon": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/icon.png",
+        "contentType": "image/webp",
+        "bytes": 2502,
+        "security": {
+          "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFF�\t\u0000\u0000WEBPVP8X\n\u0000\u0000\u0000\u0010\u0000\u0000\u0000?\u0000\u0000?\u0000\u0000ALPHb\u0002\u0000\u0000\u0001���\u001a9?I��\u0005��\f'w��\u0010K\u0015u�\u0012/0\u0010�C0'=C��/3����yb�-�\u0003D\u0004\u0003��\u0014\r�v����\u00048�\n\u0014`��Ԟ~�X'���>k�\u001e2�\n4<�\u000e���[?���;�oVʀ��Qh>�����0�����0\"-�^l�2\u0005Q���b����\t�ve��\u0002c��0�fhØ�\u001a��s'\u00038�\np�"
+      },
+      "optimizerBrand": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/brand/mathnexa-mark.png",
+        "contentType": "image/webp",
+        "bytes": 5974,
+        "security": {
+          "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFFN\u0017\u0000\u0000WEBPVP8X\n\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000ALPHc\u0007\u0000\u0000\u0001�,�\"G�_��2\\�ÞY�����4p�y\u00012��2�\u001fç!S��O��\u000e\u001f��8<�h82\\=�JI��/�JReeI{�\b\b\u0002�6q\u0018\u0005\u00013�!��\u0001���(\u0014\u0011���s//����k�Nj���޵�?�����i\u001d�.I,JMT�<����[\u000e�������33\u0005�.��@U%�ԓ\u000b��8A\u001f��u�,\u001e�s"
+      },
+      "optimizerThumbnailWebp": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/number-cross.webp",
+        "contentType": "image/webp",
+        "bytes": 4854,
+        "security": {
+          "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "RIFF�\u0012\u0000\u0000WEBPVP8 �\u0012\u0000\u0000pi\u0000�\u0001*�\u0001�\u0000>�F�J���!�u\t��\u0012\tgn�T�+�y.{o>�}�K{z<�~�z�z@��p� ��I�\u0017���:+~\u0001.\u0012[����\u001a�z�yOb�\u0005�\u000f���_�z#�\u0001��?\u000bϳ���\u0007�\u0013�ӟ���:N�'��\u0013�1�\nr��y�ae/kc�/��օ��\u001c�Lȗ��\t��\u000e�x��n�6A���J\u0007�Z�������t2��._"
+      },
+      "optimizerThumbnailAvif": {
+        "status": 200,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": "/media/games/number-cross.avif",
+        "contentType": "image/avif",
+        "bytes": 18194,
+        "security": {
+          "csp": "script-src 'none'; frame-src 'none'; sandbox;",
+          "hsts": "max-age=63072000; includeSubDomains",
+          "frame": "SAMEORIGIN",
+          "nosniff": "nosniff",
+          "referrer": "strict-origin-when-cross-origin",
+          "permissions": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+        },
+        "body": "\u0000\u0000\u0000\u001cftypavif\u0000\u0000\u0000\u0000mif1avifmiaf\u0000\u0000\u0000�meta\u0000\u0000\u0000\u0000\u0000\u0000\u0000!hdlr\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000pict\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\"iloc\u0000\u0000\u0000\u0000D@\u0000\u0001\u0000\u0001\u0000\u0000\u0000\u0000\u0000�\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000F\u001a\u0000\u0000\u0000#iinf\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0015infe\u0002\u0000\u0000\u0000\u0000\u0001\u0000\u0000av01\u0000\u0000\u0000\u0000\u000epitm\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000Tiprp\u0000\u0000\u00006ipco\u0000\u0000\u0000\fav1C�\u0005\f\u0000\u0000\u0000\u0000\u0014ispe\u0000\u0000\u0000\u0000\u0000\u0000\u0004�"
+      },
+      "optimizerRemote": {
+        "status": 400,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": null,
+        "contentType": "text/plain; charset=utf-8",
+        "bytes": 84,
+        "security": {
+          "csp": null,
+          "hsts": "max-age=63072000",
+          "frame": null,
+          "nosniff": null,
+          "referrer": null,
+          "permissions": null
+        },
+        "body": "Bad request\n\nINVALID_IMAGE_OPTIMIZE_REQUEST\n\ncle1::rfw7h-1794423682961-13be34ec88df\n"
+      },
+      "optimizerTraversal": {
+        "status": 400,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "matchedPath": null,
+        "contentType": "text/plain; charset=utf-8",
+        "bytes": 84,
+        "security": {
+          "csp": null,
+          "hsts": "max-age=63072000",
+          "frame": null,
+          "nosniff": null,
+          "referrer": null,
+          "permissions": null
+        },
+        "body": "Bad request\n\nINVALID_IMAGE_OPTIMIZE_REQUEST\n\ncle1::qsl4r-1794423683009-6a76f9e6203a\n"
+      }
+    }
+  },
+  "liveChecks": {
+    "apexServesExpected": true,
+    "configuredWebhookHost": true,
+    "apexWebhook": true,
+    "wwwWebhook": true,
+    "health": true,
+    "browserHostRedirects": true,
+    "wwwRedirects": true,
+    "publicPages": true,
+    "productSurfacesRedirect": true,
+    "privateNoStore": true,
+    "adminFailsClosed": true,
+    "schedulerFailsClosed": true,
+    "fixtureAbsent": true,
+    "gameRuntimeDenied": true,
+    "tugRequiresSignIn": true,
+    "tugApiRefusesAnonymous": true,
+    "otherGameStillProtected": true,
+    "forgedAccessDenied": true,
+    "securityHeaders": true,
+    "images": true,
+    "optimizerRefusals": true,
+    "noServerErrors": true
+  },
+  "completedAt": "2026-11-11T19:01:23.119Z",
+  "outcome": "PASS"
+}

@@ -1,0 +1,19 @@
+{
+  "stage": "promote",
+  "startedAt": "2026-11-11T19:00:19.891Z",
+  "rollbackTarget": {
+    "id": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+    "url": "https://mathnexa-platform-production-19jftwh8i-bright-path-ed-tech.vercel.app",
+    "retained": true
+  },
+  "aliasBefore": {
+    "id": "dpl_3D9Kw82kCLF4dTP3Bf8wS9MXH49q",
+    "url": "https://mathnexa-platform-production-19jftwh8i-bright-path-ed-tech.vercel.app"
+  },
+  "aliasAfter": {
+    "id": "dpl_2KufePPCeqSs1msZRq3hmccwLDGr",
+    "url": "https://mathnexa-platform-production-dvwsepgfg-bright-path-ed-tech.vercel.app"
+  },
+  "completedAt": "2026-11-11T19:00:57.111Z",
+  "outcome": "PASS"
+}
