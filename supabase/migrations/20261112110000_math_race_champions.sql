@@ -520,6 +520,7 @@ declare
   fresh text[];
   keys text[] := coalesce(p_achievements,'{}'::text[]);
   balance integer;
+  rewards jsonb;
 begin
   if not private.race_state_valid(p_state) or p_won is null or p_accuracy is null or p_accuracy not between 0 and 100
      or jsonb_typeof(p_outcome)<>'object' or octet_length(p_outcome::text)>2048 then
@@ -531,7 +532,8 @@ begin
   if run.id is null then return jsonb_build_object('result','not-found'); end if;
   if run.status<>'active' then
     select w.balance into balance from public.race_wallets w where w.user_id=p_user;
-    return jsonb_build_object('result','already-finished','outcome',run.outcome,'balance',coalesce(balance,0),'unlocked',private.race_unlocked(p_user));
+    -- Asked twice (two requests crossing, a retry): the same answer, and nothing paid again.
+    return jsonb_build_object('result','already-finished','status',run.status,'outcome',run.outcome,'state',run.state,'balance',coalesce(balance,0),'unlocked',private.race_unlocked(p_user));
   end if;
   if run.version<>p_version then return jsonb_build_object('result','conflict'); end if;
 
@@ -567,11 +569,14 @@ begin
     updated_at=statement_timestamp()
     where user_id=p_user;
 
-  select w.balance into balance from public.race_wallets w where w.user_id=p_user;
-  return jsonb_build_object('result','finished','won',p_won,'firstWin',p_won and coalesce(first_win,false),
+  -- What this race paid is kept with the race, so asking again shows the same.
+  rewards := jsonb_build_object('firstWin',p_won and coalesce(first_win,false),
     'stageReward',coalesce((payout->>'credited')::integer,0),'achievements',to_jsonb(fresh),
-    'achievementReward',(select coalesce(sum(a.reward),0) from public.race_achievements a where a.achievement_key = any(fresh)),
-    'balance',coalesce(balance,0),'unlocked',private.race_unlocked(p_user));
+    'achievementReward',(select coalesce(sum(a.reward),0) from public.race_achievements a where a.achievement_key = any(fresh)));
+  update public.race_runs set outcome=outcome || jsonb_build_object('rewards',rewards) where id=run.id;
+
+  select w.balance into balance from public.race_wallets w where w.user_id=p_user;
+  return jsonb_build_object('result','finished','won',p_won) || rewards || jsonb_build_object('balance',coalesce(balance,0),'unlocked',private.race_unlocked(p_user));
 end
 $$;
 

@@ -7,7 +7,7 @@ const ASSET_BASE = "/internal-games/math-race-champions/";
  * recomputes it and fails if a runtime file changes without updating it
  * (`node scripts/math-race-champions-runtime-hash.mjs --write`).
  */
-export const MATH_RACE_CHAMPIONS_RUNTIME_SHA256 = "186eab920143ab936c4b23988d9cb083eef10edf26632787250f9aca68616877";
+export const MATH_RACE_CHAMPIONS_RUNTIME_SHA256 = "f52eccc9ae06ad89f6261e67495293200ee4f4eaa2fe0f062381a729e92f35eb";
 
 type Role = "app" | "join";
 
@@ -26,7 +26,7 @@ function render(role: Role, options: Readonly<{ title: string; description: stri
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="${ASSET_BASE}styles.css?v=${version}" />
   </head>
-  <body class="race" data-role="${role}" data-screen="loading" data-exit-href="${options.exitHref}" data-exit-label="${options.exitLabel}">
+  <body class="math-race" data-role="${role}" data-screen="loading" data-exit-href="${options.exitHref}" data-exit-label="${options.exitLabel}">
     <a class="skip-link" href="#main">Skip to game</a>
     <div id="app" class="app"></div>
     <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>

@@ -35,7 +35,7 @@ import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { normalizeEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
 import { sanitizeDisplayName } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
 import { publicQuestion } from "@/public/internal-games/math-race-champions/src/engine/questions.js";
-import { advance, type RacerState } from "@/public/internal-games/math-race-champions/src/engine/race.js";
+import { advance, isRacerState, type RacerState } from "@/public/internal-games/math-race-champions/src/engine/race.js";
 
 export const dynamic = "force-dynamic";
 
@@ -251,7 +251,22 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     });
     if (!data) return refused("live-unavailable", 503);
     if (data.result === "conflict") return refused("run-moved", 409);
-    if (data.result === "already-finished") return reply({ result: "finished", repeated: true, outcome: data.outcome, state: publicState(state), rewards: { stageReward: 0, achievements: [], achievementReward: 0 }, balance: data.balance, unlocked: data.unlocked });
+    if (data.result === "already-finished") {
+      // Closed already (two requests crossing, a retry, a reload): the same
+      // answer as the first time, read back from the race itself.
+      const stored = data.outcome as (Json & { rewards?: Json }) | null;
+      if (!stored) return reply({ result: "ended", status: data.status, state: publicState(state) });
+      const { rewards, ...first } = stored;
+      return reply({
+        result: "finished",
+        repeated: true,
+        outcome: first,
+        state: publicState(isRacerState(data.state) ? data.state : state),
+        rewards: rewards ?? { stageReward: 0, firstWin: false, achievements: [], achievementReward: 0 },
+        balance: data.balance,
+        unlocked: data.unlocked
+      });
+    }
     if (data.result !== "finished") return refused("live-unavailable", 503);
     return reply({
       result: "finished",
@@ -268,9 +283,7 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     const load = await call("race_run_load", { p_user: accountId, p_run: body.run });
     if (load?.result === "not-found") return refused("run-not-found", 404);
     if (!load || !isRunRecord(load)) return refused("live-unavailable", 503);
-    if (load.status !== "active") {
-      return reply({ result: "ended", status: load.status, outcome: load.outcome ?? null, state: publicState(load.state) });
-    }
+    if (load.status !== "active") return finish(load, load.state);
     const spec = runSpec(load);
     const raceMs = load.nowMs - load.startsAtMs;
 
