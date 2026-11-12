@@ -67,6 +67,8 @@ export class GameAudio {
     this.disposed = false;
     this.voices = 0;
     this.engine = null;
+    // Nothing is played, or even attempted, before the first real gesture.
+    this.unlocked = false;
   }
 
   ensureContext() {
@@ -84,6 +86,7 @@ export class GameAudio {
   /** Call synchronously from every pointer/key gesture. */
   activate() {
     if (this.disposed) return;
+    this.unlocked = true;
     this.ensureContext();
     this.syncMusic();
   }
@@ -181,7 +184,7 @@ export class GameAudio {
   }
 
   syncMusic() {
-    if (this.disposed) return;
+    if (this.disposed || !this.unlocked) return;
     const wanted = this.prefs.music && this.prefs.musicVolume > 0 && !document.hidden && this.shouldPlay();
     if (!wanted) {
       this.pauseMusic();
@@ -229,6 +232,7 @@ export class GameAudio {
       loop: this.music?.loop ?? true,
       volume: this.music?.volume ?? 0,
       playAttempts: this.playAttempts,
+      unlocked: this.unlocked,
       contextState: this.context?.state ?? "uninitialized",
       error: this.lastError,
       disposed: this.disposed

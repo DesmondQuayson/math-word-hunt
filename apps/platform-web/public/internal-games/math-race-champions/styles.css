@@ -235,8 +235,9 @@ button:disabled {
 
 .page-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 10px 16px;
   margin-bottom: 14px;
 }
 
@@ -750,6 +751,7 @@ button:disabled {
   --u: min(1vh, 0.62vw);
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
@@ -780,6 +782,8 @@ button:disabled {
   align-items: baseline;
   gap: 0 14px;
   min-width: 0;
+  overflow: hidden;
+  line-height: 1.1;
   font-size: clamp(1rem, calc(var(--u) * 2.6), 1.6rem);
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -817,6 +821,8 @@ button:disabled {
   --team: var(--turquoise);
   --team-deep: var(--turquoise-deep);
   display: grid;
+  /* One column that may shrink: a long name never widens the panel. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: clamp(4px, calc(var(--u) * 1.2), 14px);
   min-width: 0;
@@ -1363,6 +1369,11 @@ button:disabled {
 
 .page-head .wallet {
   margin-left: auto;
+}
+
+.page-head > div {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .loading {
@@ -2087,6 +2098,7 @@ button:disabled {
 .race {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100dvh;
   overflow: hidden;
