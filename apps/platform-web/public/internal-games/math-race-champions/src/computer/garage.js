@@ -86,6 +86,8 @@ export function mount(root, context, params = {}) {
       const { createShowroom } = await import("../scene3d/showroom.js");
       if (destroyed) return;
       showroom = createShowroom(canvas, { reducedMotion: prefersReducedMotion() });
+      // Read by the art review script: lets it hold a camera pose.
+      window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), showroom };
       if (selected) showroom.setCar(selected);
     })
     .catch(() => {

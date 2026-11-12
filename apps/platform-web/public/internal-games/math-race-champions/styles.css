@@ -2236,7 +2236,7 @@ button:disabled {
   padding: 6px;
   border: 2px solid var(--line);
   border-radius: 16px;
-  background: rgba(7, 21, 37, 0.82);
+  background: rgba(7, 21, 37, 0.94);
 }
 
 .minimap-svg {

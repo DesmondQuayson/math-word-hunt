@@ -7,7 +7,7 @@ const ASSET_BASE = "/internal-games/math-race-champions/";
  * recomputes it and fails if a runtime file changes without updating it
  * (`node scripts/math-race-champions-runtime-hash.mjs --write`).
  */
-export const MATH_RACE_CHAMPIONS_RUNTIME_SHA256 = "8fa77fbd2fa8dd1798eb9ca9c20f30256d418d374556d2e9f058ee92d2ff501e";
+export const MATH_RACE_CHAMPIONS_RUNTIME_SHA256 = "81cd88615e0d35392d475f40065264895e3c819353c72bcdd02922d93897b705";
 
 type Role = "app" | "join";
 

@@ -97,7 +97,7 @@ export function startShell(screens, first, firstParams = {}) {
     audio.dispose();
   });
   // Read by the browser tests.
-  window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), audio: () => audio.snapshot() };
+  window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), audio: () => audio.snapshot(), context };
 
   navigate(first, firstParams);
   return context;

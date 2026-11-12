@@ -3,13 +3,19 @@
 // snaps to front, side and rear views.
 
 import {
+  ACESFilmicToneMapping,
+  CanvasTexture,
   CircleGeometry,
   Color,
   CylinderGeometry,
   DirectionalLight,
   HemisphereLight,
   Mesh,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
   MeshStandardMaterial,
+  PCFShadowMap,
+  PlaneGeometry,
   PMREMGenerator,
   PerspectiveCamera,
   RoomEnvironment,
@@ -21,39 +27,121 @@ import {
 import { buildCar } from "./cars.js";
 
 export const VIEWS = Object.freeze({ front: 0, side: Math.PI / 2, rear: Math.PI });
+// three.js AdditiveBlending (the shared vendored build does not export the name).
+const ADDITIVE = 2;
 const AUTO_SPEED = 0.45; // radians per second
 const IDLE_BEFORE_AUTO_MS = 2500;
 const MIN_ZOOM = 0.7;
 const MAX_ZOOM = 1.6;
 
+function painted(size, paint) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  paint(canvas.getContext("2d"), size);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
+/** The turntable top: brushed dark metal, fine rings, and tick marks round the rim. */
+function stageTexture() {
+  return painted(1024, (context, size) => {
+    const middle = size / 2;
+    const gradient = context.createRadialGradient(middle, middle, size * 0.05, middle, middle, middle);
+    gradient.addColorStop(0, "#1d466b");
+    gradient.addColorStop(0.55, "#12304d");
+    gradient.addColorStop(1, "#0a1c30");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, size, size);
+    context.lineWidth = 2;
+    for (let ring = 1; ring <= 9; ring += 1) {
+      context.strokeStyle = ring % 3 === 0 ? "rgba(32,207,227,0.34)" : "rgba(255,255,255,0.06)";
+      context.beginPath();
+      context.arc(middle, middle, (middle * ring) / 9.6, 0, Math.PI * 2);
+      context.stroke();
+    }
+    context.strokeStyle = "rgba(255,255,255,0.3)";
+    for (let tick = 0; tick < 72; tick += 1) {
+      const angle = (tick / 72) * Math.PI * 2;
+      const from = middle * (tick % 6 === 0 ? 0.9 : 0.945);
+      context.lineWidth = tick % 6 === 0 ? 5 : 2;
+      context.beginPath();
+      context.moveTo(middle + Math.cos(angle) * from, middle + Math.sin(angle) * from);
+      context.lineTo(middle + Math.cos(angle) * middle * 0.975, middle + Math.sin(angle) * middle * 0.975);
+      context.stroke();
+    }
+  });
+}
+
+/** Light spilling from the rim onto the studio floor. */
+function haloTexture() {
+  return painted(256, (context, size) => {
+    const middle = size / 2;
+    const gradient = context.createRadialGradient(middle, middle, middle * 0.42, middle, middle, middle);
+    gradient.addColorStop(0, "rgba(32,207,227,0)");
+    gradient.addColorStop(0.3, "rgba(32,207,227,0.55)");
+    gradient.addColorStop(0.62, "rgba(255,79,154,0.16)");
+    gradient.addColorStop(1, "rgba(32,207,227,0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, size, size);
+  });
+}
+
 export function createShowroom(canvas, { reducedMotion = false } = {}) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.setClearColor(new Color(0x071525), 0);
+  renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = PCFShadowMap;
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
   const environment = pmrem.fromScene(new RoomEnvironment(), 0.04);
   scene.environment = environment.texture;
   pmrem.dispose();
-  scene.add(new HemisphereLight(0xffffff, 0x1a2a40, 1.0));
-  const key = new DirectionalLight(0xffffff, 2.2);
-  key.position.set(4, 7, 5);
+  // Studio lighting: a soft sky, a key light that throws the car's shadow on the
+  // turntable, and a turquoise and a pink light behind for the edges.
+  scene.add(new HemisphereLight(0xffffff, 0x1a2a40, 0.9));
+  const key = new DirectionalLight(0xffffff, 2.6);
+  key.position.set(3.5, 8, 4.5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = -4;
+  key.shadow.camera.right = 4;
+  key.shadow.camera.top = 4;
+  key.shadow.camera.bottom = -4;
+  key.shadow.camera.near = 1;
+  key.shadow.camera.far = 24;
+  key.shadow.bias = -0.0006;
+  key.shadow.radius = 3;
   scene.add(key);
-  const rim = new DirectionalLight(0x20cfe3, 1.2);
+  const rim = new DirectionalLight(0x20cfe3, 1.5);
   rim.position.set(-6, 3, -5);
   scene.add(rim);
+  const kick = new DirectionalLight(0xff4f9a, 0.9);
+  kick.position.set(6, 2.5, -4.5);
+  scene.add(kick);
 
-  const disc = new Mesh(new CylinderGeometry(3.0, 3.2, 0.16, 48), new MeshStandardMaterial({ color: 0x12304d, metalness: 0.6, roughness: 0.35 }));
-  disc.position.y = -0.08;
+  const stageMap = stageTexture();
+  const haloMap = haloTexture();
+  const halo = new Mesh(new PlaneGeometry(11.5, 11.5), new MeshBasicMaterial({ map: haloMap, transparent: true, depthWrite: false, blending: ADDITIVE, toneMapped: false }));
+  halo.rotation.x = -Math.PI / 2;
+  halo.position.y = -0.2;
+  scene.add(halo);
+  const disc = new Mesh(new CylinderGeometry(3.06, 3.3, 0.2, 64), new MeshStandardMaterial({ color: 0x0c2036, metalness: 0.7, roughness: 0.32 }));
+  disc.position.y = -0.1;
   scene.add(disc);
-  const ring = new Mesh(new CircleGeometry(3.02, 48), new MeshStandardMaterial({ color: 0x20cfe3, metalness: 0.2, roughness: 0.6 }));
+  // A lit rim, then the stage top inside it.
+  const ring = new Mesh(new CircleGeometry(3.04, 64), new MeshBasicMaterial({ color: 0x4fe6f5, toneMapped: false }));
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.002;
-  ring.scale.setScalar(1.0);
   scene.add(ring);
-  const floor = new Mesh(new CircleGeometry(2.92, 48), new MeshStandardMaterial({ color: 0x0f2a44, metalness: 0.15, roughness: 0.75 }));
+  const floor = new Mesh(new CircleGeometry(2.93, 64), new MeshLambertMaterial({ map: stageMap }));
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = 0.004;
+  floor.position.y = 0.012;
+  floor.receiveShadow = true;
   scene.add(floor);
 
   const camera = new PerspectiveCamera(36, 1, 0.2, 60);
@@ -213,6 +301,14 @@ export function createShowroom(canvas, { reducedMotion = false } = {}) {
       azimuthGoal = null;
       lastInput = -Infinity;
     },
+    /** Hold one camera pose (art review and tests). */
+    look(nextAzimuth, nextElevation = elevation, nextZoom = zoom) {
+      azimuth = nextAzimuth;
+      azimuthGoal = null;
+      elevation = Math.min(1.05, Math.max(0.05, nextElevation));
+      zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
+      lastInput = performance.now() + 60_000;
+    },
     dispose() {
       disposed = true;
       cancelAnimationFrame(frame);
@@ -227,6 +323,8 @@ export function createShowroom(canvas, { reducedMotion = false } = {}) {
         node.geometry?.dispose?.();
         node.material?.dispose?.();
       });
+      stageMap.dispose();
+      haloMap.dispose();
       environment.dispose();
       renderer.dispose();
       renderer.forceContextLoss?.();

@@ -2,9 +2,9 @@
 // distance, finish order) is identical at every tier; only the picture changes.
 
 export const TIERS = Object.freeze({
-  low: Object.freeze({ name: "low", pixelRatio: 1, viewDistance: 190, props: 0.45, rivals: 3, antialias: false, carDetail: "low", streaks: 0 }),
-  medium: Object.freeze({ name: "medium", pixelRatio: 1.5, viewDistance: 300, props: 0.75, rivals: 6, antialias: true, carDetail: "high", streaks: 18 }),
-  high: Object.freeze({ name: "high", pixelRatio: 2, viewDistance: 420, props: 1, rivals: 9, antialias: true, carDetail: "high", streaks: 28 })
+  low: Object.freeze({ name: "low", pixelRatio: 1, viewDistance: 190, props: 0.45, rivals: 3, antialias: false, carDetail: "low", streaks: 0, shadows: 0, clouds: 0 }),
+  medium: Object.freeze({ name: "medium", pixelRatio: 1.5, viewDistance: 300, props: 0.75, rivals: 6, antialias: true, carDetail: "high", streaks: 18, shadows: 1024, clouds: 8 }),
+  high: Object.freeze({ name: "high", pixelRatio: 2, viewDistance: 420, props: 1, rivals: 9, antialias: true, carDetail: "high", streaks: 28, shadows: 2048, clouds: 12 })
 });
 
 /** True when this browser can draw the 3D race at all. */
