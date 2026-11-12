@@ -5,8 +5,23 @@
 import { GameAudio, readPreferences, writePreferences } from "./audio.js";
 import { announce, h } from "./dom.js";
 
+/**
+ * The window's real inner height as a CSS length, kept current. Full-height
+ * screens (the classroom board, the race) are sized from it, so they fit what
+ * is actually visible: under a browser's toolbar, on a panel that is not in
+ * full screen, and in browsers that know no newer viewport unit.
+ */
+function trackWindowHeight() {
+  const apply = () => document.documentElement.style.setProperty("--app-h", `${window.innerHeight}px`);
+  apply();
+  window.addEventListener("resize", apply);
+  window.addEventListener("orientationchange", apply);
+  document.addEventListener("fullscreenchange", apply);
+}
+
 export function startShell(screens, first, firstParams = {}) {
   const root = document.getElementById("app");
+  trackWindowHeight();
   const prefs = readPreferences();
   let screenName = "loading";
   let current = null;

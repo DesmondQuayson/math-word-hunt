@@ -42,6 +42,8 @@ export function createSettingsChooser(initial, { onChange, idPrefix = "setup", a
   function sync() {
     for (const { category, input } of boxes) input.checked = selected.has(category.id);
     mixed.checked = selected.size === CATEGORY_IDS.length;
+    // The chosen look is also a class: older browsers have no :has().
+    for (const input of [mixed, ...boxes.map(box => box.input)]) input.closest("label")?.classList.toggle("is-checked", input.checked);
     hint.textContent = selected.size === 0 ? "Choose at least one skill." : selected.size === CATEGORY_IDS.length ? "Mixed Skills: all seven." : `${selected.size} of 7 skills.`;
     hint.dataset.empty = selected.size === 0 ? "true" : "";
     onChange?.();

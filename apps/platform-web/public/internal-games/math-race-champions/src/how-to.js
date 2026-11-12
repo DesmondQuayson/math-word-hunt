@@ -42,6 +42,16 @@ const SECTIONS = Object.freeze([
   }
 ]);
 
+/** "This screen: 1920 × 1080, Chrome 96." Nothing is sent anywhere; it is only shown. */
+export function describeScreen() {
+  const agent = navigator.userAgent;
+  const match = /(Edg|OPR|SamsungBrowser|Firefox|Chrome|CriOS|Version)\/(\d+)/.exec(agent);
+  const names = { Edg: "Edge", OPR: "Opera", SamsungBrowser: "Samsung Internet", Firefox: "Firefox", Chrome: "Chrome", CriOS: "Chrome", Version: "Safari" };
+  const browser = match ? `${names[match[1]]} ${match[2]}` : "an unrecognised browser";
+  const system = /Android (\d+)/.exec(agent)?.[0] ?? (/iPhone|iPad/.test(agent) ? "iOS" : /Windows/.test(agent) ? "Windows" : /Mac OS X/.test(agent) ? "macOS" : /CrOS/.test(agent) ? "ChromeOS" : /Linux/.test(agent) ? "Linux" : "");
+  return `This screen: ${window.innerWidth} × ${window.innerHeight}, ${browser}${system ? ` on ${system}` : ""}.`;
+}
+
 export function mount(root, context) {
   root.replaceChildren(
     h(
@@ -63,7 +73,9 @@ export function mount(root, context) {
           h("h2", { text: "The seven skills" }),
           h("ul", { class: "skill-list" }, CATEGORIES.map(category => h("li", null, h("strong", { text: category.title }), h("span", { class: "skill-example", text: category.example }))))
         )
-      )
+      ),
+      // Useful when a board or tablet shows the game differently: says what this screen is.
+      h("p", { class: "fine-print", id: "this-screen", text: describeScreen() })
     )
   );
   return { destroy() {} };

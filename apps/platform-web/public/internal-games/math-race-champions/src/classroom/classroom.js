@@ -9,6 +9,9 @@ import { announce, fill, formatDuration, h, icon, prefersReducedMotion, pressabl
 import { createTrackView } from "./track-view.js";
 
 const KEYS = Object.freeze({ a: ["turquoise", 0], s: ["turquoise", 1], k: ["pink", 0], l: ["pink", 1] });
+/** A track shorter than this cannot show 62 readable spaces: treated as having been given no room. */
+const MIN_TRACK_PX = 96;
+
 const KEY_HINTS = Object.freeze({ turquoise: ["A", "S"], pink: ["K", "L"] });
 const COUNTDOWN = ["3", "2", "1", "GO!"];
 const COUNTDOWN_STEP_MS = 800;
@@ -317,19 +320,62 @@ export function mount(root, context, params) {
   );
 
   root.replaceChildren(main);
+
+  // Both tracks must always have room. The stylesheet gives each one what is
+  // left of the window's height; this checks that it really did, on whatever
+  // browser the board runs, and if a track was left with no room it states the
+  // heights outright from the window's own measurements.
+  let layoutFrame = 0;
+  function ensureTracks() {
+    const tracks = TEAMS.map(team => panels[team].trackView.element);
+    const starved = tracks.some(track => track.getBoundingClientRect().height < MIN_TRACK_PX);
+    if (starved || main.classList.contains("cr-stated")) {
+      main.classList.add("cr-stated");
+      main.style.height = `${window.innerHeight}px`;
+      const board = main.querySelector(".cr-board");
+      const stacked = window.innerHeight > window.innerWidth;
+      const boardHeight = window.innerHeight - main.querySelector(".cr-bar").getBoundingClientRect().height;
+      const divider = stacked ? main.querySelector(".cr-divider").getBoundingClientRect().height : 0;
+      board.style.height = `${boardHeight}px`;
+      for (const team of TEAMS) {
+        const panel = panels[team].element;
+        const track = panels[team].trackView.element;
+        const style = getComputedStyle(panel);
+        const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const gap = parseFloat(style.rowGap) || 8;
+        const others = [...panel.children].filter(child => child !== track).reduce((sum, child) => sum + child.getBoundingClientRect().height, 0);
+        const room = (stacked ? (boardHeight - divider) / 2 : boardHeight) - padding - others - gap * 2;
+        track.style.setProperty("--track-h", `${Math.max(MIN_TRACK_PX, Math.floor(room))}px`);
+      }
+    }
+    for (const team of TEAMS) panels[team].trackView.measure();
+    const boxes = tracks.map(track => track.getBoundingClientRect());
+    main.dataset.layout = main.classList.contains("cr-stated") ? "stated" : "flow";
+    main.dataset.tracks = boxes.map(box => `${Math.round(box.width)}x${Math.round(box.height)}`).join(" ");
+  }
+  function onResize() {
+    cancelAnimationFrame(layoutFrame);
+    layoutFrame = requestAnimationFrame(ensureTracks);
+  }
+
   // Read by the browser tests. Classroom Competition has no account, no reward
   // and no server: there is nothing here to protect from the people at the board.
   window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), classroom: { match } };
   document.addEventListener("keydown", onKey);
-  for (const team of TEAMS) {
-    panels[team].reset();
-    panels[team].trackView.measure();
-  }
+  window.addEventListener("resize", onResize);
+  for (const team of TEAMS) panels[team].reset();
+  ensureTracks();
+  // Once more after the first paint: fonts and the window's height settle then.
+  layoutFrame = requestAnimationFrame(() => {
+    layoutFrame = requestAnimationFrame(ensureTracks);
+  });
   ready();
 
   return {
     destroy() {
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(layoutFrame);
       for (const id of timers) clearTimeout(id);
       for (const team of TEAMS) panels[team].destroy();
     }
