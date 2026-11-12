@@ -66,16 +66,25 @@ export class HttpRacer {
     this.answers = 0;
     this.refused = 0;
     this.errors = 0;
+    this.networkErrors = 0;
     this.stopped = false;
   }
 
   async post(endpoint, body, kind = body.action) {
     const started = performance.now();
-    const response = await fetch(`${this.origin}/api/games/math-race-champions/${endpoint}`, {
-      method: "POST",
-      headers: { ...this.extraHeaders, "content-type": "application/json", "x-mathnexa-game": "math-race-champions", "sec-fetch-site": "same-origin", origin: this.origin },
-      body: JSON.stringify(body)
-    });
+    let response;
+    try {
+      response = await fetch(`${this.origin}/api/games/math-race-champions/${endpoint}`, {
+        method: "POST",
+        headers: { ...this.extraHeaders, "content-type": "application/json", "x-mathnexa-game": "math-race-champions", "sec-fetch-site": "same-origin", origin: this.origin },
+        body: JSON.stringify(body)
+      });
+    } catch {
+      // A dropped connection is a failed request, not the end of the racer: a browser would simply try again.
+      this.networkErrors += 1;
+      this.onSample?.({ kind, ms: performance.now() - started, status: 0, timing: {} });
+      return { status: 0, body: {}, ms: performance.now() - started };
+    }
     const elapsed = performance.now() - started;
     const payload = await response.json().catch(() => ({}));
     this.onSample?.({ kind, ms: elapsed, status: response.status, timing: serverTiming(response.headers.get("server-timing")) });

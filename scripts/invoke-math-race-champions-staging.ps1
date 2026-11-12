@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'publish', 'unpublish', 'load', 'review', 'qa')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'sweep', 'publish', 'unpublish', 'load', 'review', 'qa')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$Players = '10,20,30,40,50',

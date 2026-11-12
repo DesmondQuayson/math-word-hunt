@@ -19,6 +19,8 @@
  *                      production publish), so the homepage card and the
  *                      catalog listing can be reviewed on a preview.
  *   --stage=unpublish  STAGING catalog only: published back to draft.
+ *   --stage=sweep      deletes synthetic rooms a stopped QA or load run left on
+ *                      STAGING (creator named "QA Creator", "Racer 1" or "Smoke Creator").
  *   --stage=smoke      the room contract through the service-role functions
  *                      with synthetic hashes; a browser key cannot reach any of
  *                      it. Everything it creates is deleted.
@@ -334,6 +336,14 @@ async function transition(target) {
   evidence.otherGames = sql(`select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> '${GAME_KEY}'`)[0].games;
 }
 
+/** STAGING only: synthetic rooms left by a run that was stopped before its own clean-up. */
+async function sweep() {
+  const sql = querier(connect());
+  const before = sql("select count(*)::int as rooms from public.race_rooms")[0].rooms;
+  const removed = sql("delete from public.race_rooms r where exists (select 1 from public.race_participants p where p.room_id = r.id and p.is_creator and p.user_id is null and p.display_name in ('QA Creator','Racer 1','Smoke Creator')) returning r.id");
+  evidence.sweep = { roomsBefore: before, removed: removed.length, roomsAfter: sql("select count(*)::int as rooms from public.race_rooms")[0].rooms };
+}
+
 async function smoke() {
   const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
   const client = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -400,6 +410,7 @@ try {
   else if (stage === "verify") await verify();
   else if (stage === "privileges") await privileges();
   else if (stage === "smoke") await smoke();
+  else if (stage === "sweep") await sweep();
   else if (stage === "publish") await transition("published");
   else if (stage === "unpublish") await transition("draft");
   else throw new Error("usage: --stage=identify|migrate|verify|privileges|smoke|publish|unpublish");

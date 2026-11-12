@@ -378,7 +378,7 @@ try {
   ok(cars.every((car) => car.name === ONLINE_CAR.name && car.topSpeed === ONLINE_CAR.topSpeed && car.boost === ONLINE_CAR.boost && car.min === MIN_CORRECT), `everyone drives the same ${cars[0].name} (${cars[0].topSpeed} km/h, +${cars[0].boost}), ${cars[0].min} correct answers needed`);
   ok(cars[0].starts === cars[1].starts && cars[0].starts === creator.room.startsAtMs, "one start time for every screen and racer");
 
-  const racing = [creator.race(), cleo.race()];
+  const racing = [creator.race(), cleo.race()].map((run) => run.catch((error) => { pageProblems.push(`HTTP racer stopped: ${error?.message ?? error}`); return null; }));
 
   // Questions on the two phones: conversions asked in words, and judged by the server.
   const wordings = new Set();
@@ -504,7 +504,8 @@ try {
   };
   facts.latency = { poll: latency("state"), answer: latency("answer"), join: latency("join") };
   const serverErrors = samples.filter((sample) => sample.status >= 500).length;
-  ok(serverErrors === 0, `no 5xx from the game API in ${samples.length} requests (poll p95 ${facts.latency.poll?.p95} ms, answer p95 ${facts.latency.answer?.p95} ms)`);
+  const dropped = samples.filter((sample) => sample.status === 0).length;
+  ok(serverErrors === 0, `no 5xx from the game API in ${samples.length} requests (poll p95 ${facts.latency.poll?.p95} ms, answer p95 ${facts.latency.answer?.p95} ms${dropped ? `; ${dropped} request(s) dropped by the network and retried` : ""})`);
   ok(pageProblems.length === 0, `no page errors, 5xx or missing game files in the browsers${pageProblems.length ? `: ${pageProblems.slice(0, 6).join("; ")}` : ""}`);
   exitCode = failures.length === 0 ? 0 : 1;
 } catch (error) {
