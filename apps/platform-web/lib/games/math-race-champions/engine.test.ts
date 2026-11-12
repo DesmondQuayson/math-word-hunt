@@ -9,6 +9,8 @@ import {
   MINUS,
   SUPERSCRIPTS,
   TIMES,
+  conversionQuestion,
+  conversionText,
   createQuestionStream,
   decimal,
   decimalsEqual,
@@ -17,6 +19,7 @@ import {
   formatPercent,
   isCorrectChoice,
   normalizeSettings,
+  parseConversion,
   parseDecimal,
   publicQuestion,
   questionAt,
@@ -88,8 +91,8 @@ describe("Math Race Champions categories", () => {
       `25 ${MINUS} ? = 17`,
       `7 ${TIMES} ? = 42`,
       `48 ${DIVIDE} ? = 8`,
-      "35% = ?",
-      "0.72 = ?",
+      "Convert 35% to a decimal.",
+      "Convert 0.72 to a percent.",
       `6${SUPERSCRIPTS[2]} = ?`
     ]);
   });
@@ -181,6 +184,107 @@ describe("conversions use exact decimals", () => {
   });
 });
 
+describe("conversion wording (owner, 2026-11-12)", () => {
+  // One percentage, asked both ways, with the distractor drawn many times over.
+  function ask(category: RaceCategoryId, difficulty: RaceDifficultyId, percent: string) {
+    const questions = Array.from({ length: 60 }, (_, seed) => conversionQuestion(category, difficulty, parseDecimal(percent)!, createRandom(`wording-${percent}-${seed}`)));
+    for (const question of questions) expect(validateQuestion(question)).toEqual([]);
+    return { text: questions[0].text, answers: new Set(questions.map(question => question.answer)), wrong: new Set(questions.map(question => question.choices[question.correctIndex === 0 ? 1 : 0])), questions };
+  }
+
+  it.each([
+    ["0.58", "58%", "58%", ["5.8%", "580%"]],
+    ["0.4", "40%", "40%", ["4%", "400%"]],
+    ["0.07", "7%", "7%", ["0.7%", "70%"]],
+    ["1.2", "120%", "120%", ["12%", "1200%"]]
+  ])("Convert %s to a percent. is answered %s", (shown, percent, answer, distractors) => {
+    const asked = ask("decimal-to-percent", "easy", percent);
+    expect(asked.text).toBe(`Convert ${shown} to a percent.`);
+    expect([...asked.answers]).toEqual([answer]);
+    expect([...asked.wrong].sort()).toEqual([...distractors].sort());
+  });
+
+  it.each([
+    ["28%", "0.28", ["0.028", "2.8"]],
+    ["65%", "0.65", ["0.065", "6.5"]],
+    ["5%", "0.05", ["0.005", "0.5"]],
+    ["125%", "1.25", ["0.125", "12.5"]]
+  ])("Convert %s to a decimal. is answered %s", (percent, answer, distractors) => {
+    const asked = ask("percent-to-decimal", "easy", percent);
+    expect(asked.text).toBe(`Convert ${percent} to a decimal.`);
+    expect([...asked.answers]).toEqual([answer]);
+    expect([...asked.wrong].sort()).toEqual([...distractors].sort());
+  });
+
+  it("the owner's own distractors are among the ones offered", () => {
+    expect(ask("decimal-to-percent", "easy", "58%").wrong.has("5.8%")).toBe(true);
+    expect(ask("decimal-to-percent", "easy", "40%").wrong.has("4%")).toBe(true);
+    expect(ask("percent-to-decimal", "easy", "28%").wrong.has("2.8")).toBe(true);
+    expect(ask("percent-to-decimal", "easy", "65%").wrong.has("6.5")).toBe(true);
+  });
+
+  it("every generated conversion uses one of the two fixed sentences and nothing else", () => {
+    for (const difficulty of DIFFICULTY_IDS) {
+      for (const question of audits.get(`percent-to-decimal/${difficulty}`)!.questions) {
+        expect(question.text).toMatch(/^Convert \d+(\.\d+)?% to a decimal\.$/);
+        expect(question.text).toBe(conversionText("percent-to-decimal", question.operands[0] as string, question.operands[1] as string));
+        expect(question.choices.every(choice => /^\d+(\.\d+)?$/.test(choice))).toBe(true);
+        expect(question.spoken).toMatch(/^Convert .+ percent to a decimal: .+ or .+\?$/);
+      }
+      for (const question of audits.get(`decimal-to-percent/${difficulty}`)!.questions) {
+        expect(question.text).toMatch(/^Convert \d+(\.\d+)? to a percent\.$/);
+        expect(question.text).toBe(conversionText("decimal-to-percent", question.operands[0] as string, question.operands[1] as string));
+        expect(question.choices.every(choice => /^\d+(\.\d+)?%$/.test(choice))).toBe(true);
+      }
+    }
+  });
+
+  it("no conversion is ever shown as a bare equation", () => {
+    for (const category of ["percent-to-decimal", "decimal-to-percent"] as const) {
+      for (const difficulty of DIFFICULTY_IDS) {
+        expect(audits.get(`${category}/${difficulty}`)!.questions.some(question => question.text.includes("="))).toBe(false);
+      }
+    }
+  });
+
+  it("values above 1 and below 0.1 are asked at the difficulties that reach them", () => {
+    const above = audits.get("decimal-to-percent/medium")!.questions.filter(question => Number((question.operands[1] as string)) > 1);
+    expect(above.length).toBeGreaterThan(20);
+    for (const question of above) expect(Number(question.answer.replace("%", ""))).toBeGreaterThan(100);
+    const small = audits.get("percent-to-decimal/easy")!.questions.filter(question => /^Convert \d% /.test(question.text));
+    expect(small.length).toBeGreaterThan(5);
+    for (const question of small) expect(question.answer).toMatch(/^0\.0\d$/);
+  });
+
+  it("reads the sentence back, and refuses anything else", () => {
+    expect(parseConversion("Convert 0.58 to a percent.")).toEqual({ value: parseDecimal("0.58"), fromPercent: false });
+    expect(parseConversion("Convert 28% to a decimal.")).toEqual({ value: parseDecimal("28"), fromPercent: true });
+    expect(parseConversion("Convert 28% to a percent.")).toBeNull();
+    expect(parseConversion("Convert 0.28 to a decimal.")).toBeNull();
+    expect(parseConversion("28% = ?")).toBeNull();
+    expect(parseConversion("14 + ? = 23")).toBeNull();
+  });
+
+  it("rejects the old bare wording and a mismatched direction", () => {
+    const base = { difficulty: "easy", key: "k", spoken: "s", operands: [] } as const;
+    expect(validateQuestion({ ...base, category: "percent-to-decimal", text: "28% = ?", choices: ["0.28", "2.8"], correctIndex: 0, answer: "0.28" })).toEqual(expect.arrayContaining(["wrong-shape"]));
+    expect(validateQuestion({ ...base, category: "decimal-to-percent", text: "0.58 = ?", choices: ["58%", "5.8%"], correctIndex: 0, answer: "58%" })).toEqual(expect.arrayContaining(["wrong-shape"]));
+    expect(validateQuestion({ ...base, category: "decimal-to-percent", text: "Convert 0.58 to a percent.", choices: ["58%", "5.8%"], correctIndex: 0, answer: "58%" })).toEqual([]);
+    expect(validateQuestion({ ...base, category: "decimal-to-percent", text: "Convert 0.58 to a percent.", choices: ["58%", "58.0%"], correctIndex: 0, answer: "58%" })).toEqual(
+      expect.arrayContaining(["distractor-also-correct", "equivalent-choices"])
+    );
+  });
+
+  it("only the two conversion categories changed wording; the other five still show an equation", () => {
+    for (const category of CATEGORY_IDS) {
+      const sample = audits.get(`${category}/medium`)!.questions;
+      const conversion = category === "percent-to-decimal" || category === "decimal-to-percent";
+      expect(sample.every(question => question.text.startsWith("Convert ") === conversion)).toBe(true);
+      expect(sample.every(question => question.text.includes("?") !== conversion)).toBe(true);
+    }
+  });
+});
+
 describe("the validator catches bad questions", () => {
   const good = questionAt({ categories: ["missing-divisor"], difficulty: "easy" }, "validator", 0);
 
@@ -190,14 +294,14 @@ describe("the validator catches bad questions", () => {
 
   it("rejects two correct choices, equivalent choices, a wrong key and a third choice", () => {
     const base = { category: "percent-to-decimal", difficulty: "easy", key: "k", spoken: "s", operands: [] } as const;
-    expect(validateQuestion({ ...base, text: "50% = ?", choices: ["0.5", "0.50"], correctIndex: 0, answer: "0.5" })).toEqual(
+    expect(validateQuestion({ ...base, text: "Convert 50% to a decimal.", choices: ["0.5", "0.50"], correctIndex: 0, answer: "0.5" })).toEqual(
       expect.arrayContaining(["distractor-also-correct", "equivalent-choices", "trailing-zero"])
     );
-    expect(validateQuestion({ ...base, text: "50% = ?", choices: ["5", "0.5"], correctIndex: 0, answer: "5" })).toEqual(
+    expect(validateQuestion({ ...base, text: "Convert 50% to a decimal.", choices: ["5", "0.5"], correctIndex: 0, answer: "5" })).toEqual(
       expect.arrayContaining(["wrong-answer-marked-correct"])
     );
     expect(
-      validateQuestion({ ...base, text: "50% = ?", choices: ["0.5", "5", "50"] as unknown as [string, string], correctIndex: 0, answer: "0.5" })
+      validateQuestion({ ...base, text: "Convert 50% to a decimal.", choices: ["0.5", "5", "50"] as unknown as [string, string], correctIndex: 0, answer: "0.5" })
     ).toEqual(["choice-count"]);
     expect(
       validateQuestion({ ...base, category: "missing-divisor", text: `0 ${DIVIDE} ? = 0`, choices: ["0", "3"], correctIndex: 1, answer: "3" })

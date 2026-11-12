@@ -32,7 +32,7 @@ export function startShell(screens, first, firstParams = {}) {
       button?.setAttribute("aria-pressed", String(prefs[kind]));
       audio.activate();
       if (kind === "sound" && prefs.sound) audio.button();
-      if (kind === "sound" && !prefs.sound) audio.stopEngine();
+      if (kind === "sound" && !prefs.sound) audio.dropRace(0.08);
       announce(`${kind === "music" ? "Music" : "Sound effects"} ${prefs[kind] ? "on" : "off"}`);
       return prefs[kind];
     },
@@ -40,6 +40,7 @@ export function startShell(screens, first, firstParams = {}) {
       prefs[kind === "music" ? "musicVolume" : "soundVolume"] = value;
       writePreferences(prefs);
       audio.syncMusic();
+      audio.applyRaceLevel();
     },
     fullscreen() {
       try {
@@ -90,7 +91,8 @@ export function startShell(screens, first, firstParams = {}) {
   }
   document.addEventListener("visibilitychange", () => {
     audio.syncMusic();
-    if (document.hidden) audio.stopEngine();
+    // A hidden tab makes no engine noise; the race screen brings it back when it is seen again.
+    if (document.hidden) audio.dropRace(0.05);
   });
   window.addEventListener("pagehide", () => {
     current?.destroy?.();

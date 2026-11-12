@@ -53,6 +53,9 @@ export const RECENT_HISTORY: number;
 export const MAX_SAME_SIDE_RUN: number;
 export const RANGES: Readonly<Record<string, Readonly<Record<RaceDifficultyId, Readonly<Record<string, unknown>>>>>>;
 
+export function conversionText(category: RaceCategoryId, shownPercent: string, shownDecimal: string): string;
+export function parseConversion(text: string): Readonly<{ value: ExactDecimal; fromPercent: boolean }> | null;
+export function conversionQuestion(category: RaceCategoryId, difficulty: RaceDifficultyId, percent: ExactDecimal, random: RaceRandom): RaceQuestion;
 export function isCategoryId(value: unknown): value is RaceCategoryId;
 export function isDifficultyId(value: unknown): value is RaceDifficultyId;
 export function getCategory(categoryId: string): RaceCategory | null;

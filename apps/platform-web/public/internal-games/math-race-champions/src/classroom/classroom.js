@@ -5,7 +5,7 @@
 import { TEAMS, TIE_WINDOW_MS, createClassroomMatch } from "../engine/classroom.js";
 import { CATEGORIES, DIFFICULTIES } from "../engine/questions.js";
 import { freshSeed } from "../engine/random.js";
-import { announce, fill, formatDuration, h, icon, prefersReducedMotion, pressable } from "../dom.js";
+import { announce, fill, formatDuration, h, icon, prefersReducedMotion, pressable, questionForm } from "../dom.js";
 import { createTrackView } from "./track-view.js";
 
 const KEYS = Object.freeze({ a: ["turquoise", 0], s: ["turquoise", 1], k: ["pink", 0], l: ["pink", 1] });
@@ -50,6 +50,7 @@ function createTeamPanel(team, match, onPress) {
 
   function showQuestion(question) {
     questionText.textContent = question.text;
+    questionText.dataset.form = questionForm(question.text);
     questionText.setAttribute("aria-label", question.spoken);
     buttons.forEach((item, index) => {
       item.label.textContent = question.choices[index];

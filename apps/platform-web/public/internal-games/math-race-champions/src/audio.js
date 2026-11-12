@@ -1,8 +1,19 @@
-// Math Race Champions audio. Same approach as the other MathNexa internal
-// games: one looping HTMLAudioElement for the shared, already-approved MathNexa
-// game track, started synchronously inside the first real user gesture
-// (Safari/iPad autoplay rule), paused while hidden, released on pagehide; tiny
-// Web Audio tones for effects. Nobody has to press the music button to hear it.
+// Math Race Champions audio.
+//
+// Music: the shared, already-approved MathNexa game track, as one looping
+// HTMLAudioElement started synchronously inside the first real user gesture
+// (Safari/iPad autoplay rule), paused while hidden, released on pagehide.
+// Nobody has to press the music button to hear it.
+//
+// Effects: synthesised with Web Audio, no recordings. Short tones for the
+// classroom and the menus; for a 3D race, the car itself (sound/race-sound.js:
+// engine, gears, road, wind, nearby rivals, passes, the finish line).
+//
+// Mix: effects meet in one bus with a limiter, so nothing can clip however
+// many sounds land together. Music has its own level and is turned down while
+// a race is running, so the engine and the answer sounds always sit above it.
+
+import { RaceSound } from "./sound/race-sound.js";
 
 export const MUSIC_TRACK = Object.freeze({
   title: "Cosmic Candy Catchers",
@@ -17,6 +28,12 @@ export const MUSIC_CREDIT = `"${MUSIC_TRACK.title}" by ${MUSIC_TRACK.author} —
 
 export const PREFERENCES_KEY = "mathnexa:math-race-champions:preferences";
 export const MUSIC_VOLUME = 0.2;
+/** Music keeps this share of its level while a race is running. */
+export const RACE_MUSIC_DUCK = 0.55;
+/** The race (engine, road, rivals) relative to the Sound effects volume. */
+export const RACE_LEVEL = 0.5;
+/** After the finish line the engine runs down for this long, then fades. */
+const RUN_DOWN_SECONDS = 2.2;
 export const DEFAULT_PREFERENCES = Object.freeze({ sound: true, music: true, soundVolume: 0.5, musicVolume: MUSIC_VOLUME, graphics: "auto" });
 
 export function migratePreferences(raw) {
@@ -52,21 +69,28 @@ export function writePreferences(preferences) {
 }
 
 /** Effects never stack louder than this many voices: a classroom has two teams pressing at once. */
-const MAX_VOICES = 6;
+const MAX_VOICES = 8;
 
 export class GameAudio {
   constructor(preferences, shouldPlayMusic = () => true) {
     this.prefs = preferences;
     this.shouldPlay = shouldPlayMusic;
     this.context = null;
+    this.master = null;
     this.music = null;
+    this.musicGain = null;
+    this.musicRoute = "element";
+    this.duck = 1;
     this.playPromise = null;
     this.requestId = 0;
     this.playAttempts = 0;
     this.lastError = null;
     this.disposed = false;
     this.voices = 0;
-    this.engine = null;
+    this.race = null;
+    this.raceCar = null;
+    this.raceEndsAt = null;
+    this.raceStarts = 0;
     // Nothing is played, or even attempted, before the first real gesture.
     this.unlocked = false;
   }
@@ -75,8 +99,20 @@ export class GameAudio {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass || this.disposed) return null;
     try {
-      if (!this.context) this.context = new AudioContextClass();
-      if (this.context.state === "suspended") this.context.resume()?.catch?.(() => { /* next gesture retries */ });
+      if (!this.context) {
+        this.context = new AudioContextClass();
+        // One limiter for every effect: a correct answer, a gear change and a
+        // pass landing together are held under full scale instead of clipping.
+        const limiter = this.context.createDynamicsCompressor();
+        limiter.threshold.value = -12;
+        limiter.knee.value = 10;
+        limiter.ratio.value = 8;
+        limiter.attack.value = 0.004;
+        limiter.release.value = 0.18;
+        limiter.connect(this.context.destination);
+        this.master = limiter;
+      }
+      if (this.context.state !== "running") this.context.resume()?.catch?.(() => { /* next gesture retries */ });
     } catch {
       return null;
     }
@@ -91,81 +127,176 @@ export class GameAudio {
     this.syncMusic();
   }
 
-  tone(frequency, duration = 0.08, type = "sine", level = 1, endFrequency = null) {
+  /**
+   * One voice: `layers` are oscillators sharing an envelope, so a sound can
+   * have a body and a shine instead of being a bare beep.
+   */
+  voice(layers, { duration = 0.1, level = 1, attack = 0.012, delay = 0, endRatio = null } = {}) {
     if (!this.prefs.sound || this.disposed || this.voices >= MAX_VOICES) return;
     const context = this.ensureContext();
-    if (!context) return;
+    if (!context || !this.master) return;
     try {
-      const oscillator = context.createOscillator();
+      const start = context.currentTime + delay;
       const gain = context.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, context.currentTime);
-      if (endFrequency) oscillator.frequency.exponentialRampToValueAtTime(endFrequency, context.currentTime + duration);
-      const peak = Math.max(0.0012, this.prefs.soundVolume * 0.11 * level);
-      gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(peak, context.currentTime + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
-      oscillator.connect(gain).connect(context.destination);
-      this.voices += 1;
-      oscillator.addEventListener("ended", () => { this.voices = Math.max(0, this.voices - 1); });
-      oscillator.start();
-      oscillator.stop(context.currentTime + duration + 0.03);
-    } catch {
-      /* Effects are optional. */
-    }
-  }
-
-  sequence(notes, gapMs, duration, type = "sine", level = 0.9) {
-    notes.forEach((note, index) => setTimeout(() => this.tone(note, duration, type, level), index * gapMs));
-  }
-
-  button() { this.tone(360, 0.04, "sine", 0.45); }
-  correct() { this.tone(620, 0.09, "sine", 0.8); setTimeout(() => this.tone(830, 0.12, "sine", 0.8), 70); }
-  incorrect() { this.tone(210, 0.16, "triangle", 0.6); }
-  hop() { this.tone(300, 0.14, "sine", 0.5, 520); }
-  countdown() { this.tone(440, 0.12, "square", 0.35); }
-  go() { this.tone(880, 0.3, "square", 0.4); }
-  accelerate() { this.tone(110, 0.38, "sawtooth", 0.3, 260); }
-  overtake() { this.tone(520, 0.1, "triangle", 0.5, 780); }
-  overtaken() { this.tone(420, 0.14, "triangle", 0.4, 260); }
-  purchase() { this.sequence([784, 988, 1319], 80, 0.14); }
-  equip() { this.tone(500, 0.08, "square", 0.3); setTimeout(() => this.tone(700, 0.1, "square", 0.3), 60); }
-  finish() { this.sequence([523, 659, 784], 90, 0.2); }
-  victory() { this.sequence([523, 659, 784, 1047, 1319], 110, 0.26); }
-  defeat() { this.sequence([392, 330, 262], 150, 0.24, "triangle", 0.6); }
-
-  /** A quiet continuous engine note whose pitch follows the car's speed (0..1). */
-  setEngine(level) {
-    if (!this.prefs.sound || this.disposed) return this.stopEngine();
-    const context = this.ensureContext();
-    if (!context) return;
-    try {
-      if (!this.engine) {
+      const peak = Math.max(0.0012, this.prefs.soundVolume * 0.16 * level);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak, start + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      gain.connect(this.master);
+      const oscillators = layers.map(([type, frequency, share = 1]) => {
         const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        oscillator.type = "sawtooth";
-        gain.gain.value = 0.0001;
-        oscillator.connect(gain).connect(context.destination);
-        oscillator.start();
-        this.engine = { oscillator, gain };
-      }
-      const clamped = Math.min(1, Math.max(0, level));
-      this.engine.oscillator.frequency.setTargetAtTime(55 + clamped * 110, context.currentTime, 0.12);
-      this.engine.gain.gain.setTargetAtTime(this.prefs.soundVolume * (0.006 + clamped * 0.016), context.currentTime, 0.12);
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        if (endRatio) oscillator.frequency.exponentialRampToValueAtTime(frequency * endRatio, start + duration);
+        if (share === 1) oscillator.connect(gain);
+        else {
+          const part = context.createGain();
+          part.gain.value = share;
+          oscillator.connect(part).connect(gain);
+        }
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.03);
+        return oscillator;
+      });
+      this.voices += 1;
+      oscillators[0].addEventListener("ended", () => {
+        this.voices = Math.max(0, this.voices - 1);
+        gain.disconnect();
+      });
     } catch {
       /* Effects are optional. */
     }
   }
 
-  stopEngine() {
-    if (!this.engine) return;
+  tone(frequency, duration = 0.08, type = "sine", level = 1, endFrequency = null) {
+    this.voice([[type, frequency]], { duration, level, endRatio: endFrequency ? endFrequency / frequency : null });
+  }
+
+  /** A struck note: a sine body with a soft octave shine. */
+  note(frequency, duration, level = 0.8, delay = 0) {
+    this.voice([["sine", frequency], ["triangle", frequency * 2, 0.28]], { duration, level, delay, attack: 0.008 });
+  }
+
+  chime(notes, gap, duration, level = 0.8) {
+    notes.forEach((frequency, index) => this.note(frequency, duration, level, index * gap));
+  }
+
+  button() { this.tone(360, 0.04, "sine", 0.4); }
+  correct() { this.chime([659, 988], 0.07, 0.16, 0.95); }
+  incorrect() { this.voice([["triangle", 196], ["sine", 147, 0.6]], { duration: 0.24, level: 0.85, endRatio: 0.8 }); }
+  hop() { this.tone(300, 0.14, "sine", 0.5, 520); }
+  /** Start lights: three even low beeps, then a higher, longer one. */
+  countdown() { this.voice([["sine", 440], ["square", 440, 0.12]], { duration: 0.2, level: 0.75, attack: 0.006 }); }
+  go() { this.voice([["sine", 880], ["square", 880, 0.12], ["sine", 1320, 0.25]], { duration: 0.6, level: 0.85, attack: 0.006 }); }
+  purchase() { this.chime([784, 988, 1319], 0.08, 0.16); }
+  equip() { this.chime([523, 784], 0.06, 0.12, 0.6); }
+  finish() { this.chime([523, 659, 784], 0.09, 0.24); }
+  victory() { this.chime([523, 659, 784, 1047, 1319], 0.11, 0.34, 0.95); this.note(1568, 0.6, 0.7, 0.58); }
+  defeat() { this.chime([392, 330, 262], 0.15, 0.3, 0.6); }
+
+  // ------------------------------------------------------------------ racing
+
+  /** The effects level of a race, from the Sound effects volume. */
+  raceLevel() {
+    return this.prefs.soundVolume * 2 * RACE_LEVEL;
+  }
+
+  /** Begin the sound of a race in this car. Music steps back under it. */
+  startRace(carKey) {
+    this.stopRace(0.05);
+    this.raceCar = carKey;
+    this.raceEndsAt = null;
+    this.setDuck(RACE_MUSIC_DUCK);
+    this.ensureRace();
+  }
+
+  /** The race sound, made on demand: Sound effects may be switched on mid-race, and a hidden tab drops it. */
+  ensureRace() {
+    if (this.race || !this.raceCar || !this.prefs.sound || this.disposed || !this.unlocked || document.hidden) return this.race;
+    const context = this.ensureContext();
+    if (!context || !this.master) return null;
     try {
-      this.engine.gain.gain.setTargetAtTime(0.0001, this.context?.currentTime ?? 0, 0.05);
-      this.engine.oscillator.stop((this.context?.currentTime ?? 0) + 0.2);
+      this.race = new RaceSound(context, this.master, this.raceCar, { level: this.raceLevel() });
+      this.raceStarts += 1;
     } catch {
-      /* already stopped */
+      this.race = null;
     }
-    this.engine = null;
+    return this.race;
+  }
+
+  /** Once a frame while a race is on screen. */
+  updateRace(seconds, player, rivals) {
+    if (!this.raceCar) return;
+    if (!this.prefs.sound || document.hidden) {
+      if (this.race) this.dropRace(0.08);
+      return;
+    }
+    const race = this.ensureRace();
+    if (!race) return;
+    if (this.raceEndsAt !== null) {
+      // Over the line: the car runs down to a stop, then the sound fades away.
+      race.update(seconds, { ...player, speed: 0 }, []);
+      if (this.context.currentTime >= this.raceEndsAt) this.stopRace(0.8);
+      return;
+    }
+    race.update(seconds, player, rivals);
+  }
+
+  /** A correct answer opens the throttle. */
+  raceBoost() { this.race?.boost(); }
+  /** A wrong answer shuts it: revs fall, tyres scrub, nothing accelerates. */
+  raceLift() { this.race?.lift(); }
+  racePass(gained, side) { this.race?.pass(gained, side); }
+
+  /** The finish line: the gantry goes overhead and the engine runs down. */
+  endRace() {
+    if (!this.raceCar || this.raceEndsAt !== null) return;
+    this.race?.finishLine();
+    this.race?.lift();
+    this.raceEndsAt = (this.context?.currentTime ?? 0) + RUN_DOWN_SECONDS;
+    this.setDuck(1);
+  }
+
+  /** The Sound effects volume changed while a race is sounding. */
+  applyRaceLevel() {
+    this.race?.setLevel(this.raceLevel());
+  }
+
+  dropRace(fade) {
+    this.race?.stop(fade);
+    this.race = null;
+  }
+
+  /** Leave the race: everything of it fades and is released; music comes back up. */
+  stopRace(fade = 0.25) {
+    this.dropRace(fade);
+    this.raceCar = null;
+    this.raceEndsAt = null;
+    this.setDuck(1);
+  }
+
+  // ------------------------------------------------------------------- music
+
+  setDuck(value) {
+    if (this.duck === value) return;
+    this.duck = value;
+    this.applyMusicLevel(0.4);
+  }
+
+  musicLevel() {
+    return this.prefs.musicVolume * this.duck;
+  }
+
+  applyMusicLevel(tau = 0.05) {
+    const track = this.music;
+    if (!track) return;
+    const level = this.musicLevel();
+    if (this.musicGain && this.context) {
+      track.volume = 1;
+      this.musicGain.gain.setTargetAtTime(level, this.context.currentTime, tau);
+    } else {
+      track.volume = level;
+    }
   }
 
   ensureMusic() {
@@ -183,6 +314,25 @@ export class GameAudio {
     return track;
   }
 
+  /**
+   * Put the music through the audio graph, so its level is ours to set.
+   * iPhone and iPad ignore an audio element's own volume; a gain node is
+   * honoured everywhere. If the browser refuses, the element's volume is used.
+   */
+  routeMusic(track) {
+    if (this.musicGain || this.musicRoute === "refused" || !this.context) return;
+    try {
+      const source = this.context.createMediaElementSource(track);
+      const gain = this.context.createGain();
+      gain.gain.value = this.musicLevel();
+      source.connect(gain).connect(this.context.destination);
+      this.musicGain = gain;
+      this.musicRoute = "graph";
+    } catch {
+      this.musicRoute = "refused";
+    }
+  }
+
   syncMusic() {
     if (this.disposed || !this.unlocked) return;
     const wanted = this.prefs.music && this.prefs.musicVolume > 0 && !document.hidden && this.shouldPlay();
@@ -195,7 +345,8 @@ export class GameAudio {
     // Assign the source lazily, inside the gesture, then play() synchronously:
     // awaiting anything first would leave the activation window on Safari.
     if (!track.getAttribute("src")) track.src = MUSIC_TRACK.path;
-    track.volume = this.prefs.musicVolume;
+    this.routeMusic(track);
+    this.applyMusicLevel();
     if (!track.paused || this.playPromise) return;
     const request = ++this.requestId;
     this.playAttempts += 1;
@@ -226,22 +377,41 @@ export class GameAudio {
   }
 
   snapshot() {
+    const frame = this.race?.lastFrame ?? null;
     return Object.freeze({
       source: this.music?.getAttribute("src") ?? null,
       paused: this.music?.paused ?? true,
       loop: this.music?.loop ?? true,
-      volume: this.music?.volume ?? 0,
+      // The level the listener gets, whichever way the music is routed.
+      volume: this.music ? this.musicLevel() : 0,
+      musicRoute: this.musicRoute,
+      duck: this.duck,
       playAttempts: this.playAttempts,
       unlocked: this.unlocked,
       contextState: this.context?.state ?? "uninitialized",
       error: this.lastError,
-      disposed: this.disposed
+      disposed: this.disposed,
+      voices: this.voices,
+      race: Object.freeze({
+        car: this.raceCar,
+        sounding: Boolean(this.race),
+        profile: this.race?.profile.key ?? null,
+        starts: this.raceStarts,
+        ending: this.raceEndsAt !== null,
+        oneShots: this.race?.oneShots ?? 0,
+        level: this.race ? this.raceLevel() : 0,
+        rpm: frame ? Math.round(frame.rpm) : null,
+        gear: frame ? frame.gear + 1 : null,
+        throttle: frame ? Number(frame.throttle.toFixed(3)) : null,
+        firing: frame ? Number(frame.firing.toFixed(1)) : null,
+        speed: frame ? Number(frame.speed.toFixed(1)) : null
+      })
     });
   }
 
   dispose() {
     if (this.disposed) return;
-    this.stopEngine();
+    this.stopRace(0.02);
     this.pauseMusic();
     this.disposed = true;
     if (this.music) {
@@ -249,6 +419,8 @@ export class GameAudio {
       this.music.load();
       this.music = null;
     }
+    this.musicGain = null;
+    this.master = null;
     this.context?.close?.()?.catch?.(() => { /* leaving anyway */ });
     this.context = null;
   }

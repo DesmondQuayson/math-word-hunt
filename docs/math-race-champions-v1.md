@@ -24,10 +24,11 @@ Seven categories, all generated, never a fixed bank (`src/engine/questions.js`):
 | Missing Subtrahend | `25 − ? = 17` | off by 1, 2 (or 10) |
 | Missing Multiplier | `7 × ? = 42` | off by 1 or 2 |
 | Missing Divisor | `48 ÷ ? = 8` | off by 1 or 2, or the quotient |
-| Percentage to Decimal | `35% = ?` | the decimal point one or two places out |
-| Decimal to Percentage | `0.72 = ?` | the decimal point one or two places out |
+| Percentage to Decimal | `Convert 35% to a decimal.` | the decimal point one or two places out |
+| Decimal to Percentage | `Convert 0.72 to a percent.` | the decimal point one or two places out |
 | Evaluating Powers | `6² = ?` | the base doubled or tripled, or the wrong exponent |
 
+- The two conversions are asked in words, one fixed sentence each way (owner, 2026-11-12): `Convert {decimal} to a percent.` and `Convert {percent}% to a decimal.` The other five skills are shown as an equation with `?` for the unknown. A decimal is always answered with two percentages, a percentage with two decimals.
 - Exactly two choices; exactly one is correct. An independent validator (`validateQuestion`) reads each question as shown and tests both choices against it; the unit suite runs it over 10,000 questions for each of the 35 category and difficulty pairs.
 - Decimals are an integer with a decimal exponent. No floating point is used for a question or an answer, so `29%` is `0.29`, never `0.29000000000000004`.
 - Exponents are 0, 1, 2 and 3 only. The base is never 0, so `0⁰` cannot be asked. There is no Decimal to Fraction.
@@ -139,6 +140,17 @@ Mirrors Polygon Showdown.
 - **Server:** `lib/games/math-race-champions/server.ts`, `app/api/games/math-race-champions/{account,play}/route.ts`. Rebuilds each question from a seed the browser never receives, decides the verdict, runs the racing model on the database clock.
 - **Database:** `supabase/migrations/20261112100000_math_race_champions_catalog.sql` (draft catalog entry) and `20261112110000_math_race_champions.sql`. Ten tables (`race_*`), all with forced RLS and no policy; every function `SECURITY DEFINER`, executable by `service_role` only. Rollback: `supabase/rollback/math_race_champions.sql`.
 - **One code space:** `private.live_room_code_guard()` now sits on all three room tables and `public.live_room_game_for_code()` answers for all three games. These two shared functions are the only existing database objects the migration changes.
+
+### Sound
+
+- Music is the shared, already-approved MathNexa track ("Cosmic Candy Catchers" by Eric Matyas, soundimage.org, CC BY 3.0), the one file at `/media/audio/cosmic-candy-catchers.mp3`; no second copy. It starts inside the first real press or key (Safari's rule), on whatever is pressed: nobody has to touch the music button. Music and Sound effects have separate switches and volumes, remembered on the device.
+- Every effect is synthesised in the browser with Web Audio: no recording is downloaded, and nothing is taken from any other game. `sound/engine-model.js` (pure, unit-tested) turns the car's real race speed into engine speed, gear and throttle; `sound/race-sound.js` draws the sound from it: firing note and half-order rumble, idle patter, induction, road and wind, gear changes, tyre scrub, a car going past, the finish line.
+- A correct answer opens the throttle and the engine climbs to the car's new speed through the gears. A wrong answer shuts the throttle: the revs fall and the tyres scrub. Nothing accelerates.
+- The four garage cars and the Online Race car each have their own engine profile (cylinders, idle, redline, gears, harmonics, brightness; the Turbo Sprint has a turbo whistle and blow-off, the Velocity GT and Thunder X crackle on a lift). They are trimmed to the same measured loudness, so a dearer car differs in tone, not volume.
+- Mix: effects pass one limiter; music is turned down to 55% while a race is running and comes back after it. In Online Race only the two nearest cars within 45 m are heard, quieter than the player's own and off to one side; everyone else is silent.
+- Classroom Competition has no engine: music, the two answer sounds, the football's hop and the finish.
+- A hidden tab is silent; leaving a race releases every node. `scripts/math-race-champions-audio-audit.mjs` renders the race offline in a real browser and measures level, clipping, tone, the answer response, rivals and leftovers.
+- Where a browser has no Web Audio at all, the game plays music only and races in silence.
 
 ## 6. Security
 

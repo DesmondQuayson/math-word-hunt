@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { PAGE_ERRORS, RACER, adminClient, api, assertNoScroll, evidence, ledger, newPage, raceAnswer, raceGraphics, raceRivals, raceToFinish, raceView, resetAccount, shownQuestion, signIn, solve, waitForGo, waitForScreen } from "./helpers";
+import { PAGE_ERRORS, RACER, adminClient, api, assertNoScroll, evidence, ledger, newPage, openStages, raceAnswer, raceGraphics, raceRivals, raceToFinish, raceView, resetAccount, setBalance, shownQuestion, signIn, solve, waitForGo, waitForScreen } from "./helpers";
 
 test.afterEach(() => {
   expect(PAGE_ERRORS).toEqual([]);
@@ -111,6 +111,58 @@ test.describe("Race Computer", () => {
     await expect(page.locator(".tile").first()).toContainText(`R$ ${balance.toLocaleString("en-US")}`);
     await expect(page.locator("table .is-won")).toHaveCount(1);
     await evidence(page, "progress-1366x768");
+    await context.close();
+  });
+
+  test("Stage 10 in the Thunder X: the longest race against the quickest computer, 30 answers or more, R$ 1,400 once", async ({ browser }) => {
+    test.setTimeout(900_000);
+    const admin = adminClient();
+    const racerId = await resetAccount(admin, RACER.email);
+    // Test data: Stages 1 to 9 marked won, and exactly the price of the Thunder X in the wallet.
+    await openStages(admin, racerId, 10);
+    await setBalance(admin, racerId, 6000);
+    const { context, page } = await newPage(browser, { viewport: { width: 1366, height: 768 } });
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("mathnexa:math-race-champions:preferences", JSON.stringify({ sound: true, music: true, graphics: "low" }));
+      } catch {
+        /* storage refused */
+      }
+    });
+    await signIn(page, RACER);
+    await waitForScreen(page, "hub");
+    // Bought and equipped through the game's own API: the server takes the Race Dollars.
+    expect((await api(page, "account", { action: "purchase", car: "thunder-x", key: `stage10-buy-${Date.now()}` })).body).toMatchObject({ result: "ok", balance: 0, car: "thunder-x", price: 6000 });
+    expect((await api(page, "account", { action: "equip", car: "thunder-x" })).body).toMatchObject({ result: "ok", equipped: "thunder-x" });
+    await page.getByRole("button", { name: /Race Computer/ }).click();
+    await waitForScreen(page, "computer");
+    await expect(page.locator(".stage-card")).toHaveCount(10);
+    await expect(page.locator(".stage-card:not(.is-locked)")).toHaveCount(10);
+    await expect(page.locator(".car-strip-name")).toHaveText("Thunder X");
+    await page.locator(".stage-card").nth(9).click();
+    await expect(page.locator(".stage-facts")).toContainText("At least 30 correct answers");
+    await expect(page.locator(".stage-facts")).toContainText("R$ 1,400");
+    await evidence(page, "computer-stage-10-1366x768");
+    await page.getByRole("button", { name: "Start race" }).click();
+    await waitForScreen(page, "race");
+    await waitForGo(page, 180_000);
+    expect(await page.locator(".hud-mode").textContent()).toBe("Stage 10");
+    const driver = await page.evaluate(() => {
+      const race = (window as unknown as { __MATH_RACE__: { race: { driver: { stage: number; lengthKm: number; minCorrect: number; car: { key: string; topSpeed: number } } } } }).__MATH_RACE__.race.driver;
+      return { stage: race.stage, lengthKm: race.lengthKm, minCorrect: race.minCorrect, car: race.car.key, topSpeed: race.car.topSpeed };
+    });
+    expect(driver).toEqual({ stage: 10, lengthKm: 10.9, minCorrect: 30, car: "thunder-x", topSpeed: 240 });
+    const answers = await raceToFinish(page, { wrong: 2, maxAnswers: 600 });
+    expect(answers).toBeGreaterThanOrEqual(30);
+    await expect(page.locator("#result-title")).toHaveText("Victory!", { timeout: 30_000 });
+    const final = (await raceView(page))!;
+    expect(final.finished).toBe(true);
+    expect(final.correct).toBeGreaterThanOrEqual(30);
+    await expect(page.locator(".result-earned")).toContainText("R$ 1,400");
+    await evidence(page, "computer-stage-10-result-1366x768");
+    const lines = await ledger(admin, racerId);
+    expect(lines.filter((line) => line.event === "STAGE_REWARD").map((line) => line.amount)).toEqual([1400]);
+    expect(lines.filter((line) => line.event === "PURCHASE_CAR").map((line) => line.amount)).toEqual([-6000]);
     await context.close();
   });
 

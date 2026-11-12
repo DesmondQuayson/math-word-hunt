@@ -24,8 +24,8 @@ vi.mock("@/app/school-access-actions", () => ({
 afterEach(cleanup);
 
 const HEADLINE = "Online math prep that shows the thinking, not just the answer.";
-const FREE_KEYS = ["polygon-showdown", "math-bingo-live", "math-tug-of-war"];
-const FREE_TITLES = ["Polygon Showdown", "Math Bingo Live", "Math Tug of War"];
+const FREE_KEYS = ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "math-race-champions"];
+const FREE_TITLES = ["Polygon Showdown", "Math Bingo Live", "Math Tug of War", "Math Race Champions"];
 const SUBSCRIPTION_GAMES = { "crosscalc": "/games/crosscalc/play", "number-logic": "/games/number-logic/play", "number-cross": "/games/number-cross/play", "math-vocabulary-hunt": "/play" } as const;
 
 describe("teacher-first public homepage", () => {
@@ -146,8 +146,8 @@ describe("teacher-first public homepage", () => {
       expect(labelled || scene.getAttribute("aria-hidden") === "true").toBeTruthy();
     }
     const sources = [...container.querySelectorAll("img")].map((image) => decodeURIComponent(image.getAttribute("src") ?? ""));
-    // Four product-shelf screens and the three free games.
-    expect(sources.length).toBe(7);
+    // Four product-shelf screens and the four free games.
+    expect(sources.length).toBe(8);
     for (const source of sources) expect(source).toMatch(/\/media\/(home|games)\/[a-z0-9-]+\.webp/);
   });
 
@@ -164,7 +164,7 @@ describe("teacher-first public homepage", () => {
     }
     // Free game thumbnails are sized to the compact card columns, never the 1200px original.
     const featured = [...container.querySelectorAll(".home-featured-games img")];
-    expect(featured).toHaveLength(3);
+    expect(featured).toHaveLength(4);
     for (const image of featured) {
       expect(image.getAttribute("sizes")).toBe("(min-width: 68rem) 18rem, (min-width: 48rem) 32vw, (min-width: 22rem) 48vw, 100vw");
       expect(image.getAttribute("srcset")).toMatch(/ 384w, .* 640w, /);
@@ -195,6 +195,19 @@ describe("teacher-first public homepage", () => {
       expect(tug.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Tug of War gameplay artwork/);
       expect(tug.textContent).toContain("Solve the math. Pull the rope. Beat the other side!");
       expect(within(tug).getByRole("link", { name: "Play Free Math Tug of War" }).getAttribute("href")).toBe("/games/math-tug-of-war/play");
+
+      // Math Race Champions: the same compact card as the others, straight to the free game.
+      const race = card("math-race-champions");
+      expect(race.querySelector("h3")?.textContent).toBe("Math Race Champions");
+      expect(race.querySelector("img")?.getAttribute("alt")).toMatch(/^Math Race Champions gameplay: a 3D race car/);
+      expect(decodeURIComponent(race.querySelector("img")?.getAttribute("src") ?? "")).toContain("/media/games/math-race-champions.webp");
+      expect(race.textContent).toContain("Racing");
+      expect(race.textContent).toContain("Solve math, race 3D cars, beat the computer or your friends.");
+      expect(within(race).getByRole("link", { name: "Play Free Math Race Champions" }).getAttribute("href")).toBe("/games/math-race-champions/play");
+      expect(within(race).getAllByRole("link")).toHaveLength(1);
+      // No card is built differently from the others.
+      expect(race.className).toBe(polygon.className);
+      expect(race.querySelector("img")?.getAttribute("sizes")).toBe(polygon.querySelector("img")?.getAttribute("sizes"));
 
       // Math Bingo Live: free to host; students join with a code (no account).
       const bingo = card("math-bingo-live");
@@ -334,7 +347,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

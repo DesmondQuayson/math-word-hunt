@@ -3,7 +3,7 @@
 // "right". It is never told an answer and has no shortcut. Used by the browser
 // tests (extra racers in a room) and by the load test (10 to 50 racers).
 
-import { DIVIDE, MINUS, SUPERSCRIPTS, TIMES, decimalsEqual, parseDecimal, shiftDecimal } from "../apps/platform-web/public/internal-games/math-race-champions/src/engine/questions.js";
+import { DIVIDE, MINUS, SUPERSCRIPTS, TIMES, decimalsEqual, parseConversion, parseDecimal, shiftDecimal } from "../apps/platform-web/public/internal-games/math-race-champions/src/engine/questions.js";
 
 const EQUATION = new RegExp(`^(\\d+) ([+${MINUS}${TIMES}${DIVIDE}]) \\? = (\\d+)$`);
 const POWER = new RegExp(`^(\\d+)([${SUPERSCRIPTS.join("")}]) = \\?$`);
@@ -23,10 +23,11 @@ export function solveQuestion(text, choices) {
     }
     const power = POWER.exec(text);
     if (power) return Number(choice) === Number(power[1]) ** SUPERSCRIPTS.indexOf(power[2]);
-    const shown = /^(.+) = \?$/.exec(text)[1];
-    const left = parseDecimal(shown);
+    const conversion = parseConversion(text);
+    if (!conversion) throw new Error(`Unreadable question "${text}"`);
     const right = parseDecimal(choice);
-    return shown.endsWith("%") ? decimalsEqual(left, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(left, 2), right);
+    if (!right || conversion.fromPercent === choice.endsWith("%")) return false;
+    return conversion.fromPercent ? decimalsEqual(conversion.value, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(conversion.value, 2), right);
   };
   const first = fits(choices[0]);
   const second = fits(choices[1]);

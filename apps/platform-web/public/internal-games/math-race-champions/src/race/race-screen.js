@@ -8,7 +8,7 @@
 
 import { formatRaceDollars } from "../api.js";
 import { ACHIEVEMENTS, ACHIEVEMENT_REWARD, viewAt } from "../engine/race.js";
-import { announce, fill, formatDuration, h, icon, pressable, prefersReducedMotion, s } from "../dom.js";
+import { announce, fill, formatDuration, h, icon, pressable, prefersReducedMotion, questionForm, s } from "../dom.js";
 import { PAINTS, cssColour } from "../palette.js";
 import { createMinimap } from "./minimap.js";
 
@@ -160,6 +160,7 @@ export function mount(root, context, params) {
   let feedbackUntilLock = false;
   let lastCountdown = null;
   let confirming = false;
+  let crossedLine = false;
 
   const canvas = h("canvas", { class: "race-canvas", "aria-hidden": "true" });
   const flat = h("div", { class: "race-flat", hidden: true });
@@ -242,6 +243,7 @@ export function mount(root, context, params) {
   function showQuestion(question) {
     shownIndex = question?.index ?? -1;
     questionText.textContent = question?.text ?? "";
+    questionText.dataset.form = questionForm(question?.text);
     if (question) questionText.setAttribute("aria-label", question.spoken);
     buttons.forEach((item, index) => {
       item.label.textContent = question?.choices[index] ?? "";
@@ -266,10 +268,13 @@ export function mount(root, context, params) {
         feedbackUntilLock = true;
         if (outcome.correct) {
           audio.correct();
-          audio.accelerate();
+          // The throttle opens; the engine then follows the car's new speed.
+          audio.raceBoost();
           world?.pulse("boost");
         } else {
           audio.incorrect();
+          // The throttle shuts: revs fall and the tyres scrub. Nothing accelerates.
+          audio.raceLift();
           world?.pulse("brake");
         }
       }
@@ -286,7 +291,8 @@ export function mount(root, context, params) {
   function showResult(result) {
     shownResult = true;
     params.onResult?.(result);
-    audio.stopEngine();
+    // Across the line the engine runs down by itself; a race that ended any other way just fades.
+    if (!crossedLine) audio.stopRace(0.6);
     main.dataset.phase = "finished";
     setChoicesEnabled(false);
     const online = result.mode === "online";
@@ -342,8 +348,8 @@ export function mount(root, context, params) {
     const rank = ahead + 1;
     position.textContent = `${ordinal(rank)} of ${rivals.length + 1}`;
     if (lastRank && at > 0 && !view.finished) {
-      if (rank < lastRank) audio.overtake();
-      else if (rank > lastRank) audio.overtaken();
+      // A car going past, on alternate sides so a busy race does not pile up on one ear.
+      if (rank !== lastRank) audio.racePass(rank < lastRank, rank % 2 === 0 ? 1 : -1);
     }
     lastRank = rank;
     const percent = Math.floor(view.progress * 100);
@@ -394,7 +400,17 @@ export function mount(root, context, params) {
 
     world?.render({ distanceM: view.distanceKm * 1000, speed: view.speed }, rivals.map(rival => ({ id: rival.id, distanceM: rival.distanceM, speed: rival.speed, model: rival.model, paint: rival.paint ?? PAINTS[rival.colour] ?? PAINTS.rival })), frameMs);
     speedo.set(view.speed);
-    if (at > 0 && !view.finished) audio.setEngine(view.speed / driver.car.topSpeed);
+    // The car's sound is drawn from the same speed as the picture: idle on the
+    // grid, then whatever the race model says. Only the two nearest rivals are heard.
+    if (view.finished && !crossedLine) {
+      crossedLine = true;
+      audio.endRace();
+    }
+    audio.updateRace(
+      frameMs / 1000,
+      { speed: at > 0 ? view.speed : 0, topSpeed: driver.car.topSpeed, distanceM: view.distanceKm * 1000 },
+      rivals.map((rival, index) => ({ id: rival.id, distanceM: rival.distanceM, speed: rival.speed, finished: rival.finished, side: index % 2 === 0 ? 1 : -1 }))
+    );
 
     // Lights out.
     if (at < 0) {
@@ -451,6 +467,7 @@ export function mount(root, context, params) {
     main.dataset.phase = "countdown";
     if (world && driver.playerModel !== plan.playerModel) world.setPlayer(driver.playerModel, driver.playerPaint);
     showQuestion(driver.question());
+    audio.startRace(driver.car.key);
     // Read by the browser tests: what the screen is drawing right now.
     window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), race: { driver, view: () => lastView, rivals: () => lastRivals, graphics: () => main.dataset.graphics ?? "loading" } };
     lastFrame = performance.now();
@@ -496,7 +513,7 @@ export function mount(root, context, params) {
       destroyed = true;
       cancelAnimationFrame(frame);
       document.removeEventListener("keydown", onKey);
-      audio.stopEngine();
+      audio.stopRace();
       driver?.dispose?.();
       world?.dispose();
       world = null;

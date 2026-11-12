@@ -24,7 +24,8 @@ import { freeGameEntryRoute } from "@/lib/games/free-game-entry";
  *
  * Copy. HOME_GAME_COPY is presentation only: the category, one short line, the
  * alt text and the button label of the games MathNexa already has, in the
- * owner's order (2026-11-09: Polygon Showdown first). It never decides
+ * owner's order (2026-11-09: Polygon Showdown first; 2026-11-12: Math Race
+ * Champions added after the three free games already there). It never decides
  * visibility: an entry whose game is not free is not shown, and a free game
  * with no entry still appears, after these, in catalog order, with its catalog
  * title and the first sentence of its catalog description.
@@ -111,6 +112,19 @@ export const HOME_GAME_COPY: readonly HomeGameCopy[] = Object.freeze([
     alt: "Math Tug of War gameplay artwork: the Turquoise and Pink teams pulling a rope while each side answers integer questions on a keypad",
     label: "Play Free",
     fallbackThumbnailReference: "builtin:math-tug-of-war"
+  },
+  {
+    // Owner, 2026-11-12: a free game, on the homepage with the others. It joins
+    // the end of the free games, so the order the owner set on 2026-11-09 stands.
+    stableKey: "math-race-champions",
+    title: "Math Race Champions",
+    category: "Racing",
+    // The owner's line ("Solve math problems, race 3D cars, challenge the computer,
+    // or compete with friends.") cut to the compact card's 60 characters.
+    blurb: "Solve math, race 3D cars, beat the computer or your friends.",
+    alt: "Math Race Champions gameplay: a 3D race car on a coastal road with a speedometer and road map above a math question and two answer buttons",
+    label: "Play Free",
+    fallbackThumbnailReference: "builtin:math-race-champions"
   },
   {
     stableKey: "crosscalc",

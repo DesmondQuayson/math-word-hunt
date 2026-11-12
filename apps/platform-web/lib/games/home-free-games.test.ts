@@ -14,9 +14,10 @@ import {
   type HomeGameSources
 } from "./home-free-games";
 
-// Production's game catalog as read on 2026-11-10: all seven entries published, in catalog display order.
-const PRODUCTION_CATALOG_KEYS = ["math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "math-tug-of-war", "math-bingo-live", "polygon-showdown"];
-const FREE_IN_HOME_ORDER = ["polygon-showdown", "math-bingo-live", "math-tug-of-war"];
+// Production's game catalog as read on 2026-11-10 (seven entries published, in catalog display order),
+// plus Math Race Champions, published as a free game on 2026-11-12.
+const PRODUCTION_CATALOG_KEYS = ["math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "math-tug-of-war", "math-bingo-live", "polygon-showdown", "math-race-champions"];
+const FREE_IN_HOME_ORDER = ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "math-race-champions"];
 const freeDestinations: readonly string[] = FREE_GAME_DESTINATIONS;
 
 const catalogGame = (stableKey: string, overrides: Partial<HomeCatalogGame> = {}): HomeCatalogGame => ({
@@ -53,8 +54,17 @@ describe("homepage free games", () => {
     expect(games.map((game) => [game.stableKey, game.primary.label, game.primary.href])).toEqual([
       ["polygon-showdown", "Play Free", "/games/polygon-showdown/play"],
       ["math-bingo-live", "Host Game", "/games/math-bingo-live/host"],
-      ["math-tug-of-war", "Play Free", "/games/math-tug-of-war/play"]
+      ["math-tug-of-war", "Play Free", "/games/math-tug-of-war/play"],
+      ["math-race-champions", "Play Free", "/games/math-race-champions/play"]
     ]);
+    expect(games[3]).toMatchObject({
+      title: "math-race-champions (catalog title)",
+      category: "Racing",
+      blurb: "Solve math, race 3D cars, beat the computer or your friends.",
+      secondary: null,
+      image: { src: "/media/games/math-race-champions.webp" }
+    });
+    expect(games[3].image.alt).toMatch(/^Math Race Champions gameplay: a 3D race car/);
     for (const game of games) expect(freeDestinations, game.stableKey).toContain(game.primary.href);
     expect(games[1].secondary).toEqual({ label: "Join with a code", href: "/join" });
     expect(games[0]).toMatchObject({
@@ -88,7 +98,7 @@ describe("homepage free games", () => {
     const sources = withFutureGames({ "fraction-frenzy": "/media/games/fraction-frenzy.webp" }, { "fraction-frenzy": "/games/fraction-frenzy/play" });
     const games = homeFreeGames([future, ...productionCatalog()], sources);
     expect(keys(games)).toEqual([...FREE_IN_HOME_ORDER, "fraction-frenzy"]);
-    expect(games[3]).toEqual({
+    expect(games[4]).toEqual({
       stableKey: "fraction-frenzy",
       title: "Fraction Frenzy",
       category: "Math game",
@@ -104,7 +114,7 @@ describe("homepage free games", () => {
   it("follows the access policy when a game's classification changes, keeping the owner's order and copy", () => {
     const games = homeFreeGames(productionCatalog(), withFutureGames({}, { crosscalc: "/games/crosscalc/play" }));
     expect(keys(games)).toEqual([...FREE_IN_HOME_ORDER, "crosscalc"]);
-    expect(games[3]).toMatchObject({
+    expect(games[4]).toMatchObject({
       category: "Equations",
       image: { src: "/media/games/crosscalc-v2-rc.webp" },
       primary: { label: "Play Free", href: "/games/crosscalc/play" }
@@ -112,15 +122,32 @@ describe("homepage free games", () => {
   });
 
   it("shows only published games: an unpublished free game leaves the homepage", () => {
-    expect(keys(homeFreeGames(productionCatalog().filter((game) => game.stableKey !== "polygon-showdown")))).toEqual(["math-bingo-live", "math-tug-of-war"]);
+    expect(keys(homeFreeGames(productionCatalog().filter((game) => game.stableKey !== "polygon-showdown")))).toEqual(["math-bingo-live", "math-tug-of-war", "math-race-champions"]);
     expect(homeFreeGames([])).toEqual([]);
   });
 
   it("falls back to the free games MathNexa has when the catalog cannot be read", () => {
     const games = homeFreeGames(null);
     expect(keys(games)).toEqual(FREE_IN_HOME_ORDER);
-    expect(games.map((game) => game.title)).toEqual(["Polygon Showdown", "Math Bingo Live", "Math Tug of War"]);
-    expect(games.map((game) => game.primary.href)).toEqual(["/games/polygon-showdown/play", "/games/math-bingo-live/host", "/games/math-tug-of-war/play"]);
+    expect(games.map((game) => game.title)).toEqual(["Polygon Showdown", "Math Bingo Live", "Math Tug of War", "Math Race Champions"]);
+    expect(games.map((game) => game.primary.href)).toEqual(["/games/polygon-showdown/play", "/games/math-bingo-live/host", "/games/math-tug-of-war/play", "/games/math-race-champions/play"]);
+  });
+
+  it("shows Math Race Champions only because the catalog publishes it and the access policy makes it free", () => {
+    const withoutRace = productionCatalog().filter((game) => game.stableKey !== "math-race-champions");
+    // Draft or archived: the catalog does not list it, so the homepage does not either.
+    expect(keys(homeFreeGames(withoutRace))).toEqual(["polygon-showdown", "math-bingo-live", "math-tug-of-war"]);
+    // Published but not free: a subscription game never reaches the homepage, whatever its copy says.
+    const paid: HomeGameSources = { ...MATHNEXA_HOME_SOURCES, freePlayRoute: (stableKey) => (stableKey === "math-race-champions" ? null : MATHNEXA_HOME_SOURCES.freePlayRoute(stableKey)) };
+    expect(keys(homeFreeGames(productionCatalog(), paid))).toEqual(["polygon-showdown", "math-bingo-live", "math-tug-of-war"]);
+    // As it is: free in the policy, with a free route sign in can return to, and real artwork.
+    expect(gameAccessPolicy("math-race-champions")).toBe("authenticated-free");
+    expect(MATHNEXA_HOME_SOURCES.freePlayRoute("math-race-champions")).toBe("/games/math-race-champions/play");
+    expect(freeDestinations).toContain("/games/math-race-champions/play");
+    expect(resolveGameCatalogThumbnail("math-race-champions", "builtin:math-race-champions")).toEqual({ webp: "/media/games/math-race-champions.webp", avif: "/media/games/math-race-champions.avif" });
+    const card = homeFreeGames(productionCatalog()).find((game) => game.stableKey === "math-race-champions")!;
+    expect(card.primary).toEqual({ label: "Play Free", href: "/games/math-race-champions/play" });
+    expect(`${card.primary.href} ${card.secondary?.href ?? ""}`).not.toMatch(/pricing|subscription|sign-up|trial/);
   });
 
   it("keeps card copy short enough for a compact card", () => {

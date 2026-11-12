@@ -5,8 +5,8 @@
 //   missing-subtrahend   25 − ? = 17
 //   missing-multiplier   7 × ? = 42
 //   missing-divisor      48 ÷ ? = 8
-//   percent-to-decimal   35% = ?
-//   decimal-to-percent   0.72 = ?
+//   percent-to-decimal   Convert 35% to a decimal.
+//   decimal-to-percent   Convert 0.72 to a percent.
 //   powers               6² = ?      (exponents 0, 1, 2 and 3 only)
 //
 // Every question has exactly two choices, exactly one of them correct. All
@@ -25,8 +25,8 @@ export const CATEGORIES = Object.freeze([
   Object.freeze({ id: "missing-subtrahend", title: "Missing Subtrahend", example: `25 ${MINUS} ? = 17` }),
   Object.freeze({ id: "missing-multiplier", title: "Missing Multiplier", example: `7 ${TIMES} ? = 42` }),
   Object.freeze({ id: "missing-divisor", title: "Missing Divisor", example: `48 ${DIVIDE} ? = 8` }),
-  Object.freeze({ id: "percent-to-decimal", title: "Percentage to Decimal", example: "35% = ?" }),
-  Object.freeze({ id: "decimal-to-percent", title: "Decimal to Percentage", example: "0.72 = ?" }),
+  Object.freeze({ id: "percent-to-decimal", title: "Percentage to Decimal", example: "Convert 35% to a decimal." }),
+  Object.freeze({ id: "decimal-to-percent", title: "Decimal to Percentage", example: "Convert 0.72 to a percent." }),
   Object.freeze({ id: "powers", title: "Evaluating Powers", example: `6${SUPERSCRIPTS[2]} = ?` })
 ]);
 
@@ -240,6 +240,29 @@ function pickWrong(random, candidates, isAllowed) {
   return random.pick(pool);
 }
 
+/**
+ * The wording of a conversion question. One fixed sentence per direction, so a
+ * learner is always told which conversion is being asked for.
+ */
+export function conversionText(category, shownPercent, shownDecimal) {
+  return category === "percent-to-decimal" ? `Convert ${shownPercent} to a decimal.` : `Convert ${shownDecimal} to a percent.`;
+}
+
+const CONVERSION = /^Convert (\d+(?:\.\d+)?)(%?) to a (decimal|percent)\.$/;
+
+/**
+ * Read a conversion question as shown: the number given, whether it is a
+ * percentage, and what is asked for. Null for any other question.
+ */
+export function parseConversion(text) {
+  const match = CONVERSION.exec(String(text));
+  if (!match) return null;
+  const fromPercent = match[2] === "%";
+  // "Convert 35% to a percent." asks for nothing.
+  if (fromPercent !== (match[3] === "decimal")) return null;
+  return Object.freeze({ value: parseDecimal(match[1]), fromPercent });
+}
+
 function spokenChoices(a, b) {
   return `${a} or ${b}`;
 }
@@ -317,7 +340,16 @@ function drawMissingWhole(category, difficulty, random) {
 }
 
 function drawConversion(category, difficulty, random) {
-  const percent = drawPercent(difficulty, random);
+  return conversionQuestion(category, difficulty, drawPercent(difficulty, random), random);
+}
+
+/**
+ * The conversion question for one percentage (an exact decimal in percent
+ * units): asked as a percentage to turn into a decimal, or the other way round.
+ */
+export function conversionQuestion(category, difficulty, percent, random) {
+  if (category !== "percent-to-decimal" && category !== "decimal-to-percent") throw new RangeError(`Not a conversion category: ${String(category)}`);
+  if (!SHIFT_SLIPS[difficulty]) throw new RangeError(`Unknown difficulty: ${String(difficulty)}`);
   const asDecimal = shiftDecimal(percent, -2);
   const toDecimal = category === "percent-to-decimal";
   const correct = toDecimal ? asDecimal : percent;
@@ -332,8 +364,8 @@ function drawConversion(category, difficulty, random) {
     category,
     difficulty,
     `${category}:${percent.m}e${percent.e}`,
-    toDecimal ? `${shownPercent} = ?` : `${shownDecimal} = ?`,
-    toDecimal ? `${shownPercent.replace("%", " percent")} as a decimal:` : `${shownDecimal} as a percentage:`,
+    conversionText(category, shownPercent, shownDecimal),
+    toDecimal ? `Convert ${shownPercent.replace("%", " percent")} to a decimal:` : `Convert ${shownDecimal} to a percent:`,
     [shownPercent, shownDecimal],
     show(correct),
     show(wrong),
@@ -525,15 +557,13 @@ function satisfies(question, choice) {
     for (let step = 0; step < exponent; step += 1) value *= base;
     return Number(choice) === value;
   }
-  const shown = /^(.+) = \?$/.exec(text);
-  const left = shown ? parseDecimal(shown[1]) : null;
+  const conversion = parseConversion(text);
   const right = parseDecimal(choice);
-  if (!left || !right) return false;
-  const leftIsPercent = shown[1].endsWith("%");
-  const rightIsPercent = choice.endsWith("%");
-  if (leftIsPercent === rightIsPercent) return false;
+  if (!conversion || !right) return false;
+  // The answer is written the other way round: a decimal for a percentage, a percentage for a decimal.
+  if (conversion.fromPercent === choice.endsWith("%")) return false;
   // percent = decimal × 100
-  return leftIsPercent ? decimalsEqual(left, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(left, 2), right);
+  return conversion.fromPercent ? decimalsEqual(conversion.value, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(conversion.value, 2), right);
 }
 
 export function validateQuestion(question) {
@@ -549,7 +579,8 @@ export function validateQuestion(question) {
   if (question.correctIndex !== 0 && question.correctIndex !== 1) problems.push("correct-index");
   if (question.answer !== question.choices[question.correctIndex]) problems.push("answer-mismatch");
   if (question.text.includes("-") || left.includes("-") || right.includes("-")) problems.push("ascii-hyphen");
-  if (!question.text.includes("?")) problems.push("no-unknown");
+  // An equation shows its unknown as "?"; a conversion says what to convert to.
+  if (!question.text.includes("?") && !parseConversion(question.text)) problems.push("no-unknown");
 
   const fits = [satisfies(question, left), satisfies(question, right)];
   if (!fits[question.correctIndex]) problems.push("wrong-answer-marked-correct");
@@ -571,8 +602,8 @@ export function validateQuestion(question) {
     "missing-subtrahend": new RegExp(` ${MINUS} \\? = `),
     "missing-multiplier": new RegExp(` ${TIMES} \\? = `),
     "missing-divisor": new RegExp(` ${DIVIDE} \\? = `),
-    "percent-to-decimal": /^\d+(\.\d+)?% = \?$/,
-    "decimal-to-percent": /^\d+(\.\d+)? = \?$/,
+    "percent-to-decimal": /^Convert \d+(\.\d+)?% to a decimal\.$/,
+    "decimal-to-percent": /^Convert \d+(\.\d+)? to a percent\.$/,
     powers: POWER
   }[question.category];
   if (shape && !shape.test(question.text)) problems.push("wrong-shape");

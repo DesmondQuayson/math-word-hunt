@@ -10,8 +10,13 @@
  *
  *   node scripts/run-math-race-champions.mjs load [--players 10,20,30,40,50] [--think 2500] [--accuracy 0.9] [--out file.json]
  *
- * Local Supabase only. Numbers from `next dev` on one machine are a floor for
- * what the code costs, not a forecast for hosted infrastructure.
+ * Local Supabase by default. Numbers from `next dev` on one machine are a floor
+ * for what the code costs, not a forecast for hosted infrastructure.
+ *
+ * Hosted staging: scripts/invoke-math-race-champions-staging.ps1 -Stage load
+ * -Origin <preview URL> supplies STAGING_ORIGIN, the staging secret key and the
+ * protection-bypass entry (confined to the preview origin; never printed).
+ * Rooms are synthetic and are closed and deleted afterwards. Never production.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
@@ -20,6 +25,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { MIN_CORRECT, newRacerState } from "../apps/platform-web/public/internal-games/math-race-champions/src/engine/race.js";
 import { HttpRacer } from "./math-race-champions-racer.mjs";
+import { createProtectionBypass } from "./vercel-protection-bypass.mjs";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -27,18 +33,32 @@ const option = (name, fallback) => {
   return index >= 0 ? args[index + 1] : fallback;
 };
 
-const ORIGIN = (process.env.MATH_RACE_CHAMPIONS_URL ?? "http://127.0.0.1:3103").replace(/\/$/, "");
-if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(ORIGIN)) throw new Error("The load test is local-only.");
-if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(process.env.SUPABASE_TEST_URL ?? "")) throw new Error("The load test needs local Supabase (SUPABASE_TEST_URL).");
+const STAGING_PROJECT_REF = "gcmuhzxkwvfireyrearl";
+const hostedOrigin = (process.env.STAGING_ORIGIN ?? "").trim().replace(/\/$/, "");
+const HOSTED = hostedOrigin !== "";
+if (HOSTED && !/^https:\/\/mathnexa-platform-staging-[a-z0-9]+-bright-path-ed-tech\.vercel\.app$/.test(hostedOrigin)) throw new Error("STAGING_ORIGIN must be a mathnexa-platform-staging preview URL");
+for (const name of HOSTED ? Object.keys(process.env) : []) if (/_LIVE_|_PRODUCTION_|_READONLY_/.test(name)) throw new Error(`refusing: ${name} is present in this process`);
+const ORIGIN = HOSTED ? hostedOrigin : (process.env.MATH_RACE_CHAMPIONS_URL ?? "http://127.0.0.1:3103").replace(/\/$/, "");
+if (!HOSTED && !/^http:\/\/127\.0\.0\.1:\d+$/.test(ORIGIN)) throw new Error("Without STAGING_ORIGIN the load test is local-only.");
+if (!HOSTED && !/^http:\/\/127\.0\.0\.1:\d+$/.test(process.env.SUPABASE_TEST_URL ?? "")) throw new Error("The load test needs local Supabase (SUPABASE_TEST_URL).");
+const protection = HOSTED ? createProtectionBypass({ origin: ORIGIN, secret: (process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "").trim() }) : null;
+if (HOSTED && !protection.enabled) throw new Error("missing staging protection-bypass entry");
+// Sent only to the preview origin, in headers, by this process's own requests.
+const EXTRA_HEADERS = protection ? protection.headersFor(`${ORIGIN}/api/games/math-race-champions/play`) : {};
 
 const PLAYER_COUNTS = String(option("players", "10,20,30,40,50")).split(",").map(Number).filter(count => count >= 2 && count <= 60);
 const THINK_MS = Number(option("think", "2500"));
 const ACCURACY = Number(option("accuracy", "0.9"));
 const OUT = option("out", null);
-const JOIN_SPACING_MS = 15;
+const JOIN_SPACING_MS = HOSTED ? 120 : 15;
 const COLOURS = ["turquoise", "pink", "gold", "green", "red", "purple", "orange", "white"];
 
-const admin = createClient(process.env.SUPABASE_TEST_URL, process.env.SUPABASE_TEST_SECRET_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+const admin = createClient(
+  HOSTED ? `https://${STAGING_PROJECT_REF}.supabase.co` : process.env.SUPABASE_TEST_URL,
+  HOSTED ? process.env.SUPABASE_SECRET_KEY : process.env.SUPABASE_TEST_SECRET_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+const createdRooms = [];
 const hashToken = (kind, token) => createHash("sha256").update(`math-race-champions\n${kind}\n${token}`).digest("hex");
 const newToken = () => randomBytes(32).toString("base64url");
 const sleep = ms => new Promise(done => setTimeout(done, ms));
@@ -78,8 +98,9 @@ async function oneRace(players) {
     if (reply.result === "created") created = reply;
   }
   if (!created) throw new Error("Could not create a room.");
+  if (created.id) createdRooms.push(created.id);
 
-  const racers = [new HttpRacer(ORIGIN, { name: "Racer 1", colour: "gold", thinkMs: THINK_MS, accuracy: ACCURACY, onSample })];
+  const racers = [new HttpRacer(ORIGIN, { name: "Racer 1", colour: "gold", thinkMs: THINK_MS, accuracy: ACCURACY, extraHeaders: EXTRA_HEADERS, onSample })];
   racers[0].token = creatorToken;
   await racers[0].poll();
 
@@ -88,7 +109,7 @@ async function oneRace(players) {
   const joins = [];
   for (let index = 2; index <= players; index += 1) {
     // A spread of speeds and accuracies, like a class: 0.7x to 1.4x of the typical thinking time.
-    const racer = new HttpRacer(ORIGIN, { name: `Racer ${index}`, colour: COLOURS[index % COLOURS.length], thinkMs: THINK_MS * (0.7 + ((index * 37) % 71) / 100), accuracy: Math.min(1, ACCURACY - 0.08 + ((index * 13) % 17) / 100), onSample });
+    const racer = new HttpRacer(ORIGIN, { name: `Racer ${index}`, colour: COLOURS[index % COLOURS.length], thinkMs: THINK_MS * (0.7 + ((index * 37) % 71) / 100), accuracy: Math.min(1, ACCURACY - 0.08 + ((index * 13) % 17) / 100), extraHeaders: EXTRA_HEADERS, onSample });
     racers.push(racer);
     joins.push(racer.join(code));
     await sleep(JOIN_SPACING_MS);
@@ -159,13 +180,34 @@ async function oneRace(players) {
   };
 }
 
+let build = null;
+if (HOSTED) {
+  // Which build is being measured: read from the preview itself.
+  const health = await fetch(`${ORIGIN}/api/health`, { headers: protection.headersFor(`${ORIGIN}/api/health`), redirect: "manual" });
+  const body = await health.json().catch(() => ({}));
+  build = { status: health.status, commit: body.commit ?? body.build?.commit ?? body.version ?? null, environment: body.environment ?? null };
+  const expected = (process.env.EXPECT_COMMIT ?? "").trim();
+  if (health.status !== 200) throw new Error(`staging preview health is ${health.status}`);
+  if (expected && !String(build.commit ?? "").startsWith(expected)) throw new Error(`preview build ${build.commit} is not the expected ${expected}`);
+  console.log(`hosted staging preview, build ${build.commit}`);
+}
+
 const results = [];
-for (const players of PLAYER_COUNTS) {
-  process.stdout.write(`\n${players} racers: racing...\n`);
-  const result = await oneRace(players);
-  results.push(result);
-  console.log(JSON.stringify(result));
-  await sleep(1500);
+try {
+  for (const players of PLAYER_COUNTS) {
+    process.stdout.write(`\n${players} racers: racing...\n`);
+    const result = await oneRace(players);
+    results.push(result);
+    console.log(JSON.stringify(result));
+    await sleep(1500);
+  }
+} finally {
+  if (HOSTED) {
+    // Synthetic rooms leave nothing behind on staging.
+    if (createdRooms.length) await admin.from("race_rooms").delete().in("id", createdRooms);
+    const left = createdRooms.length ? await admin.from("race_rooms").select("id", { count: "exact", head: true }).in("id", createdRooms) : { count: 0 };
+    console.log(`cleanup: synthetic rooms left ${left.count ?? "unknown"}`);
+  }
 }
 
 console.log("\nracers  joined  finished  poll p95  answer p95  db p95(answer)  req/s  errors  reconnect  order ok  <30 correct");
@@ -176,6 +218,6 @@ for (const row of results) {
       `${row.reconnects.ok}/${row.reconnects.tried}`.padStart(9), String(row.finishOrderConsistent).padStart(8), String(row.finishersUnder30Correct).padStart(11)].join("  ")
   );
 }
-if (OUT) writeFileSync(OUT, JSON.stringify({ origin: ORIGIN, thinkMs: THINK_MS, accuracy: ACCURACY, at: new Date().toISOString(), results }, null, 2));
+if (OUT) writeFileSync(OUT, JSON.stringify({ origin: HOSTED ? "staging preview" : ORIGIN, hosted: HOSTED, build, thinkMs: THINK_MS, accuracy: ACCURACY, at: new Date().toISOString(), results }, null, 2));
 const failed = results.some(row => row.joined !== row.players || !row.finishOrderConsistent || row.finishersUnder30Correct > 0 || row.seatsInRoom !== row.players || row.reconnects.ok !== row.reconnects.tried || Object.keys(row.errors).some(key => /:5\d\d$/.test(key)));
 process.exitCode = failed ? 1 : 0;

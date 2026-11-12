@@ -81,6 +81,11 @@ export function icon(name, extraClass = "") {
   return svg;
 }
 
+/** "sentence" for a question asked in words (a conversion), "equation" for one shown as an equation. */
+export function questionForm(text) {
+  return /^[A-Za-z]/.test(String(text ?? "")) ? "sentence" : "equation";
+}
+
 export function announce(message, { assertive = false } = {}) {
   const region = document.getElementById(assertive ? "alert-announcer" : "announcer");
   if (!region) return;

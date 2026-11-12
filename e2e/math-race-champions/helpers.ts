@@ -3,11 +3,14 @@ import { mkdirSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { expect, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from "@playwright/test";
 
-import { DIVIDE, MINUS, SUPERSCRIPTS, TIMES, decimalsEqual, parseDecimal, shiftDecimal } from "../../apps/platform-web/public/internal-games/math-race-champions/src/engine/questions.js";
+import { DIVIDE, MINUS, SUPERSCRIPTS, TIMES, decimalsEqual, parseConversion, parseDecimal, shiftDecimal } from "../../apps/platform-web/public/internal-games/math-race-champions/src/engine/questions.js";
 
 export const PLAY_ROUTE = "/games/math-race-champions/play";
 export const BASE_URL = process.env.MATH_RACE_CHAMPIONS_URL ?? "http://127.0.0.1:3103";
 export const EVIDENCE_DIR = process.env.RACE_EVIDENCE_DIR ?? "qa-artifacts/math-race-champions/evidence";
+/** A hosted staging preview (scripts/review-math-race-champions-staging.mjs): Vercel's bypass cookie comes in a storage state, and sign-ins after the first are minted. */
+export const STAGING = process.env.RACE_STAGING === "1";
+const STORAGE_STATE = process.env.RACE_STORAGE_STATE;
 
 type Account = { email: string; password: string };
 const accounts = JSON.parse(process.env.RACE_ACCOUNTS ?? "{}") as Record<string, Account>;
@@ -53,17 +56,28 @@ export function watchErrors(page: Page): void {
 }
 
 export async function newPage(browser: Browser, options: BrowserContextOptions = {}): Promise<{ context: BrowserContext; page: Page }> {
-  const context = await browser.newContext({ baseURL: BASE_URL, ...options });
+  const context = await browser.newContext({ baseURL: BASE_URL, ...(STORAGE_STATE ? { storageState: STORAGE_STATE } : {}), ...options });
   const page = await context.newPage();
   watchErrors(page);
   return { context, page };
 }
 
+let formSignIns = 0;
+
 export async function signIn(page: Page, account: Account, next = PLAY_ROUTE): Promise<void> {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("Email address").fill(account.email);
-  await page.locator('input[name="password"]').first().fill(account.password);
-  await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
+  if (STAGING && formSignIns >= 1) {
+    // Staging's sign-in form allows 20 attempts per 15 minutes; once per spec file exercises it.
+    const { sessionCookies } = await import("../../scripts/polygon-showdown-staging-session.mjs");
+    const { cookies } = await sessionCookies(process.env.SUPABASE_TEST_URL!, process.env.SUPABASE_TEST_SECRET_KEY!, account.email, account.password);
+    await page.context().addCookies(cookies.map(({ name, value }: { name: string; value: string }) => ({ name, value, url: BASE_URL, sameSite: "Lax" as const })));
+    await page.goto(next);
+  } else {
+    formSignIns += 1;
+    await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
+    await page.getByLabel("Email address").fill(account.email);
+    await page.locator('input[name="password"]').first().fill(account.password);
+    await page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
+  }
   await page.waitForURL((url) => url.pathname === next, { timeout: 120_000 });
   await page.waitForFunction(() => document.body.dataset.screen !== "loading", null, { timeout: 60_000 });
 }
@@ -163,10 +177,12 @@ export function solve(text: string, choices: readonly string[]): 0 | 1 {
     }
     const power = new RegExp(`^(\\d+)([${SUPERSCRIPTS.join("")}]) = \\?$`).exec(text);
     if (power) return Number(choice) === Number(power[1]) ** SUPERSCRIPTS.indexOf(power[2]);
-    const shown = /^(.+) = \?$/.exec(text)![1];
-    const left = parseDecimal(shown)!;
-    const right = parseDecimal(choice)!;
-    return shown.endsWith("%") ? decimalsEqual(left, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(left, 2), right);
+    // "Convert 0.58 to a percent." / "Convert 28% to a decimal."
+    const conversion = parseConversion(text);
+    if (!conversion) throw new Error(`Unreadable question "${text}"`);
+    const right = parseDecimal(choice);
+    if (!right || conversion.fromPercent === choice.endsWith("%")) return false;
+    return conversion.fromPercent ? decimalsEqual(conversion.value, shiftDecimal(right, 2)) : decimalsEqual(shiftDecimal(conversion.value, 2), right);
   };
   const first = fits(choices[0]);
   const second = fits(choices[1]);
@@ -255,6 +271,14 @@ export async function api(page: Page, endpoint: "account" | "play", body: Record
     },
     [endpoint, body] as const
   );
+}
+
+/** Test data only: marks Stages 1 to `upTo - 1` as won, which opens Stage `upTo`. */
+export async function openStages(admin: SupabaseClient, id: string, upTo: number): Promise<void> {
+  const now = new Date().toISOString();
+  const rows = Array.from({ length: upTo - 1 }, (_, index) => ({ user_id: id, stage: index + 1, plays: 1, wins: 1, first_won_at: now }));
+  const { error } = await admin.from("race_stage_progress").upsert(rows, { onConflict: "user_id,stage", ignoreDuplicates: true });
+  if (error) throw error;
 }
 
 export async function setBalance(admin: SupabaseClient, id: string, balance: number): Promise<void> {
