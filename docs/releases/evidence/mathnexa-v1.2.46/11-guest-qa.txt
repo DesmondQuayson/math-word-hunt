@@ -1,0 +1,101 @@
+ok   /api/health 200 ready ({"status":"ready","environment":"production-platform","build":"436988e92bf68136d2f43d4fdc5fede976766c51","searchIndexing":"enabled","payments":"live"})
+ok   build is 436988e92bf6 (expected 436988e)
+ok   catalog entry is published
+ok   / answers 200
+ok   /math-games answers 200
+ok   /join answers 200
+ok   /help answers 200
+ok   signed out, /games/math-race-champions/play sends to sign in and back (307 /access?next=/games/math-race-champions/play), not to pricing or a trial
+ok   the account API refuses an anonymous caller (401)
+ok   21/21 game runtime files served (app, 3D world and cars, garage, synthesiser, engine model, classroom, online)
+ok   the shared 3D library is served (200)
+ok   the MathNexa music track is served (206 audio/mpeg)
+ok   /media/games/math-race-champions.webp is served (200)
+ok   /media/games/math-race-champions.avif is served (200)
+ok   the served question engine asks conversions in words ("Convert … to a percent." / "Convert … to a decimal.")
+ok   the served racing sound is synthesised: oscillators and noise, no recording, no outside URL
+ok   the served audio names the one approved track with its credit and licence
+ok   390x844: the homepage Free math games section has a Math Race Champions card
+ok   390x844: FREE badge, one button "Play Free Math Race Champions" to /games/math-race-champions/play
+ok   390x844: the card shows the real gameplay picture (https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=)
+ok   390x844: no horizontal overflow (0px)
+ok   390x844: the card is the same size as the other free-game cards (173x311; widths 173,173,173,173; row heights 311,311)
+ok   390x844: only free games on the homepage (polygon-showdown, math-bingo-live, math-tug-of-war, math-race-champions); no pricing or trial link in the section
+ok   768x1024: the homepage Free math games section has a Math Race Champions card
+ok   768x1024: FREE badge, one button "Play Free Math Race Champions" to /games/math-race-champions/play
+ok   768x1024: the card shows the real gameplay picture (https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=)
+ok   768x1024: no horizontal overflow (0px)
+ok   768x1024: the card is the same size as the other free-game cards (222x313; widths 222,222,222,222; row heights 313)
+ok   768x1024: only free games on the homepage (polygon-showdown, math-bingo-live, math-tug-of-war, math-race-champions); no pricing or trial link in the section
+ok   1024x768: the homepage Free math games section has a Math Race Champions card
+ok   1024x768: FREE badge, one button "Play Free Math Race Champions" to /games/math-race-champions/play
+ok   1024x768: the card shows the real gameplay picture (https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=)
+ok   1024x768: no horizontal overflow (0px)
+ok   1024x768: the card is the same size as the other free-game cards (307x361; widths 307,307,307,307; row heights 361)
+ok   1024x768: only free games on the homepage (polygon-showdown, math-bingo-live, math-tug-of-war, math-race-champions); no pricing or trial link in the section
+ok   1366x768: the homepage Free math games section has a Math Race Champions card
+ok   1366x768: FREE badge, one button "Play Free Math Race Champions" to /games/math-race-champions/play
+ok   1366x768: the card shows the real gameplay picture (https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=)
+ok   1366x768: no horizontal overflow (0px)
+ok   1366x768: the card is the same size as the other free-game cards (281x346; widths 281,281,281,281; row heights 346,346,346,346)
+ok   1366x768: only free games on the homepage (polygon-showdown, math-bingo-live, math-tug-of-war, math-race-champions); no pricing or trial link in the section
+ok   1920x1080: the homepage Free math games section has a Math Race Champions card
+ok   1920x1080: FREE badge, one button "Play Free Math Race Champions" to /games/math-race-champions/play
+ok   1920x1080: the card shows the real gameplay picture (https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=)
+ok   1920x1080: no horizontal overflow (0px)
+ok   1920x1080: the card is the same size as the other free-game cards (281x346; widths 281,281,281,281; row heights 346,346,346,346)
+ok   1920x1080: only free games on the homepage (polygon-showdown, math-bingo-live, math-tug-of-war, math-race-champions); no pricing or trial link in the section
+ok   signed out, the card's button leads to /access?next=/games/math-race-champions/play (sign in, then the game)
+ok   the sign-in page: "FREE WITH A MATHNEXA ACCOUNT Continue to Math Race Champions Sign in or create a free MathNexa account to play. No subscription is needed, and you wil…" (a free account only; says no subscription and no trial)
+ok   /math-games lists Math Race Champions with a link to /games/math-race-champions/play ("Play Free Math Race Champions")
+ok   /math-games marks Math Race Champions as free
+ok   /math-games still lists every other published game (7/7)
+ok   a room with a six-digit code (synthetic, made through the room's own service function)
+ok   the shared code router sends this code to Math Race Champions
+ok   a code nobody has belongs to no game
+ok   the creator has a seat in their own room
+ok   /join?code=… (the QR link) serves the Math Race Champions join screen
+ok   /join with no code is still the shared join screen
+ok   a racer joined over plain HTTP with the code (200)
+ok   QR link: the code is already filled in
+ok   nothing is played before the first touch
+ok   QR guest joined with a name only: no account, no session cookie
+ok   music started by itself on the first touch (no music button pressed): playing=true, attempts=1, route=graph
+ok   music at its menu level (0.2), no error
+ok   typed code at /join (the shared screen): handed over to the Math Race Champions lobby
+ok   four racers in the room (QA Ava, QA Ben, QA Cleo, QA Creator)
+ok   the creator's Start begins the countdown
+ok   an answer sent before the lights go out is refused by the server
+ok   joining after the start is closed
+ok   everyone drives the same Circuit Standard (180 km/h, +30), 30 correct answers needed
+ok   one start time for every screen and racer
+info QR phone (Chromium): "Convert 78% to a decimal." 7.8 | 0.78
+ok   QR phone (Chromium): six questions, all asked in words with two answers
+ok   QR phone (Chromium): the sentence fits its box, and the server counted five correct and one wrong exactly
+info typed-code phone (WebKit): "Convert 63% to a decimal." 0.63 | 0.063
+ok   typed-code phone (WebKit): six questions, all asked in words with two answers
+ok   typed-code phone (WebKit): the sentence fits its box, and the server counted five correct and one wrong exactly
+ok   both sentences were asked: Convert N% to a decimal. / Convert N to a percent.
+ok   music keeps playing, turned down under the race (0.110), still the one track
+ok   the car's engine is sounding: one synthesiser, 3289 rpm, gear 2
+ok   a correct answer opens the throttle (peak 1) and the engine climbs
+ok   a wrong answer gives no acceleration sound: throttle shut (max 0.005), engine speed only falls (4 samples)
+ok   WebKit phone: music playing (paused=false, attempts=1, unlocked=true, error=null, route=element), race sound not available in this test build (no Web Audio); music only
+ok   progress 9%, correct "6/30 minimum", speed 39 km/h, picture "medium"
+ok   minimap shows the 3 other racers; leaderboard has 4 rows with one marked as me; position "3rd of 4"
+ok   a real 3D scene is drawing on the phone (medium)
+ok   reconnect: after a refresh the phone is back in its seat with 6 correct and no lost distance
+ok   still exactly four seats in the room (4): the refresh did not make a second one
+info waiting for the two HTTP racers to finish the 8 km race…
+ok   both HTTP racers crossed the line (creator 169619 ms, Cleo 210720 ms)
+ok   every finisher has 30 correct answers or more (QA Creator 211, QA Cleo 165)
+ok   finishing order is by the server's finish times (1. QA Creator, 2. QA Cleo)
+ok   the creator raced and finished (1.)
+ok   the phone's leaderboard shows who has finished
+ok   the phone shows the final result ("Race over", 4 racers ranked)
+ok   the engine is released when the race is over
+ok   no 5xx from the game API in 714 requests (poll p95 444 ms, answer p95 522 ms)
+ok   no page errors, 5xx or missing game files in the browsers
+ok   synthetic rooms left behind: 0
+
+96/96 checks passed

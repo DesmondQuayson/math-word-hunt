@@ -1,0 +1,380 @@
+{
+  "target": "https://mathnexa.com",
+  "at": "2026-11-12T14:53:05.791Z",
+  "passed": 96,
+  "total": 96,
+  "failures": [],
+  "facts": {
+    "health": {
+      "status": "ready",
+      "environment": "production-platform",
+      "build": "436988e92bf68136d2f43d4fdc5fede976766c51",
+      "searchIndexing": "enabled",
+      "payments": "live"
+    },
+    "catalog": {
+      "status": "published",
+      "title": "Math Race Champions",
+      "description": "Solve math problems, race 3D cars, challenge the computer, or compete with friends.",
+      "thumbnail_reference": "builtin:math-race-champions"
+    },
+    "homepage-390x844": {
+      "games": [
+        "polygon-showdown",
+        "math-bingo-live",
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+      "width": 173,
+      "height": 311,
+      "rowWidths": [
+        173,
+        173
+      ],
+      "rowHeights": [
+        311,
+        311
+      ],
+      "allWidths": [
+        173,
+        173,
+        173,
+        173
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/polygon-showdown/play",
+        "/games/math-bingo-live/host",
+        "/join",
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-768x1024": {
+      "games": [
+        "polygon-showdown",
+        "math-bingo-live",
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+      "width": 222,
+      "height": 313,
+      "rowWidths": [
+        222
+      ],
+      "rowHeights": [
+        313
+      ],
+      "allWidths": [
+        222,
+        222,
+        222,
+        222
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/polygon-showdown/play",
+        "/games/math-bingo-live/host",
+        "/join",
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1024x768": {
+      "games": [
+        "polygon-showdown",
+        "math-bingo-live",
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+      "width": 307,
+      "height": 361,
+      "rowWidths": [
+        307
+      ],
+      "rowHeights": [
+        361
+      ],
+      "allWidths": [
+        307,
+        307,
+        307,
+        307
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/polygon-showdown/play",
+        "/games/math-bingo-live/host",
+        "/join",
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1366x768": {
+      "games": [
+        "polygon-showdown",
+        "math-bingo-live",
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+      "width": 281,
+      "height": 346,
+      "rowWidths": [
+        281,
+        281,
+        281,
+        281
+      ],
+      "rowHeights": [
+        346,
+        346,
+        346,
+        346
+      ],
+      "allWidths": [
+        281,
+        281,
+        281,
+        281
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/polygon-showdown/play",
+        "/games/math-bingo-live/host",
+        "/join",
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1920x1080": {
+      "games": [
+        "polygon-showdown",
+        "math-bingo-live",
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa.com/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+      "width": 281,
+      "height": 346,
+      "rowWidths": [
+        281,
+        281,
+        281,
+        281
+      ],
+      "rowHeights": [
+        346,
+        346,
+        346,
+        346
+      ],
+      "allWidths": [
+        281,
+        281,
+        281,
+        281
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/polygon-showdown/play",
+        "/games/math-bingo-live/host",
+        "/join",
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "mathGames": {
+      "named": true,
+      "link": true,
+      "linkText": "Play Free Math Race Champions",
+      "cardText": "FREE WITH A MATHNEXA ACCOUNT · GRADES 3–8\n\nMath Race Champions\n\nSolve math problems, race 3D cars, challenge the computer, or compete with friends.\n\ndecimal to percentage\nevaluating powers\nmissing addend\nmissing divisor\nmissing multiplier\nmissing subtrahend\npercentage to decimal\nPlay Free\nMath Race Champions",
+      "others": [
+        "Math Tug of War",
+        "Math Bingo Live",
+        "Polygon Showdown",
+        "Math Vocabulary Hunt",
+        "Number Logic",
+        "Number Cross",
+        "CrossCalc"
+      ],
+      "overflow": 0
+    },
+    "musicTrackSeconds": 59.6,
+    "raceAudio": {
+      "source": "/media/audio/cosmic-candy-catchers.mp3",
+      "paused": false,
+      "loop": true,
+      "volume": 0.11000000000000001,
+      "musicRoute": "graph",
+      "routeHeard": "yes",
+      "duck": 0.55,
+      "playAttempts": 1,
+      "unlocked": true,
+      "contextState": "running",
+      "error": null,
+      "disposed": false,
+      "voices": 0,
+      "race": {
+        "car": "circuit-standard",
+        "sounding": true,
+        "profile": "circuit-standard",
+        "starts": 1,
+        "ending": false,
+        "oneShots": 0,
+        "level": 0.5,
+        "rpm": 3289,
+        "gear": 2,
+        "throttle": 0.3,
+        "firing": 109.6,
+        "speed": 45.6
+      }
+    },
+    "webkitAudio": {
+      "source": "/media/audio/cosmic-candy-catchers.mp3",
+      "paused": false,
+      "loop": true,
+      "volume": 0.11000000000000001,
+      "musicRoute": "element",
+      "routeHeard": "unknown",
+      "duck": 0.55,
+      "playAttempts": 1,
+      "unlocked": true,
+      "contextState": "uninitialized",
+      "error": null,
+      "disposed": false,
+      "voices": 0,
+      "race": {
+        "car": "circuit-standard",
+        "sounding": false,
+        "profile": null,
+        "starts": 0,
+        "ending": false,
+        "oneShots": 0,
+        "level": 0,
+        "rpm": null,
+        "gear": null,
+        "throttle": null,
+        "firing": null,
+        "speed": null
+      }
+    },
+    "hud": {
+      "progress": 0.0927,
+      "text": "9%",
+      "correct": "6/30 minimum",
+      "rivals": 3,
+      "board": [
+        "1QA Creator33%",
+        "2QA Cleo27%",
+        "3QA Ava9%",
+        "4QA Ben5%"
+      ],
+      "me": 1,
+      "position": "3rd of 4",
+      "graphics": "medium",
+      "speed": "39"
+    },
+    "standings": [
+      {
+        "name": "QA Creator",
+        "rank": 1,
+        "finishMs": 169619,
+        "correct": 211
+      },
+      {
+        "name": "QA Cleo",
+        "rank": 2,
+        "finishMs": 210720,
+        "correct": 165
+      },
+      {
+        "name": "QA Ava",
+        "rank": 3,
+        "finishMs": null,
+        "correct": 6
+      },
+      {
+        "name": "QA Ben",
+        "rank": 4,
+        "finishMs": null,
+        "correct": 5
+      }
+    ],
+    "latency": {
+      "poll": {
+        "n": 318,
+        "median": 202,
+        "p95": 444
+      },
+      "answer": {
+        "n": 395,
+        "median": 266,
+        "p95": 522
+      },
+      "join": {
+        "n": 1,
+        "median": 287,
+        "p95": 287
+      }
+    }
+  }
+}

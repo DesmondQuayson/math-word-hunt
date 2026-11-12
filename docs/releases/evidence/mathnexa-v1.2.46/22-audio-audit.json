@@ -1,0 +1,767 @@
+{
+  "generatedAt": "2026-11-12T09:34:57.216Z",
+  "engines": {
+    "chromium": {
+      "rate": 44100,
+      "level": 0.5,
+      "cars": {
+        "starter": {
+          "idle": {
+            "rmsDb": -31.74697481749479,
+            "aDb": -35.61504531939323,
+            "centroid": 830,
+            "firing": 28.3
+          },
+          "pull": {
+            "rmsDb": -18.745466098131715,
+            "aDb": -24.03671581721989,
+            "centroid": 387,
+            "lowShare": 0.301
+          },
+          "top": {
+            "rmsDb": -20.462363017917433,
+            "aDb": -24.444840976459943,
+            "centroid": 506,
+            "firing": 194.3,
+            "rpm": 5828
+          },
+          "runDown": {
+            "rmsDb": -27.159984499756415,
+            "rpm": 871
+          },
+          "peak": 0.534,
+          "peakDb": -5.450103065444466,
+          "firstMsPeak": 0.00003,
+          "shifts": 4,
+          "trim": 0.35
+        },
+        "turbo-sprint": {
+          "idle": {
+            "rmsDb": -31.041337688365857,
+            "aDb": -36.63354425447413,
+            "centroid": 613,
+            "firing": 31.7
+          },
+          "pull": {
+            "rmsDb": -20.191100962424194,
+            "aDb": -23.98181379906015,
+            "centroid": 708,
+            "lowShare": 0.414
+          },
+          "top": {
+            "rmsDb": -22.188968600229234,
+            "aDb": -25.262157918251837,
+            "centroid": 653,
+            "firing": 225.6,
+            "rpm": 6768
+          },
+          "runDown": {
+            "rmsDb": -28.030559066416075,
+            "rpm": 957
+          },
+          "peak": 0.505,
+          "peakDb": -5.935600722368839,
+          "firstMsPeak": 0.00002,
+          "shifts": 5,
+          "trim": 0.24
+        },
+        "velocity-gt": {
+          "idle": {
+            "rmsDb": -28.735435948849517,
+            "aDb": -39.50553005429145,
+            "centroid": 198,
+            "firing": 24
+          },
+          "pull": {
+            "rmsDb": -17.437492158354797,
+            "aDb": -23.94652601099853,
+            "centroid": 324,
+            "lowShare": 0.44
+          },
+          "top": {
+            "rmsDb": -19.78533084144422,
+            "aDb": -25.061976577385984,
+            "centroid": 420,
+            "firing": 200.5,
+            "rpm": 6016
+          },
+          "runDown": {
+            "rmsDb": -23.85535452140415,
+            "rpm": 730
+          },
+          "peak": 0.364,
+          "peakDb": -8.783849325901487,
+          "firstMsPeak": 0.00002,
+          "shifts": 5,
+          "trim": 0.29
+        },
+        "thunder-x": {
+          "idle": {
+            "rmsDb": -33.37644238732011,
+            "aDb": -38.244165602308456,
+            "centroid": 600,
+            "firing": 91.7
+          },
+          "pull": {
+            "rmsDb": -23.850158528586796,
+            "aDb": -24.247438798923984,
+            "centroid": 1336,
+            "lowShare": 0.059
+          },
+          "top": {
+            "rmsDb": -25.5531003960997,
+            "aDb": -25.76401325809175,
+            "centroid": 1423,
+            "firing": 673.7,
+            "rpm": 8084
+          },
+          "runDown": {
+            "rmsDb": -30.696766003959198,
+            "rpm": 1101
+          },
+          "peak": 0.262,
+          "peakDb": -11.637774100533056,
+          "firstMsPeak": 0.00001,
+          "shifts": 6,
+          "trim": 0.12
+        },
+        "circuit-standard": {
+          "idle": {
+            "rmsDb": -30.782022206833407,
+            "aDb": -35.99943690036869,
+            "centroid": 639,
+            "firing": 30
+          },
+          "pull": {
+            "rmsDb": -19.214088956778543,
+            "aDb": -24.114743882324696,
+            "centroid": 422,
+            "lowShare": 0.335
+          },
+          "top": {
+            "rmsDb": -20.714644506468574,
+            "aDb": -24.188144217535363,
+            "centroid": 559,
+            "firing": 206.8,
+            "rpm": 6204
+          },
+          "runDown": {
+            "rmsDb": -25.359648436739963,
+            "rpm": 914
+          },
+          "peak": 0.412,
+          "peakDb": -7.708760963327025,
+          "firstMsPeak": 0.00002,
+          "shifts": 4,
+          "trim": 0.31
+        }
+      },
+      "suggestedTrims": {
+        "starter": 0.35,
+        "turbo-sprint": 0.24,
+        "velocity-gt": 0.29,
+        "thunder-x": 0.12,
+        "circuit-standard": 0.31
+      },
+      "answers": {
+        "starter": {
+          "correct": {
+            "firingBefore": 136.33116362747677,
+            "firingAfter": 175.3776117326095,
+            "aDbBefore": -27.17475048771901,
+            "aDbAfter": -24.258125805833043,
+            "throttlePeak": 0.9999988663727103
+          },
+          "wrong": {
+            "raceSpeedBefore": 85.73680729806804,
+            "raceSpeedAfter": 52.29472291922722,
+            "firingBefore": 158.90638847008873,
+            "firingAfter": 126.76395975434197,
+            "aDbBefore": -26.077216816979664,
+            "aDbAfter": -30.46069219824541,
+            "throttleMax": 0.1923541165932655,
+            "speedRose": false
+          }
+        },
+        "turbo-sprint": {
+          "correct": {
+            "firingBefore": 179.60226199867512,
+            "firingAfter": 193.06640732074666,
+            "aDbBefore": -27.485977551603,
+            "aDbAfter": -24.43190849264216,
+            "throttlePeak": 0.9999034695671825
+          },
+          "wrong": {
+            "raceSpeedBefore": 98.44961407006876,
+            "raceSpeedAfter": 57.37984562802751,
+            "firingBefore": 167.9275407709599,
+            "firingAfter": 161.12987537505612,
+            "aDbBefore": -28.673615358237253,
+            "aDbAfter": -30.16905237121607,
+            "throttleMax": 0.1923541165930618,
+            "speedRose": false
+          }
+        },
+        "velocity-gt": {
+          "correct": {
+            "firingBefore": 158.61604466935853,
+            "firingAfter": 171.16321839739018,
+            "aDbBefore": -26.36414949422411,
+            "aDbAfter": -23.345676706499784,
+            "throttlePeak": 0.9999034695658684
+          },
+          "wrong": {
+            "raceSpeedBefore": 112.22823798754618,
+            "raceSpeedAfter": 62.89129519501847,
+            "firingBefore": 149.86617692781542,
+            "firingAfter": 138.49758652548246,
+            "aDbBefore": -27.60562385470804,
+            "aDbAfter": -29.67950523803086,
+            "throttleMax": 0.1923541165930618,
+            "speedRose": false
+          }
+        },
+        "thunder-x": {
+          "correct": {
+            "firingBefore": 588.6328585415728,
+            "firingAfter": 618.5913040915873,
+            "aDbBefore": -27.03457478796316,
+            "aDbAfter": -23.790589074800753,
+            "throttlePeak": 0.9991439305722779
+          },
+          "wrong": {
+            "raceSpeedBefore": 127.15391987902497,
+            "raceSpeedAfter": 68.86156795161,
+            "firingBefore": 562.6113676387514,
+            "firingAfter": 504.3301983339395,
+            "aDbBefore": -26.842866774999443,
+            "aDbAfter": -29.579675461413032,
+            "throttleMax": 0.19235411659326457,
+            "speedRose": false
+          }
+        }
+      },
+      "rival": {
+        "playerDb": -21.4226151326902,
+        "rivalLeftDb": -39.41193533078312,
+        "rivalRightDb": -33.11032769605929
+      },
+      "lifecycle": {
+        "tailDb": -200
+      },
+      "music": {
+        "seconds": 64,
+        "bytes": 0,
+        "trackRmsDb": -16.64992498304356,
+        "menuDb": -30.629325069763937,
+        "underRaceDb": -35.82207127987906,
+        "quietestEnginePullDb": -23.850158528586796,
+        "quietestEngineCruiseDb": -25.5531003960997
+      },
+      "checks": [
+        {
+          "name": "starter: sound is finite",
+          "pass": true
+        },
+        {
+          "name": "starter: no clipping (peak under 0.9 before the limiter)",
+          "pass": true,
+          "detail": 0.534
+        },
+        {
+          "name": "starter: fades in, no click at the start",
+          "pass": true,
+          "detail": 0.00003
+        },
+        {
+          "name": "starter: idles audibly, well under a pull",
+          "pass": true,
+          "detail": [
+            -35.61504531939323,
+            -24.03671581721989
+          ]
+        },
+        {
+          "name": "starter: a pull is clearly louder than idle",
+          "pass": true,
+          "detail": [
+            -35.61504531939323,
+            -24.03671581721989
+          ]
+        },
+        {
+          "name": "starter: changes up through every gear",
+          "pass": true,
+          "detail": 4
+        },
+        {
+          "name": "starter: firing note rises from idle to the top of the last gear",
+          "pass": true,
+          "detail": [
+            28.3,
+            194.3
+          ]
+        },
+        {
+          "name": "starter: runs down to idle after the lift",
+          "pass": true,
+          "detail": {
+            "rmsDb": -27.159984499756415,
+            "rpm": 871
+          }
+        },
+        {
+          "name": "turbo-sprint: sound is finite",
+          "pass": true
+        },
+        {
+          "name": "turbo-sprint: no clipping (peak under 0.9 before the limiter)",
+          "pass": true,
+          "detail": 0.505
+        },
+        {
+          "name": "turbo-sprint: fades in, no click at the start",
+          "pass": true,
+          "detail": 0.00002
+        },
+        {
+          "name": "turbo-sprint: idles audibly, well under a pull",
+          "pass": true,
+          "detail": [
+            -36.63354425447413,
+            -23.98181379906015
+          ]
+        },
+        {
+          "name": "turbo-sprint: a pull is clearly louder than idle",
+          "pass": true,
+          "detail": [
+            -36.63354425447413,
+            -23.98181379906015
+          ]
+        },
+        {
+          "name": "turbo-sprint: changes up through every gear",
+          "pass": true,
+          "detail": 5
+        },
+        {
+          "name": "turbo-sprint: firing note rises from idle to the top of the last gear",
+          "pass": true,
+          "detail": [
+            31.7,
+            225.6
+          ]
+        },
+        {
+          "name": "turbo-sprint: runs down to idle after the lift",
+          "pass": true,
+          "detail": {
+            "rmsDb": -28.030559066416075,
+            "rpm": 957
+          }
+        },
+        {
+          "name": "velocity-gt: sound is finite",
+          "pass": true
+        },
+        {
+          "name": "velocity-gt: no clipping (peak under 0.9 before the limiter)",
+          "pass": true,
+          "detail": 0.364
+        },
+        {
+          "name": "velocity-gt: fades in, no click at the start",
+          "pass": true,
+          "detail": 0.00002
+        },
+        {
+          "name": "velocity-gt: idles audibly, well under a pull",
+          "pass": true,
+          "detail": [
+            -39.50553005429145,
+            -23.94652601099853
+          ]
+        },
+        {
+          "name": "velocity-gt: a pull is clearly louder than idle",
+          "pass": true,
+          "detail": [
+            -39.50553005429145,
+            -23.94652601099853
+          ]
+        },
+        {
+          "name": "velocity-gt: changes up through every gear",
+          "pass": true,
+          "detail": 5
+        },
+        {
+          "name": "velocity-gt: firing note rises from idle to the top of the last gear",
+          "pass": true,
+          "detail": [
+            24,
+            200.5
+          ]
+        },
+        {
+          "name": "velocity-gt: runs down to idle after the lift",
+          "pass": true,
+          "detail": {
+            "rmsDb": -23.85535452140415,
+            "rpm": 730
+          }
+        },
+        {
+          "name": "thunder-x: sound is finite",
+          "pass": true
+        },
+        {
+          "name": "thunder-x: no clipping (peak under 0.9 before the limiter)",
+          "pass": true,
+          "detail": 0.262
+        },
+        {
+          "name": "thunder-x: fades in, no click at the start",
+          "pass": true,
+          "detail": 0.00001
+        },
+        {
+          "name": "thunder-x: idles audibly, well under a pull",
+          "pass": true,
+          "detail": [
+            -38.244165602308456,
+            -24.247438798923984
+          ]
+        },
+        {
+          "name": "thunder-x: a pull is clearly louder than idle",
+          "pass": true,
+          "detail": [
+            -38.244165602308456,
+            -24.247438798923984
+          ]
+        },
+        {
+          "name": "thunder-x: changes up through every gear",
+          "pass": true,
+          "detail": 6
+        },
+        {
+          "name": "thunder-x: firing note rises from idle to the top of the last gear",
+          "pass": true,
+          "detail": [
+            91.7,
+            673.7
+          ]
+        },
+        {
+          "name": "thunder-x: runs down to idle after the lift",
+          "pass": true,
+          "detail": {
+            "rmsDb": -30.696766003959198,
+            "rpm": 1101
+          }
+        },
+        {
+          "name": "circuit-standard: sound is finite",
+          "pass": true
+        },
+        {
+          "name": "circuit-standard: no clipping (peak under 0.9 before the limiter)",
+          "pass": true,
+          "detail": 0.412
+        },
+        {
+          "name": "circuit-standard: fades in, no click at the start",
+          "pass": true,
+          "detail": 0.00002
+        },
+        {
+          "name": "circuit-standard: idles audibly, well under a pull",
+          "pass": true,
+          "detail": [
+            -35.99943690036869,
+            -24.114743882324696
+          ]
+        },
+        {
+          "name": "circuit-standard: a pull is clearly louder than idle",
+          "pass": true,
+          "detail": [
+            -35.99943690036869,
+            -24.114743882324696
+          ]
+        },
+        {
+          "name": "circuit-standard: changes up through every gear",
+          "pass": true,
+          "detail": 4
+        },
+        {
+          "name": "circuit-standard: firing note rises from idle to the top of the last gear",
+          "pass": true,
+          "detail": [
+            30,
+            206.8
+          ]
+        },
+        {
+          "name": "circuit-standard: runs down to idle after the lift",
+          "pass": true,
+          "detail": {
+            "rmsDb": -25.359648436739963,
+            "rpm": 914
+          }
+        },
+        {
+          "name": "the four cars are equally loud on a pull (A-weighted, within 1.5 dB)",
+          "pass": true,
+          "detail": [
+            -24.04,
+            -23.98,
+            -23.95,
+            -24.25
+          ]
+        },
+        {
+          "name": "Starter is the plainest voice, Thunder X the brightest",
+          "pass": true,
+          "detail": [
+            387,
+            708,
+            324,
+            1336
+          ]
+        },
+        {
+          "name": "Velocity GT is the deepest voice",
+          "pass": true,
+          "detail": [
+            0.301,
+            0.414,
+            0.44,
+            0.059
+          ]
+        },
+        {
+          "name": "every car idles on its own note",
+          "pass": true,
+          "detail": [
+            28.3,
+            31.7,
+            24,
+            91.7
+          ]
+        },
+        {
+          "name": "starter: a correct answer opens the throttle and the engine rises",
+          "pass": true,
+          "detail": {
+            "firingBefore": 136.33116362747677,
+            "firingAfter": 175.3776117326095,
+            "aDbBefore": -27.17475048771901,
+            "aDbAfter": -24.258125805833043,
+            "throttlePeak": 0.9999988663727103
+          }
+        },
+        {
+          "name": "starter: a wrong answer gives no acceleration sound (throttle shut, engine speed never rises, level falls)",
+          "pass": true,
+          "detail": {
+            "raceSpeedBefore": 85.73680729806804,
+            "raceSpeedAfter": 52.29472291922722,
+            "firingBefore": 158.90638847008873,
+            "firingAfter": 126.76395975434197,
+            "aDbBefore": -26.077216816979664,
+            "aDbAfter": -30.46069219824541,
+            "throttleMax": 0.1923541165932655,
+            "speedRose": false
+          }
+        },
+        {
+          "name": "starter: whole race is finite and unclipped",
+          "pass": true,
+          "detail": 0.42750078439712524
+        },
+        {
+          "name": "turbo-sprint: a correct answer opens the throttle and the engine rises",
+          "pass": true,
+          "detail": {
+            "firingBefore": 179.60226199867512,
+            "firingAfter": 193.06640732074666,
+            "aDbBefore": -27.485977551603,
+            "aDbAfter": -24.43190849264216,
+            "throttlePeak": 0.9999034695671825
+          }
+        },
+        {
+          "name": "turbo-sprint: a wrong answer gives no acceleration sound (throttle shut, engine speed never rises, level falls)",
+          "pass": true,
+          "detail": {
+            "raceSpeedBefore": 98.44961407006876,
+            "raceSpeedAfter": 57.37984562802751,
+            "firingBefore": 167.9275407709599,
+            "firingAfter": 161.12987537505612,
+            "aDbBefore": -28.673615358237253,
+            "aDbAfter": -30.16905237121607,
+            "throttleMax": 0.1923541165930618,
+            "speedRose": false
+          }
+        },
+        {
+          "name": "turbo-sprint: whole race is finite and unclipped",
+          "pass": true,
+          "detail": 0.38969478011131287
+        },
+        {
+          "name": "velocity-gt: a correct answer opens the throttle and the engine rises",
+          "pass": true,
+          "detail": {
+            "firingBefore": 158.61604466935853,
+            "firingAfter": 171.16321839739018,
+            "aDbBefore": -26.36414949422411,
+            "aDbAfter": -23.345676706499784,
+            "throttlePeak": 0.9999034695658684
+          }
+        },
+        {
+          "name": "velocity-gt: a wrong answer gives no acceleration sound (throttle shut, engine speed never rises, level falls)",
+          "pass": true,
+          "detail": {
+            "raceSpeedBefore": 112.22823798754618,
+            "raceSpeedAfter": 62.89129519501847,
+            "firingBefore": 149.86617692781542,
+            "firingAfter": 138.49758652548246,
+            "aDbBefore": -27.60562385470804,
+            "aDbAfter": -29.67950523803086,
+            "throttleMax": 0.1923541165930618,
+            "speedRose": false
+          }
+        },
+        {
+          "name": "velocity-gt: whole race is finite and unclipped",
+          "pass": true,
+          "detail": 0.36913377046585083
+        },
+        {
+          "name": "thunder-x: a correct answer opens the throttle and the engine rises",
+          "pass": true,
+          "detail": {
+            "firingBefore": 588.6328585415728,
+            "firingAfter": 618.5913040915873,
+            "aDbBefore": -27.03457478796316,
+            "aDbAfter": -23.790589074800753,
+            "throttlePeak": 0.9991439305722779
+          }
+        },
+        {
+          "name": "thunder-x: a wrong answer gives no acceleration sound (throttle shut, engine speed never rises, level falls)",
+          "pass": true,
+          "detail": {
+            "raceSpeedBefore": 127.15391987902497,
+            "raceSpeedAfter": 68.86156795161,
+            "firingBefore": 562.6113676387514,
+            "firingAfter": 504.3301983339395,
+            "aDbBefore": -26.842866774999443,
+            "aDbAfter": -29.579675461413032,
+            "throttleMax": 0.19235411659326457,
+            "speedRose": false
+          }
+        },
+        {
+          "name": "thunder-x: whole race is finite and unclipped",
+          "pass": true,
+          "detail": 0.27217379212379456
+        },
+        {
+          "name": "a rival four metres away is quieter than the player's own engine",
+          "pass": true,
+          "detail": {
+            "playerDb": -21.4226151326902,
+            "rivalLeftDb": -39.41193533078312,
+            "rivalRightDb": -33.11032769605929
+          }
+        },
+        {
+          "name": "a rival on the right is heard more on the right, but not hard-panned",
+          "pass": true,
+          "detail": {
+            "playerDb": -21.4226151326902,
+            "rivalLeftDb": -39.41193533078312,
+            "rivalRightDb": -33.11032769605929
+          }
+        },
+        {
+          "name": "49 distant racers add nothing at all (no wall of engines)",
+          "pass": true,
+          "detail": 0.000005334615707397461
+        },
+        {
+          "name": "overtaking, being overtaken and the finish line each make a sound over the idle",
+          "pass": true,
+          "detail": {
+            "quiet": -33.81240513526973,
+            "passGain": -28.26190062741922,
+            "passLoss": -28.878265161966855,
+            "line": -24.417796770840447
+          }
+        },
+        {
+          "name": "one-off sounds do not clip",
+          "pass": true,
+          "detail": 0.5304921865463257
+        },
+        {
+          "name": "twelve races started and stopped leave silence behind (no runaway loop)",
+          "pass": true,
+          "detail": -200
+        },
+        {
+          "name": "restarting races does not clip or stack up",
+          "pass": true,
+          "detail": 0.3042546510696411
+        },
+        {
+          "name": "music is turned down under a race",
+          "pass": true,
+          "detail": {
+            "seconds": 64,
+            "bytes": 0,
+            "trackRmsDb": -16.64992498304356,
+            "menuDb": -30.629325069763937,
+            "underRaceDb": -35.82207127987906,
+            "quietestEnginePullDb": -23.850158528586796,
+            "quietestEngineCruiseDb": -25.5531003960997
+          }
+        },
+        {
+          "name": "the engine on a pull is above the ducked music (by 3 dB or more)",
+          "pass": true,
+          "detail": {
+            "seconds": 64,
+            "bytes": 0,
+            "trackRmsDb": -16.64992498304356,
+            "menuDb": -30.629325069763937,
+            "underRaceDb": -35.82207127987906,
+            "quietestEnginePullDb": -23.850158528586796,
+            "quietestEngineCruiseDb": -25.5531003960997
+          }
+        },
+        {
+          "name": "the engine at a cruise is not buried by the music",
+          "pass": true,
+          "detail": {
+            "seconds": 64,
+            "bytes": 0,
+            "trackRmsDb": -16.64992498304356,
+            "menuDb": -30.629325069763937,
+            "underRaceDb": -35.82207127987906,
+            "quietestEnginePullDb": -23.850158528586796,
+            "quietestEngineCruiseDb": -25.5531003960997
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,67 @@
+ok   health is ready on the expected build (436988e)
+ok   /join answers
+ok   signed-out visitors are sent to sign in (307 /access?next=/games/polygon-showdown/play)
+ok   a request without the game header is refused
+ok   a cross-site request is refused
+ok   an oversized request is refused
+ok   a forged seat token gets nothing
+ok   an unknown code gets a plain refusal ({"error":"room-not-found"})
+ok   account actions need a session (401)
+ok   a Polygon Showdown code belongs to Polygon Showdown
+ok   a Math Bingo Live code belongs to Math Bingo Live
+ok   /join opens a Polygon Showdown code on Polygon Showdown
+ok   /join opens a Math Bingo Live code on Math Bingo Live
+ok   /join with an unknown code stays on the friendly page and reveals nothing
+ok   a Showdown cannot take an open Bingo code (code-taken)
+ok   Bingo cannot take an open Showdown code
+ok   a markup name is refused (400)
+ok   a guest joins by numeric code with a name and an emoji
+ok   two real phone browsers joined from the room's join link
+ok   the seed is never sent to a browser
+ok   no token or hash reaches a browser
+ok   the creator is participant one in their own room
+ok   every seat starts on the same board
+ok   Standard: no Pentagon on any opening board
+ok   every seat carries the same certified Standard schedule
+ok   a fabricated score is ignored (1)
+ok   an invalid swap is refused (not-adjacent)
+ok   a duplicate swap changes nothing
+ok   an altered seed and hash change nothing but a resync
+ok   a swap dated in the future is refused (from-the-future)
+ok   both phones swapped with real taps
+ok   phones keep independent boards
+ok   a late arrival joins a running game
+ok   a late arrival shares the room's clock
+ok   a guest reconnecting with their seat gets the same board, moves and coins
+ok   a phone reloading mid-game returns to the same seat and board
+info first Pentagon by room clock (ms): [61788,65328,65319,65358,65365,65345,65281,65384]
+ok   no seat met a Pentagon before the first 60 seconds of the room's clock
+ok   no server errors during play {"200":345}
+info lightweight load: 345 requests, 11 players, median 334 ms, p95 551 ms, max 1032 ms
+ok   latency normal for this size (p95 551 ms)
+ok   a post-deadline score is refused (not-running)
+ok   the game finalizes
+ok   the final leaderboard is complete and sorted (11 rows)
+ok   the creator is ranked with everyone else
+ok   every seat appears on the leaderboard
+ok   every guest seat has no account (11 seats)
+ok   a guest game paid nothing permanent
+ok   a seat stops working when the room closes (404)
+ok   no script errors on the phones []
+ok   the application role cannot rewrite the ledger
+ok   the application role cannot delete from the ledger
+ok   a browser cannot read polygon_wallets directly
+ok   a browser cannot read polygon_ledger directly
+ok   a browser cannot read polygon_inventory directly
+ok   a browser cannot read polygon_solo_runs directly
+ok   a browser cannot read polygon_rooms directly
+ok   a browser cannot read polygon_participants directly
+ok   a browser cannot call the purchase function directly
+ok   the shared music track is served (206)
+ok   /media/games/polygon-showdown.avif is served
+ok   /internal-games/polygon-showdown/products/hat-polygon-crown-200.webp is served
+ok   /internal-games/polygon-showdown/products/shoes-golden-apex-400.avif is served
+ok   the Math Games page lists Polygon Showdown with the approved description
+ok   its card says Free and mentions no subscription
+info homepage mentions Polygon Showdown: true
+RESULT 63/63 passed

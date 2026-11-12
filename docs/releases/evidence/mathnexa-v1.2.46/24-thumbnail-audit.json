@@ -1,0 +1,16 @@
+{
+  "capturedFrom": "a real Stage 1 race against the computer on the local owner review",
+  "graphics": "high",
+  "speed": 77,
+  "correct": 14,
+  "progress": 0.364,
+  "question": "8 − ? = 6",
+  "choices": [
+    "4",
+    "2"
+  ],
+  "sha256": {
+    "webp": "c8a56ce9dea12411c678bf22111c07df45ea93e13b2ea212b1549d51a9ef2a75",
+    "avif": "8fce038fe48b7e9f010280072f63b56c14b9bc09f99456a79a703d0dec3c4e0d"
+  }
+}

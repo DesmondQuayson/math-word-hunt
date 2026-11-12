@@ -1,0 +1,310 @@
+{
+  "origin": "staging preview",
+  "hosted": true,
+  "build": {
+    "status": 200,
+    "commit": "9106063",
+    "environment": "production-platform"
+  },
+  "thinkMs": 2500,
+  "accuracy": 0.9,
+  "at": "2026-11-12T10:23:21.875Z",
+  "results": [
+    {
+      "players": 20,
+      "joined": 20,
+      "joinAllMs": 2533,
+      "raceSeconds": 352,
+      "requests": 7172,
+      "requestsPerSecond": 20.4,
+      "latencyMs": {
+        "join": {
+          "n": 19,
+          "median": 269,
+          "p95": 388,
+          "max": 388
+        },
+        "poll": {
+          "n": 5307,
+          "median": 203,
+          "p95": 342,
+          "max": 1227
+        },
+        "answer": {
+          "n": 1846,
+          "median": 302,
+          "p95": 503,
+          "max": 1151
+        }
+      },
+      "databaseMs": {
+        "join": {
+          "n": 19,
+          "median": 80,
+          "p95": 120,
+          "max": 120
+        },
+        "poll": {
+          "n": 5307,
+          "median": 88,
+          "p95": 195,
+          "max": 666
+        },
+        "answer": {
+          "n": 1846,
+          "median": 188,
+          "p95": 368,
+          "max": 1054
+        }
+      },
+      "answers": {
+        "accepted": 1843,
+        "refused": 3
+      },
+      "errors": {},
+      "reconnects": {
+        "tried": 2,
+        "ok": 2,
+        "ms": {
+          "n": 2,
+          "median": 187,
+          "p95": 187,
+          "max": 187
+        }
+      },
+      "finished": 20,
+      "finishersUnder30Correct": 0,
+      "finishOrderConsistent": true,
+      "finalized": true,
+      "seatsInRoom": 20,
+      "pollReplyBytes": 5236,
+      "winner": {
+        "name": "Racer 14",
+        "seconds": 221.5,
+        "correct": 80
+      }
+    },
+    {
+      "players": 30,
+      "joined": 30,
+      "joinAllMs": 4281,
+      "raceSeconds": 373,
+      "requests": 10590,
+      "requestsPerSecond": 28.4,
+      "latencyMs": {
+        "join": {
+          "n": 29,
+          "median": 260,
+          "p95": 407,
+          "max": 409
+        },
+        "poll": {
+          "n": 7964,
+          "median": 277,
+          "p95": 898,
+          "max": 2260
+        },
+        "answer": {
+          "n": 2597,
+          "median": 499,
+          "p95": 1685,
+          "max": 3235
+        }
+      },
+      "databaseMs": {
+        "join": {
+          "n": 29,
+          "median": 75,
+          "p95": 105,
+          "max": 107
+        },
+        "poll": {
+          "n": 7964,
+          "median": 158,
+          "p95": 737,
+          "max": 2139
+        },
+        "answer": {
+          "n": 2597,
+          "median": 371,
+          "p95": 1574,
+          "max": 3121
+        }
+      },
+      "answers": {
+        "accepted": 2588,
+        "refused": 9
+      },
+      "errors": {},
+      "reconnects": {
+        "tried": 3,
+        "ok": 3,
+        "ms": {
+          "n": 3,
+          "median": 386,
+          "p95": 1508,
+          "max": 1508
+        }
+      },
+      "finished": 30,
+      "finishersUnder30Correct": 0,
+      "finishOrderConsistent": true,
+      "finalized": true,
+      "seatsInRoom": 30,
+      "pollReplyBytes": 7438,
+      "winner": {
+        "name": "Racer 27",
+        "seconds": 243.3,
+        "correct": 81
+      }
+    },
+    {
+      "players": 40,
+      "joined": 40,
+      "joinAllMs": 5138,
+      "raceSeconds": 384,
+      "requests": 11525,
+      "requestsPerSecond": 30,
+      "latencyMs": {
+        "join": {
+          "n": 39,
+          "median": 256,
+          "p95": 407,
+          "max": 816
+        },
+        "poll": {
+          "n": 8218,
+          "median": 452,
+          "p95": 1144,
+          "max": 3531
+        },
+        "answer": {
+          "n": 3268,
+          "median": 908,
+          "p95": 2098,
+          "max": 4882
+        }
+      },
+      "databaseMs": {
+        "join": {
+          "n": 39,
+          "median": 73,
+          "p95": 127,
+          "max": 167
+        },
+        "poll": {
+          "n": 8218,
+          "median": 342,
+          "p95": 1035,
+          "max": 3414
+        },
+        "answer": {
+          "n": 3268,
+          "median": 799,
+          "p95": 2000,
+          "max": 4779
+        }
+      },
+      "answers": {
+        "accepted": 3259,
+        "refused": 9
+      },
+      "errors": {},
+      "reconnects": {
+        "tried": 4,
+        "ok": 4,
+        "ms": {
+          "n": 4,
+          "median": 333,
+          "p95": 510,
+          "max": 510
+        }
+      },
+      "finished": 40,
+      "finishersUnder30Correct": 0,
+      "finishOrderConsistent": true,
+      "finalized": true,
+      "seatsInRoom": 40,
+      "pollReplyBytes": 9635,
+      "winner": {
+        "name": "Racer 39",
+        "seconds": 253.5,
+        "correct": 70
+      }
+    },
+    {
+      "players": 50,
+      "joined": 50,
+      "joinAllMs": 6230,
+      "raceSeconds": 405,
+      "requests": 12117,
+      "requestsPerSecond": 29.9,
+      "latencyMs": {
+        "join": {
+          "n": 49,
+          "median": 257,
+          "p95": 471,
+          "max": 781
+        },
+        "poll": {
+          "n": 8251,
+          "median": 703,
+          "p95": 1557,
+          "max": 4443
+        },
+        "answer": {
+          "n": 3817,
+          "median": 1431,
+          "p95": 2720,
+          "max": 6244
+        }
+      },
+      "databaseMs": {
+        "join": {
+          "n": 49,
+          "median": 79,
+          "p95": 139,
+          "max": 186
+        },
+        "poll": {
+          "n": 8251,
+          "median": 596,
+          "p95": 1437,
+          "max": 4335
+        },
+        "answer": {
+          "n": 3817,
+          "median": 1322,
+          "p95": 2622,
+          "max": 6138
+        }
+      },
+      "answers": {
+        "accepted": 3802,
+        "refused": 15
+      },
+      "errors": {},
+      "reconnects": {
+        "tried": 5,
+        "ok": 5,
+        "ms": {
+          "n": 5,
+          "median": 781,
+          "p95": 874,
+          "max": 874
+        }
+      },
+      "finished": 50,
+      "finishersUnder30Correct": 0,
+      "finishOrderConsistent": true,
+      "finalized": true,
+      "seatsInRoom": 50,
+      "pollReplyBytes": 11840,
+      "winner": {
+        "name": "Racer 48",
+        "seconds": 280.6,
+        "correct": 71
+      }
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "origin": "staging preview",
+  "hosted": true,
+  "build": {
+    "status": 200,
+    "commit": "9106063",
+    "environment": "production-platform"
+  },
+  "thinkMs": 2500,
+  "accuracy": 0.9,
+  "at": "2026-11-12T09:57:09.762Z",
+  "results": [
+    {
+      "players": 10,
+      "joined": 10,
+      "joinAllMs": 1889,
+      "raceSeconds": 309,
+      "requests": 3310,
+      "requestsPerSecond": 10.7,
+      "latencyMs": {
+        "join": {
+          "n": 9,
+          "median": 1103,
+          "p95": 1293,
+          "max": 1293
+        },
+        "poll": {
+          "n": 2338,
+          "median": 193,
+          "p95": 280,
+          "max": 1188
+        },
+        "answer": {
+          "n": 963,
+          "median": 270,
+          "p95": 380,
+          "max": 732
+        }
+      },
+      "databaseMs": {
+        "join": {
+          "n": 9,
+          "median": 176,
+          "p95": 928,
+          "max": 928
+        },
+        "poll": {
+          "n": 2338,
+          "median": 75,
+          "p95": 130,
+          "max": 453
+        },
+        "answer": {
+          "n": 963,
+          "median": 153,
+          "p95": 241,
+          "max": 494
+        }
+      },
+      "answers": {
+        "accepted": 962,
+        "refused": 1
+      },
+      "errors": {},
+      "reconnects": {
+        "tried": 1,
+        "ok": 1,
+        "ms": {
+          "n": 1,
+          "median": 186,
+          "p95": 186,
+          "max": 186
+        }
+      },
+      "finished": 10,
+      "finishersUnder30Correct": 0,
+      "finishOrderConsistent": true,
+      "finalized": true,
+      "seatsInRoom": 10,
+      "pollReplyBytes": 3038,
+      "winner": {
+        "name": "Racer 6",
+        "seconds": 219.7,
+        "correct": 87
+      }
+    }
+  ]
+}

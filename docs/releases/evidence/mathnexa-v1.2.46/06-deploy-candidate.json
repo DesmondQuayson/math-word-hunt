@@ -1,0 +1,26 @@
+{
+  "stage": "deploy-preview",
+  "startedAt": "2026-11-12T14:34:38.236Z",
+  "rollbackTarget": "dpl_2KufePPCeqSs1msZRq3hmccwLDGr",
+  "runtime": {
+    "certified": "f1cfb44eaf7498ebadb41ed8a035d622ea900bb7",
+    "nextVersion": "16.4.2",
+    "sharpVersion": "0.35.5",
+    "candidateTree": "f4c2f2e55c91e6ea560cbb358a111213cd5811f7",
+    "candidateCommit": "436988e92bf68136d2f43d4fdc5fede976766c51"
+  },
+  "previewUrl": "https://mathnexa-platform-production-k93gn4eiy-bright-path-ed-tech.vercel.app",
+  "previewDeployment": {
+    "id": "dpl_33jeWHshBDSdmrsdUwWGM8ACFpUD",
+    "name": "mathnexa-platform-production",
+    "target": "production",
+    "status": "● Ready",
+    "url": "https://mathnexa-platform-production-k93gn4eiy-bright-path-ed-tech.vercel.app",
+    "created": "Thu Nov 12 2026 08:35:14 GMT-0600 (Central Standard Time) [2m ago]",
+    "aliases": []
+  },
+  "previewReadyState": "● Ready",
+  "previewHostProtected": true,
+  "completedAt": "2026-11-12T14:37:48.993Z",
+  "outcome": "PASS"
+}

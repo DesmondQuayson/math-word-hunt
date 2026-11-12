@@ -1,0 +1,30 @@
+{
+  "stage": "smoke",
+  "startedAt": "2026-11-12T14:43:46.529Z",
+  "projectRef": "[production ref]",
+  "smoke": {
+    "created": "created",
+    "routedTo": "math_race_champions",
+    "joined": "joined",
+    "seatPhase": "LOBBY",
+    "strangerCommand": "not-found",
+    "closed": "closed",
+    "seatAfterClose": "not-found",
+    "routedAfterClose": null
+  },
+  "browserIdentity": {
+    "race_achievements": "refused",
+    "race_cars": "refused",
+    "race_garage": "refused",
+    "race_ledger": "refused",
+    "race_participants": "refused",
+    "race_profiles": "refused",
+    "race_rooms": "refused",
+    "race_runs": "refused",
+    "race_stage_progress": "refused",
+    "race_wallets": "refused",
+    "rpc": "refused"
+  },
+  "smokeRoomsLeft": 0,
+  "result": "PASS"
+}

@@ -1,0 +1,36 @@
+{
+  "stage": "wallets",
+  "startedAt": "2026-11-12T15:28:51.987Z",
+  "projectRef": "[production ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 48,
+    "games": "crosscalc:published,math-bingo-live:published,math-race-champions:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:published"
+  },
+  "environment": "PRODUCTION",
+  "accounts": [
+    {
+      "account": "371f8080",
+      "balance": 5750,
+      "cars_owned": 2,
+      "credits": 19,
+      "equipped": "velocity-gt",
+      "ledger_sum": 5750,
+      "lifetime_earned": 11750,
+      "purchases": 2,
+      "runs": 10,
+      "stages_recorded": 10
+    }
+  ],
+  "duplicateKeys": 0,
+  "negativeBalances": 0,
+  "rooms": {
+    "open": 0,
+    "rooms": 0
+  },
+  "result": "PASS"
+}

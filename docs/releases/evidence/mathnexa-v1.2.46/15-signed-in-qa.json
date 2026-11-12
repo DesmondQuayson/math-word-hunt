@@ -1,0 +1,92 @@
+{
+  "what": "Signed-in QA on https://mathnexa.com in the app's browser pane, on the account the owner signed in with (subscribed account; no password entered and no account created by the release). Driven by scripts injected into the page that read each question from the screen, work the answer out and press the real answer buttons; every result below was read back from the page or from the game's own API.",
+  "build": "436988e",
+  "pane": { "viewport": "742x630", "framesPerSecond": 61, "webgl2": true, "webAudio": true, "graphicsTier": "high" },
+  "homepageCard": {
+    "freeGamesOnHomepage": ["polygon-showdown", "math-bingo-live", "math-tug-of-war", "math-race-champions"],
+    "title": "Math Race Champions",
+    "badge": "Free",
+    "category": "Racing",
+    "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+    "button": "Play Free",
+    "href": "/games/math-race-champions/play",
+    "imageLoaded": true,
+    "image": "/media/games/math-race-champions.webp (real Stage 1 race, question on screen: 8 − ? = 6)",
+    "horizontalOverflow": 0,
+    "clicked": { "landedOn": "/games/math-race-champions/play", "screen": "hub", "anySubscriptionPricingOrTrialText": false }
+  },
+  "music": {
+    "beforeAnyGesture": { "playAttempts": 0, "unlocked": false },
+    "afterFirstRealPress": { "press": "Start the race (not the music button)", "playing": true, "playAttempts": 1, "source": "/media/audio/cosmic-candy-catchers.mp3", "route": "graph", "routeHeard": "yes", "level": 0.2, "error": null },
+    "afterFirstKeyPress": { "key": "Shift", "playing": true, "playAttempts": 1 },
+    "duringEveryRace": { "duck": 0.55, "level": 0.11, "pausedEver": false },
+    "afterEveryRace": { "duck": 1, "level": 0.2, "playAttempts": 1, "engine": null }
+  },
+  "classroom": {
+    "settings": "Percentage to Decimal + Decimal to Percentage, Medium",
+    "tracks": { "turquoise": "START, 1 to 62, FINISH (64 tiles)", "pink": "START, 1 to 62, FINISH (64 tiles)" },
+    "atStart": { "counters": ["0 / 62", "0 / 62"], "stepsLeft": ["62 STEPS LEFT", "62 STEPS LEFT"], "questions": ["Convert 45% to a decimal. [0.45 | 4.5]", "Convert 136% to a decimal. [136 | 1.36]"], "differentQuestions": true, "noScroll": true },
+    "answersPressed": 105,
+    "correctGavePlusOne": "99 of 99",
+    "wrongGavePlusZero": "6 of 6",
+    "everyQuestionASentenceWithTwoChoices": true,
+    "sentencesSeen": ["Convert N% to a decimal.", "Convert N to a percent."],
+    "finish": { "winner": "Team Turquoise", "turquoise": "62 / 62, 62 correct, 0 incorrect, 100%, 1:00, FINISHED!", "pink": "37 / 62, 37 correct, 6 incorrect, 86%, 25 STEPS LEFT", "dialog": "GOAL! Team Turquoise wins!" },
+    "audio": { "engine": null, "engineStarts": 0, "musicPlaying": true }
+  },
+  "computerRace": {
+    "accountAtStart": { "stages": 10, "open": 1, "won": 0, "wallet": "R$ 0", "car": "Street Starter" },
+    "stage1": {
+      "facts": "4.8 km. At least 30 correct answers to finish. First win pays R$ 500 Race Dollars.",
+      "car": "starter", "graphics": "high", "minimap": true, "computerOnMinimap": true, "speedometer": true, "minCorrect": 30,
+      "questions": "conversions only; every one a sentence with two choices; both sentences asked",
+      "correct": 184, "wrong": 2, "time": "1:57", "computerTime": "6:30", "topSpeed": "160 km/h",
+      "earned": ["R$ 500 first win of Stage 1", "R$ 250 First Win", "R$ 250 Sharp Driver", "R$ 250 On a Roll", "R$ 250 Flat Out"],
+      "balance": "R$ 1,500",
+      "engine": {
+        "profile": "starter", "idle": { "rpm": 850, "throttle": 0, "gear": 1 },
+        "firstCorrectAnswer": { "throttlePeak": 1, "rpmPeak": 5198 },
+        "gearsUsed": [1, 2, 3, 4, 5], "rpmMax": 5719,
+        "wrongAnswers": [
+          { "question": "Convert 0.2 to a percent.", "throttleBefore": 1, "throttleMaxInNextSecond": 0.087, "engineSpeedKmh": [147.2, 71.6], "engineSpeedRose": false, "rpm": [5403, 4018], "correctCountChanged": false },
+          { "question": "Convert 0.6 to a percent.", "throttleBefore": 1, "throttleMaxInNextSecond": 0.108, "engineSpeedKmh": [150.6, 129.7], "engineSpeedRose": false, "rpm": [5549, 5107], "correctCountChanged": false }
+        ],
+        "soundingThroughoutTheRace": true, "enginesStarted": 1, "releasedAfterTheRace": true
+      }
+    },
+    "stage2": { "car": "starter", "km": 5.3, "correct": 199, "wrong": 0, "time": "4:56 (the first 2:50 were spent on the grid while the test script was restarted)", "computerTime": "5:53", "earned": ["R$ 600 first win of Stage 2", "R$ 250 Flawless"], "balance": "R$ 2,350" },
+    "stages3to10": [
+      { "stage": 3, "car": "turbo-sprint", "km": 5.7, "difficulty": "easy", "correct": 190, "wrong": 1, "time": "1:59", "computerTime": "5:47", "earned": "R$ 700 + Mixed Master R$ 250", "balance": "R$ 1,300", "engine": "turbo-sprint, idle 950 rpm, 6 gears, max 6,530 rpm", "wrongAnswer": "correct 6 -> 6, throttle 1 -> 0, engine speed 159 -> 87 km/h" },
+      { "stage": 4, "car": "turbo-sprint", "km": 6.1, "difficulty": "easy", "correct": 201, "wrong": 1, "time": "2:06", "computerTime": "5:52", "earned": "R$ 800", "balance": "R$ 2,100", "wrongAnswer": "correct 6 -> 6, throttle 1 -> 0, engine speed 151 -> 90 km/h" },
+      { "stage": 5, "car": "turbo-sprint", "km": 6.6, "difficulty": "medium", "correct": 217, "wrong": 1, "time": "2:16", "computerTime": "5:29", "earned": "R$ 900 + Halfway There R$ 250", "balance": "R$ 3,250", "wrongAnswer": "correct 6 -> 6, throttle 0.211 -> 0, engine speed 166 -> 88 km/h" },
+      { "stage": 6, "car": "turbo-sprint", "km": 7.1, "difficulty": "medium", "correct": 230, "wrong": 1, "time": "2:26", "computerTime": "5:10", "earned": "R$ 1,000", "balance": "R$ 4,250", "wrongAnswer": "correct 6 -> 6, throttle 1 -> 0, engine speed 157 -> 85 km/h" },
+      { "stage": 7, "car": "velocity-gt", "km": 7.8, "difficulty": "medium", "correct": 229, "wrong": 1, "time": "2:21", "computerTime": "5:53", "earned": "R$ 1,100", "balance": "R$ 1,350", "engine": "velocity-gt, idle 720 rpm, 6 gears, max 5,826 rpm", "wrongAnswer": "correct 6 -> 6, throttle 1 -> 0, engine speed 178 -> 98 km/h" },
+      { "stage": 8, "car": "velocity-gt", "km": 8.5, "difficulty": "hard", "correct": 256, "wrong": 1, "time": "2:33", "computerTime": "5:27", "earned": "R$ 1,200 + Hard Mode R$ 250", "balance": "R$ 2,800", "wrongAnswer": "correct 6 -> 6, throttle 0.64 -> 0, engine speed 183 -> 101 km/h" },
+      { "stage": 9, "car": "velocity-gt", "km": 9.6, "difficulty": "hard", "correct": 271, "wrong": 1, "time": "2:53", "computerTime": "5:48", "earned": "R$ 1,300", "balance": "R$ 4,100", "wrongAnswer": "correct 6 -> 6, throttle 1 -> 0, engine speed 178 -> 97 km/h" },
+      { "stage": 10, "car": "velocity-gt", "km": 10.9, "difficulty": "expert", "correct": 314, "wrong": 1, "time": "3:16", "computerTime": "5:13", "earned": "R$ 1,400 + Champion R$ 250", "balance": "R$ 5,750", "wrongAnswer": "correct 6 -> 6, throttle 0.514 -> 0, engine speed 184 -> 101 km/h" }
+    ],
+    "everyStage3to10": { "skills": "Mixed Skills: all seven kinds asked in every race (Stage 3: 27 or 28 of each)", "conversionsShownAsSentencesOthersAsEquations": true, "graphics": "high", "minimap": true, "speedometer": true, "minCorrect": 30, "engineSounding": true, "musicDuck": 0.55, "oneEnginePerRace": true, "engineReleasedAfter": true, "musicPlayAttemptsAllDay": 1, "audioErrors": null }
+  },
+  "garage": {
+    "cars": [
+      { "key": "starter", "name": "Street Starter", "price": "Free", "speed": "160 km/h", "acceleration": "+28 km/h per correct answer", "recommended": "Stages 1–2", "model3d": "starter" },
+      { "key": "turbo-sprint", "name": "Turbo Sprint", "price": "R$ 2,000", "speed": "185 km/h", "acceleration": "+32", "recommended": "Stages 3–6", "model3d": "turbo-sprint" },
+      { "key": "velocity-gt", "name": "Velocity GT", "price": "R$ 4,000", "speed": "210 km/h", "acceleration": "+36", "recommended": "Stages 7–8", "model3d": "velocity-gt" },
+      { "key": "thunder-x", "name": "Thunder X", "price": "R$ 6,000", "speed": "240 km/h", "acceleration": "+40", "recommended": "Stages 9–10", "model3d": "thunder-x" }
+    ],
+    "everyCarSays": "To finish a race: 30 correct answers, like every car",
+    "rotation": "Thunder X photographed from the front three-quarter and the rear three-quarter on the turntable",
+    "withR$2,350": { "turboSprint": "BUY enabled", "velocityGt": "BUY disabled: You need R$ 1,650 more Race Dollars", "thunderX": "BUY disabled: You need R$ 3,650 more Race Dollars" },
+    "turboSprint": {
+      "confirmation": "Buy Turbo Sprint? R$ 2,000 Race Dollars will be taken from your R$ 2,350. You will have R$ 350 left.",
+      "note": "The test script's own request to the game's purchase API completed the purchase (result ok, price 2,000 read by the server, balance 350) while the confirmation was open; pressing 'Buy for R$ 2,000' in the confirmation then settled on Owned with the balance still R$ 350: charged once.",
+      "owned": true, "equip": "EQUIP -> EQUIPPED; Street Starter shown as Owned",
+      "afterReload": { "balance": 350, "equipped": "turbo-sprint", "owned": ["turbo-sprint"], "unlocked": 3 }
+    },
+    "thunderXWithoutFunds": { "request": "purchase thunder-x with R$ 350", "serverResult": "insufficient", "balanceUnchanged": 350 },
+    "velocityGt": { "boughtThroughTheButton": true, "before": "R$ 4,250", "confirmation": "Buy Velocity GT? R$ 4,000 Race Dollars will be taken from your R$ 4,250. You will have R$ 250 left.", "after": "R$ 250", "tab": "Velocity GT Owned", "equipped": "Velocity GT Equipped", "racedIn": "Stages 7 to 10" },
+    "thunderX": "not bought (R$ 5,750 of R$ 6,000 earned); shown, rotated, priced, refused without funds"
+  },
+  "accountAtEnd": { "balance": 5750, "lifetimeEarned": 11750, "owned": ["turbo-sprint", "velocity-gt"], "equipped": "velocity-gt", "stagesWon": 10, "achievements": 9, "races": { "started": 10, "finished": 10, "won": 10, "correct": 2291, "wrong": 10 } },
+  "walletAgainstLedger": { "balance": 5750, "ledgerSum": 5750, "credits": 19, "purchases": 2, "duplicateKeys": 0 }
+}

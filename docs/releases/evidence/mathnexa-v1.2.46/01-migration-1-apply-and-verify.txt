@@ -1,0 +1,180 @@
+{
+  "stage": "migrate",
+  "startedAt": "2026-11-12T14:41:41.575Z",
+  "projectRef": "[production ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 48,
+    "games": "crosscalc:published,math-bingo-live:published,math-tug-of-war:published,math-vocabulary-hunt:published,number-cross:published,number-logic:published,polygon-showdown:published"
+  },
+  "environment": "PRODUCTION",
+  "history": {
+    "remoteCount": 47,
+    "remoteTail": [
+      "20261108110000",
+      "20261109100000",
+      "20261109110000",
+      "20261111100000"
+    ],
+    "localCount": 49,
+    "pending": [
+      "20261112100000",
+      "20261112110000"
+    ],
+    "remoteOnly": []
+  },
+  "objects": {
+    "bingo_code_guard": true,
+    "catalog_row": false,
+    "functions": 0,
+    "polygon_code_guard": false,
+    "race_code_guard": false,
+    "router_knows_race": false,
+    "tables": 0
+  },
+  "catalogBefore": [
+    {
+      "display_order": 1,
+      "launch_type": "canonical",
+      "lock_version": 1,
+      "slug": "math-vocabulary-hunt",
+      "stable_key": "math-vocabulary-hunt",
+      "status": "published",
+      "version": "7.0.0"
+    },
+    {
+      "display_order": 30,
+      "launch_type": "internal",
+      "lock_version": 5,
+      "slug": "number-cross",
+      "stable_key": "number-cross",
+      "status": "published",
+      "version": "1.0.0"
+    },
+    {
+      "display_order": 31,
+      "launch_type": "internal",
+      "lock_version": 2,
+      "slug": "number-logic",
+      "stable_key": "number-logic",
+      "status": "published",
+      "version": "0.1.0"
+    },
+    {
+      "display_order": 32,
+      "launch_type": "internal",
+      "lock_version": 3,
+      "slug": "crosscalc",
+      "stable_key": "crosscalc",
+      "status": "published",
+      "version": "0.2.0"
+    },
+    {
+      "display_order": 33,
+      "launch_type": "internal",
+      "lock_version": 1,
+      "slug": "math-tug-of-war",
+      "stable_key": "math-tug-of-war",
+      "status": "published",
+      "version": "1.0.0"
+    },
+    {
+      "display_order": 34,
+      "launch_type": "internal",
+      "lock_version": 2,
+      "slug": "math-bingo-live",
+      "stable_key": "math-bingo-live",
+      "status": "published",
+      "version": "1.0.0"
+    },
+    {
+      "display_order": 35,
+      "launch_type": "internal",
+      "lock_version": 3,
+      "slug": "polygon-showdown",
+      "stable_key": "polygon-showdown",
+      "status": "published",
+      "version": "1.0.0"
+    }
+  ],
+  "snapshotBefore": {
+    "accounts": 48,
+    "auth_users": 48,
+    "bingo_rooms": 0,
+    "catalog": 7,
+    "catalog_versions": 17,
+    "entitlements": 6,
+    "history": 47,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261103100000:91,20261106100000:11,20261106110000:2,20261106120000:5,20261107100000:27,20261108100000:47,20261108110000:2,20261109100000:104,20261109110000:17,20261111100000:33",
+    "other_games": "crosscalc:published:32:0.2.0:3,math-bingo-live:published:34:1.0.0:2,math-tug-of-war:published:33:1.0.0:1,math-vocabulary-hunt:published:1:7.0.0:1,number-cross:published:30:1.0.0:5,number-logic:published:31:0.1.0:2,polygon-showdown:published:35:1.0.0:3",
+    "polygon_coins": 106,
+    "polygon_ledger": 14,
+    "polygon_rooms": 1,
+    "polygon_wallets": 1,
+    "resources": 225,
+    "subscriptions": 6
+  },
+  "pendingFiles": [
+    "20261112100000_math_race_champions_catalog.sql",
+    "20261112110000_math_race_champions.sql"
+  ],
+  "checks": {
+    "pendingAreTheNextRaceMigrationsInOrder": true,
+    "noRemoteOnlyMigrations": true,
+    "releaseNewerThanRemoteHead": true,
+    "earlierRaceMigrationsApplied": true,
+    "sharedJoinGuardsPresent": true,
+    "objectsAsExpected": true
+  },
+  "applying": "20261112100000_math_race_champions_catalog.sql",
+  "dryRunWouldApply": [
+    "20261112100000_math_race_champions_catalog.sql"
+  ],
+  "pushOutput": [
+    "Finished supabase db push.",
+    "• 20261112100000_math_race_champions_catalog.sql",
+    "Applying migration 20261112100000_math_race_champions_catalog.sql...",
+    "Warning: failed to cache migrations catalog: error exporting pg-delta catalog: edge-runtime script produced no output:",
+    "runtime has escaped from the event loop unexpectedly: event loop error: Error: Failed to read certificate file '/workspace/supabase/.temp/pgdelta/pgdelta-target-ca.crt': ENOENT: no such file or directory, open '/workspace/supabase/.temp/pgdelta/pgdelta-target-ca.crt'",
+    "event loop error: Error: Failed to read certificate file '/workspace/supabase/.temp/pgdelta/pgdelta-target-ca.crt': ENOENT: no such file or directory, open '/workspace/supabase/.temp/pgdelta/pgdelta-target-ca.crt'"
+  ],
+  "appliedAt": "2026-11-12T14:42:06.458Z",
+  "snapshotAfter": {
+    "accounts": 48,
+    "auth_users": 48,
+    "bingo_rooms": 0,
+    "catalog": 8,
+    "catalog_versions": 18,
+    "entitlements": 6,
+    "history": 48,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261103100000:91,20261106100000:11,20261106110000:2,20261106120000:5,20261107100000:27,20261108100000:47,20261108110000:2,20261109100000:104,20261109110000:17,20261111100000:33",
+    "other_games": "crosscalc:published:32:0.2.0:3,math-bingo-live:published:34:1.0.0:2,math-tug-of-war:published:33:1.0.0:1,math-vocabulary-hunt:published:1:7.0.0:1,number-cross:published:30:1.0.0:5,number-logic:published:31:0.1.0:2,polygon-showdown:published:35:1.0.0:3",
+    "polygon_coins": 106,
+    "polygon_ledger": 14,
+    "polygon_rooms": 1,
+    "polygon_wallets": 1,
+    "resources": 225,
+    "subscriptions": 6
+  },
+  "recorded": [
+    {
+      "name": "math_race_champions_catalog",
+      "statements": 1,
+      "version": "20261112100000"
+    }
+  ],
+  "unrelatedDataUnchanged": true,
+  "catalog": {
+    "launch_type": "internal",
+    "slug": "math-race-champions",
+    "stable_key": "math-race-champions",
+    "status": "draft",
+    "thumbnail_reference": "builtin:math-race-champions",
+    "title": "Math Race Champions"
+  },
+  "result": "PASS"
+}
