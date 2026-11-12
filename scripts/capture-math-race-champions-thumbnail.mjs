@@ -40,9 +40,14 @@ try {
   await page.getByRole("button", { name: "Start race" }).click();
   await page.waitForFunction(() => document.querySelector("main.race")?.getAttribute("data-phase") === "racing" && !document.querySelector(".race-choice")?.disabled, null, { timeout: 180_000 });
 
-  // Real answers, worked out from the question on screen.
-  for (let index = 0; index < 14; index += 1) {
-    const question = await page.evaluate(() => ({ text: document.querySelector(".race-question").textContent, choices: [...document.querySelectorAll(".race-choice-label")].map((node) => node.textContent) }));
+  // Real answers, worked out from the question on screen. After fourteen the
+  // car is at speed; the race is then played on until the question on screen is
+  // a short equation, which stays readable when the picture is shown small on a
+  // card. Nothing is staged: it is whichever equation the race asks next.
+  const shownQuestion = () => page.evaluate(() => ({ text: document.querySelector(".race-question").textContent, choices: [...document.querySelectorAll(".race-choice-label")].map((node) => node.textContent) }));
+  for (let index = 0; index < 26; index += 1) {
+    const question = await shownQuestion();
+    if (index >= 14 && /^\d+ [^ ] \? = \d+$/.test(question.text)) break;
     await page.locator(`.race-choice[data-choice="${solveQuestion(question.text, question.choices)}"]`).click();
     await page.waitForFunction((previous) => !document.querySelector(".race-choice")?.disabled && document.querySelector(".race-question").textContent !== previous, question.text, { timeout: 20_000 }).catch(() => {});
   }
@@ -62,6 +67,8 @@ try {
   assert.ok(["low", "medium", "high"].includes(audit.graphics), "the 3D scene is not drawing");
   assert.ok(audit.correct >= 12 && audit.speed >= 60, "the car is not at speed");
   assert.equal(audit.choices.length, 2);
+  // The artwork never shows a conversion in the old bare form ("10% = ?").
+  assert.ok(!/^\d+(\.\d+)?%? = \?$/.test(audit.question) || /[⁰¹²³]/.test(audit.question), `unexpected question on the artwork: ${audit.question}`);
 
   const shot = await page.screenshot({ type: "png" });
   mkdirSync("qa-artifacts/math-race-champions", { recursive: true });
