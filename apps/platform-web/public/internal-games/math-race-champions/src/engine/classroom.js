@@ -19,8 +19,13 @@ export const TEAM_NAME_MAX = 18;
 
 /** After a correct answer the team's buttons rest this long; one press can never count twice. */
 export const CORRECT_LOCK_MS = 450;
-/** After a wrong answer the pause is longer, so guessing is slower than thinking. */
-export const WRONG_LOCK_MS = 900;
+/**
+ * After a wrong answer the pause is longer, and the correct answer is shown for
+ * the length of it. With two choices, a team pressing at random would otherwise
+ * move a space every second or so; with this pause it moves no faster than a
+ * team that works each answer out.
+ */
+export const WRONG_LOCK_MS = 2500;
 /**
  * Two finishing presses this close together are a tie. A Smart Board samples
  * touches every 8 to 16 ms and redraws every 16 ms, and nobody in the room can

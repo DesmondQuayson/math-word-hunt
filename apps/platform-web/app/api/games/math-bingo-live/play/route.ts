@@ -12,7 +12,8 @@ import {
   subjectHash,
   toPlayerState
 } from "@/lib/games/math-bingo-live/server";
-import { isPolygonShowdownAvailable, liveRoomGameForCode } from "@/lib/games/polygon-showdown/server";
+import { isMathRaceChampionsAvailable, liveRoomGameForCode } from "@/lib/games/math-race-champions/server";
+import { isPolygonShowdownAvailable } from "@/lib/games/polygon-showdown/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { normalizeEmoji } from "@/public/internal-games/math-bingo-live/src/engine/emoji.js";
 import { sanitizeDisplayName } from "@/public/internal-games/math-bingo-live/src/engine/settings.js";
@@ -92,8 +93,13 @@ async function handle(request: Request, timing: RequestTiming): Promise<Response
     if (!emoji.ok) return refused(emoji.error, 400);
     // One join page serves every live game: a code owned by a Polygon Showdown
     // room goes there, before it can count as a failed Bingo code.
-    if ((await liveRoomGameForCode(code)) === "polygon_showdown" && (await isPolygonShowdownAvailable())) {
+    // The same holds for a Math Race Champions room.
+    const owner = await liveRoomGameForCode(code);
+    if (owner === "polygon_showdown" && (await isPolygonShowdownAvailable())) {
       return reply({ result: "other-game", game: "polygon_showdown", href: `/join?code=${code}` });
+    }
+    if (owner === "math_race_champions" && (await isMathRaceChampionsAvailable())) {
+      return reply({ result: "other-game", game: "math_race_champions", href: `/join?code=${code}` });
     }
     const token = newToken();
     const tokenHash = hashToken("player", token);
