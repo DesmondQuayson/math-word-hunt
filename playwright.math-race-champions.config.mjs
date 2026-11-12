@@ -14,6 +14,8 @@ export default defineConfig({
   outputDir: "test-results/math-race-champions",
   use: {
     baseURL: process.env.MATH_RACE_CHAMPIONS_URL ?? "http://127.0.0.1:3103",
+    // One stuck click must not cost a whole test's time budget.
+    actionTimeout: 45_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure"
   },

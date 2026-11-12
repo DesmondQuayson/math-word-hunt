@@ -36,7 +36,7 @@ test.describe("a school access session", () => {
     await expect(page.locator(".notice").first()).toContainText("Practice mode");
     await expect(page.locator(".wallet")).toHaveCount(0);
     await evidence(page, "guest-stages-1024x768");
-    await page.getByRole("button", { name: "Garage" }).click();
+    await page.getByRole("button", { name: "Garage", exact: true }).click();
     await waitForScreen(page, "garage");
     await page.locator('.car-tab[data-car="thunder-x"]').click();
     await expect(page.locator('[data-action="buy"]')).toHaveCount(0);

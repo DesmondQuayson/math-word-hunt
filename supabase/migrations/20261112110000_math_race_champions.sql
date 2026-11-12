@@ -157,6 +157,9 @@ alter table public.race_ledger enable row level security;
 alter table public.race_ledger force row level security;
 revoke all on table public.race_ledger from public,anon,authenticated,service_role;
 grant select,insert on table public.race_ledger to service_role;
+-- The ledger's numbering is not a browser's to read or move either.
+revoke all on sequence public.race_ledger_id_seq from public,anon,authenticated,service_role;
+grant usage on sequence public.race_ledger_id_seq to service_role;
 
 create table public.race_garage (
   user_id uuid not null references auth.users(id) on delete cascade,

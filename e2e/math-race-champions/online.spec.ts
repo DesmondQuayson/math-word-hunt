@@ -68,7 +68,9 @@ test.describe("Online Race", () => {
     const ben = await newPage(browser, { viewport: { width: 1024, height: 768 } });
     await ben.page.goto("/join");
     await expect(ben.page).toHaveTitle(/Bingo/i);
+    // Bingo's screen asks for the code, then the name; the hand-over happens when Ben joins.
     await ben.page.locator("#code").fill(code);
+    await ben.page.locator("#code").press("Enter");
     await ben.page.locator("#name").fill("Ben");
     await ben.page.locator("#name").press("Enter");
     await ben.page.waitForURL((url) => url.pathname === "/join" && url.searchParams.get("code") === code, { timeout: 30_000 });

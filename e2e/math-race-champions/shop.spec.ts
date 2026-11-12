@@ -9,10 +9,10 @@ test.afterEach(() => {
 async function openGarage(page: Page): Promise<void> {
   await waitForScreen(page, "hub");
   // The garage is reached from Race Computer, not from the game menu.
-  await expect(page.getByRole("button", { name: "Garage" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Garage", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: /Race Computer/ }).click();
   await waitForScreen(page, "computer");
-  await page.getByRole("button", { name: "Garage" }).click();
+  await page.getByRole("button", { name: "Garage", exact: true }).click();
   await waitForScreen(page, "garage");
   await expect(page.locator(".car-tab")).toHaveCount(4);
 }
@@ -145,7 +145,7 @@ test.describe("the garage and car shop", () => {
     // Buy Turbo Sprint through the screen.
     await page.getByRole("button", { name: /Race Computer/ }).click();
     await waitForScreen(page, "computer");
-    await page.getByRole("button", { name: "Garage" }).click();
+    await page.getByRole("button", { name: "Garage", exact: true }).click();
     await waitForScreen(page, "garage");
     await expect(page.locator(".wallet strong")).toHaveText("R$ 12,000");
     await page.locator('.car-tab[data-car="turbo-sprint"]').click();

@@ -108,8 +108,8 @@ describe("Classroom Competition rules", () => {
       const pink = match.team("pink").question;
       expect(turquoise.category).toBe(pink.category);
       if (turquoise.key !== pink.key) different += 1;
-      match.submit("turquoise", wrong(match, "turquoise"), turn * 1000);
-      match.submit("pink", wrong(match, "pink"), turn * 1000);
+      match.submit("turquoise", wrong(match, "turquoise"), turn * (WRONG_LOCK_MS + 100));
+      match.submit("pink", wrong(match, "pink"), turn * (WRONG_LOCK_MS + 100));
     }
     expect(different).toBeGreaterThan(35);
   });
@@ -124,16 +124,16 @@ describe("Classroom Competition rules", () => {
       expect(result.accepted).toBe(true);
       expect(match.team("turquoise").position).toBe(before + (isRight ? 1 : 0));
       expect(match.team("turquoise").remaining).toBe(62 - match.team("turquoise").position);
-      at += 1000;
+      at += WRONG_LOCK_MS + 100;
     }
   });
 
   it("one team's answer never moves or changes the other team", () => {
     const match = newMatch();
     const pinkBefore = match.team("pink");
-    match.submit("turquoise", right(match, "turquoise"), 10);
-    match.submit("turquoise", right(match, "turquoise"), 1000);
-    match.submit("turquoise", wrong(match, "turquoise"), 2000);
+    expect(match.submit("turquoise", right(match, "turquoise"), 10).accepted).toBe(true);
+    expect(match.submit("turquoise", right(match, "turquoise"), 1000).accepted).toBe(true);
+    expect(match.submit("turquoise", wrong(match, "turquoise"), 2000).accepted).toBe(true);
     expect(match.team("pink")).toEqual(pinkBefore);
     expect(match.team("turquoise").position).toBe(2);
   });

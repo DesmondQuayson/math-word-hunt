@@ -43,15 +43,15 @@ export function createShowroom(canvas, { reducedMotion = false } = {}) {
   rim.position.set(-6, 3, -5);
   scene.add(rim);
 
-  const disc = new Mesh(new CylinderGeometry(3.3, 3.5, 0.16, 48), new MeshStandardMaterial({ color: 0x12304d, metalness: 0.6, roughness: 0.35 }));
+  const disc = new Mesh(new CylinderGeometry(3.0, 3.2, 0.16, 48), new MeshStandardMaterial({ color: 0x12304d, metalness: 0.6, roughness: 0.35 }));
   disc.position.y = -0.08;
   scene.add(disc);
-  const ring = new Mesh(new CircleGeometry(3.32, 48), new MeshStandardMaterial({ color: 0x20cfe3, metalness: 0.2, roughness: 0.6 }));
+  const ring = new Mesh(new CircleGeometry(3.02, 48), new MeshStandardMaterial({ color: 0x20cfe3, metalness: 0.2, roughness: 0.6 }));
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.002;
   ring.scale.setScalar(1.0);
   scene.add(ring);
-  const floor = new Mesh(new CircleGeometry(3.22, 48), new MeshStandardMaterial({ color: 0x0c2238, metalness: 0.7, roughness: 0.3 }));
+  const floor = new Mesh(new CircleGeometry(2.92, 48), new MeshStandardMaterial({ color: 0x0f2a44, metalness: 0.15, roughness: 0.75 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.004;
   scene.add(floor);
@@ -107,7 +107,7 @@ export function createShowroom(canvas, { reducedMotion = false } = {}) {
       azimuth += AUTO_SPEED * seconds;
     }
     // Fit the whole car at zoom 1 whatever the shape of the canvas.
-    const reach = (camera.aspect < 1 ? 9.6 / camera.aspect ** 0.75 : 8.2) / zoom;
+    const reach = (camera.aspect < 1 ? 7.4 / camera.aspect ** 0.75 : 6.7) / zoom;
     camera.position.set(Math.sin(azimuth) * Math.cos(elevation) * reach, 0.62 + Math.sin(elevation) * reach, Math.cos(azimuth) * Math.cos(elevation) * reach);
     camera.lookAt(target);
     renderer.render(scene, camera);
@@ -117,7 +117,11 @@ export function createShowroom(canvas, { reducedMotion = false } = {}) {
 
   function onPointerDown(event) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    canvas.setPointerCapture?.(event.pointerId);
+    try {
+      canvas.setPointerCapture?.(event.pointerId);
+    } catch {
+      /* Capture is a convenience (it keeps a drag alive outside the canvas). */
+    }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     lastInput = performance.now();
     azimuthGoal = null;
