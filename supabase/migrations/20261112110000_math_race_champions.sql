@@ -553,7 +553,10 @@ begin
       best_accuracy=greatest(coalesce(best_accuracy,0),p_accuracy),
       last_played_at=statement_timestamp()
       where user_id=p_user and stage=run.stage;
-    payout := private.race_credit(p_user,'STAGE_REWARD',private.race_stage_reward(run.stage),'stage:'||run.stage::text,run.stage,jsonb_build_object('run',run.id,'car',run.car_key));
+    -- Paid on the first win only, and under a key that can exist once per account: two locks on one door.
+    if coalesce(first_win,false) then
+      payout := private.race_credit(p_user,'STAGE_REWARD',private.race_stage_reward(run.stage),'stage:'||run.stage::text,run.stage,jsonb_build_object('run',run.id,'car',run.car_key));
+    end if;
     if (select count(*) from public.race_stage_progress s where s.user_id=p_user and s.stage between 1 and 5 and s.wins>0)=5 then keys := keys || 'halfway'::text; end if;
     if (select count(*) from public.race_stage_progress s where s.user_id=p_user and s.wins>0)=10 then keys := keys || 'champion'::text; end if;
   else

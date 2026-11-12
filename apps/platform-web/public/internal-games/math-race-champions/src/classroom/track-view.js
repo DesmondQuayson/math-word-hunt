@@ -91,7 +91,8 @@ export function createTrackView({ team, spaces }) {
       group.append(s("circle", { class: "tile-disc", r: (radius * 0.93).toFixed(2) }));
       const label = station.kind === "start" ? "START" : station.kind === "finish" ? "FINISH" : String(station.number);
       const size = station.kind === "space" ? tile * (station.number >= 10 ? 0.5 : 0.56) : tile * (station.kind === "start" ? 0.25 : 0.215);
-      group.append(s("text", { class: "tile-label", "font-size": size.toFixed(2), "text-anchor": "middle", "dominant-baseline": "central", text: label }));
+      // Sized through style, in px: Safari does not honour a bare font-size attribute here.
+      group.append(s("text", { class: "tile-label", style: `font-size:${size.toFixed(2)}px`, "text-anchor": "middle", "dominant-baseline": "central", dy: "0.02em", text: label }));
       svg.append(group);
       return { position: station.position, element: group };
     });
@@ -104,7 +105,7 @@ export function createTrackView({ team, spaces }) {
     // The number of the space the ball is on stays readable on the ball itself.
     badge = s("g", { class: "ball-badge", transform: `translate(${(tile * 0.36).toFixed(2)} ${(tile * 0.36).toFixed(2)})` });
     badge.append(s("circle", { r: (tile * 0.3).toFixed(2) }));
-    badgeText = s("text", { "font-size": (tile * 0.32).toFixed(2), "text-anchor": "middle", "dominant-baseline": "central" });
+    badgeText = s("text", { style: `font-size:${(tile * 0.32).toFixed(2)}px`, "text-anchor": "middle", "dominant-baseline": "central" });
     badge.append(badgeText);
     ball.append(badge);
     svg.append(ball);
