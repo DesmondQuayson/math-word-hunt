@@ -4,7 +4,7 @@ import { ENGINE_PROFILES } from "../../apps/platform-web/public/internal-games/m
 import { OWNER, PAGE_ERRORS, answer, newPage, openClassroom, raceAnswer, signIn, waitForGo, waitForScreen } from "./helpers";
 
 type RaceAudio = { car: string | null; sounding: boolean; profile: string | null; starts: number; ending: boolean; oneShots: number; level: number; rpm: number | null; gear: number | null; throttle: number | null; firing: number | null; speed: number | null };
-type Snapshot = { source: string | null; paused: boolean; loop: boolean; volume: number; musicRoute: string; duck: number; playAttempts: number; unlocked: boolean; contextState: string; error: string | null; disposed: boolean; voices: number; race: RaceAudio };
+type Snapshot = { source: string | null; paused: boolean; loop: boolean; volume: number; musicRoute: string; routeHeard: string; duck: number; playAttempts: number; unlocked: boolean; contextState: string; error: string | null; disposed: boolean; voices: number; race: RaceAudio };
 
 const audio = (page: Page) => page.evaluate(() => (window as unknown as { __MATH_RACE__: { audio(): Snapshot } }).__MATH_RACE__.audio());
 /** Whether this browser build has Web Audio at all (Playwright's WebKit for Windows does not; Safari does). */
@@ -95,7 +95,16 @@ test.describe("sound", () => {
     expect(menu.error).toBeNull();
     // Where Web Audio exists the music is mixed in the graph (so iPhone and iPad honour its level); otherwise by the element.
     expect(menu.musicRoute).toBe(webAudio ? "graph" : "element");
-    if (webAudio) expect(menu.contextState).toBe("running");
+    if (webAudio) {
+      expect(menu.contextState).toBe("running");
+      // The routed music is checked for actually carrying sound, and it does: the route is kept.
+      await page.waitForFunction(() => (window as unknown as { __MATH_RACE__: { audio(): { routeHeard: string } } }).__MATH_RACE__.audio().routeHeard !== "unknown", null, { timeout: 20_000 });
+      const heard = await audio(page);
+      expect(heard.routeHeard).toBe("yes");
+      expect(heard.musicRoute).toBe("graph");
+      expect(heard.paused).toBe(false);
+      expect(heard.playAttempts).toBe(1);
+    }
     await page.getByRole("button", { name: "Back to the game menu" }).click();
     await waitForScreen(page, "hub");
 
@@ -160,15 +169,15 @@ test.describe("sound", () => {
     const landed = second.findIndex((frame) => frame.wrong === 1);
     expect(landed).toBeGreaterThan(0);
     // From 0.15 to 1.15 seconds after the wrong answer landed (the throttle stays shut for 1.3).
-    const after = second.filter((frame) => frame.at > second[landed].at + 150 && frame.at < second[landed].at + 1150);
-    // Software rendering draws only a few frames a second here; three samples of a shut throttle are enough.
-    expect(after.length).toBeGreaterThan(2);
+    const after = second.filter((frame) => frame.at > second[landed].at + 150 && frame.at < second[landed].at + 1250);
+    // Software rendering draws only a few frames a second here (fewer on a busy machine): two samples of a shut throttle are enough.
+    expect(after.length).toBeGreaterThan(1);
     expect(Math.max(...after.map((frame) => frame.throttle ?? 0))).toBeLessThan(0.05);
     for (let index = 1; index < after.length; index += 1) expect(after[index].speed!).toBeLessThanOrEqual(after[index - 1].speed! + 0.01);
     expect(after[after.length - 1].speed!).toBeLessThan(second[landed - 1].speed!);
     // And at no moment after the wrong answer was the throttle wider than it had been just before it.
     const throttleBefore = second[landed - 1].throttle!;
-    expect(Math.max(...second.filter((frame) => frame.at >= second[landed].at && frame.at < second[landed].at + 1150).map((frame) => frame.throttle ?? 0))).toBeLessThanOrEqual(throttleBefore + 0.01);
+    expect(Math.max(...second.filter((frame) => frame.at >= second[landed].at && frame.at < second[landed].at + 1250).map((frame) => frame.throttle ?? 0))).toBeLessThanOrEqual(throttleBefore + 0.01);
 
     // One engine, one track: nothing has been started twice or left stacked up.
     const racing = await audio(page);

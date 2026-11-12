@@ -32,6 +32,9 @@ export const MUSIC_VOLUME = 0.2;
 export const RACE_MUSIC_DUCK = 0.55;
 /** The race (engine, road, rivals) relative to the Sound effects volume. */
 export const RACE_LEVEL = 0.5;
+/** How often, and how many times, routed music is checked for actually sounding. */
+const ROUTE_CHECK_MS = 1500;
+const ROUTE_CHECKS = 4;
 /** After the finish line the engine runs down for this long, then fades. */
 const RUN_DOWN_SECONDS = 2.2;
 export const DEFAULT_PREFERENCES = Object.freeze({ sound: true, music: true, soundVolume: 0.5, musicVolume: MUSIC_VOLUME, graphics: "auto" });
@@ -79,7 +82,13 @@ export class GameAudio {
     this.master = null;
     this.music = null;
     this.musicGain = null;
+    this.musicProbe = null;
     this.musicRoute = "element";
+    // Whether routed music has been seen to carry sound; "unknown" until checked.
+    this.routeHeard = "unknown";
+    this.routeSilentChecks = 0;
+    this.routeWaits = 0;
+    this.routeTimer = 0;
     this.duck = 1;
     this.playPromise = null;
     this.requestId = 0;
@@ -117,6 +126,15 @@ export class GameAudio {
       return null;
     }
     return this.context;
+  }
+
+  /** Coming back to a tab: ask a paused audio graph to run again (a gesture retries if the browser says no). */
+  wake() {
+    try {
+      if (this.context && this.context.state !== "running") this.context.resume()?.catch?.(() => { /* next gesture retries */ });
+    } catch {
+      /* next gesture retries */
+    }
   }
 
   /** Call synchronously from every pointer/key gesture. */
@@ -323,14 +341,65 @@ export class GameAudio {
     if (this.musicGain || this.musicRoute === "refused" || !this.context) return;
     try {
       const source = this.context.createMediaElementSource(track);
+      const probe = this.context.createAnalyser();
+      probe.fftSize = 256;
       const gain = this.context.createGain();
       gain.gain.value = this.musicLevel();
-      source.connect(gain).connect(this.context.destination);
+      source.connect(probe).connect(gain).connect(this.context.destination);
       this.musicGain = gain;
+      this.musicProbe = probe;
       this.musicRoute = "graph";
     } catch {
       this.musicRoute = "refused";
     }
+  }
+
+  /**
+   * Routed music is only better if it is heard. While the track is playing
+   * through a running graph, look for any signal at all; after a few looks
+   * with none, give the route up and play the track the plain way instead.
+   */
+  watchRoute() {
+    if (this.routeTimer || this.routeHeard !== "unknown" || !this.musicProbe) return;
+    this.routeTimer = setTimeout(() => {
+      this.routeTimer = 0;
+      const track = this.music;
+      const probe = this.musicProbe;
+      if (this.disposed || !track || !probe || this.musicRoute !== "graph") return;
+      // Only a track that is really advancing through a running graph can be judged.
+      // A paused track is looked at again when it next plays; a graph that is not running yet, a little later.
+      if (track.paused) return;
+      if (track.currentTime < 1 || this.context?.state !== "running") {
+        this.routeWaits += 1;
+        if (this.routeWaits < 40) this.watchRoute();
+        return;
+      }
+      const samples = new Uint8Array(probe.fftSize);
+      probe.getByteTimeDomainData(samples);
+      if (samples.some(value => value !== 128)) {
+        this.routeHeard = "yes";
+        return;
+      }
+      this.routeSilentChecks += 1;
+      if (this.routeSilentChecks < ROUTE_CHECKS) return this.watchRoute();
+      this.abandonRoute();
+    }, ROUTE_CHECK_MS);
+  }
+
+  /** The graph carries no music here: release that element and use a plain one (its own volume, where the browser honours it). */
+  abandonRoute() {
+    this.routeHeard = "no";
+    this.musicRoute = "refused";
+    this.pauseMusic();
+    if (this.music) {
+      this.music.removeAttribute("src");
+      this.music.load();
+    }
+    this.music = null;
+    this.musicGain = null;
+    this.musicProbe = null;
+    // Plays at once where the browser allows it; otherwise on the next press.
+    this.syncMusic();
   }
 
   syncMusic() {
@@ -357,6 +426,7 @@ export class GameAudio {
           this.playPromise = null;
           this.lastError = null;
           if (request !== this.requestId) track.pause();
+          else this.watchRoute();
         }).catch(error => {
           this.playPromise = null;
           // NotAllowedError: locked until the next gesture, which retries.
@@ -385,6 +455,7 @@ export class GameAudio {
       // The level the listener gets, whichever way the music is routed.
       volume: this.music ? this.musicLevel() : 0,
       musicRoute: this.musicRoute,
+      routeHeard: this.routeHeard,
       duck: this.duck,
       playAttempts: this.playAttempts,
       unlocked: this.unlocked,
@@ -414,12 +485,15 @@ export class GameAudio {
     this.stopRace(0.02);
     this.pauseMusic();
     this.disposed = true;
+    clearTimeout(this.routeTimer);
+    this.routeTimer = 0;
     if (this.music) {
       this.music.removeAttribute("src");
       this.music.load();
       this.music = null;
     }
     this.musicGain = null;
+    this.musicProbe = null;
     this.master = null;
     this.context?.close?.()?.catch?.(() => { /* leaving anyway */ });
     this.context = null;

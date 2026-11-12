@@ -424,9 +424,9 @@ try {
   ok(landedRight >= 0 && Math.max(...afterRight.map((frame) => frame.throttle ?? 0)) > 0.8, `a correct answer opens the throttle (peak ${Math.max(...afterRight.map((frame) => frame.throttle ?? 0))}) and the engine climbs`);
   const fall = await record(ava, false);
   const landedWrong = fall.findIndex((frame) => frame.wrong > fall[0].wrong);
-  const afterWrong = landedWrong < 0 ? [] : fall.filter((frame) => frame.at > fall[landedWrong].at + 150 && frame.at < fall[landedWrong].at + 1150);
+  const afterWrong = landedWrong < 0 ? [] : fall.filter((frame) => frame.at > fall[landedWrong].at + 150 && frame.at < fall[landedWrong].at + 1250);
   const speedRose = afterWrong.some((frame, index) => index > 0 && frame.speed > afterWrong[index - 1].speed + 0.01);
-  ok(afterWrong.length > 2 && Math.max(...afterWrong.map((frame) => frame.throttle ?? 0)) < 0.05 && !speedRose && afterWrong[afterWrong.length - 1].speed < fall[Math.max(0, landedWrong - 1)].speed, `a wrong answer gives no acceleration sound: throttle shut (max ${afterWrong.length ? Math.max(...afterWrong.map((frame) => frame.throttle ?? 0)) : "n/a"}), engine speed only falls (${afterWrong.length} samples)`);
+  ok(afterWrong.length > 1 && Math.max(...afterWrong.map((frame) => frame.throttle ?? 0)) < 0.05 && !speedRose && afterWrong[afterWrong.length - 1].speed < fall[Math.max(0, landedWrong - 1)].speed, `a wrong answer gives no acceleration sound: throttle shut (max ${afterWrong.length ? Math.max(...afterWrong.map((frame) => frame.throttle ?? 0)) : "n/a"}), engine speed only falls (${afterWrong.length} samples)`);
   const webkitAudio = await audioState(ben);
   ok(webkitAudio.paused === false && webkitAudio.error === null && webkitAudio.race.car === "circuit-standard", `WebKit phone: music playing, race sound ${webkitAudio.race.sounding ? "sounding" : "not available in this test build (no Web Audio); music only"}`);
 

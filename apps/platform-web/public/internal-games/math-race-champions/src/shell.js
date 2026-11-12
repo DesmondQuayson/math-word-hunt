@@ -90,6 +90,7 @@ export function startShell(screens, first, firstParams = {}) {
     document.addEventListener(type, () => audio.activate(), { capture: true, passive: true });
   }
   document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) audio.wake();
     audio.syncMusic();
     // A hidden tab makes no engine noise; the race screen brings it back when it is seen again.
     if (document.hidden) audio.dropRace(0.05);

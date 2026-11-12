@@ -311,6 +311,18 @@ describe("how the sound is made and wired", () => {
     expect(audio).toContain("createDynamicsCompressor");
   });
 
+  it("routed music is checked for sound and falls back to the plain element if the graph is silent", () => {
+    const audio = source("audio.js");
+    expect(audio).toContain("createMediaElementSource");
+    expect(audio).toContain("createAnalyser");
+    expect(audio).toContain("abandonRoute()");
+    // The fallback is the plain element route, and a refused route is never tried again.
+    expect(audio).toMatch(/abandonRoute\(\) \{[\s\S]*this\.musicRoute = "refused";[\s\S]*this\.syncMusic\(\);/);
+    expect(audio).toContain('if (this.musicGain || this.musicRoute === "refused" || !this.context) return;');
+    // Coming back to a tab asks the graph to run again.
+    expect(source("shell.js")).toContain("audio.wake()");
+  });
+
   it("the race screen opens the throttle on a correct answer and only lifts on a wrong one", () => {
     const screen = source("race/race-screen.js");
     const correct = screen.slice(screen.indexOf("if (outcome.correct) {"), screen.indexOf("} else {", screen.indexOf("if (outcome.correct) {")));
