@@ -25,6 +25,10 @@ describe("game catalog thumbnails", () => {
       webp: "/media/games/polygon-showdown.webp",
       avif: "/media/games/polygon-showdown.avif"
     });
+    expect(resolveGameCatalogThumbnail("math-race-champions", "builtin:math-race-champions")).toEqual({
+      webp: "/media/games/math-race-champions.webp",
+      avif: "/media/games/math-race-champions.avif"
+    });
     expect(resolveGameCatalogThumbnail("math-tug-of-war", "builtin:math-tug-of-war")).toEqual({
       webp: "/media/games/math-tug-of-war.webp",
       avif: "/media/games/math-tug-of-war.avif"

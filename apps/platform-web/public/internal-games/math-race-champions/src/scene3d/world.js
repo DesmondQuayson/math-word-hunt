@@ -43,18 +43,18 @@ import { buildCar } from "./cars.js";
 import { createFrameWatch, tierBelow } from "./quality.js";
 
 export const THEMES = Object.freeze({
-  coast: { skyTop: "#1f8fe6", skyLow: "#cfeeff", ground: 0x3f9a5f, road: "#3b4350", prop: "palm", crown: 0x2fa85a, trunk: 0x8a5a36, light: 1.15 },
-  forest: { skyTop: "#3d9be9", skyLow: "#e4f5ff", ground: 0x2f8a4e, road: "#39414b", prop: "pine", crown: 0x1f6e3e, trunk: 0x6b4a2e, light: 1.05 },
-  desert: { skyTop: "#f2743a", skyLow: "#ffe1ad", ground: 0xdaa560, road: "#4a4038", prop: "cactus", crown: 0x4d9a52, trunk: 0x4d9a52, light: 1.1 },
-  alpine: { skyTop: "#5fb4f5", skyLow: "#ffffff", ground: 0xe9f1f8, road: "#454c57", prop: "pine", crown: 0x2c7a52, trunk: 0x5e4630, light: 1.2 },
-  night: { skyTop: "#050d1a", skyLow: "#1c2f63", ground: 0x0b1726, road: "#1c2430", prop: "tower", crown: 0x20cfe3, trunk: 0x16263b, light: 0.75 }
+  coast: { hill: 0x7fb7c9, skyTop: "#1f8fe6", skyLow: "#cfeeff", ground: 0x2f8a52, road: "#3b4350", prop: "palm", crown: 0x2fa85a, trunk: 0x8a5a36, light: 1.15 },
+  forest: { hill: 0x4f8f6c, skyTop: "#3d9be9", skyLow: "#e4f5ff", ground: 0x2f8a4e, road: "#39414b", prop: "pine", crown: 0x1f6e3e, trunk: 0x6b4a2e, light: 1.05 },
+  desert: { hill: 0xc9763f, skyTop: "#f2743a", skyLow: "#ffe1ad", ground: 0xdaa560, road: "#4a4038", prop: "cactus", crown: 0x4d9a52, trunk: 0x4d9a52, light: 1.1 },
+  alpine: { hill: 0xb9cfe6, skyTop: "#5fb4f5", skyLow: "#ffffff", ground: 0xe9f1f8, road: "#454c57", prop: "pine", crown: 0x2c7a52, trunk: 0x5e4630, light: 1.2 },
+  night: { hill: 0x0f2140, skyTop: "#050d1a", skyLow: "#1c2f63", ground: 0x0b1726, road: "#1c2430", prop: "tower", crown: 0x20cfe3, trunk: 0x16263b, light: 0.75 }
 });
 
 export { themeForStage };
 
 const ROAD_HALF = 6.5;
 const BEHIND_M = 45;
-const SLOT_M = 16;
+const SLOT_M = 12;
 const UP = new Vector3(0, 1, 0);
 
 function roadTexture(theme) {
@@ -180,6 +180,27 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   ground.position.y = -0.06;
   scene.add(ground);
 
+  // A ring of far hills (towers at night) so the horizon is never an empty line.
+  const HILLS = 40;
+  const hills = new InstancedMesh(theme.prop === "tower" ? new BoxGeometry(1, 1, 1) : new ConeGeometry(1, 1, 5), new MeshBasicMaterial({ color: theme.hill, fog: false }), HILLS);
+  hills.frustumCulled = false;
+  {
+    const hillMatrix = new Matrix4();
+    const hillPlace = new Vector3();
+    const hillScale = new Vector3();
+    const upright = new Quaternion();
+    for (let index = 0; index < HILLS; index += 1) {
+      const angle = (index / HILLS) * Math.PI * 2;
+      const radius = 520 + hash01(`${seed}:hill:r:${index}`) * 120;
+      const tall = theme.prop === "tower" ? 60 + hash01(`${seed}:hill:h:${index}`) * 150 : 40 + hash01(`${seed}:hill:h:${index}`) * 90;
+      const wide = theme.prop === "tower" ? 30 + hash01(`${seed}:hill:w:${index}`) * 50 : 110 + hash01(`${seed}:hill:w:${index}`) * 120;
+      hillMatrix.compose(hillPlace.set(Math.sin(angle) * radius, tall / 2 - 4, Math.cos(angle) * radius), upright, hillScale.set(wide, tall, wide));
+      hills.setMatrixAt(index, hillMatrix);
+    }
+    hills.instanceMatrix.needsUpdate = true;
+  }
+  scene.add(hills);
+
   // ----------------------------------------------------------------- road
   const segments = Math.ceil((tier.viewDistance + BEHIND_M) / STEP_M);
   const roadPositions = new Float32Array((segments + 1) * 2 * 3);
@@ -220,7 +241,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
 
   // -------------------------------------------------------------- scenery
   const slots = Math.ceil((tier.viewDistance + BEHIND_M) / SLOT_M);
-  const perSlot = 2;
+  // Two props a side: one near the road, one further back, for depth.
+  const perSlot = 4;
   const propCount = slots * perSlot;
   const trunkGeometry = theme.prop === "tower" ? new BoxGeometry(1, 1, 1) : new CylinderGeometry(0.22, 0.3, 1, 6);
   const crownGeometry = theme.prop === "palm" ? new SphereGeometry(1, 8, 6) : theme.prop === "tower" ? new BoxGeometry(1, 1, 1) : theme.prop === "cactus" ? new CylinderGeometry(0.5, 0.5, 1, 7) : new ConeGeometry(1, 1, 7);
@@ -251,7 +273,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
         const index = i * perSlot + side;
         const key = `${seed}:${slot}:${side}`;
         const shown = inside && hash01(`${key}:show`) < quality.props;
-        const offset = (side === 0 ? -1 : 1) * (ROAD_HALF + 6 + hash01(`${key}:off`) * 34);
+        const near = side < 2;
+        const offset = (side % 2 === 0 ? -1 : 1) * (ROAD_HALF + (near ? 5 + hash01(`${key}:off`) * 12 : 22 + hash01(`${key}:off`) * 46));
         const size = 0.8 + hash01(`${key}:size`) * 0.9;
         const x = point.x + nx * offset;
         const z = point.z + nz * offset;
@@ -477,6 +500,7 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
         camera.updateProjectionMatrix();
       }
       sky.position.copy(camera.position);
+      hills.position.set(camera.position.x, 0, camera.position.z);
       ground.position.x = Math.round(camera.position.x / 50) * 50;
       ground.position.z = Math.round(camera.position.z / 50) * 50;
 

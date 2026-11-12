@@ -31,6 +31,11 @@ const PREMIUM_THUMBNAILS = Object.freeze({
   "polygon-showdown": Object.freeze({
     webp: "/media/games/polygon-showdown.webp",
     avif: "/media/games/polygon-showdown.avif"
+  }),
+  // Captured from a real race: scripts/capture-math-race-champions-thumbnail.mjs.
+  "math-race-champions": Object.freeze({
+    webp: "/media/games/math-race-champions.webp",
+    avif: "/media/games/math-race-champions.avif"
   })
 } satisfies Record<string, CatalogThumbnail>);
 
