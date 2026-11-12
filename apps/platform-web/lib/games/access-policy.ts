@@ -24,7 +24,12 @@ const GAME_ACCESS_POLICIES: Readonly<Record<string, GameAccessPolicy>> = Object.
   // Free for any signed-in account. Its Showdown guests never sign in: they
   // join one room with a code and a display name, which grants nothing outside
   // that room and creates no account, wallet or saved progress.
-  "polygon-showdown": "authenticated-free"
+  "polygon-showdown": "authenticated-free",
+  // Free for any signed-in account or school session (owner preference,
+  // 2026-11-11). Only signed-in accounts keep a Race Dollar wallet, cars and
+  // stage progress; Online Race guests join one room with a code and a display
+  // name, which grants nothing outside that room.
+  "math-race-champions": "authenticated-free"
 });
 
 type FreeGameRoute = `/games/${string}/play` | `/games/${string}/host`;
@@ -33,9 +38,11 @@ type FreeGameRoute = `/games/${string}/play` | `/games/${string}/host`;
 const FREE_GAME_PLAY_ROUTES: Readonly<Record<string, FreeGameRoute>> = Object.freeze({
   "math-tug-of-war": "/games/math-tug-of-war/play",
   "math-bingo-live": "/games/math-bingo-live/host",
-  "polygon-showdown": "/games/polygon-showdown/play"
+  "polygon-showdown": "/games/polygon-showdown/play",
+  "math-race-champions": "/games/math-race-champions/play"
 });
 
+export const MATH_RACE_CHAMPIONS_PLAY_ROUTE = "/games/math-race-champions/play" as const;
 export const MATH_TUG_OF_WAR_PLAY_ROUTE = "/games/math-tug-of-war/play" as const;
 export const MATH_BINGO_LIVE_HOST_ROUTE = "/games/math-bingo-live/host" as const;
 export const POLYGON_SHOWDOWN_PLAY_ROUTE = "/games/polygon-showdown/play" as const;

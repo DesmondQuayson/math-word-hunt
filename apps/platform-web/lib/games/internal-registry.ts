@@ -3,6 +3,7 @@ import "server-only";
 import { renderCrossCalcDocument } from "@/features/games/crosscalc/document";
 import { renderCrossCalcV2Document, renderCrossCalcV2PreviewDocument } from "@/features/games/crosscalc-v2/document";
 import { renderMathBingoLiveHostDocument } from "@/features/games/math-bingo-live/document";
+import { renderMathRaceChampionsDocument } from "@/features/games/math-race-champions/document";
 import { renderMathTugOfWarDocument } from "@/features/games/math-tug-of-war/document";
 import { renderNumberCrossDocument } from "@/features/games/number-cross/document";
 import { renderNumberLogicDocument } from "@/features/games/number-logic/document";
@@ -71,6 +72,15 @@ const INTERNAL_GAMES = Object.freeze({
     assetBase: "/internal-games/polygon-showdown/",
     connectSource: "'self'",
     renderDocument: renderPolygonShowdownDocument
+  }),
+  // Classroom Competition runs on the Smart Board alone; Computer Race and
+  // Online Race talk to the same-origin /api/games/math-race-champions.
+  "math-race-champions": Object.freeze({
+    stableKey: "math-race-champions",
+    route: "/games/math-race-champions/play",
+    assetBase: "/internal-games/math-race-champions/",
+    connectSource: "'self'",
+    renderDocument: renderMathRaceChampionsDocument
   })
 } satisfies Record<string, InternalGameRegistration>);
 

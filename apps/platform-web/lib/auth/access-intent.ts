@@ -29,7 +29,12 @@ export const POST_AUTH_DESTINATION = "/" as const;
  * destination so "Play for Free Now" → sign in / create account → the game.
  * It is NOT a product destination: no subscription screen ever resolves to it.
  */
-export const FREE_GAME_DESTINATIONS = ["/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/polygon-showdown/play"] as const;
+export const FREE_GAME_DESTINATIONS = [
+  "/games/math-tug-of-war/play",
+  "/games/math-bingo-live/host",
+  "/games/polygon-showdown/play",
+  "/games/math-race-champions/play"
+] as const;
 
 export const ACCESS_INTENT_DESTINATIONS = [
   POST_AUTH_DESTINATION,
@@ -89,6 +94,7 @@ export function destinationLabel(destination: AccessIntentDestination): string {
     "/games/math-tug-of-war/play": "Math Tug of War",
     "/games/math-bingo-live/host": "Math Bingo Live",
     "/games/polygon-showdown/play": "Polygon Showdown",
+    "/games/math-race-champions/play": "Math Race Champions",
     "/subscription": "Subscription",
     "/account": "My Account"
   }[destination];
