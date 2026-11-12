@@ -2133,8 +2133,11 @@ button:disabled {
 
 .hud-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px 10px;
+  /* The minimap owns the top right corner; the read-outs wrap beside it, never under it. */
+  margin-right: calc(clamp(120px, 24vmin, 230px) + 10px);
   pointer-events: none;
 }
 

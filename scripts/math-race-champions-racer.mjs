@@ -154,7 +154,8 @@ export class HttpRacer {
       const now = performance.now();
       if (this.room?.phase === "COMPLETE" && this.room.finalized) break;
       if (now >= nextPoll) {
-        nextPoll = now + pollMs + Math.random() * 200;
+        // The same rule as the browser: a bigger room polls a little less often.
+        nextPoll = now + pollMs * Math.min(2, Math.max(1, (this.room?.standings?.length ?? 1) / 30)) + Math.random() * 200;
         const reply = await this.poll();
         if (reply.status === 404 || reply.status === 410) break;
         continue;

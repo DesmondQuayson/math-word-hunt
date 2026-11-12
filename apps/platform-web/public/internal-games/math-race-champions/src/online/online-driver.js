@@ -10,6 +10,8 @@ import { ONLINE_CAR, ONLINE_LENGTH_KM, raceSpec, viewAt } from "../engine/race.j
 import { ONLINE_THEME, PAINTS } from "../palette.js";
 
 const POLL_MS = 1200;
+/** A bigger room polls a little less often (up to twice the interval at 60 racers); cars are drawn between polls anyway. */
+export const pollInterval = racers => POLL_MS * Math.min(2, Math.max(1, racers / 30));
 const POLL_DONE_MS = 900;
 const BOARD_ROWS = 5;
 
@@ -50,7 +52,7 @@ export function onlineDriver({ room: first, seat, clock = createServerClock() })
         return;
       }
     }
-    if (!stopped) timer = setTimeout(poll, (room.phase === "COMPLETE" ? POLL_DONE_MS : POLL_MS) + Math.random() * 200 + (document.hidden ? 1200 : 0));
+    if (!stopped) timer = setTimeout(poll, (room.phase === "COMPLETE" ? POLL_DONE_MS : pollInterval(room.standings.length)) + Math.random() * 200 + (document.hidden ? 1200 : 0));
   }
 
   function stop() {

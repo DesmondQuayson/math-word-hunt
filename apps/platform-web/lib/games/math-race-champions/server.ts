@@ -6,6 +6,7 @@ import { PRODUCTION_PUBLIC_CANONICAL_HOST, PRODUCTION_PUBLIC_WWW_HOST } from "@/
 import { isStagingAccessRequired } from "@/lib/staging-access/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import {
+  createQuestionStream,
   normalizeSettings,
   publicQuestion,
   questionAt,
@@ -175,8 +176,34 @@ function storedSettings(value: unknown): RaceSettings | null {
  * different for every racer; `orderSeed` decides the order of categories and is
  * shared, so opponents always face the same kind of question at the same point.
  */
+// A racer's questions are a deterministic stream, and a stream can only be read
+// from its start. Each racer's stream is kept for a while so that poll number
+// 200 of a race does not rebuild 100 questions to show one. The cache holds
+// nothing that is not derivable from the seed; losing it changes no answer.
+type StreamEntry = { stream: ReturnType<typeof createQuestionStream>; questions: (RaceQuestion & { index: number })[]; usedAt: number };
+const STREAM_CACHE_MAX = 600;
+const streams = new Map<string, StreamEntry>();
+
 export function questionFor(settings: RaceSettings, streamSeed: string, orderSeed: string, index: number): RaceQuestion & { index: number } {
-  return questionAt(settings, streamSeed, index, { orderSeed });
+  if (!Number.isInteger(index) || index < 0 || index > 100_000) return questionAt(settings, streamSeed, index, { orderSeed });
+  const key = `${streamSeed}\n${orderSeed}\n${settings.difficulty}\n${settings.categories.join(",")}`;
+  let entry = streams.get(key);
+  if (!entry) {
+    if (streams.size >= STREAM_CACHE_MAX) {
+      // Drop the least recently used half; a dropped stream is simply rebuilt.
+      const oldest = [...streams.entries()].sort((a, b) => a[1].usedAt - b[1].usedAt).slice(0, STREAM_CACHE_MAX / 2);
+      for (const [stale] of oldest) streams.delete(stale);
+    }
+    entry = { stream: createQuestionStream(settings, streamSeed, { orderSeed }), questions: [], usedAt: 0 };
+    streams.set(key, entry);
+  }
+  entry.usedAt = Date.now();
+  while (entry.questions.length <= index) entry.questions.push(entry.stream.next());
+  return entry.questions[index]!;
+}
+
+export function resetQuestionCacheForTests(): void {
+  streams.clear();
 }
 
 const runStream = (seed: string) => `${seed}:player`;

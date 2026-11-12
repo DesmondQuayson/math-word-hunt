@@ -14,6 +14,8 @@ import {
   judgeAnswer,
   ownerHash,
   parseSettings,
+  questionFor,
+  resetQuestionCacheForTests,
   runQuestion,
   runSpec,
   seatQuestion,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/games/math-race-champions/server";
 import { hashToken as polygonHashToken } from "@/lib/games/polygon-showdown/server";
 import { buildCircuit, stageCircuitSeed } from "@/public/internal-games/math-race-champions/src/engine/circuit.js";
+import { questionAt } from "@/public/internal-games/math-race-champions/src/engine/questions.js";
 import { CORRECT_LOCK_MS, MIN_CORRECT, ONLINE_CAR, STAGES, WRONG_LOCK_MS, newRacerState, type RacerState } from "@/public/internal-games/math-race-champions/src/engine/race.js";
 
 const SEED = "0123456789abcdef0123456789abcdef";
@@ -119,6 +122,16 @@ describe("every racer's questions", () => {
       if (a.key === b.key) same += 1;
     }
     expect(same).toBeLessThan(12);
+  });
+
+  it("come out of the stream cache exactly as a fresh replay gives them, in any order of asking", () => {
+    const settings = { categories: ["missing-addend", "powers", "percent-to-decimal"], difficulty: "medium" } as const;
+    for (const index of [40, 3, 0, 77, 12, 40, 200, 1]) {
+      expect(questionFor(settings as never, "stream-a", "order-a", index)).toEqual(questionAt(settings, "stream-a", index, { orderSeed: "order-a" }));
+    }
+    expect(questionFor(settings as never, "stream-b", "order-a", 5)).not.toEqual(questionFor(settings as never, "stream-a", "order-a", 5));
+    resetQuestionCacheForTests();
+    expect(questionFor(settings as never, "stream-a", "order-a", 9)).toEqual(questionAt(settings, "stream-a", 9, { orderSeed: "order-a" }));
   });
 
   it("are reproduced exactly from the seed, question by question", () => {
