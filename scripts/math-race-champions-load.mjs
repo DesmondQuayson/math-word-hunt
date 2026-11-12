@@ -185,7 +185,7 @@ if (HOSTED) {
   // Which build is being measured: read from the preview itself.
   const health = await fetch(`${ORIGIN}/api/health`, { headers: protection.headersFor(`${ORIGIN}/api/health`), redirect: "manual" });
   const body = await health.json().catch(() => ({}));
-  build = { status: health.status, commit: body.commit ?? body.build?.commit ?? body.version ?? null, environment: body.environment ?? null };
+  build = { status: health.status, commit: typeof body.build === "string" ? body.build : null, environment: body.environment ?? null };
   const expected = (process.env.EXPECT_COMMIT ?? "").trim();
   if (health.status !== 200) throw new Error(`staging preview health is ${health.status}`);
   if (expected && !String(build.commit ?? "").startsWith(expected)) throw new Error(`preview build ${build.commit} is not the expected ${expected}`);

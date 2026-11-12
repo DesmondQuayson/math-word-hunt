@@ -14,6 +14,11 @@
  *                      cars, the ten achievements, the catalog row and the
  *                      shared /join guard.
  *   --stage=privileges read-only: who holds what on this game's tables.
+ *   --stage=publish    STAGING catalog only: draft to published through the same
+ *                      functions as Super Admin's buttons (a rehearsal of the
+ *                      production publish), so the homepage card and the
+ *                      catalog listing can be reviewed on a preview.
+ *   --stage=unpublish  STAGING catalog only: published back to draft.
  *   --stage=smoke      the room contract through the service-role functions
  *                      with synthetic hashes; a browser key cannot reach any of
  *                      it. Everything it creates is deleted.
@@ -278,6 +283,57 @@ async function migrate() {
   }
 }
 
+/**
+ * STAGING catalog only. Publishing goes through update_game_catalog_entry and
+ * transition_game_catalog_entry, the functions behind Super Admin's buttons,
+ * acting as the staging admin: exactly what the production publish stage does.
+ */
+const APPROVED_DESCRIPTION = "Solve math problems, race 3D cars, challenge the computer, or compete with friends.";
+async function transition(target) {
+  const sql = querier(connect());
+  const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
+  const client = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const row = sql(`select id, status, lock_version, slug, title, description, thumbnail_reference, recommended_grade_min, recommended_grade_max, skills, topics, tags, difficulty, display_order from public.game_catalog_entries where stable_key='${GAME_KEY}'`)[0];
+  check(row, "catalog-row-missing");
+  if (row.status === target) {
+    evidence.transition = { already: target };
+    return;
+  }
+  const admins = sql("select id from public.admin_users where revoked_at is null and mfa_enrolled");
+  evidence.stagingAdmins = admins.length;
+  if (admins.length === 0) {
+    // Staging has no admin account, so the Super Admin functions have nobody to
+    // act as. The staging row is set directly instead (this is how staging's
+    // other published entries got there); production always goes through the
+    // admin functions, which record the version and the audit event.
+    const description = target === "published" ? APPROVED_DESCRIPTION : row.description;
+    sql(`update public.game_catalog_entries set status='${target}', description='${description.replace(/'/g, "''")}', lock_version=lock_version+1 where stable_key='${GAME_KEY}' returning status`);
+    sql(`select private.record_game_catalog_version(id, null, null) from public.game_catalog_entries where stable_key='${GAME_KEY}'`);
+    evidence.transition = { from: row.status, to: target, method: "direct staging update (no staging admin exists)" };
+    verifyApplied(sql, { expectStatus: target });
+    evidence.otherGames = sql(`select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> '${GAME_KEY}'`)[0].games;
+    return;
+  }
+  const actor = String(admins[0].id);
+  secrets.push(actor);
+  let lock = Number(row.lock_version);
+  if (target === "published" && row.description !== APPROVED_DESCRIPTION) {
+    const updated = await client.rpc("update_game_catalog_entry", {
+      p_actor_admin_id: actor, p_catalog_entry_id: row.id, p_expected_lock_version: lock, p_slug: row.slug, p_title: row.title, p_description: APPROVED_DESCRIPTION,
+      p_thumbnail_reference: row.thumbnail_reference, p_recommended_grade_min: row.recommended_grade_min, p_recommended_grade_max: row.recommended_grade_max,
+      p_skills: row.skills, p_topics: row.topics, p_tags: row.tags, p_difficulty: row.difficulty, p_display_order: row.display_order
+    });
+    check(!updated.error, `description-update-failed:${redact(updated.error?.message)}`);
+    lock = Number(updated.data);
+    evidence.descriptionUpdated = true;
+  }
+  const { data, error } = await client.rpc("transition_game_catalog_entry", { p_actor_admin_id: actor, p_catalog_entry_id: row.id, p_expected_lock_version: lock, p_status: target });
+  check(!error, `transition-failed:${redact(error?.message)}`);
+  evidence.transition = { from: row.status, to: target, lockBefore: lock, lockAfter: Number(data) };
+  verifyApplied(sql, { expectStatus: target });
+  evidence.otherGames = sql(`select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> '${GAME_KEY}'`)[0].games;
+}
+
 async function smoke() {
   const secretKey = required("SUPABASE_SECRET_KEY", /^.{20,}$/);
   const client = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -344,7 +400,9 @@ try {
   else if (stage === "verify") await verify();
   else if (stage === "privileges") await privileges();
   else if (stage === "smoke") await smoke();
-  else throw new Error("usage: --stage=identify|migrate|verify|privileges|smoke");
+  else if (stage === "publish") await transition("published");
+  else if (stage === "unpublish") await transition("draft");
+  else throw new Error("usage: --stage=identify|migrate|verify|privileges|smoke|publish|unpublish");
   evidence.result = "PASS";
   console.log(redact(JSON.stringify(evidence, null, 2)));
 } catch (error) {

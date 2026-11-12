@@ -1,9 +1,11 @@
 param(
-  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'load', 'review')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'publish', 'unpublish', 'load', 'review', 'qa')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$Players = '10,20,30,40,50',
   [string]$Out = '',
+  [string]$Projects = 'chromium',
+  [string]$ReviewArgs = '',
   [string]$VaultPath = (Join-Path $env:USERPROFILE '.mathnexa-secrets\phase7d-credentials.clixml')
 )
 # STAGING-ONLY launcher for Math Race Champions. Loads only the staging entries
@@ -17,6 +19,9 @@ param(
 #   -Stage verify      read-only: tables, RLS, grants, functions, cars, achievements, catalog row, /join guard
 #   -Stage privileges  read-only: who holds what on this game's tables
 #   -Stage smoke       room contract through the service-role functions (synthetic, cleaned up)
+#   -Stage publish     STAGING catalog only: draft -> published, through the functions behind Super Admin's buttons
+#   -Stage unpublish   STAGING catalog only: back to draft
+#   -Stage qa          the guest QA script (homepage card, catalog, assets, an Online Race) against -Origin
 #   -Stage load        10-50 virtual racers against -Origin (synthetic rooms, cleaned up)
 #   -Stage review      real browsers against -Origin (synthetic accounts, deleted afterwards)
 #
@@ -24,7 +29,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path -LiteralPath $VaultPath)) { throw 'Credential vault is unavailable.' }
-if ($Stage -in @('load', 'review') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
+if ($Stage -in @('load', 'review', 'qa') -and [string]::IsNullOrWhiteSpace($Origin)) { throw "The $Stage stage needs -Origin <staging preview URL>." }
 function Open-SecureValue {
   param([Security.SecureString]$Secure)
   $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
@@ -36,6 +41,9 @@ $stagingNames = switch ($Stage) {
   'smoke' { @('SUPABASE_SECRET_KEY', 'SUPABASE_PUBLISHABLE_KEY') }
   'load' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
   'review' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'qa' { @('SUPABASE_SECRET_KEY', 'VERCEL_AUTOMATION_BYPASS_SECRET') }
+  'publish' { @('SUPABASE_DB_PASSWORD', 'SUPABASE_SECRET_KEY') }
+  'unpublish' { @('SUPABASE_DB_PASSWORD', 'SUPABASE_SECRET_KEY') }
   default { @('SUPABASE_DB_PASSWORD') }
 }
 try {
@@ -50,10 +58,17 @@ try {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) { throw "The staging entry $name is not in the vault." }
   }
   Set-Location $repositoryRoot
-  if ($Stage -in @('load', 'review')) {
+  if ($Stage -in @('load', 'review', 'qa')) {
     $env:STAGING_ORIGIN = $Origin
     $env:EXPECT_COMMIT = $ExpectCommit
     $env:REVIEW_OUT = $Out
+    $env:REVIEW_PROJECTS = $Projects
+    $env:REVIEW_ARGS = $ReviewArgs
+    if ($Stage -eq 'qa') {
+      $env:QA_OUT = $Out
+      & node --no-warnings scripts/qa-math-race-champions-production.mjs
+      exit $LASTEXITCODE
+    }
     if ($Stage -eq 'load') {
       $loadArguments = @('--players', $Players)
       if ($Out) { $loadArguments += @('--out', $Out) }
@@ -66,7 +81,7 @@ try {
   & node --no-warnings scripts/run-math-race-champions-staging.mjs "--stage=$Stage"
   exit $LASTEXITCODE
 } finally {
-  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT', 'REVIEW_OUT')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
+  foreach ($name in $stagingNames + @('STAGING_ORIGIN', 'EXPECT_COMMIT', 'REVIEW_OUT', 'REVIEW_PROJECTS', 'REVIEW_ARGS', 'QA_OUT')) { [Environment]::SetEnvironmentVariable($name, $null, 'Process') }
   foreach ($entry in $vault.Values.PSObject.Properties) { if ($entry.Value -is [IDisposable]) { $entry.Value.Dispose() } }
   $vault = $null
 }

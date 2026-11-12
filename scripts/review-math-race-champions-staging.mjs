@@ -52,7 +52,7 @@ try {
   // Which build is under review.
   const health = await fetch(`${origin}/api/health`, { headers: protection.headersFor(`${origin}/api/health`), redirect: "manual" });
   const body = await health.json().catch(() => ({}));
-  const commit = body.commit ?? body.build?.commit ?? body.version ?? null;
+  const commit = typeof body.build === "string" ? body.build : null;
   console.log(`staging preview health ${health.status}, build ${commit}`);
   const expected = (process.env.EXPECT_COMMIT ?? "").trim();
   if (health.status !== 200) throw new Error(`staging preview health is ${health.status}`);
