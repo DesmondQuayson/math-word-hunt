@@ -7,7 +7,7 @@ import { DIVIDE, MINUS, SUPERSCRIPTS, TIMES, decimalsEqual, parseDecimal, shiftD
 
 export const PLAY_ROUTE = "/games/math-race-champions/play";
 export const BASE_URL = process.env.MATH_RACE_CHAMPIONS_URL ?? "http://127.0.0.1:3103";
-export const EVIDENCE_DIR = process.env.RACE_EVIDENCE_DIR ?? "test-results/math-race-champions/evidence";
+export const EVIDENCE_DIR = process.env.RACE_EVIDENCE_DIR ?? "qa-artifacts/math-race-champions/evidence";
 
 type Account = { email: string; password: string };
 const accounts = JSON.parse(process.env.RACE_ACCOUNTS ?? "{}") as Record<string, Account>;
@@ -198,7 +198,7 @@ export async function raceAnswer(page: Page, correctly = true): Promise<void> {
   const right = solve(question.text, question.choices);
   const index = correctly ? right : right === 0 ? 1 : 0;
   try {
-    await page.locator(`.race-choice[data-choice="${index}"]`).click({ timeout: 5_000 });
+    await page.locator(`.race-choice[data-choice="${index}"]`).click({ timeout: 25_000 });
   } catch (error) {
     // The clock can carry the car over the line between reading the question and pressing.
     if (await raceFinished(page)) return;

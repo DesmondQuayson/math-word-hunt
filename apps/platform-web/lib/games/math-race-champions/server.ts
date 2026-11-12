@@ -60,7 +60,7 @@ export const STAGING_PREVIEW_VALUE = "staging-owner-review";
 /** The isolated staging Supabase project; production never points here. */
 const STAGING_SUPABASE_HOST = "gcmuhzxkwvfireyrearl.supabase.co";
 /** Start lights for an Online Race, ms. */
-export const ROOM_COUNTDOWN_MS = 5000;
+export const ROOM_COUNTDOWN_MS = 6000;
 /** After an Online Race ends, answers already in flight are still let in for this long. */
 export const ROOM_GRACE_MS = 2500;
 

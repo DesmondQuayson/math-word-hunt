@@ -11,8 +11,14 @@ import {
 } from "./internal-registry";
 
 describe("trusted internal game registry", () => {
-  it("registers the source-owned CrossCalc, Number Cross, Number Logic, Math Tug of War, Math Bingo Live and Polygon Showdown keys and routes only", () => {
-    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic", "math-tug-of-war", "math-bingo-live", "polygon-showdown"]);
+  it("registers the source-owned CrossCalc, Number Cross, Number Logic, Math Tug of War, Math Bingo Live, Polygon Showdown and Math Race Champions keys and routes only", () => {
+    expect(internalGameKeys()).toEqual(["crosscalc", "number-cross", "number-logic", "math-tug-of-war", "math-bingo-live", "polygon-showdown", "math-race-champions"]);
+    expect(getInternalGameRegistration("math-race-champions")).toMatchObject({
+      stableKey: "math-race-champions",
+      route: "/games/math-race-champions/play",
+      assetBase: "/internal-games/math-race-champions/",
+      connectSource: "'self'"
+    });
     expect(getInternalGameRegistration("polygon-showdown")).toMatchObject({
       stableKey: "polygon-showdown",
       route: "/games/polygon-showdown/play",

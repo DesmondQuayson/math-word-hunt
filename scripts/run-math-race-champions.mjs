@@ -8,6 +8,7 @@
  *   node scripts/run-math-race-champions.mjs demo                  keep the app running for the owner review
  *   node scripts/run-math-race-champions.mjs e2e [playwright args] run e2e/math-race-champions, then stop
  *   node scripts/run-math-race-champions.mjs load [args]           run scripts/math-race-champions-load.mjs against it
+ *   node scripts/run-math-race-champions.mjs thumbnail             capture the catalog artwork from a real race
  *   node scripts/run-math-race-champions.mjs regress-bingo [args]  run the Math Bingo Live suite against this build
  *   node scripts/run-math-race-champions.mjs regress-polygon [args] run the Polygon Showdown suite against this build
  *
@@ -45,7 +46,7 @@ export const ACCOUNTS = Object.freeze({
 // The local stand-in for a school's access code: proves such a session stays a guest.
 const SCHOOL_CODE = "RACE-LOCAL";
 
-const MODES = ["demo", "e2e", "load", "regress-bingo", "regress-polygon"];
+const MODES = ["demo", "e2e", "load", "thumbnail", "regress-bingo", "regress-polygon"];
 const [mode = "demo", ...passThrough] = process.argv.slice(2);
 if (!MODES.includes(mode)) throw new Error(`Unknown mode ${mode}`);
 
@@ -201,7 +202,8 @@ try {
       e2e: [playwright, "test", "--config=playwright.math-race-champions.config.mjs", ...passThrough],
       "regress-bingo": [playwright, "test", "--config=playwright.math-bingo-live.config.mjs", ...passThrough],
       "regress-polygon": [playwright, "test", "--config=playwright.polygon-showdown.config.mjs", ...passThrough],
-      load: [resolve("scripts/math-race-champions-load.mjs"), ...passThrough]
+      load: [resolve("scripts/math-race-champions-load.mjs"), ...passThrough],
+      thumbnail: [resolve("scripts/capture-math-race-champions-thumbnail.mjs"), ...passThrough]
     }[mode];
     const child = spawn(process.execPath, command, { env: shared, stdio: "inherit" });
     [exitCode] = await once(child, "exit");

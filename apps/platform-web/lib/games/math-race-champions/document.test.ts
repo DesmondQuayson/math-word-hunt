@@ -15,7 +15,7 @@ function staticGraph(entry: string, seen = new Set<string>()): Set<string> {
   if (seen.has(entry)) return seen;
   seen.add(entry);
   const folder = entry.split("/").slice(0, -1);
-  for (const match of source(entry).matchAll(/^import\s[^;]*?from\s+"(\.[^"]+)";/gms)) {
+  for (const match of source(entry).matchAll(/^import\s[^;]*?from\s+"(\.[^"]+)";/gm)) {
     const parts = [...folder];
     for (const piece of match[1]!.split("/")) {
       if (piece === "..") parts.pop();
@@ -80,14 +80,14 @@ describe("the runtime", () => {
     }
   });
 
-  it("loads the 3D library only through dynamic imports, from the race screen and the garage", () => {
+  it("loads the 3D library only through dynamic imports: the race screen, the garage, and a warm-up in the lobby", () => {
     const users = files
       .map((path) => path.replace(/\\/g, "/").split("/math-race-champions/src/")[1])
       .filter((name): name is string => Boolean(name) && !name.startsWith("scene3d/") && /scene3d\//.test(source(name)));
-    expect(users.sort()).toEqual(["computer/garage.js", "race/race-screen.js"]);
+    expect(users.sort()).toEqual(["computer/garage.js", "online/lobby.js", "race/race-screen.js"]);
     for (const name of users) {
       expect(source(name)).not.toMatch(/^import [^;]*scene3d\//m);
-      expect(source(name)).toMatch(/import\("\.\.\/scene3d\/quality\.js"\)/);
+      expect(source(name)).toMatch(/import\("\.\.\/scene3d\/(quality|world)\.js"\)/);
     }
     for (const name of ["race/drivers.js", "computer/stages.js", "computer/start.js", "online/lobby.js", "online/online-driver.js", "online/create.js", "progress.js", "palette.js"]) {
       expect([...staticGraph(name)].filter((item) => /vendor\/three|scene3d\//.test(item)), name).toEqual([]);

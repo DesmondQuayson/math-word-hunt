@@ -176,6 +176,9 @@ export function mount(root, context, params) {
     )
   );
   render();
+  // Everyone shares one start, so the 3D code is fetched now, while waiting,
+  // rather than during the countdown. Failing to fetch it changes nothing.
+  import("../scene3d/world.js").catch(() => {});
   if (room.phase !== "LOBBY") goRace();
   else timer = setTimeout(poll, 600);
 

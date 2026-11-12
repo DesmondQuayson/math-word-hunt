@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FREE_GAME_DESTINATIONS, POST_AUTH_DESTINATION, destinationLabel, isFreeGameDestination, safeAccessIntentDestination, safeProductDestination } from "@/lib/auth/access-intent";
 import { safeInternalRedirect } from "@/lib/auth/safe-redirect";
 
-import { MATH_BINGO_LIVE_HOST_ROUTE, MATH_TUG_OF_WAR_PLAY_ROUTE, POLYGON_SHOWDOWN_PLAY_ROUTE, freeGameKeyForSlug, freeGamePlayRoute, gameAccessPolicy, isFreeToPlayGame } from "./access-policy";
+import { MATH_BINGO_LIVE_HOST_ROUTE, MATH_RACE_CHAMPIONS_PLAY_ROUTE, MATH_TUG_OF_WAR_PLAY_ROUTE, POLYGON_SHOWDOWN_PLAY_ROUTE, freeGameKeyForSlug, freeGamePlayRoute, gameAccessPolicy, isFreeToPlayGame } from "./access-policy";
 import { internalGameKeys } from "./internal-registry";
 
 const mocks = vi.hoisted(() => ({
@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 describe("game access classification", () => {
-  it("only Math Tug of War, Math Bingo Live and Polygon Showdown are authenticated-free; every other game (and anything unknown) stays entitled", () => {
+  it("only Math Tug of War, Math Bingo Live, Polygon Showdown and Math Race Champions are authenticated-free; every other game (and anything unknown) stays entitled", () => {
     expect(gameAccessPolicy("math-tug-of-war")).toBe("authenticated-free");
     expect(gameAccessPolicy("math-bingo-live")).toBe("authenticated-free");
     expect(freeGamePlayRoute("math-bingo-live")).toBe(MATH_BINGO_LIVE_HOST_ROUTE);
@@ -56,7 +56,11 @@ describe("game access classification", () => {
     expect(gameAccessPolicy("polygon-showdown")).toBe("authenticated-free");
     expect(freeGamePlayRoute("polygon-showdown")).toBe(POLYGON_SHOWDOWN_PLAY_ROUTE);
     expect(internalGameKeys()).toContain("polygon-showdown");
-    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war" && key !== "math-bingo-live" && key !== "polygon-showdown"), "math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "unknown", "__proto__", "constructor"]) {
+    expect(gameAccessPolicy("math-race-champions")).toBe("authenticated-free");
+    expect(freeGamePlayRoute("math-race-champions")).toBe(MATH_RACE_CHAMPIONS_PLAY_ROUTE);
+    expect(freeGameKeyForSlug("math-race-champions")).toBe("math-race-champions");
+    expect(internalGameKeys()).toContain("math-race-champions");
+    for (const key of [...internalGameKeys().filter((key) => key !== "math-tug-of-war" && key !== "math-bingo-live" && key !== "polygon-showdown" && key !== "math-race-champions"), "math-vocabulary-hunt", "number-cross", "number-logic", "crosscalc", "unknown", "__proto__", "constructor"]) {
       expect(gameAccessPolicy(key), key).toBe("entitled");
       expect(isFreeToPlayGame(key), key).toBe(false);
       expect(freeGameKeyForSlug(key), key).toBeNull();
@@ -66,7 +70,9 @@ describe("game access classification", () => {
   });
 
   it("the free game's route is an exact server-owned return destination, but never a product/subscription destination", () => {
-    expect(FREE_GAME_DESTINATIONS).toEqual([MATH_TUG_OF_WAR_PLAY_ROUTE, MATH_BINGO_LIVE_HOST_ROUTE, POLYGON_SHOWDOWN_PLAY_ROUTE]);
+    expect(FREE_GAME_DESTINATIONS).toEqual([MATH_TUG_OF_WAR_PLAY_ROUTE, MATH_BINGO_LIVE_HOST_ROUTE, POLYGON_SHOWDOWN_PLAY_ROUTE, MATH_RACE_CHAMPIONS_PLAY_ROUTE]);
+    expect(destinationLabel(MATH_RACE_CHAMPIONS_PLAY_ROUTE)).toBe("Math Race Champions");
+    expect(safeProductDestination(MATH_RACE_CHAMPIONS_PLAY_ROUTE)).toBe("/games");
     expect(destinationLabel(POLYGON_SHOWDOWN_PLAY_ROUTE)).toBe("Polygon Showdown");
     expect(safeAccessIntentDestination(MATH_BINGO_LIVE_HOST_ROUTE)).toBe(MATH_BINGO_LIVE_HOST_ROUTE);
     expect(destinationLabel(MATH_BINGO_LIVE_HOST_ROUTE)).toBe("Math Bingo Live");

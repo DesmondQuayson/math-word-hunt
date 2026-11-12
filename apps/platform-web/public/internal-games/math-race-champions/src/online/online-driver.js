@@ -98,6 +98,8 @@ export function onlineDriver({ room: first, seat, clock = createServerClock() })
     settings: room.settings,
     isCreator: room.me.isCreator === true,
     raceMs,
+    /** The one start time everybody in the room was given, on the server's clock. */
+    startsAtMs: () => room.startsAtMs,
     state: () => room.me.state,
     question: () => (result ? null : room.question),
     rivals: at => room.standings.filter(row => row.id !== room.me.id).map(row => rivalView(row, at)),
