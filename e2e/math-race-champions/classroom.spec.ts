@@ -189,7 +189,17 @@ test.describe("Classroom Competition on a Smart Board", () => {
     await button.dispatchEvent("pointerdown", { pointerId: 5, pointerType: "touch", isPrimary: true, button: 0 });
     await button.dispatchEvent("pointerdown", { pointerId: 5, pointerType: "touch", isPrimary: true, button: 0 });
     await button.dispatchEvent("click");
-    await page.waitForTimeout(700);
+    // Wait for Pink's next question to be up and its buttons awake (a slow machine takes longer than a fixed pause).
+    await page.waitForFunction(
+      (previous) => {
+        const hook = (window as unknown as { __MATH_RACE__: { classroom: { match: { team(team: string): { question: { key: string } } } } } }).__MATH_RACE__.classroom.match;
+        const pinkButton = document.querySelector<HTMLButtonElement>('.cr-choice[data-team="pink"]');
+        return hook.team("pink").question.key !== previous && pinkButton !== null && !pinkButton.disabled;
+      },
+      state.key,
+      { timeout: 15_000, polling: 50 }
+    );
+    await page.waitForTimeout(300);
     expect((await teamState(page, "pink")).position).toBe(1);
 
     // Two fingers, two teams, one event-loop turn.
@@ -205,6 +215,14 @@ test.describe("Classroom Competition on a Smart Board", () => {
       },
       [turquoise.correctIndex, pink.correctIndex] as const
     );
+    await page.waitForFunction(
+      ([left, right]) => {
+        const hook = (window as unknown as { __MATH_RACE__: { classroom: { match: { team(team: string): { position: number } } } } }).__MATH_RACE__.classroom.match;
+        return hook.team("turquoise").position > left || hook.team("pink").position > right;
+      },
+      [turquoise.position, pink.position] as const,
+      { timeout: 15_000, polling: 50 }
+    ).catch(() => {});
     await page.waitForTimeout(700);
     expect((await teamState(page, "turquoise")).position).toBe(turquoise.position + 1);
     expect((await teamState(page, "pink")).position).toBe(pink.position + 1);
