@@ -336,6 +336,17 @@ async function transition(target) {
   evidence.otherGames = sql(`select string_agg(stable_key || ':' || status, ',' order by stable_key) as games from public.game_catalog_entries where stable_key <> '${GAME_KEY}'`)[0].games;
 }
 
+/** Read-only: what the staging database is doing right now (sessions that are not idle, and who is waiting on whom). */
+async function activity() {
+  const sql = querier(connect());
+  evidence.sessions = sql(`select pid, usename, state, wait_event_type, wait_event, round(extract(epoch from (now() - xact_start)))::int as xact_seconds, round(extract(epoch from (now() - state_change)))::int as state_seconds, left(regexp_replace(query, '\\s+', ' ', 'g'), 140) as query
+    from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and (state <> 'idle' or xact_start is not null) order by xact_start nulls last limit 30`);
+  evidence.blocked = sql(`select blocked.pid as blocked_pid, blocking.pid as blocking_pid, blocking.state as blocking_state, round(extract(epoch from (now() - blocking.xact_start)))::int as blocking_xact_seconds, left(regexp_replace(blocking.query, '\\s+', ' ', 'g'), 140) as blocking_query, left(regexp_replace(blocked.query, '\\s+', ' ', 'g'), 100) as blocked_query
+    from pg_stat_activity blocked join lateral unnest(pg_blocking_pids(blocked.pid)) as b(pid) on true join pg_stat_activity blocking on blocking.pid = b.pid limit 20`);
+  evidence.joinLimiter = sql("select count(*)::int as rows, coalesce(max(failures), 0)::int as most_failures, count(*) filter (where window_started_at > now() - interval '10 minutes')::int as recent from public.bingo_join_failures")[0];
+  evidence.connections = sql("select count(*)::int as total, count(*) filter (where state = 'idle in transaction')::int as idle_in_transaction, count(*) filter (where state = 'active')::int as active from pg_stat_activity where datname = current_database()")[0];
+}
+
 /** STAGING only: synthetic rooms left by a run that was stopped before its own clean-up. */
 async function sweep() {
   const sql = querier(connect());
@@ -411,6 +422,7 @@ try {
   else if (stage === "privileges") await privileges();
   else if (stage === "smoke") await smoke();
   else if (stage === "sweep") await sweep();
+  else if (stage === "activity") await activity();
   else if (stage === "publish") await transition("published");
   else if (stage === "unpublish") await transition("draft");
   else throw new Error("usage: --stage=identify|migrate|verify|privileges|smoke|publish|unpublish");

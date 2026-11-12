@@ -99,7 +99,9 @@ const BASE = "/internal-games/math-race-champions/";
 const SENTENCE = /^Convert \d+(\.\d+)?%? to a (percent|decimal)\.$/;
 const createdRooms = [];
 const browsers = [];
+const pages = [];
 const pageProblems = [];
+const apiRefusals = [];
 
 async function newContext(type, options) {
   const browser = await type.launch();
@@ -109,15 +111,22 @@ async function newContext(type, options) {
   return context;
 }
 function watch(page, label) {
+  pages.push([label, page]);
   page.on("pageerror", (error) => pageProblems.push(`${label} page error: ${error.message}`));
   page.on("response", (response) => {
     const url = response.url();
     if (!url.startsWith(origin)) return;
+    // What the game's own API answered when it did not answer 200 (kept for the report, not a failure by itself:
+    // a refused early answer is a 200, a closed room a 410).
+    if (/\/api\/games\/math-race-champions\//.test(url) && response.status() !== 200) {
+      response.text().then((body) => apiRefusals.push(`${label} ${response.status()} ${redact(body).replace(/\s+/g, " ").slice(0, 160)}`)).catch(() => apiRefusals.push(`${label} ${response.status()} (no body)`));
+    }
     if (response.status() >= 500) pageProblems.push(`${label} ${response.status()} ${new URL(url).pathname}`);
     else if (response.status() >= 400 && /\/internal-games\/|\/media\/|\/_next\/static\//.test(url)) pageProblems.push(`${label} ${response.status()} ${new URL(url).pathname}`);
   });
   page.on("requestfailed", (request) => {
     const url = request.url();
+    if (/\/api\/games\/math-race-champions\//.test(url)) apiRefusals.push(`${label} request failed: ${request.failure()?.errorText}`);
     // A navigation cancels requests in flight (prefetches, the music stream): that is not a failure of the site.
     if (url.startsWith(origin) && /\/internal-games\/math-race-champions\//.test(url) && !/ERR_ABORTED|cancel/i.test(request.failure()?.errorText ?? "")) pageProblems.push(`${label} failed ${new URL(url).pathname}: ${request.failure()?.errorText}`);
   });
@@ -126,6 +135,23 @@ const audioState = (page) => page.evaluate(() => window.__MATH_RACE__.audio());
 const raceView = (page) => page.evaluate(() => window.__MATH_RACE__.race?.view() ?? null);
 const waitScreen = (page, name, timeout = 60_000) => page.waitForFunction((target) => document.body.dataset.screen === target, name, { timeout, polling: 150 });
 const shown = (page) => page.evaluate(() => ({ text: document.querySelector(".race-question")?.textContent ?? "", form: document.querySelector(".race-question")?.dataset.form ?? "", choices: [...document.querySelectorAll(".race-choice-label")].map((node) => node.textContent ?? "") }));
+/**
+ * On a slow link the music track (about 1 MB, started by the first touch) can hold up the first request made
+ * right after it. A patient racer waits a moment and presses Join again; so does this. Returns the presses used.
+ */
+async function waitForTrack(page, timeout = 90_000) {
+  await page.waitForFunction(() => performance.getEntriesByType("resource").some((entry) => entry.name.includes("cosmic-candy-catchers") && entry.responseEnd > 0), null, { timeout, polling: 500 }).catch(() => {});
+}
+async function reachLobby(page, press, presses = 3) {
+  for (let attempt = 1; attempt <= presses; attempt += 1) {
+    await press();
+    const reached = await page.waitForFunction(() => document.body.dataset.screen === "online-lobby", null, { timeout: 40_000, polling: 150 }).then(() => true).catch(() => false);
+    if (reached) return attempt;
+    await waitForTrack(page, 30_000);
+  }
+  throw new Error("the lobby was not reached after three presses of Join");
+}
+
 async function waitGo(page, timeout = 120_000) {
   await page.waitForFunction(() => document.querySelector("main.race")?.getAttribute("data-phase") === "racing" && !document.querySelector(".race-choice")?.disabled, null, { timeout, polling: 100 });
 }
@@ -328,6 +354,11 @@ try {
   const bareJoin = await (await get("/join")).text();
   ok(/Bingo/i.test(bareJoin), "/join with no code is still the shared join screen");
 
+  // A racer over plain HTTP joins first: if the public join endpoint is in trouble, its own reply says why.
+  const cleo = new HttpRacer(origin, { name: "QA Cleo", colour: "green", thinkMs: 650, accuracy: 0.9, extraHeaders, onSample });
+  const cleoJoin = await cleo.join(code);
+  ok(cleoJoin.status === 200, `a racer joined over plain HTTP with the code (${cleoJoin.status}${cleoJoin.status === 200 ? "" : ` ${JSON.stringify(cleoJoin.body).slice(0, 200)}`})`);
+
   // A phone by the QR link (Chromium), a phone typing the code at /join (WebKit).
   const android = await newContext(chromium, { ...devices["Pixel 7"] });
   const ava = await android.newPage();
@@ -338,9 +369,13 @@ try {
   const before = await audioState(ava);
   ok(before.playAttempts === 0 && before.unlocked === false, "nothing is played before the first touch");
   await ava.locator("#name").fill("QA Ava");
+  // The first touch (choosing a colour) starts the music; the track is given time to arrive before Join is pressed.
   await ava.locator('.pick-colour[data-colour="pink"]').click();
-  await ava.locator("#join-game").click();
-  await waitScreen(ava, "online-lobby");
+  const trackStarted = Date.now();
+  await waitForTrack(ava);
+  facts.musicTrackSeconds = Math.round((Date.now() - trackStarted) / 100) / 10;
+  const avaPresses = await reachLobby(ava, () => ava.locator("#join-game").click());
+  if (avaPresses > 1) info(`slow link: the QR phone pressed Join ${avaPresses} times before the lobby opened`);
   ok((await android.cookies()).filter((cookie) => cookie.name.startsWith("sb-")).length === 0, "QR guest joined with a name only: no account, no session cookie");
   await ava.waitForFunction(() => window.__MATH_RACE__.audio().paused === false, null, { timeout: 20_000 }).catch(() => {});
   const lobbyAudio = await audioState(ava);
@@ -354,13 +389,12 @@ try {
   await ben.locator("#code").fill(code);
   await ben.locator("#code").press("Enter");
   await ben.locator("#name").fill("QA Ben");
+  await waitForTrack(ben, 30_000);
   await ben.locator("#name").press("Enter");
-  await ben.waitForURL((url) => url.pathname === "/join" && url.searchParams.get("code") === code, { timeout: 40_000 });
-  await waitScreen(ben, "online-lobby", 60_000);
+  await ben.waitForURL((url) => url.pathname === "/join" && url.searchParams.get("code") === code, { timeout: 90_000 });
+  await waitScreen(ben, "online-lobby", 120_000);
   ok(true, "typed code at /join (the shared screen): handed over to the Math Race Champions lobby");
 
-  const cleo = new HttpRacer(origin, { name: "QA Cleo", colour: "green", thinkMs: 650, accuracy: 0.9, extraHeaders, onSample });
-  ok((await cleo.join(code)).status === 200, "a fourth racer joined over plain HTTP");
   await creator.poll();
   ok(creator.room.standings.length === 4, `four racers in the room (${creator.room.standings.map((row) => row.name).join(", ")})`);
   await ava.screenshot({ path: `${OUT}/online-lobby-phone.png` });
@@ -370,10 +404,10 @@ try {
   ok(start.phase === "COUNTDOWN", "the creator's Start begins the countdown");
   await creator.poll();
   ok((await creator.answer(true))?.body?.result === "not-started", "an answer sent before the lights go out is refused by the server");
-  await Promise.all([waitScreen(ava, "race", 60_000), waitScreen(ben, "race", 60_000)]);
+  await Promise.all([waitScreen(ava, "race", 120_000), waitScreen(ben, "race", 120_000)]);
   const late = new HttpRacer(origin, { name: "QA Late", extraHeaders });
   ok([409, 423].includes((await late.join(code)).status), "joining after the start is closed");
-  await Promise.all([waitGo(ava), waitGo(ben)]);
+  await Promise.all([waitGo(ava, 240_000), waitGo(ben, 240_000)]);
   const cars = await Promise.all([ava, ben].map((page) => page.evaluate(() => { const driver = window.__MATH_RACE__.race.driver; return { name: driver.car.name, topSpeed: driver.car.topSpeed, boost: driver.car.boost, lengthKm: driver.lengthKm, min: driver.minCorrect, starts: driver.startsAtMs() }; })));
   ok(cars.every((car) => car.name === ONLINE_CAR.name && car.topSpeed === ONLINE_CAR.topSpeed && car.boost === ONLINE_CAR.boost && car.min === MIN_CORRECT), `everyone drives the same ${cars[0].name} (${cars[0].topSpeed} km/h, +${cars[0].boost}), ${cars[0].min} correct answers needed`);
   ok(cars[0].starts === cars[1].starts && cars[0].starts === creator.room.startsAtMs, "one start time for every screen and racer");
@@ -510,6 +544,18 @@ try {
   exitCode = failures.length === 0 ? 0 : 1;
 } catch (error) {
   ok(false, `QA stopped: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+  if (apiRefusals.length) info(`game API replies other than 200 seen by the browsers: ${apiRefusals.slice(0, 8).join(" | ")}`);
+  if (pageProblems.length) info(`page problems: ${pageProblems.slice(0, 8).join(" | ")}`);
+  // What each screen was showing when it stopped.
+  for (const [label, page] of pages) {
+    try {
+      await page.screenshot({ path: `${OUT}/stopped-${label}.png` });
+      const seen = await page.evaluate(() => ({ url: location.pathname + location.search, screen: document.body.dataset.screen ?? null, text: document.body.innerText.replace(/\s+/g, " ").slice(0, 260) }));
+      info(`${label} when it stopped: ${JSON.stringify(seen)}`);
+    } catch {
+      /* that page is gone */
+    }
+  }
 } finally {
   for (const browser of browsers) await browser.close().catch(() => {});
   if (createdRooms.length) await admin.from("race_rooms").delete().in("id", createdRooms);

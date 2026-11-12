@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'sweep', 'publish', 'unpublish', 'load', 'review', 'qa')] [string]$Stage = 'identify',
+  [ValidateSet('identify', 'migrate', 'verify', 'privileges', 'smoke', 'sweep', 'activity', 'publish', 'unpublish', 'load', 'review', 'qa')] [string]$Stage = 'identify',
   [string]$Origin = '',
   [string]$ExpectCommit = '',
   [string]$Players = '10,20,30,40,50',
@@ -66,7 +66,8 @@ try {
     $env:REVIEW_ARGS = $ReviewArgs
     if ($Stage -eq 'qa') {
       $env:QA_OUT = $Out
-      & node --no-warnings scripts/qa-math-race-champions-production.mjs
+      $qaScript = if ($env:RACE_QA_SCRIPT) { $env:RACE_QA_SCRIPT } else { 'scripts/qa-math-race-champions-production.mjs' }
+      & node --no-warnings $qaScript
       exit $LASTEXITCODE
     }
     if ($Stage -eq 'load') {
