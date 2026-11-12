@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { parseConversion } from "../../apps/platform-web/public/internal-games/math-race-champions/src/engine/questions.js";
 import { HttpRacer } from "../../scripts/math-race-champions-racer.mjs";
-import { BASE_URL, CREATOR, OWNER, PAGE_ERRORS, answer, assertNoHorizontalScroll, evidence, newPage, openClassroom, raceAnswer, raceView, shownQuestion, signIn, solve, teamState, waitForGo, waitForScreen, type Team } from "./helpers";
+import { BASE_URL, CREATOR, HTTP_RACER_HEADERS, OWNER, PAGE_ERRORS, answer, assertNoHorizontalScroll, evidence, newPage, openClassroom, raceAnswer, raceView, shownQuestion, signIn, solve, teamState, waitForGo, waitForScreen, type Team } from "./helpers";
 
 // Owner, 2026-11-12: a conversion is asked in words, one fixed sentence each way.
 const TO_PERCENT = /^Convert \d+(\.\d+)? to a percent\.$/;
@@ -175,7 +175,7 @@ test.describe("conversion questions are asked in words", () => {
     await guest.page.locator("#join-game").click();
     await waitForScreen(guest.page, "online-lobby");
 
-    const remote = new HttpRacer(BASE_URL, { name: "Cleo", colour: "green", thinkMs: 600, accuracy: 1 });
+    const remote = new HttpRacer(BASE_URL, { name: "Cleo", colour: "green", thinkMs: 600, accuracy: 1, extraHeaders: HTTP_RACER_HEADERS });
     expect((await remote.join(code)).status).toBe(200);
     await expect(creator.page.locator(".player")).toHaveCount(3, { timeout: 20_000 });
 

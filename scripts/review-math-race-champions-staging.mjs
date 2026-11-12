@@ -80,7 +80,10 @@ try {
     RACE_ACCOUNTS: JSON.stringify(accounts),
     RACE_EVIDENCE_DIR: process.env.REVIEW_OUT || "qa-artifacts/math-race-champions/staging-evidence",
     SUPABASE_TEST_URL: supabaseUrl,
-    SUPABASE_TEST_SECRET_KEY: secretKey
+    SUPABASE_TEST_SECRET_KEY: secretKey,
+    // The tests' plain-HTTP racers (Node fetch, no browser, no cookie jar) need the bypass as a header to reach the
+    // protected preview. It goes to the test process only, and those racers send it only to the preview origin.
+    RACE_HTTP_HEADERS: JSON.stringify(protection.headersFor(`${origin}/api/games/math-race-champions/play`))
   };
   delete env.VERCEL_AUTOMATION_BYPASS_SECRET;
   delete env.SUPABASE_DB_PASSWORD;

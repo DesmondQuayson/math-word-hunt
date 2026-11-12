@@ -11,6 +11,11 @@ export const EVIDENCE_DIR = process.env.RACE_EVIDENCE_DIR ?? "qa-artifacts/math-
 /** A hosted staging preview (scripts/review-math-race-champions-staging.mjs): Vercel's bypass cookie comes in a storage state, and sign-ins after the first are minted. */
 export const STAGING = process.env.RACE_STAGING === "1";
 const STORAGE_STATE = process.env.RACE_STORAGE_STATE;
+/**
+ * Headers for the tests' own plain-HTTP racers. Empty locally. On a protected staging preview the review script
+ * supplies the preview's protection bypass here; it is sent only by this Node process, only to the preview.
+ */
+export const HTTP_RACER_HEADERS: Record<string, string> = JSON.parse(process.env.RACE_HTTP_HEADERS ?? "{}");
 
 type Account = { email: string; password: string };
 const accounts = JSON.parse(process.env.RACE_ACCOUNTS ?? "{}") as Record<string, Account>;

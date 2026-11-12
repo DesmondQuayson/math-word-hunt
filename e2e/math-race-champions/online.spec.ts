@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { encodeQr, qrPath } from "../../apps/platform-web/public/internal-games/math-bingo-live/src/engine/qr.js";
 import { HttpRacer } from "../../scripts/math-race-champions-racer.mjs";
-import { BASE_URL, CREATOR, PAGE_ERRORS, adminClient, evidence, newPage, raceAnswer, raceFinished, signIn, waitForScreen } from "./helpers";
+import { BASE_URL, CREATOR, HTTP_RACER_HEADERS, PAGE_ERRORS, adminClient, evidence, newPage, raceAnswer, raceFinished, signIn, waitForScreen } from "./helpers";
 
 test.afterEach(() => {
   expect(PAGE_ERRORS).toEqual([]);
@@ -88,12 +88,12 @@ test.describe("Online Race", () => {
     await waitForScreen(ben.page, "online-lobby", 60_000);
 
     // ---- Two more racers over plain HTTP (they play exactly the same API) ----
-    const cleo = new HttpRacer(BASE_URL, { name: "Cleo", colour: "green", thinkMs: 420, accuracy: 1 });
-    const dev = new HttpRacer(BASE_URL, { name: "Dev", colour: "purple", thinkMs: 800, accuracy: 0.9 });
+    const cleo = new HttpRacer(BASE_URL, { name: "Cleo", colour: "green", thinkMs: 420, accuracy: 1, extraHeaders: HTTP_RACER_HEADERS });
+    const dev = new HttpRacer(BASE_URL, { name: "Dev", colour: "purple", thinkMs: 800, accuracy: 0.9, extraHeaders: HTTP_RACER_HEADERS });
     expect((await cleo.join(code)).status).toBe(200);
     expect((await dev.join(code)).status).toBe(200);
     // A second "Ava" gets a distinct name, never the first one's seat.
-    const twin = new HttpRacer(BASE_URL, { name: "Ava", colour: "red" });
+    const twin = new HttpRacer(BASE_URL, { name: "Ava", colour: "red", extraHeaders: HTTP_RACER_HEADERS });
     await twin.join(code);
     expect(twin.room.me.name).toBe("Ava 2");
 
@@ -106,7 +106,7 @@ test.describe("Online Race", () => {
     expect((await twin.poll()).status).toBe(410);
     await creator.page.getByRole("button", { name: "Lock joining" }).click();
     await expect(creator.page.getByRole("button", { name: "Unlock joining" })).toBeVisible({ timeout: 20_000 });
-    const late = new HttpRacer(BASE_URL, { name: "Late" });
+    const late = new HttpRacer(BASE_URL, { name: "Late", extraHeaders: HTTP_RACER_HEADERS });
     expect((await late.join(code)).status).toBe(423);
     // A guest cannot command the room: a seat token is not a host token, and a host command needs the creator's session.
     const hijack = await ava.page.evaluate(async () => {
@@ -246,7 +246,7 @@ test.describe("Online Race", () => {
     await expect(page).toHaveTitle(/Bingo/i);
     expect((await adminClient().rpc("live_room_game_for_code", { p_code: "999999" })).data).toBeNull();
     // Typing an unknown code on the race's own join API is an ordinary "not found".
-    const racer = new HttpRacer(BASE_URL, { name: "Nobody" });
+    const racer = new HttpRacer(BASE_URL, { name: "Nobody", extraHeaders: HTTP_RACER_HEADERS });
     expect((await racer.join("999999")).status).toBe(404);
     expect((await racer.join("12")).status).toBe(400);
     await context.close();
