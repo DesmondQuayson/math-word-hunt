@@ -48,16 +48,17 @@ Screenshots from the automated runs are in `qa-artifacts/math-race-champions/evi
 
 | Check | Result |
 |---|---|
-| Unit tests for this game | UNIT_GAME passed |
-| Whole unit suite (both workspaces) | UNIT_ALL |
+| Unit tests for this game | 232 of 232 passed |
+| Whole unit suite (both workspaces) | platform-core 245 passed; platform-web 1,653 passed, 1 skipped (that skip was there before) |
 | Database tests for this game | 170 of 170 passed |
 | Every database suite, after a clean reset from migrations | 44 files, 1,771 tests, all passed |
 | Rollback, run on the local database | Removed all 10 tables and every function; the other 43 suites still passed; reset restored everything |
 | Browser tests, Chromium | 26 of 26 passed (classroom 9, computer 2, shop 2, guest 2, online 2, devices 9) |
-| Browser tests, WebKit (Safari's engine) | 26 of 26 passed |
+| Browser tests, WebKit (Safari's engine) | 26 of 26 passed: 24 in the final full run, and the other 2 on a re-run after their own timing assumptions were corrected (test files only; no game code changed between) |
 | Math Bingo Live against this build (Chromium) | 7 of 7 passed |
 | Polygon Showdown against this build (Chromium) | 9 of 9 passed |
-| Typecheck, lint | TYPE_LINT |
+| Typecheck, lint | Typecheck clean. Lint: 0 errors (8 warnings, all in an older file this work did not touch) |
+| Security baseline suite, media audit | 326 of 326 passed; media audit passed |
 
 Sizes covered: 320×568, 390×844, 768×1024, 1024×768, 1366×768 and 1920×1080, in both engines, plus keyboard-only and reduced-motion runs.
 

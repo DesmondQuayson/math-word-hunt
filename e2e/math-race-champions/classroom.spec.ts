@@ -147,13 +147,16 @@ test.describe("Classroom Competition on a Smart Board", () => {
       () =>
         new Promise<{ x: number; y: number }[]>((done) => {
           const points: { x: number; y: number }[] = [];
-          const ball = document.querySelector(".cr-team-turquoise .ball-skin")!;
+          const host = document.querySelector<HTMLElement>(".cr-team-turquoise .cr-track")!;
           const started = performance.now();
+          let landedAt = 0;
+          // Sample every frame from before the press until a moment after the ball has landed.
           const tick = () => {
-            const box = ball.getBoundingClientRect();
+            const box = host.querySelector(".ball-skin")!.getBoundingClientRect();
             points.push({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
-            if (performance.now() - started < 700) requestAnimationFrame(tick);
-            else done(points);
+            if (!landedAt && host.dataset.position === "1") landedAt = performance.now();
+            if ((landedAt && performance.now() - landedAt > 150) || performance.now() - started > 8000) done(points);
+            else requestAnimationFrame(tick);
           };
           requestAnimationFrame(tick);
         })

@@ -162,7 +162,7 @@ Mirrors Polygon Showdown.
 
 | Suite | Where | Count |
 |---|---|---:|
-| Unit (engine, model, server, catalog, documents) | `apps/platform-web/lib/games/math-race-champions/*.test.ts` | 231 |
+| Unit (engine, model, server, catalog, documents) | `apps/platform-web/lib/games/math-race-champions/*.test.ts` | 232 |
 | Database (pgTAP) | `supabase/tests/database/43_math_race_champions.test.sql` | 170 |
 | Browser | `e2e/math-race-champions/*.spec.ts` | classroom, computer, shop, online, guest |
 | Load | `scripts/math-race-champions-load.mjs` | 10, 20, 30, 40, 50 racers |

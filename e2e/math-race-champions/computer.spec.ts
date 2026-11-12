@@ -71,7 +71,9 @@ test.describe("Race Computer", () => {
     expect(agreement.marker).toBeCloseTo(agreement.main, 3);
     expect(agreement.text).toBe(`${Math.floor(agreement.main * 100)}%`);
     expect((await raceRivals(page))[0].id).toBe("cpu");
-    expect(agreement.cpu).toBeGreaterThan(0);
+    // The computer is on the map too (it may not have answered yet: it takes about 7 seconds over each question on Stage 1).
+    expect(agreement.cpu).toBeGreaterThanOrEqual(0);
+    expect(agreement.cpu).toBeLessThan(1);
 
     // Race on. Two more deliberate mistakes on the way.
     await raceToFinish(page, { wrong: 2 });
