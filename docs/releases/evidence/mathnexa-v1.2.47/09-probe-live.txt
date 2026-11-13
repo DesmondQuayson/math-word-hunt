@@ -1,0 +1,77 @@
+STEP 2026-11-13T03:12:42.414Z probing the live hosts
+(node:32960) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+LIVE_PROBES {
+  "apexHtmlDeployment": "dpl_DiosYG4hwQRKatbtfS5SoEbyiEwu",
+  "checks": {
+    "apexServesExpected": true,
+    "configuredWebhookHost": true,
+    "apexWebhook": true,
+    "wwwWebhook": true,
+    "health": true,
+    "browserHostRedirects": true,
+    "wwwRedirects": true,
+    "publicPages": true,
+    "productSurfacesRedirect": true,
+    "privateNoStore": true,
+    "adminFailsClosed": true,
+    "schedulerFailsClosed": true,
+    "fixtureAbsent": true,
+    "gameRuntimeDenied": true,
+    "tugRequiresSignIn": true,
+    "tugApiRefusesAnonymous": true,
+    "otherGameStillProtected": true,
+    "forgedAccessDenied": true,
+    "securityHeaders": true,
+    "images": true,
+    "optimizerRefusals": true,
+    "noServerErrors": true
+  },
+  "statuses": {
+    "configuredWebhookHost": "400",
+    "apexWebhook": "400",
+    "wwwWebhook": "308 -> https://mathnexa.com/api/billing/webhook",
+    "health": "200",
+    "configuredHostHealth": "200",
+    "browserHostStillRedirects": "308 -> https://mathnexa.com/pricing",
+    "www": "308 -> https://mathnexa.com/",
+    "home": "200",
+    "signIn": "200",
+    "signUp": "200",
+    "access": "200",
+    "pricing": "307 -> /access?next=/subscription",
+    "games": "307 -> /access?next=/games",
+    "mapPrep": "307 -> /access?next=/map-prep",
+    "homework": "307 -> /access?next=/homework",
+    "quizzes": "307 -> /access?next=/quizzes",
+    "account": "307 -> /access?next=/account",
+    "subscription": "307 -> /access?next=/subscription",
+    "gameAccess": "307 -> /sign-in?next=/game-access",
+    "admin": "404",
+    "adminSignIn": "200",
+    "scheduler": "401",
+    "fixtureRoute": "404",
+    "gameRuntime": "401",
+    "forgedAccess": "307 -> /access?next=/games",
+    "tugRoute": "307 -> /access?next=/games/math-tug-of-war/play",
+    "tugApi": "401",
+    "otherGameRoute": "307 -> /access?next=/games"
+  },
+  "images": {
+    "brandMark": "200 image/png 12164B",
+    "icon": "200 image/png 17559B",
+    "thumbnailAvif": "200 image/avif 18194B",
+    "thumbnailWebp": "200 image/webp 28066B",
+    "vocabularyWebp": "200 image/webp 104550B",
+    "crosscalcSvg": "200 image/svg+xml 4570B",
+    "tugWebp": "200 image/webp 44952B",
+    "optimizerIcon": "200 image/webp 2502B",
+    "optimizerBrand": "200 image/webp 5974B",
+    "optimizerThumbnailWebp": "200 image/webp 4854B",
+    "optimizerThumbnailAvif": "200 image/avif 18194B",
+    "optimizerRemote": "400 text/plain; charset=utf-8 84B",
+    "optimizerTraversal": "400 text/plain; charset=utf-8 84B"
+  }
+}
+PASS probe-live
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-probe-live-1794539583531.json

@@ -1,0 +1,25 @@
+{
+  "window": [
+    "2026-11-13T03:39:23.797Z",
+    "2026-11-13T03:39:38.592Z"
+  ],
+  "rows": 50,
+  "deployment": [
+    "dpl_DiosYG4hwQRKatbtfS5SoEbyiEwu"
+  ],
+  "byStatus": {
+    "200": 50
+  },
+  "byLevel": {
+    "info": 50
+  },
+  "raceAndJoin": {
+    "api/play 200": 50
+  },
+  "filters": {
+    "5xx": 0,
+    "error": 0,
+    "fatal": 0,
+    "warning": 0
+  }
+}

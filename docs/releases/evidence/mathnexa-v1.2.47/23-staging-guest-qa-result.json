@@ -1,0 +1,371 @@
+{
+  "target": "staging preview",
+  "at": "2026-11-13T03:34:31.923Z",
+  "passed": 100,
+  "total": 101,
+  "failures": [
+    "every finisher has 30 correct answers or more (QA Creator 220)"
+  ],
+  "facts": {
+    "health": {
+      "status": "ready",
+      "environment": "production-platform",
+      "build": "0f1cec5",
+      "searchIndexing": "enabled",
+      "payments": "test"
+    },
+    "catalog": {
+      "status": "published",
+      "title": "Math Race Champions",
+      "description": "Solve math problems, race 3D cars, challenge the computer, or compete with friends.",
+      "thumbnail_reference": "builtin:math-race-champions"
+    },
+    "homepage-390x844": {
+      "games": [
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa-platform-staging-ajl1j6oar-bright-path-ed-tech.vercel.app/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=dpl_7NJ86fVJFqE1KuwgSrFgXwTiFLhC",
+      "width": 173,
+      "height": 311,
+      "rowWidths": [
+        173,
+        173
+      ],
+      "rowHeights": [
+        311,
+        311
+      ],
+      "allWidths": [
+        173,
+        173
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-768x1024": {
+      "games": [
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa-platform-staging-ajl1j6oar-bright-path-ed-tech.vercel.app/_next/image?url=/media/games/math-race-champions.webp&w=256&q=75&dpl=dpl_7NJ86fVJFqE1KuwgSrFgXwTiFLhC",
+      "width": 222,
+      "height": 313,
+      "rowWidths": [
+        222,
+        222
+      ],
+      "rowHeights": [
+        313,
+        313
+      ],
+      "allWidths": [
+        222,
+        222
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1024x768": {
+      "games": [
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa-platform-staging-ajl1j6oar-bright-path-ed-tech.vercel.app/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_7NJ86fVJFqE1KuwgSrFgXwTiFLhC",
+      "width": 307,
+      "height": 361,
+      "rowWidths": [
+        307,
+        307
+      ],
+      "rowHeights": [
+        361,
+        361
+      ],
+      "allWidths": [
+        307,
+        307
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1366x768": {
+      "games": [
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa-platform-staging-ajl1j6oar-bright-path-ed-tech.vercel.app/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_7NJ86fVJFqE1KuwgSrFgXwTiFLhC",
+      "width": 281,
+      "height": 346,
+      "rowWidths": [
+        281,
+        281
+      ],
+      "rowHeights": [
+        346,
+        346
+      ],
+      "allWidths": [
+        281,
+        281
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "homepage-1920x1080": {
+      "games": [
+        "math-tug-of-war",
+        "math-race-champions"
+      ],
+      "present": true,
+      "title": "Math Race Champions",
+      "badge": "Free",
+      "blurb": "Solve math, race 3D cars, beat the computer or your friends.",
+      "category": "FreeRacing",
+      "linkText": "Play Free Math Race Champions",
+      "linkName": "Play Free Math Race Champions",
+      "href": "/games/math-race-champions/play",
+      "links": 1,
+      "imageLoaded": true,
+      "imageSource": "https://mathnexa-platform-staging-ajl1j6oar-bright-path-ed-tech.vercel.app/_next/image?url=/media/games/math-race-champions.webp&w=384&q=75&dpl=dpl_7NJ86fVJFqE1KuwgSrFgXwTiFLhC",
+      "width": 281,
+      "height": 346,
+      "rowWidths": [
+        281,
+        281
+      ],
+      "rowHeights": [
+        346,
+        346
+      ],
+      "allWidths": [
+        281,
+        281
+      ],
+      "overflow": 0,
+      "sectionLinks": [
+        "/games/math-tug-of-war/play",
+        "/games/math-race-champions/play",
+        "/math-games"
+      ]
+    },
+    "mathGames": {
+      "named": true,
+      "link": true,
+      "linkText": "Play Free Math Race Champions",
+      "cardText": "FREE WITH A MATHNEXA ACCOUNT · GRADES 3–8\n\nMath Race Champions\n\nSolve math problems, race 3D cars, challenge the computer, or compete with friends.\n\ndecimal to percentage\nevaluating powers\nmissing addend\nmissing divisor\nmissing multiplier\nmissing subtrahend\npercentage to decimal\nPlay Free\nMath Race Champions",
+      "others": [
+        "Math Tug of War",
+        "Math Vocabulary Hunt"
+      ],
+      "overflow": 0
+    },
+    "musicTrackSeconds": 0.5,
+    "raceAudio": {
+      "source": "/media/audio/cosmic-candy-catchers.mp3",
+      "paused": false,
+      "loop": true,
+      "volume": 0.11000000000000001,
+      "musicRoute": "graph",
+      "routeHeard": "yes",
+      "duck": 0.55,
+      "playAttempts": 1,
+      "unlocked": true,
+      "contextState": "running",
+      "error": null,
+      "disposed": false,
+      "voices": 0,
+      "race": {
+        "car": "circuit-standard",
+        "sounding": true,
+        "profile": "circuit-standard",
+        "starts": 1,
+        "ending": false,
+        "oneShots": 0,
+        "level": 0.5,
+        "rpm": 3458,
+        "gear": 2,
+        "throttle": 0.3,
+        "firing": 115.3,
+        "speed": 47.9
+      }
+    },
+    "webkitAudio": {
+      "source": "/media/audio/cosmic-candy-catchers.mp3",
+      "paused": false,
+      "loop": true,
+      "volume": 0.11000000000000001,
+      "musicRoute": "element",
+      "routeHeard": "unknown",
+      "duck": 0.55,
+      "playAttempts": 1,
+      "unlocked": true,
+      "contextState": "uninitialized",
+      "error": "The operation is not supported.",
+      "disposed": false,
+      "voices": 0,
+      "race": {
+        "car": "circuit-standard",
+        "sounding": false,
+        "profile": null,
+        "starts": 0,
+        "ending": false,
+        "oneShots": 0,
+        "level": 0,
+        "rpm": null,
+        "gear": null,
+        "throttle": null,
+        "firing": null,
+        "speed": null
+      }
+    },
+    "hud": {
+      "progress": 0.0907,
+      "text": "9%",
+      "correct": "6/30 minimum",
+      "rivals": 3,
+      "board": [
+        "1QA Creator31%",
+        "2QA Cleo25%",
+        "3QA Ava9%",
+        "4QA Ben5%"
+      ],
+      "me": 1,
+      "position": "3rd of 4",
+      "graphics": "medium",
+      "speed": "39"
+    },
+    "overtaking": {
+      "frames": 564,
+      "overlaps": 0,
+      "backwards": 0,
+      "jumps": 0,
+      "sideJumps": 0,
+      "offRoad": 0,
+      "passes": [
+        {
+          "at": 4009,
+          "kind": "rival passes player",
+          "lane": 5.2
+        },
+        {
+          "at": 69570,
+          "kind": "rival passes player",
+          "lane": -5.2
+        },
+        {
+          "at": 94877,
+          "kind": "player passes rival",
+          "lane": -5.2
+        }
+      ],
+      "flashes": [
+        "RIVAL MOVED AHEAD",
+        "RIVAL MOVED AHEAD",
+        "YOU MOVED INTO 3RD!"
+      ],
+      "flashOverQuestion": 0,
+      "mostCars": 4,
+      "notes": []
+    },
+    "standings": [
+      {
+        "name": "QA Creator",
+        "rank": 1,
+        "finishMs": 168896,
+        "correct": 220
+      },
+      {
+        "name": "QA Cleo",
+        "rank": 2,
+        "finishMs": null,
+        "correct": 172
+      },
+      {
+        "name": "QA Ava",
+        "rank": 3,
+        "finishMs": null,
+        "correct": 15
+      },
+      {
+        "name": "QA Ben",
+        "rank": 4,
+        "finishMs": null,
+        "correct": 14
+      }
+    ],
+    "latency": {
+      "poll": {
+        "n": 313,
+        "median": 197,
+        "p95": 268
+      },
+      "answer": {
+        "n": 414,
+        "median": 276,
+        "p95": 372
+      },
+      "join": {
+        "n": 1,
+        "median": 338,
+        "p95": 338
+      }
+    }
+  }
+}

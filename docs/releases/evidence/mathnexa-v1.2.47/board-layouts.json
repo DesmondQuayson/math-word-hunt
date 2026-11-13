@@ -1,0 +1,4056 @@
+{
+  "at": "2026-11-13T00:18:09.682Z",
+  "dropped": [
+    {
+      "selector": ".sound-row input[type=\"range\"]",
+      "declaration": "accent-color: var(--turquoise)"
+    },
+    {
+      "selector": ".check:has(input:checked)",
+      "declaration": "(whole rule)"
+    },
+    {
+      "selector": ".check:has(input:focus-visible)",
+      "declaration": "(whole rule)"
+    },
+    {
+      "selector": ".check input",
+      "declaration": "accent-color: var(--turquoise)"
+    },
+    {
+      "selector": ".check-mixed:has(input:checked)",
+      "declaration": "(whole rule)"
+    },
+    {
+      "selector": ".check-mixed input",
+      "declaration": "accent-color: var(--gold)"
+    },
+    {
+      "selector": ".cr-question-text[data-form=\"sentence\"]",
+      "declaration": "text-wrap: balance"
+    },
+    {
+      "selector": ".race-question[data-form=\"sentence\"]",
+      "declaration": "text-wrap: balance"
+    }
+  ],
+  "runs": [
+    {
+      "mode": "current",
+      "size": "1366x768",
+      "viewport": [
+        1366,
+        768
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 12,
+            "y": 124,
+            "w": 655,
+            "h": 437
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 64,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 12,
+            "y": 570,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 12,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 347,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 699,
+            "y": 124,
+            "w": 655,
+            "h": 437
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 751,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 699,
+            "y": 570,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 699,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 1034,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1600x900",
+      "viewport": [
+        1600,
+        900
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1600,
+        "h": 900
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 14,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 67,
+            "y": 589,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 14,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 14,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 407,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 819,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 872,
+            "y": 589,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 819,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 819,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 1211,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1920x1080",
+      "viewport": [
+        1920,
+        1080
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 17,
+            "y": 165,
+            "w": 920,
+            "h": 624
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 91,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 17,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 17,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 488,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 983,
+            "y": 165,
+            "w": 920,
+            "h": 624
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 1056,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 983,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 983,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 1453,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1920x1200",
+      "viewport": [
+        1920,
+        1200
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1200
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 19,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 87,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 19,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 19,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 489,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 985,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 1052,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 985,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 985,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 1455,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "2560x1440",
+      "viewport": [
+        2560,
+        1440
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 2560,
+        "h": 1440
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 20,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 119,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 20,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 20,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 649,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 1306,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 1405,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 1306,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 1306,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 1935,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1920x940",
+      "viewport": [
+        1920,
+        940
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 940
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 15,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 78,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 15,
+            "y": 698,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 15,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 487,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 980,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 1043,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 980,
+            "y": 698,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 980,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 1452,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1366x640",
+      "viewport": [
+        1366,
+        640
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 640
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 47,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 346,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 696,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 733,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 696,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 696,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 1032,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "1024x768",
+      "viewport": [
+        1024,
+        768
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 52,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 261,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 525,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 567,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 525,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 525,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 776,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "768x1024",
+      "viewport": [
+        768,
+        1024
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 1024
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 120,
+            "w": 748,
+            "h": 323
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 42,
+          "ball": {
+            "x": 48,
+            "y": 389,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 451,
+            "w": 336,
+            "h": 76
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 451,
+              "w": 196,
+              "h": 76
+            },
+            {
+              "x": 562,
+              "y": 451,
+              "w": 196,
+              "h": 76
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 10,
+            "y": 607,
+            "w": 748,
+            "h": 323
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 42,
+          "ball": {
+            "x": 48,
+            "y": 876,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 938,
+            "w": 336,
+            "h": 76
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 938,
+              "w": 196,
+              "h": 76
+            },
+            {
+              "x": 562,
+              "y": 938,
+              "w": 196,
+              "h": 76
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "430x932",
+      "viewport": [
+        430,
+        932
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 430,
+        "h": 932
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 7,
+            "y": 100,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 387,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 433,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 433,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 433,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 7,
+            "y": 540,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 828,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 873,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "390x844",
+      "viewport": [
+        390,
+        844
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 390,
+        "h": 844
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 96,
+            "w": 378,
+            "h": 289
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 349,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 389,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 492,
+            "w": 378,
+            "h": 289
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 746,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 786,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 786,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 786,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "360x740",
+      "viewport": [
+        360,
+        740
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 740
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 83,
+            "w": 348,
+            "h": 245
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 294,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 333,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 333,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 333,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 433,
+            "w": 348,
+            "h": 245
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 644,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 682,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 682,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 682,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "current",
+      "size": "320x568",
+      "viewport": [
+        320,
+        568
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 568
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 80,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 215,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 247,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 247,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 247,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 344,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 479,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 510,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1366x768",
+      "viewport": [
+        1366,
+        768
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 12,
+            "y": 124,
+            "w": 655,
+            "h": 437
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 64,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 12,
+            "y": 570,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 12,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 347,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 699,
+            "y": 124,
+            "w": 655,
+            "h": 437
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 751,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 699,
+            "y": 570,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 699,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 1034,
+              "y": 660,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1600x900",
+      "viewport": [
+        1600,
+        900
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1600,
+        "h": 900
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 14,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 67,
+            "y": 589,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 14,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 14,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 407,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 819,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 872,
+            "y": 589,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 819,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 819,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 1211,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1920x1080",
+      "viewport": [
+        1920,
+        1080
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 17,
+            "y": 165,
+            "w": 920,
+            "h": 624
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 91,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 17,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 17,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 488,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 983,
+            "y": 165,
+            "w": 920,
+            "h": 624
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 1056,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 983,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 983,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 1453,
+              "y": 928,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1920x1200",
+      "viewport": [
+        1920,
+        1200
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1200
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 19,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 87,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 19,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 19,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 489,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 985,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 1052,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 985,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 985,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 1455,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "2560x1440",
+      "viewport": [
+        2560,
+        1440
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 2560,
+        "h": 1440
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 20,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 119,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 20,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 20,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 649,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 1306,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 1405,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 1306,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 1306,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 1935,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1920x940",
+      "viewport": [
+        1920,
+        940
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 940
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 15,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 78,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 15,
+            "y": 698,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 15,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 487,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 980,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 1043,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 980,
+            "y": 698,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 980,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 1452,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1366x640",
+      "viewport": [
+        1366,
+        640
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 640
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 47,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 346,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 696,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 733,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 696,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 696,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 1032,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "1024x768",
+      "viewport": [
+        1024,
+        768
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 52,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 261,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 525,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 567,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 525,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 525,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 776,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "768x1024",
+      "viewport": [
+        768,
+        1024
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 1024
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 120,
+            "w": 748,
+            "h": 347
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 41,
+          "ball": {
+            "x": 59,
+            "y": 413,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 475,
+            "w": 336,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 475,
+              "w": 196,
+              "h": 52
+            },
+            {
+              "x": 562,
+              "y": 475,
+              "w": 196,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 10,
+            "y": 607,
+            "w": 748,
+            "h": 347
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 41,
+          "ball": {
+            "x": 59,
+            "y": 899,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 962,
+            "w": 336,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 962,
+              "w": 196,
+              "h": 52
+            },
+            {
+              "x": 562,
+              "y": 962,
+              "w": 196,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "430x932",
+      "viewport": [
+        430,
+        932
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 430,
+        "h": 932
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 7,
+            "y": 100,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 387,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 433,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 433,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 433,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 7,
+            "y": 540,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 828,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 873,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "390x844",
+      "viewport": [
+        390,
+        844
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 390,
+        "h": 844
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 96,
+            "w": 378,
+            "h": 289
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 349,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 389,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 492,
+            "w": 378,
+            "h": 289
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 746,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 786,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 786,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 786,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "360x740",
+      "viewport": [
+        360,
+        740
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 740
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 83,
+            "w": 348,
+            "h": 245
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 294,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 333,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 333,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 333,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 433,
+            "w": 348,
+            "h": 245
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 644,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 682,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 682,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 682,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "legacy",
+      "size": "320x568",
+      "viewport": [
+        320,
+        568
+      ],
+      "layout": "flow",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 568
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 80,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 215,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 247,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 247,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 247,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 344,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 479,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 510,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1366x768",
+      "viewport": [
+        1366,
+        768
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 12,
+            "y": 124,
+            "w": 655,
+            "h": 436
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 64,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 12,
+            "y": 569,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 12,
+              "y": 659,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 347,
+              "y": 659,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 699,
+            "y": 124,
+            "w": 655,
+            "h": 436
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 43,
+          "ball": {
+            "x": 751,
+            "y": 501,
+            "w": 49,
+            "h": 49
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 699,
+            "y": 569,
+            "w": 655,
+            "h": 81
+          },
+          "choices": [
+            {
+              "x": 699,
+              "y": 659,
+              "w": 320,
+              "h": 96
+            },
+            {
+              "x": 1034,
+              "y": 659,
+              "w": 320,
+              "h": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1600x900",
+      "viewport": [
+        1600,
+        900
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1600,
+        "h": 900
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 14,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 67,
+            "y": 588,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 14,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 14,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 407,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 819,
+            "y": 147,
+            "w": 767,
+            "h": 510
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 50,
+          "ball": {
+            "x": 872,
+            "y": 588,
+            "w": 57,
+            "h": 57
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 819,
+            "y": 668,
+            "w": 767,
+            "h": 95
+          },
+          "choices": [
+            {
+              "x": 819,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            },
+            {
+              "x": 1211,
+              "y": 773,
+              "w": 374,
+              "h": 113
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1920x1080",
+      "viewport": [
+        1920,
+        1080
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1080
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 17,
+            "y": 165,
+            "w": 920,
+            "h": 623
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 91,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 17,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 17,
+              "y": 927,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 488,
+              "y": 927,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 983,
+            "y": 165,
+            "w": 920,
+            "h": 623
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 61,
+          "ball": {
+            "x": 1056,
+            "y": 704,
+            "w": 70,
+            "h": 70
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 983,
+            "y": 801,
+            "w": 920,
+            "h": 113
+          },
+          "choices": [
+            {
+              "x": 983,
+              "y": 927,
+              "w": 449,
+              "h": 135
+            },
+            {
+              "x": 1453,
+              "y": 927,
+              "w": 449,
+              "h": 135
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1920x1200",
+      "viewport": [
+        1920,
+        1200
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 1200
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 19,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 87,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 19,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 19,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 489,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 985,
+            "y": 168,
+            "w": 916,
+            "h": 725
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 64,
+          "ball": {
+            "x": 1052,
+            "y": 803,
+            "w": 73,
+            "h": 73
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 985,
+            "y": 907,
+            "w": 916,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 985,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            },
+            {
+              "x": 1455,
+              "y": 1041,
+              "w": 446,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "2560x1440",
+      "viewport": [
+        2560,
+        1440
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 2560,
+        "h": 1440
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 20,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 119,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 20,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 20,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 649,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 1306,
+            "y": 171,
+            "w": 1234,
+            "h": 961
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 85,
+          "ball": {
+            "x": 1405,
+            "y": 1014,
+            "w": 97,
+            "h": 97
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 1306,
+            "y": 1146,
+            "w": 1234,
+            "h": 120
+          },
+          "choices": [
+            {
+              "x": 1306,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            },
+            {
+              "x": 1935,
+              "y": 1280,
+              "w": 605,
+              "h": 140
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1920x940",
+      "viewport": [
+        1920,
+        940
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1920,
+        "h": 940
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 15,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 78,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 15,
+            "y": 697,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 15,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 487,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 980,
+            "y": 151,
+            "w": 925,
+            "h": 535
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 58,
+          "ball": {
+            "x": 1043,
+            "y": 608,
+            "w": 66,
+            "h": 66
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 980,
+            "y": 697,
+            "w": 925,
+            "h": 99
+          },
+          "choices": [
+            {
+              "x": 980,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            },
+            {
+              "x": 1452,
+              "y": 807,
+              "w": 453,
+              "h": 118
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1366x640",
+      "viewport": [
+        1366,
+        640
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1366,
+        "h": 640
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 47,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 346,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 696,
+            "y": 111,
+            "w": 659,
+            "h": 356
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 734,
+            "y": 415,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 696,
+            "y": 475,
+            "w": 659,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 696,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            },
+            {
+              "x": 1032,
+              "y": 550,
+              "w": 323,
+              "h": 80
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "1024x768",
+      "viewport": [
+        1024,
+        768
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 768
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 52,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 10,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 261,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 525,
+            "y": 106,
+            "w": 489,
+            "h": 490
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 39,
+          "ball": {
+            "x": 567,
+            "y": 541,
+            "w": 44,
+            "h": 44
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 525,
+            "y": 604,
+            "w": 489,
+            "h": 67
+          },
+          "choices": [
+            {
+              "x": 525,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            },
+            {
+              "x": 776,
+              "y": 678,
+              "w": 238,
+              "h": 79
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "768x1024",
+      "viewport": [
+        768,
+        1024
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 1024
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 10,
+            "y": 120,
+            "w": 748,
+            "h": 347
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 41,
+          "ball": {
+            "x": 59,
+            "y": 413,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 475,
+            "w": 336,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 475,
+              "w": 196,
+              "h": 52
+            },
+            {
+              "x": 562,
+              "y": 475,
+              "w": 196,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 10,
+            "y": 607,
+            "w": 748,
+            "h": 347
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 41,
+          "ball": {
+            "x": 59,
+            "y": 899,
+            "w": 47,
+            "h": 47
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 10,
+            "y": 962,
+            "w": 336,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 354,
+              "y": 962,
+              "w": 196,
+              "h": 52
+            },
+            {
+              "x": 562,
+              "y": 962,
+              "w": 196,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "430x932",
+      "viewport": [
+        430,
+        932
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 430,
+        "h": 932
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 7,
+            "y": 100,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 387,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 432,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 432,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 432,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 7,
+            "y": 540,
+            "w": 416,
+            "h": 327
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 29,
+          "ball": {
+            "x": 35,
+            "y": 827,
+            "w": 33,
+            "h": 33
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 7,
+            "y": 873,
+            "w": 187,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 199,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            },
+            {
+              "x": 315,
+              "y": 873,
+              "w": 108,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "390x844",
+      "viewport": [
+        390,
+        844
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 390,
+        "h": 844
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 96,
+            "w": 378,
+            "h": 288
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 349,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 389,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 389,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 492,
+            "w": 378,
+            "h": 288
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 26,
+          "ball": {
+            "x": 36,
+            "y": 745,
+            "w": 29,
+            "h": 29
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 785,
+            "w": 169,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 180,
+              "y": 785,
+              "w": 98,
+              "h": 52
+            },
+            {
+              "x": 286,
+              "y": 785,
+              "w": 98,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "360x740",
+      "viewport": [
+        360,
+        740
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 740
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 83,
+            "w": 348,
+            "h": 244
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 294,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 332,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 332,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 332,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 433,
+            "w": 348,
+            "h": 244
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 24,
+          "ball": {
+            "x": 32,
+            "y": 643,
+            "w": 27,
+            "h": 27
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 681,
+            "w": 156,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 167,
+              "y": 681,
+              "w": 90,
+              "h": 52
+            },
+            {
+              "x": 264,
+              "y": 681,
+              "w": 90,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "starved",
+      "size": "320x568",
+      "viewport": [
+        320,
+        568
+      ],
+      "layout": "stated",
+      "classroom": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 568
+      },
+      "scroll": [
+        0,
+        0
+      ],
+      "teams": [
+        {
+          "team": "turquoise",
+          "track": {
+            "x": 6,
+            "y": 80,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 215,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 246,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 246,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 246,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        },
+        {
+          "team": "pink",
+          "track": {
+            "x": 6,
+            "y": 344,
+            "w": 308,
+            "h": 162
+          },
+          "tiles": 64,
+          "numbersInOrder": true,
+          "tilesInView": 64,
+          "tileSize": 19,
+          "ball": {
+            "x": 27,
+            "y": 478,
+            "w": 21,
+            "h": 21
+          },
+          "count": "0 / 62",
+          "left": "62 STEPS LEFT",
+          "question": {
+            "x": 6,
+            "y": 510,
+            "w": 138,
+            "h": 52
+          },
+          "choices": [
+            {
+              "x": 148,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            },
+            {
+              "x": 235,
+              "y": 510,
+              "w": 79,
+              "h": 52
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

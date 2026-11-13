@@ -1,0 +1,8 @@
+  "duplicateKeys": 0,
+  "negativeBalances": 0,
+  "rooms": {
+    "open": 0,
+    "rooms": 0
+  },
+  "result": "PASS"
+}

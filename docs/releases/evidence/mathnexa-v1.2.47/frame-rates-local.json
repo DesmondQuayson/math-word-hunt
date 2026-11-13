@@ -1,0 +1,15 @@
+{
+  "measured": "2026-11-12, local review server, Claude desktop Browser pane (Chromium, real GPU), 800x680 CSS px at 1.25 DPR, picture tier 'high', 12 s of racing each",
+  "note": "Scripted races (e2e/math-race-champions/scenario-harness.js) on the game's own race screen. requests = network requests made during the race.",
+  "runs": {
+    "computer race, 1 CPU rival": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.6, "carsDrawn": 2, "heapMB": 23.6, "requests": 0 },
+    "online, 2 racers": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 17.0, "frameMsWorst": 18.0, "carsDrawn": 2, "heapMB": 23.3, "requests": 0 },
+    "online, 5 racers": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.3, "carsDrawn": 5, "heapMB": 24.5, "requests": 0 },
+    "online, 10 racers (10 cars in the picture)": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.5, "carsDrawn": 10, "heapMB": 27.8, "requests": 0 },
+    "online, 20 in the room": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.6, "carsDrawn": 10, "heapMB": 47.3, "requests": 0 },
+    "online, 30 in the room": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.5, "carsDrawn": 10, "heapMB": 43.0, "requests": 0 },
+    "online, 40 in the room": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.9, "carsDrawn": 10, "heapMB": 60.0, "requests": 0 },
+    "online, 50 in the room": { "fps": 60, "frameMsMean": 16.67, "frameMsP95": 16.8, "frameMsWorst": 17.6, "carsDrawn": 10, "heapMB": 45.4, "requests": 0 }
+  },
+  "checks": "every run: 0 cars inside one another, 0 jumps along or across the road, 0 cars drawn going backwards, 0 off the road"
+}
