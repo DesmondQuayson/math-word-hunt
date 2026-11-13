@@ -89,6 +89,20 @@ describe("security response headers", () => {
     }
   });
 
+  it("allows exactly the Google tag's hosts as external script, image and connect sources", () => {
+    // The only third-party script on platform pages is the Google tag
+    // (GTM-53VDQ6ZL). Anything wider here is a new script supply chain on
+    // sign-in, account and billing pages, so the lists are pinned exactly.
+    const directive = (name: string) =>
+      new RegExp(`(?:^|; )${name} ([^;]+)`).exec(buildContentSecurityPolicy({}))?.[1]?.trim().split(/\s+/).filter((source) => source.startsWith("https:")) ?? [];
+    expect(directive("script-src")).toEqual(["https://www.googletagmanager.com", "https://googleads.g.doubleclick.net"]);
+    expect(directive("img-src")).toEqual(["https://www.google.com"]);
+    expect(directive("connect-src")).toEqual(["https://www.google.com", "https://ad.doubleclick.net"]);
+    for (const name of ["default-src", "frame-src", "worker-src", "font-src", "style-src", "media-src", "form-action"]) {
+      expect(directive(name).filter((source) => !source.endsWith("stripe.com")), `${name} gains no Google host`).toEqual([]);
+    }
+  });
+
   it("allows the browser Supabase client only when one is configured", () => {
     expect(buildContentSecurityPolicy({})).toContain("connect-src 'self'");
     const withSupabase = buildContentSecurityPolicy({ NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co" });

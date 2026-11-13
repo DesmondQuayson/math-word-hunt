@@ -11,6 +11,13 @@ export type SecurityHeader = Readonly<{ key: string; value: string }>;
 /** `developmentServer` is true only for `next dev` (Next's PHASE_DEVELOPMENT_SERVER). */
 export type SecurityHeaderOptions = Readonly<{ developmentServer?: boolean }>;
 
+/** External hosts the Google tag needs, per CSP directive. */
+export declare const GOOGLE_TAG_SOURCES: Readonly<{
+  script: readonly string[];
+  img: readonly string[];
+  connect: readonly string[];
+}>;
+
 export declare function buildContentSecurityPolicy(
   source?: Readonly<Record<string, string | undefined>>,
   options?: SecurityHeaderOptions

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { GoogleTag } from "@/components/analytics/google-tag";
 import { AppShell } from "@/components/layout/app-shell";
+import { isGoogleTagEnabled } from "@/lib/analytics/google-tag";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
@@ -12,6 +14,7 @@ import "./globals.css";
 const publicProduction = isProductionPublicMode();
 const productionPlatform = isProductionPlatformMode();
 const mathNexa = publicProduction || productionPlatform;
+const googleTag = isGoogleTagEnabled(mathNexa);
 
 export const metadata: Metadata = {
   // Without metadataBase + a canonical, Google may elect a *.vercel.app or www
@@ -38,6 +41,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
+      <head>{googleTag ? <GoogleTag /> : null}</head>
       <body>
         <AppShell>{children}</AppShell>
       </body>

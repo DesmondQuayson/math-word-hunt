@@ -48,6 +48,21 @@
  * console. `next build` (every Vercel deployment) never passes it, and
  * production React never uses eval.
  */
+/**
+ * Hosts the Google tag (container GTM-53VDQ6ZL, lib/analytics/google-tag.ts)
+ * needs, and nothing wider: no wildcard, no `www.google.<country>` list.
+ * Measured by loading the live container under this policy in Chrome
+ * (2026-11-12): gtm.js, the Google Ads remarketing script, its user-list
+ * pixel, and its two collection endpoints. Zero violations with exactly these.
+ * If the container later gains another destination (Google Analytics, a
+ * conversion linker on another host), that host is added here deliberately.
+ */
+export const GOOGLE_TAG_SOURCES = Object.freeze({
+  script: Object.freeze(["https://www.googletagmanager.com", "https://googleads.g.doubleclick.net"]),
+  img: Object.freeze(["https://www.google.com"]),
+  connect: Object.freeze(["https://www.google.com", "https://ad.doubleclick.net"])
+});
+
 export function buildContentSecurityPolicy(source = process.env, { developmentServer = false } = {}) {
   const supabaseUrl = (source.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
   let supabaseOrigin = "";
@@ -63,13 +78,13 @@ export function buildContentSecurityPolicy(source = process.env, { developmentSe
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${developmentServer === true ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline'${developmentServer === true ? " 'unsafe-eval'" : ""} ${GOOGLE_TAG_SOURCES.script.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob: ${GOOGLE_TAG_SOURCES.img.join(" ")}`,
     "font-src 'self' data:",
     // Game audio and generated clips are served same-origin or as blobs.
     "media-src 'self' data: blob:",
-    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""} ${GOOGLE_TAG_SOURCES.connect.join(" ")}`,
     "worker-src 'self' blob:",
     // Games are framed same-origin inside a sandboxed iframe.
     "frame-src 'self'",

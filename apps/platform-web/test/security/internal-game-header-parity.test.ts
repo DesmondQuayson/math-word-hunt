@@ -152,7 +152,7 @@ describe("next dev differs from a build only where it must", () => {
     const build = buildContentSecurityPolicy({});
     expect(buildContentSecurityPolicy({}, { developmentServer: "true" as never })).toBe(build);
     expect(buildContentSecurityPolicy({}, { developmentServer: false })).toBe(build);
-    expect(buildContentSecurityPolicy({}, { developmentServer: true })).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval';");
+    expect(buildContentSecurityPolicy({}, { developmentServer: true })).toMatch(/script-src 'self' 'unsafe-inline' 'unsafe-eval'[ ;]/);
   });
 
   it("leaves exactly the route-owned paths alone", () => {
