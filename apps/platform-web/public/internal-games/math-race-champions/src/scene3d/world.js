@@ -173,15 +173,19 @@ function roadTexture(theme) {
   return texture;
 }
 
-/** A soft pool of light on the road ahead of a car, for the night circuit. */
+/** A soft pool of light on the road ahead of a car, for the night circuit. It fades to nothing well inside its edges. */
 function beamTexture() {
   return canvasTexture(64, 128, (context, width, height) => {
-    const gradient = context.createRadialGradient(width / 2, height * 0.86, 2, width / 2, height * 0.5, height * 0.62);
-    gradient.addColorStop(0, "rgba(255,244,214,0.85)");
-    gradient.addColorStop(0.45, "rgba(255,240,205,0.3)");
+    // An ellipse of light, brightest just ahead of the car (the top of this picture lies under the car's nose)
+    // and gone before the far end and both sides.
+    context.translate(width / 2, height * 0.2);
+    context.scale(1, 3.3);
+    const gradient = context.createRadialGradient(0, 0, 1, 0, 0, width * 0.44);
+    gradient.addColorStop(0, "rgba(255,244,214,0.7)");
+    gradient.addColorStop(0.4, "rgba(255,240,205,0.26)");
     gradient.addColorStop(1, "rgba(255,240,205,0)");
     context.fillStyle = gradient;
-    context.fillRect(0, 0, width, height);
+    context.fillRect(-width, -height, width * 2, height * 2);
   });
 }
 
