@@ -1,0 +1,38 @@
+== health
+{"status":"ready","environment":"production-platform","build":"af26e1139d002005edcb19988ea171f423e6ccfb","searchIndexing":"enabled","payments":"live"}
+== /
+HTTP/1.1 200 OK
+ script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net
+ img-src 'self' data: blob: https://www.google.com
+ connect-src 'self' https://hdtnbuowvdjwnkdqtdbv.supabase.co wss://hdtnbuowvdjwnkdqtdbv.supabase.co https://www.google.com https://ad.doubleclick.net
+gtm.js tags: 2; init: 1
+<script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-53VDQ6ZL"></script>
+== /pricing
+HTTP/1.1 307 Temporary Redirect
+ script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net
+ img-src 'self' data: blob: https://www.google.com
+ connect-src 'self' https://hdtnbuowvdjwnkdqtdbv.supabase.co wss://hdtnbuowvdjwnkdqtdbv.supabase.co https://www.google.com https://ad.doubleclick.net
+gtm.js tags: 1; init: 1
+== /sign-in
+HTTP/1.1 200 OK
+ script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net
+ img-src 'self' data: blob: https://www.google.com
+ connect-src 'self' https://hdtnbuowvdjwnkdqtdbv.supabase.co wss://hdtnbuowvdjwnkdqtdbv.supabase.co https://www.google.com https://ad.doubleclick.net
+gtm.js tags: 2; init: 1
+<script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-53VDQ6ZL"></script>
+== /math-games
+HTTP/1.1 200 OK
+ script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net
+ img-src 'self' data: blob: https://www.google.com
+ connect-src 'self' https://hdtnbuowvdjwnkdqtdbv.supabase.co wss://hdtnbuowvdjwnkdqtdbv.supabase.co https://www.google.com https://ad.doubleclick.net
+gtm.js tags: 2; init: 1
+<script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-53VDQ6ZL"></script>
+== /privacy
+HTTP/1.1 200 OK
+ script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net
+ img-src 'self' data: blob: https://www.google.com
+ connect-src 'self' https://hdtnbuowvdjwnkdqtdbv.supabase.co wss://hdtnbuowvdjwnkdqtdbv.supabase.co https://www.google.com https://ad.doubleclick.net
+gtm.js tags: 2; init: 1
+<script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-53VDQ6ZL"></script>
+== /join (student, must not have tag)
+0

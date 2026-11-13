@@ -1,0 +1,426 @@
+{
+  "stage": "all",
+  "startedAt": "2026-11-13T05:57:00.032Z",
+  "target": "https://mathnexa-platform-staging.vercel.app",
+  "previousPh207Deployment": "dpl_FeZbD1JF2tZgjCb4n75ZpbDCu8yi",
+  "commit": "af26e1139d002005edcb19988ea171f423e6ccfb",
+  "tree": "bff3b34c18856d1df10a0271e451cdd4ced6e0e7",
+  "nextVersion": "16.4.2",
+  "deploymentUrl": "https://mathnexa-platform-staging-lsnir1yft-bright-path-ed-tech.vercel.app",
+  "deploymentId": "dpl_DkWicty1Yo4d34iEPXk9VJgtPgiX",
+  "healthStatus": 404,
+  "results": {
+    "locked /": {
+      "status": 404,
+      "bytes": 0
+    },
+    "locked /sign-in": {
+      "status": 404,
+      "bytes": 0
+    },
+    "locked /account": {
+      "status": 404,
+      "bytes": 0
+    },
+    "locked /admin": {
+      "status": 404,
+      "bytes": 0
+    },
+    "locked /sign-in.png": {
+      "status": 404,
+      "bytes": 0
+    },
+    "webhookUnsigned": {
+      "status": 400,
+      "ms": 419,
+      "bytes": 46,
+      "type": "application/json",
+      "location": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://gcmuhzxkwvfireyrearl.supabase.co wss://gcmuhzxkwvfireyrearl.supabase.co https://www.google.com https://ad.doubleclick.net; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "strict-transport-security": "max-age=63072000; includeSubDomains",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()",
+        "x-robots-tag": null,
+        "x-matched-path": "/api/billing/webhook",
+        "x-vercel-cache": "MISS"
+      },
+      "text": "{\"received\":false,\"state\":\"invalid-signature\"}"
+    },
+    "bootstrap": {
+      "status": 204,
+      "cookie": true
+    },
+    "routes": {
+      "/": {
+        "status": 200,
+        "ms": 1961,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/sign-in": {
+        "status": 200,
+        "ms": 533,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/sign-up": {
+        "status": 200,
+        "ms": 386,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/access": {
+        "status": 200,
+        "ms": 353,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/privacy": {
+        "status": 200,
+        "ms": 389,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/terms": {
+        "status": 200,
+        "ms": 297,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/pricing": {
+        "status": 307,
+        "ms": 340,
+        "location": "/access?next=/subscription",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/games": {
+        "status": 307,
+        "ms": 442,
+        "location": "/access?next=/games",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/map-prep": {
+        "status": 307,
+        "ms": 301,
+        "location": "/access?next=/map-prep",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/homework": {
+        "status": 307,
+        "ms": 401,
+        "location": "/access?next=/homework",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/quizzes": {
+        "status": 307,
+        "ms": 930,
+        "location": "/access?next=/quizzes",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/account": {
+        "status": 307,
+        "ms": 479,
+        "location": "/access?next=/account",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/subscription": {
+        "status": 307,
+        "ms": 253,
+        "location": "/access?next=/subscription",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/game-access": {
+        "status": 307,
+        "ms": 300,
+        "location": "/sign-in?next=/game-access",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/api/health": {
+        "status": 200,
+        "ms": 717,
+        "location": null,
+        "cacheControl": "no-store",
+        "ok": true
+      },
+      "/admin": {
+        "status": 404,
+        "ms": 1213,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/admin/sign-in": {
+        "status": 200,
+        "ms": 351,
+        "location": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/api/internal/billing/fixture": {
+        "status": 405,
+        "ms": 144,
+        "location": null,
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "ok": true
+      },
+      "/game/runtime/index.html": {
+        "status": 401,
+        "ms": 225,
+        "location": null,
+        "cacheControl": "no-store",
+        "ok": true
+      }
+    },
+    "securityHeaders": {
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://gcmuhzxkwvfireyrearl.supabase.co wss://gcmuhzxkwvfireyrearl.supabase.co https://www.google.com https://ad.doubleclick.net; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+      "strict-transport-security": "max-age=63072000; includeSubDomains",
+      "x-frame-options": "SAMEORIGIN",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "permissions-policy": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()",
+      "x-robots-tag": null,
+      "x-matched-path": "/",
+      "x-vercel-cache": "MISS"
+    },
+    "schedulerAnonymous": {
+      "status": 401,
+      "ms": 119,
+      "bytes": 24,
+      "type": "application/json",
+      "location": null,
+      "cacheControl": "no-store",
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://gcmuhzxkwvfireyrearl.supabase.co wss://gcmuhzxkwvfireyrearl.supabase.co https://www.google.com https://ad.doubleclick.net; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "strict-transport-security": "max-age=63072000; includeSubDomains",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()",
+        "x-robots-tag": null,
+        "x-matched-path": "/api/internal/billing/reconcile",
+        "x-vercel-cache": "MISS"
+      },
+      "text": "{\"error\":\"unauthorized\"}"
+    },
+    "schedulerWrongBearer": {
+      "status": 401,
+      "ms": 112,
+      "bytes": 24,
+      "type": "application/json",
+      "location": null,
+      "cacheControl": "no-store",
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://gcmuhzxkwvfireyrearl.supabase.co wss://gcmuhzxkwvfireyrearl.supabase.co https://www.google.com https://ad.doubleclick.net; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'self'",
+        "strict-transport-security": "max-age=63072000; includeSubDomains",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()",
+        "x-robots-tag": null,
+        "x-matched-path": "/api/internal/billing/reconcile",
+        "x-vercel-cache": "BYPASS"
+      },
+      "text": "{\"error\":\"unauthorized\"}"
+    },
+    "images": {
+      "brand mark (static, exempt)": {
+        "status": 200,
+        "type": "image/png",
+        "bytes": 12164,
+        "cache": "MISS"
+      },
+      "root icon (static, exempt)": {
+        "status": 200,
+        "type": "image/png",
+        "bytes": 17559,
+        "cache": "MISS"
+      },
+      "game thumbnail avif (static, gated)": {
+        "status": 200,
+        "type": "image/avif",
+        "bytes": 18194,
+        "cache": "MISS"
+      },
+      "game thumbnail webp (static, gated)": {
+        "status": 200,
+        "type": "image/webp",
+        "bytes": 28066,
+        "cache": "MISS"
+      },
+      "vocabulary hunt thumbnail webp (static, gated)": {
+        "status": 200,
+        "type": "image/webp",
+        "bytes": 104550,
+        "cache": "MISS"
+      },
+      "number logic thumbnail avif (static, gated)": {
+        "status": 200,
+        "type": "image/avif",
+        "bytes": 18208,
+        "cache": "MISS"
+      },
+      "crosscalc mark svg (static, gated)": {
+        "status": 200,
+        "type": "image/svg+xml",
+        "bytes": 4570,
+        "cache": "MISS"
+      },
+      "optimizer: icon (exempt source)": {
+        "status": 200,
+        "type": "image/webp",
+        "bytes": 2502,
+        "cache": "HIT",
+        "matchedPath": "/icon.png"
+      },
+      "optimizer: icon 256 (exempt source)": {
+        "status": 200,
+        "type": "image/webp",
+        "bytes": 9832,
+        "cache": "HIT",
+        "matchedPath": "/icon.png"
+      },
+      "optimizer: brand mark (exempt source)": {
+        "status": 200,
+        "type": "image/webp",
+        "bytes": 5974,
+        "cache": "HIT",
+        "matchedPath": "/brand/mathnexa-mark.png"
+      },
+      "optimizer: gated webp source (recorded only on locked staging)": {
+        "status": 404,
+        "type": null,
+        "bytes": 0
+      },
+      "optimizer: gated avif source (recorded only on locked staging)": {
+        "status": 404,
+        "type": null,
+        "bytes": 0
+      },
+      "optimizer: remote refused": {
+        "status": 400
+      },
+      "optimizer: traversal refused": {
+        "status": 400
+      }
+    },
+    "browser": {
+      "/": {
+        "status": 200,
+        "finalPath": "/",
+        "images": 7,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=10&frm=0&apvc=1&auid=1521376853.1794549540&dt=MathNexa%20%7C%20Online%20Math%20Prep%2C%20Homework%20PDFs%2C%20Quiz%20PDFs%20%26%20Worksheets&tid",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549539622&cv=11&fst=1794549539622&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe",
+          "net::ERR_ABORTED https://ad.doubleclick.net/ccm/s/collect?auid=1521376853.1794549540&gtm=45He6bb1v9286492488za208zd9286492488xecxf1&fmt=8",
+          "net::ERR_ABORTED /homework?_rsc=5CB68i4pnAekjehf",
+          "net::ERR_ABORTED /sign-up?_rsc=5CB68i4pnAekjehf",
+          "net::ERR_ABORTED /map-prep?_rsc=WWgErh7Nr5U90vxu"
+        ]
+      },
+      "/sign-in": {
+        "status": 200,
+        "finalPath": "/sign-in",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=1&frm=0&apvc=1&auid=1521376853.1794549540&dt=Sign%20in%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathnexa-platform-st",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549541800&cv=11&fst=1794549541800&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe",
+          "net::ERR_ABORTED /quizzes?_rsc=72BAJJ2RGbqycj5I",
+          "net::ERR_ABORTED /?_rsc=72BAJJ2RGbqycj5I",
+          "net::ERR_ABORTED /quizzes?_rsc=6z5y45hD3WYvJDrT"
+        ]
+      },
+      "/sign-up": {
+        "status": 200,
+        "finalPath": "/sign-up",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=9&frm=0&apvc=1&auid=1521376853.1794549540&dt=Create%20account%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathnexa-plat",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549543833&cv=11&fst=1794549543833&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe"
+        ]
+      },
+      "/access": {
+        "status": 200,
+        "finalPath": "/access",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=11&frm=0&apvc=1&auid=1521376853.1794549540&dt=Continue%20to%20MathNexa%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmath",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549545940&cv=11&fst=1794549545940&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe"
+        ]
+      },
+      "/pricing": {
+        "status": 200,
+        "finalPath": "/access",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=0&frm=0&apvc=1&auid=1521376853.1794549540&dt=Continue%20to%20MathNexa%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathn",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549548504&cv=11&fst=1794549548504&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe",
+          "net::ERR_ABORTED /help?_rsc=MJhKN2sUKzJhwPKN"
+        ]
+      },
+      "/games": {
+        "status": 200,
+        "finalPath": "/access",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=1&frm=0&apvc=1&auid=1521376853.1794549540&dt=Continue%20to%20MathNexa%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathn",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549550843&cv=11&fst=1794549550843&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe",
+          "net::ERR_ABORTED /sign-up?next=/subscription&_rsc=GXFhsradMVDTmXsf"
+        ]
+      },
+      "/admin/sign-in": {
+        "status": 200,
+        "finalPath": "/admin/sign-in",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=4&frm=0&apvc=1&auid=1521376853.1794549540&dt=Admin%20sign%20in%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathnexa-pla",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549553118&cv=11&fst=1794549553118&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe"
+        ]
+      },
+      "/privacy": {
+        "status": 200,
+        "finalPath": "/privacy",
+        "images": 1,
+        "brokenImages": [],
+        "consoleErrors": [],
+        "failedRequests": [
+          "net::ERR_ABORTED https://www.google.com/ccm/collect?rcb=0&frm=0&apvc=1&auid=1521376853.1794549540&dt=Privacy%20notice%20%C2%B7%20MathNexa&tid=AW-18462869878&en=page_view&dl=https%3A%2F%2Fmathnexa-plat",
+          "net::ERR_ABORTED https://www.google.com/rmkt/collect/18462869878/?random=1794549554911&cv=11&fst=1794549554911&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45He6bb1v9286492488za208zd9286492488xe"
+        ]
+      }
+    }
+  },
+  "completedAt": "2026-11-13T05:59:15.976Z",
+  "outcome": "PASS"
+}

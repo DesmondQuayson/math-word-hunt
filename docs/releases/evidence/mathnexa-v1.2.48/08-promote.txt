@@ -1,0 +1,4 @@
+STEP 2026-11-13T06:04:52.235Z promoting https://mathnexa-platform-production-23dpy0d2w-bright-path-ed-tech.vercel.app to the production alias
+PROMOTED {"promoted":"dpl_DVTiEDA6FhpgEN67g5q9m9XqZBm3","previous":"dpl_DiosYG4hwQRKatbtfS5SoEbyiEwu"}
+PASS promote
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-promote-1794549931138.json

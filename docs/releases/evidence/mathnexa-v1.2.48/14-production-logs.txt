@@ -1,0 +1,10 @@
+== --status-code 5xx
+0
+== --level error
+0
+== --level fatal
+0
+== --level warning
+0
+== all rows
+50

@@ -1,0 +1,5 @@
+STEP 2026-11-13T06:00:12.308Z uploading the certified runtime as a non-aliased production-configured deployment
+(Use `node --trace-deprecation ...` to show where the warning was created)
+PREVIEW {"previewUrl":"https://mathnexa-platform-production-23dpy0d2w-bright-path-ed-tech.vercel.app","deploymentId":"dpl_DVTiEDA6FhpgEN67g5q9m9XqZBm3","ready":"● Ready","runtime":{"certified":"af26e1139d002005edcb19988ea171f423e6ccfb","nextVersion":"16.4.2","sharpVersion":"0.35.5","candidateTree":"bff3b34c18856d1df10a0271e451cdd4ced6e0e7","candidateCommit":"af26e1139d002005edcb19988ea171f423e6ccfb"}}
+PASS deploy-preview
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-deploy-preview-1794549746794.json
