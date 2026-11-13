@@ -408,6 +408,67 @@ try {
   const late = new HttpRacer(origin, { name: "QA Late", extraHeaders });
   ok([409, 423].includes((await late.join(code)).status), "joining after the start is closed");
   await Promise.all([waitGo(ava, 240_000), waitGo(ben, 240_000)]);
+  // From lights out, the QR phone records where every nearby car is drawn, frame by frame (read back below).
+  await ava.evaluate(() => {
+    const seen = { frames: 0, overlaps: 0, backwards: 0, jumps: 0, sideJumps: 0, offRoad: 0, passes: [], flashes: [], flashOverQuestion: 0, mostCars: 0, notes: [] };
+    const last = new Map();
+    const sides = new Map();
+    let lastNow = 0;
+    let lastMs = 0;
+    let lastFlash = "";
+    const frame = (now) => {
+      requestAnimationFrame(frame);
+      const api = window.__MATH_RACE__?.race;
+      const scene = api?.scene?.();
+      const view = api?.view?.();
+      const ms = now - lastNow;
+      lastNow = now;
+      // After a gap of about a second the game puts the cars where the race has them (nobody saw the road in
+      // between): such a frame is not compared with the one before it.
+      if (!scene || !view || !(ms > 0) || ms > 900 || api.driver.raceMs() <= 0) {
+        last.clear();
+        lastMs = 0;
+        return;
+      }
+      // What is read here may have been drawn one frame ago: judge a frame against the longer of the last two.
+      const dt = Math.max(ms, lastMs) / 1000;
+      lastMs = ms;
+      seen.frames += 1;
+      seen.mostCars = Math.max(seen.mostCars, scene.cars.length + 1);
+      const all = [{ distanceM: view.distanceKm * 1000, lane: 0 }, ...scene.cars];
+      for (let a = 0; a < all.length; a += 1) for (let b = a + 1; b < all.length; b += 1) if (Math.abs(all[a].distanceM - all[b].distanceM) < 4.7 && Math.abs(all[a].lane - all[b].lane) < 2) seen.overlaps += 1;
+      const present = new Set();
+      for (const car of scene.cars) {
+        present.add(car.id);
+        if (Math.abs(car.lane) + 1 > 6.5) seen.offRoad += 1;
+        const before = last.get(car.id);
+        if (before) {
+          const moved = car.distanceM - before.distanceM;
+          if (moved < -0.02) {
+            seen.backwards += 1;
+            if (seen.notes.length < 6) seen.notes.push({ at: Math.round(api.driver.raceMs()), moved: Number(moved.toFixed(2)), ms: Math.round(ms), gap: Number(car.gapM.toFixed(1)), trueGap: Number(car.trueGapM.toFixed(1)), lane: Number(car.lane.toFixed(2)), held: car.held, finished: car.rival.finished === true, speed: Math.round(car.rival.speed) });
+          }
+          if (moved > (car.rival.speed / 3.6 + 46 + (before.gapM < -11 ? 56 : 0)) * dt * 1.3 + 1) seen.jumps += 1;
+          if (Math.abs(car.lane - before.lane) > 3.4 * dt * 1.3 + 0.1) seen.sideJumps += 1;
+        }
+        last.set(car.id, { distanceM: car.distanceM, lane: car.lane, gapM: car.gapM });
+        if (car.rival.finished || Math.abs(car.gapM) < 1) continue;
+        const side = Math.sign(car.gapM);
+        if (sides.has(car.id) && sides.get(car.id) !== side) seen.passes.push({ at: Math.round(api.driver.raceMs()), kind: side > 0 ? "rival passes player" : "player passes rival", lane: Number(car.lane.toFixed(2)) });
+        sides.set(car.id, side);
+      }
+      for (const id of [...last.keys()]) if (!present.has(id)) { last.delete(id); sides.delete(id); }
+      const flash = document.querySelector(".hud-flash");
+      const text = flash && !flash.hidden ? flash.textContent : "";
+      if (text && text !== lastFlash) {
+        seen.flashes.push(text);
+        if (flash.getBoundingClientRect().bottom > document.querySelector(".race-panel").getBoundingClientRect().top + 0.5) seen.flashOverQuestion += 1;
+      }
+      lastFlash = text;
+    };
+    window.__qaTraffic = seen;
+    requestAnimationFrame(frame);
+  });
   const cars = await Promise.all([ava, ben].map((page) => page.evaluate(() => { const driver = window.__MATH_RACE__.race.driver; return { name: driver.car.name, topSpeed: driver.car.topSpeed, boost: driver.car.boost, lengthKm: driver.lengthKm, min: driver.minCorrect, starts: driver.startsAtMs() }; })));
   ok(cars.every((car) => car.name === ONLINE_CAR.name && car.topSpeed === ONLINE_CAR.topSpeed && car.boost === ONLINE_CAR.boost && car.min === MIN_CORRECT), `everyone drives the same ${cars[0].name} (${cars[0].topSpeed} km/h, +${cars[0].boost}), ${cars[0].min} correct answers needed`);
   ok(cars[0].starts === cars[1].starts && cars[0].starts === creator.room.startsAtMs, "one start time for every screen and racer");
@@ -493,6 +554,28 @@ try {
   ok(hud.rivals === 3 && hud.board.length >= 3 && hud.me === 1 && /of 4$/.test(hud.position), `minimap shows the 3 other racers; leaderboard has ${hud.board.length} rows with one marked as me; position "${hud.position}"`);
   ok(["low", "medium", "high"].includes(hud.graphics), `a real 3D scene is drawing on the phone (${hud.graphics})`);
 
+  // Overtaking, as drawn on the phone since lights out. The other racers are real seats in the room, each driven
+  // by its own answers through the public API; where their cars are drawn comes from the server's standings.
+  // The phone stops answering for a while (the others drive past it), then answers quickly (it drives past them).
+  const gapToBen = () => ava.evaluate(() => { const api = window.__MATH_RACE__.race; const ben = api.rivals().find((rival) => rival.name === "QA Ben"); return ben ? ben.distanceM - api.view().distanceKm * 1000 : null; });
+  const benWas = await gapToBen();
+  // The WebKit phone answers until its car has gone past the QR phone's car on the QR phone's screen...
+  for (let round = 0; round < 40 && (await gapToBen()) < 8; round += 1) await answerOnScreen(ben, true);
+  const benAhead = await gapToBen();
+  await sleep(1500);
+  // ...and then the QR phone answers until it has taken the place back.
+  for (let round = 0; round < 40 && (await gapToBen()) > -8; round += 1) await answerOnScreen(ava, true);
+  const benBehind = await gapToBen();
+  await sleep(2500);
+  ok(benWas < 0 && benAhead >= 8 && benBehind <= -8, `two racers on two phones changed places twice by answering: the other phone was ${Math.round(-benWas)} m behind, went ${Math.round(benAhead)} m ahead, and was passed again (${Math.round(-benBehind)} m behind)`);
+  const traffic = await ava.evaluate(() => window.__qaTraffic);
+  facts.overtaking = traffic;
+  ok(traffic.frames > 20 && traffic.mostCars >= 2, `the phone drew the race for ${traffic.frames} frames with up to ${traffic.mostCars} cars on the road`);
+  ok(traffic.overlaps === 0 && traffic.offRoad === 0, `no car was drawn inside another or off the road (${traffic.overlaps} overlaps, ${traffic.offRoad} off the road)`);
+  ok(traffic.backwards === 0 && traffic.jumps === 0 && traffic.sideJumps === 0, `no car was moved by a jump: ${traffic.jumps} along the road, ${traffic.sideJumps} across it, ${traffic.backwards} backwards ${traffic.notes.length ? JSON.stringify(traffic.notes) : ""}`);
+  ok(traffic.passes.length >= 2 && traffic.passes.some((pass) => pass.kind === "rival passes player") && traffic.passes.some((pass) => pass.kind === "player passes rival") && traffic.passes.every((pass) => Math.abs(pass.lane) >= 2.3), `${traffic.passes.length} pass(es) between racers drawn on the phone, each a lane to the side of the phone's car (${traffic.passes.map((pass) => `${pass.kind} at ${(pass.at / 1000).toFixed(1)} s`).join("; ")})`);
+  ok(traffic.flashes.length >= 1 && traffic.flashes.every((text) => /^(YOU MOVED INTO \d+(ST|ND|RD|TH)!|RIVAL MOVED AHEAD)$/.test(text)) && traffic.flashOverQuestion === 0, `a change of place is said over the road, clear of the question (${[...new Set(traffic.flashes)].join(" / ")})`);
+
   // Reconnect: a refresh comes back to the same seat with the same progress.
   const mine = async (page) => page.evaluate(() => { const state = window.__MATH_RACE__.race.driver.state(); return { correct: state.correct, x: state.x }; });
   const beforeReload = await mine(ava);
@@ -509,7 +592,12 @@ try {
   const deadline = Date.now() + 12 * 60 * 1000;
   while (!(creator.finished && cleo.finished) && Date.now() < deadline) await sleep(2000);
   ok(creator.finished && cleo.finished, `both HTTP racers crossed the line (creator ${creator.me?.finishMs} ms, Cleo ${cleo.me?.finishMs} ms)`);
-  await creator.poll();
+  // A racer learns it has finished from its own reply; the room's standings carry it from the next refresh.
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await creator.poll();
+    if (creator.room.standings.filter((row) => row.f !== null).length >= 2) break;
+    await sleep(1500);
+  }
   const standings = creator.room.standings;
   const finishers = standings.filter((row) => row.f !== null);
   facts.standings = standings.map((row) => ({ name: row.name, rank: row.rank, finishMs: row.f, correct: row.correct }));

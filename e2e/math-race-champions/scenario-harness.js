@@ -278,7 +278,13 @@
       }
       const ms = now - lastNow;
       lastNow = now;
-      if (!(ms > 0) || ms > 1500) return;
+      // After a gap of about a second the game puts the cars where the race has them (nobody saw the road in
+      // between): such a frame is not compared with the one before it.
+      if (!(ms > 0) || ms > 900) {
+        last.clear();
+        lastMs = 0;
+        return;
+      }
       // This callback and the game's own run in the same frame, in an order that differs between browsers:
       // what is read here may have been drawn one frame ago. So "how far can a car go in a frame" is judged
       // against the longer of the last two frames.
