@@ -251,6 +251,7 @@
     const beside = new Map();
     const runs = { wrong: 0, position: 0, minimap: 0, board: 0 };
     let lastNow = 0;
+    let lastMs = 0;
     let lastFlash = "";
     let lastMirror = "";
     let lastPosition = "";
@@ -278,7 +279,11 @@
       const ms = now - lastNow;
       lastNow = now;
       if (!(ms > 0) || ms > 1500) return;
-      const dt = ms / 1000;
+      // This callback and the game's own run in the same frame, in an order that differs between browsers:
+      // what is read here may have been drawn one frame ago. So "how far can a car go in a frame" is judged
+      // against the longer of the last two frames.
+      const dt = Math.max(ms, lastMs) / 1000;
+      lastMs = ms;
       rec.frames += 1;
       rec.frameMs.push(ms);
       rec.graphics = api.graphics();
