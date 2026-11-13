@@ -166,6 +166,18 @@ The race is decided by the racing model on the server's answers. `race/traffic.j
 - **Frame rate.** A frame that covers more than a twentieth of a second is walked in shorter steps, so the cars behave the same at 12 frames a second as at 60.
 - **What it cannot do.** Positions come from the race, not from the road, so in a full room several racers can be within a metre of one another, which is more cars than there are lanes. They are then drawn in a queue (never inside one another), and a car can be drawn a few metres behind slower cars for a few seconds while the leaderboard already has it ahead: mostly as a full room leaves the grid. With two to five racers the car order on the road matches the race to within the moment a late standings row takes to arrive.
 
+### How the 3D race is made to look real
+
+Nothing here changes a race: it is all in how the picture is drawn (`scene3d/world.js`, `scene3d/cars.js`).
+
+- **The road is painted as it is driven.** Five lanes with dashed lines between them, at the lanes the cars really use, a solid edge line and 2 m kerb blocks. The surface has broad lighter and darker areas, darker bands where wheels run, a few sealed cracks, a repair and some oil, and its tone drifts slowly along the road so no two stretches look alike. One tile is 32 m long.
+- **A verge.** Packed earth and gravel between the kerb and the land, under the guard rail, instead of tarmac cut straight into grass.
+- **Light from the sun you can see.** The sunlight comes from where the sun (or moon) is drawn, so shadows fall away from it; the fill light takes a little of the sky's colour; the sky pales to a band of haze at the horizon.
+- **Every car moves on its springs.** A car's speed changes in steps, when an answer lands. The body shows the step over about a third of a second: the tail squats under power, the nose dips under braking, and it settles. Bends and lane changes lean the body outward. The front wheels point where the car is going.
+- **Lamps.** Tail lamps rest dull red and light up when a car slows hard or stands (on the grid, or at its 30-answer limit). On the night circuit tail lamps are on all the time and each car throws a pool of light on the road ahead.
+- **The camera** turns into a bend a moment after the car does and, at speed, feels the road a little. With reduced motion set, it does not vibrate.
+- Cost: the same frame rate as before on the development machine (60 frames a second with ten cars drawn). Texture filtering stays at 8×; 16× halved the frame rate at 1366×768.
+
 ### Sound
 
 - Music is the shared, already-approved MathNexa track ("Cosmic Candy Catchers" by Eric Matyas, soundimage.org, CC BY 3.0), the one file at `/media/audio/cosmic-candy-catchers.mp3`; no second copy. It starts inside the first real press or key (Safari's rule), on whatever is pressed: nobody has to touch the music button. Music and Sound effects have separate switches and volumes, remembered on the device.

@@ -244,7 +244,7 @@ export function mount(root, context, params) {
       if (!quality.canRender3D()) throw new Error("no-webgl");
       const { createWorld } = await import("../scene3d/world.js");
       if (destroyed) return;
-      world = createWorld({ canvas, circuit: plan.circuit, themeName: plan.themeName, tier: quality.detectTier(context.prefs.graphics), seed: plan.title });
+      world = createWorld({ canvas, circuit: plan.circuit, themeName: plan.themeName, tier: quality.detectTier(context.prefs.graphics), seed: plan.title, calm: reduced });
       world.setPlayer(plan.playerModel, plan.playerPaint);
       // One frame now, so shaders and textures are ready before the lights.
       world.render({ distanceM: 0, speed: 0 }, lastScene, 16);

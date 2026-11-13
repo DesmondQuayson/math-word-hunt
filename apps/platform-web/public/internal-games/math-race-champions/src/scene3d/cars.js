@@ -303,6 +303,10 @@ function buildWheel(radius, width, materials, detailed) {
  * the computer's car); `detail` "low" is the lighter model used for cars in the
  * distance and on slower devices.
  */
+const TAIL_REST = 0x8f1822;
+const TAIL_NIGHT = 0xc9202d;
+const TAIL_BRAKE = 0xff4250;
+
 export function buildCar(modelKey, { paint = null, detail = "high" } = {}) {
   const design = DESIGNS[modelKey] ?? DESIGNS.starter;
   const detailed = detail !== "low";
@@ -321,7 +325,8 @@ export function buildCar(modelKey, { paint = null, detail = "high" } = {}) {
     caliper: new MeshStandardMaterial({ color: design.caliper, metalness: 0.3, roughness: 0.4 }),
     head: new MeshBasicMaterial({ color: 0xfff8e1 }),
     lens: new MeshStandardMaterial({ color: 0xdfeaf5, metalness: 0.4, roughness: 0.08, transparent: true, opacity: 0.55 }),
-    tail: new MeshBasicMaterial({ color: 0xff2d3d }),
+    // Tail lamps rest dull red and light up under braking (see `brake`); they are lamps, so not tone mapped.
+    tail: new MeshBasicMaterial({ color: TAIL_REST, toneMapped: false }),
     plate: new MeshBasicMaterial({ color: 0xf2f5f9 }),
     shadow: new MeshBasicMaterial({ map: softShadow(), transparent: true, depthWrite: false })
   };
@@ -506,6 +511,8 @@ export function buildCar(modelKey, { paint = null, detail = "high" } = {}) {
 
   // ---- Wheels sit in their carved arches, each with a dark liner.
   const wheels = [];
+  const steered = [];
+  let tailRest = TAIL_REST;
   for (const axle of axles) {
     for (const side of [-1, 1]) {
       const wheel = buildWheel(design.wheel, wheelWidth, materials, detailed);
@@ -515,6 +522,7 @@ export function buildCar(modelKey, { paint = null, detail = "high" } = {}) {
       });
       car.add(wheel.assembly);
       wheels.push(wheel.spinner);
+      if (axle.share > 0.5) steered.push(wheel.assembly);
       if (detailed) {
         // Kept under the fender, so it never shows through a low bonnet.
         const liner = new Mesh(new CylinderGeometry(design.wheel * (ARCH - 0.02), design.wheel * (ARCH - 0.02), 0.16, 22), materials.dark);
@@ -546,6 +554,19 @@ export function buildCar(modelKey, { paint = null, detail = "high" } = {}) {
     roll(metres) {
       const turn = metres / design.wheel;
       for (const wheel of wheels) wheel.rotation.x += turn;
+    },
+    /** Point the front wheels `angle` radians off straight ahead. */
+    steer(angle) {
+      for (const wheel of steered) wheel.rotation.y = angle;
+    },
+    /** Brake lamps on or off. */
+    brake(on) {
+      materials.tail.color.setHex(on ? TAIL_BRAKE : tailRest);
+    },
+    /** After dark the tail lamps are on all the time (brighter still under braking). */
+    lamps(night) {
+      tailRest = night ? TAIL_NIGHT : TAIL_REST;
+      materials.tail.color.setHex(tailRest);
     },
     dispose() {
       car.traverse(node => {

@@ -68,6 +68,8 @@ const BEHIND_M = 45;
 const SLOT_M = 12;
 const SIGN_EVERY_M = 320;
 const UP = new Vector3(0, 1, 0);
+/** three.js AdditiveBlending (the vendored build does not export the name). */
+const ADDITIVE = 2;
 
 function hash01(value) {
   return (hashSeed(String(value)) % 100_000) / 100_000;
@@ -95,28 +97,92 @@ function speckle(context, width, height, count, seed, colours, size = 2) {
   }
 }
 
+/** The lanes the cars drive in (race/traffic.js), metres from the centre line: the road is painted to match. */
+const LANE_CENTRES = [-5.2, -2.6, 0, 2.6, 5.2];
+/** One tile of road surface is this long, metres. */
+const ROAD_TILE_M = 32;
+
 function roadTexture(theme) {
-  const texture = canvasTexture(512, 512, (context, width, height) => {
+  const texture = canvasTexture(512, 1024, (context, width, height) => {
+    const across = metres => ((metres + ROAD_HALF) / (ROAD_HALF * 2)) * width;
+    const along = metres => (metres / ROAD_TILE_M) * height;
     context.fillStyle = theme.road;
     context.fillRect(0, 0, width, height);
-    speckle(context, width, height, 2600, "asphalt", ["rgba(255,255,255,0.05)", "rgba(0,0,0,0.12)", "rgba(255,255,255,0.03)"]);
-    // Two tyre-worn bands per lane.
-    context.fillStyle = "rgba(0,0,0,0.045)";
-    for (const x of [96, 150, 232, 280, 362, 416]) context.fillRect(x - 10, 0, 20, height);
-    // Kerbs: two stripes per tile, so they alternate along the road.
-    for (const [x, w] of [[0, 26], [486, 26]]) {
-      context.fillStyle = "#f4f6f8";
-      context.fillRect(x, 0, w, height / 2);
-      context.fillStyle = theme.night ? "#20cfe3" : "#ff4f9a";
-      context.fillRect(x, height / 2, w, height / 2);
+    // Asphalt is never one colour: broad lighter and darker areas, then the grain of the stone in it.
+    for (let index = 0; index < 22; index += 1) {
+      const x = hash01(`tar:x:${index}`) * width;
+      const y = hash01(`tar:y:${index}`) * height;
+      const r = 50 + hash01(`tar:r:${index}`) * 110;
+      const gradient = context.createRadialGradient(x, y, 4, x, y, r);
+      gradient.addColorStop(0, index % 2 === 0 ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.09)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      context.fillStyle = gradient;
+      for (const dy of [-height, 0, height]) context.fillRect(x - r, y + dy - r, r * 2, r * 2);
     }
-    context.fillStyle = "#ffffff";
-    context.fillRect(34, 0, 9, height);
-    context.fillRect(469, 0, 9, height);
-    for (const x of [178, 330]) context.fillRect(x, 40, 7, 200); // lane dashes
+    speckle(context, width, height, 7000, "asphalt", ["rgba(255,255,255,0.055)", "rgba(0,0,0,0.13)", "rgba(255,255,255,0.03)", "rgba(0,0,0,0.07)"]);
+    // Where the wheels run the surface is polished darker: two bands a lane, deepest in the middle lanes.
+    for (const lane of LANE_CENTRES) {
+      context.fillStyle = `rgba(0,0,0,${Math.abs(lane) > 4 ? 0.035 : 0.06})`;
+      for (const side of [-0.78, 0.78]) context.fillRect(across(lane + side) - 9, 0, 18, height);
+    }
+    // A few sealed cracks, one squared-off repair and some oil: a road that has been used.
+    context.lineWidth = 1;
+    context.strokeStyle = "rgba(0,0,0,0.13)";
+    for (let crack = 0; crack < 4; crack += 1) {
+      let x = across(-5.4 + hash01(`crack:x:${crack}`) * 10.8);
+      let y = hash01(`crack:y:${crack}`) * height;
+      context.beginPath();
+      context.moveTo(x, y);
+      for (let step = 0; step < 5; step += 1) {
+        x += (hash01(`crack:${crack}:dx:${step}`) - 0.5) * 16;
+        y += 8 + hash01(`crack:${crack}:dy:${step}`) * 16;
+        context.lineTo(x, y);
+      }
+      context.stroke();
+    }
+    context.fillStyle = "rgba(0,0,0,0.05)";
+    context.fillRect(across(0.4), along(19), across(2.3) - across(0.4), along(24.5) - along(19));
+    context.strokeStyle = "rgba(0,0,0,0.1)";
+    context.strokeRect(across(0.4), along(19), across(2.3) - across(0.4), along(24.5) - along(19));
+    for (let stain = 0; stain < 6; stain += 1) {
+      const x = across(LANE_CENTRES[stain % LANE_CENTRES.length] + (hash01(`oil:x:${stain}`) - 0.5) * 0.5);
+      const y = hash01(`oil:y:${stain}`) * height;
+      const r = 8 + hash01(`oil:r:${stain}`) * 14;
+      const gradient = context.createRadialGradient(x, y, 1, x, y, r);
+      gradient.addColorStop(0, "rgba(0,0,0,0.2)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      context.fillStyle = gradient;
+      context.fillRect(x - r, y - r * 2.4, r * 2, r * 4.8);
+    }
+    // Kerbs: 2 m blocks, alternating, outside a solid edge line.
+    const kerb = across(-6.14);
+    for (let block = 0; block < ROAD_TILE_M / 2; block += 1) {
+      context.fillStyle = block % 2 === 0 ? "#eef1f4" : theme.night ? "#20cfe3" : "#ff4f9a";
+      context.fillRect(0, along(block * 2), kerb, along(2) + 1);
+      context.fillRect(width - kerb, along(block * 2), kerb, along(2) + 1);
+    }
+    context.fillStyle = "rgba(255,255,255,0.92)";
+    for (const edge of [-6.0, 6.0]) context.fillRect(across(edge) - 2.5, 0, 5, height);
+    // Lane lines between the five lanes: 4.5 m dashes, two to a tile, a little worn.
+    for (const line of [-3.9, -1.3, 1.3, 3.9]) {
+      for (const from of [1.5, 17.5]) context.fillRect(across(line) - 2.5, along(from), 5, along(4.5));
+    }
+    speckle(context, width, height, 900, "paint-wear", ["rgba(40,44,52,0.35)"], 2);
   }, { repeat: true });
   texture.anisotropy = 8;
   return texture;
+}
+
+/** A soft pool of light on the road ahead of a car, for the night circuit. */
+function beamTexture() {
+  return canvasTexture(64, 128, (context, width, height) => {
+    const gradient = context.createRadialGradient(width / 2, height * 0.86, 2, width / 2, height * 0.5, height * 0.62);
+    gradient.addColorStop(0, "rgba(255,244,214,0.85)");
+    gradient.addColorStop(0.45, "rgba(255,240,205,0.3)");
+    gradient.addColorStop(1, "rgba(255,240,205,0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+  });
 }
 
 function groundTexture(theme) {
@@ -142,10 +208,13 @@ function groundTexture(theme) {
 
 function skyTexture(theme, seed) {
   return canvasTexture(512, 512, (context, width, height) => {
+    // Deep overhead, paler towards the horizon, and a band of haze where the sky meets the land.
+    const haze = `#${new Color(theme.skyLow).lerp(new Color(0xffffff), theme.night ? 0.06 : 0.38).getHexString()}`;
     const gradient = context.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, theme.skyTop);
-    gradient.addColorStop(0.5, theme.skyLow);
-    gradient.addColorStop(1, theme.skyLow);
+    gradient.addColorStop(0.4, theme.skyLow);
+    gradient.addColorStop(0.5, haze);
+    gradient.addColorStop(1, haze);
     context.fillStyle = gradient;
     context.fillRect(0, 0, width, height);
     if (theme.night) {
@@ -288,7 +357,8 @@ function gantry(text, checkered) {
   return group;
 }
 
-export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }) {
+/** `calm` (reduced motion): no camera vibration at speed. */
+export function createWorld({ canvas, circuit, themeName, tier, seed = "world", calm = false }) {
   const theme = THEMES[themeName] ?? THEMES.coast;
   let quality = tier;
   const renderer = new WebGLRenderer({ canvas, antialias: tier.antialias, powerPreference: "high-performance", alpha: false });
@@ -307,12 +377,13 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   scene.environment = environment.texture;
   pmrem.dispose();
 
-  scene.add(new HemisphereLight(0xffffff, new Color(theme.ground), 1.0 * theme.light));
+  scene.add(new HemisphereLight(new Color(0xffffff).lerp(new Color(theme.skyLow), 0.28), new Color(theme.ground), 1.0 * theme.light));
   const sun = new DirectionalLight(new Color(theme.sun), 1.5 * theme.light);
   const sunTarget = new Object3D();
   scene.add(sun, sunTarget);
   sun.target = sunTarget;
-  const sunOffset = new Vector3(22, 34, -16);
+  // The light comes from where the sun (or the moon) is drawn in the sky, so shadows fall away from it.
+  const sunOffset = new Vector3(20.3, 31.1, 23.6);
   if (shadows) {
     sun.castShadow = true;
     sun.shadow.mapSize.set(tier.shadows, tier.shadows);
@@ -378,12 +449,15 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
 
   // ------------------------------------------------------------------ road
   const segments = Math.ceil((tier.viewDistance + BEHIND_M) / STEP_M);
-  const strip = withUv => {
+  const strip = (withUv, lit = withUv) => {
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new Float32BufferAttribute(new Float32Array((segments + 1) * 2 * 3), 3));
     if (withUv) {
       geometry.setAttribute("uv", new Float32BufferAttribute(new Float32Array((segments + 1) * 2 * 2), 2));
-      // The road is flat: every normal points straight up, so it is lit like the ground.
+      geometry.setAttribute("color", new Float32BufferAttribute(new Float32Array((segments + 1) * 2 * 3).fill(1), 3));
+    }
+    if (lit) {
+      // Flat: every normal points straight up, so it is lit like the ground.
       const normals = new Float32Array((segments + 1) * 2 * 3);
       for (let i = 1; i < normals.length; i += 3) normals[i] = 1;
       geometry.setAttribute("normal", new Float32BufferAttribute(normals, 3));
@@ -398,10 +472,20 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   };
   const roadGeometry = strip(true);
   const roadMap = roadTexture(theme);
-  const road = new Mesh(roadGeometry, new MeshLambertMaterial({ map: roadMap, side: DoubleSide }));
+  const road = new Mesh(roadGeometry, new MeshLambertMaterial({ map: roadMap, side: DoubleSide, vertexColors: true }));
   road.frustumCulled = false;
   road.receiveShadow = shadows;
   scene.add(road);
+  // A verge of packed earth and gravel between the kerb and the land: a road is not cut into grass with a knife.
+  const vergeColour = theme.night ? new Color(theme.ground).lerp(new Color(0x2b3646), 0.6) : new Color(theme.ground).lerp(new Color(themeName === "alpine" ? 0xaab4bf : 0x8b7b66), 0.55);
+  const vergeMaterial = new MeshLambertMaterial({ color: vergeColour, side: DoubleSide });
+  const verges = [-1, 1].map(side => {
+    const mesh = new Mesh(strip(false, true), vergeMaterial);
+    mesh.frustumCulled = false;
+    mesh.receiveShadow = shadows;
+    scene.add(mesh);
+    return { side, mesh };
+  });
   // A guard rail down each side: the best cue for speed there is.
   const railMaterial = new MeshBasicMaterial({ color: theme.night ? 0x35507a : themeName === "alpine" ? 0x8fa3b8 : 0xdfe6ee, side: DoubleSide });
   const rails = [-1, 1].map(side => {
@@ -417,6 +501,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
     const position = roadGeometry.getAttribute("position");
     const uv = roadGeometry.getAttribute("uv");
     const railPositions = rails.map(rail => rail.mesh.geometry.getAttribute("position"));
+    const vergePositions = verges.map(verge => verge.mesh.geometry.getAttribute("position"));
+    const colour = roadGeometry.getAttribute("color");
     for (let i = 0; i <= segments; i += 1) {
       const distance = (base + i) * STEP_M;
       const point = circuit.at(distance);
@@ -425,8 +511,18 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
       position.setXYZ(i * 2, point.x - nx * ROAD_HALF, 0, point.z - nz * ROAD_HALF);
       position.setXYZ(i * 2 + 1, point.x + nx * ROAD_HALF, 0, point.z + nz * ROAD_HALF);
       // The texture is pinned to the road, so the dashes stream past with distance.
-      uv.setXY(i * 2, 0, distance / 16);
-      uv.setXY(i * 2 + 1, 1, distance / 16);
+      uv.setXY(i * 2, 0, distance / ROAD_TILE_M);
+      uv.setXY(i * 2 + 1, 1, distance / ROAD_TILE_M);
+      // Older and newer stretches of surface: the tone drifts slowly along the road, so no two tiles look alike.
+      const age = 0.93 + 0.1 * (0.5 + 0.5 * Math.sin(distance * 0.043 + 1.3) * Math.sin(distance * 0.0171));
+      const left = age * (1 + 0.025 * Math.sin(distance * 0.093));
+      const right = age * (1 + 0.025 * Math.sin(distance * 0.071 + 2.1));
+      colour.setXYZ(i * 2, left, left, left);
+      colour.setXYZ(i * 2 + 1, right, right, right);
+      verges.forEach((verge, index) => {
+        vergePositions[index].setXYZ(i * 2, point.x + nx * ROAD_HALF * verge.side, -0.012, point.z + nz * ROAD_HALF * verge.side);
+        vergePositions[index].setXYZ(i * 2 + 1, point.x + nx * (ROAD_HALF + 2.8) * verge.side, -0.052, point.z + nz * (ROAD_HALF + 2.8) * verge.side);
+      });
       rails.forEach((rail, index) => {
         const x = point.x + nx * RAIL_OFFSET * rail.side;
         const z = point.z + nz * RAIL_OFFSET * rail.side;
@@ -436,6 +532,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
     }
     position.needsUpdate = true;
     uv.needsUpdate = true;
+    colour.needsUpdate = true;
+    for (const attribute of vergePositions) attribute.needsUpdate = true;
     for (const attribute of railPositions) attribute.needsUpdate = true;
   }
 
@@ -684,17 +782,69 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   let player = null;
   let playerDistance = 0;
   let lastPlayerDistance = 0;
-  let pitch = 0;
-  let pitchTarget = 0;
-  let bounceClock = 0;
   let lean = 0;
   const rivalPool = [];
+  const beamMap = theme.night ? beamTexture() : null;
+  const beamMaterial = beamMap ? new MeshBasicMaterial({ map: beamMap, transparent: true, opacity: 0.5, depthWrite: false, blending: ADDITIVE, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -3 }) : null;
+
+  /** A car as it is built for this circuit: lamps on after dark, with their light on the road. */
+  function carFor(modelKey, options) {
+    const handle = buildCar(modelKey, options);
+    handle.lamps(theme.night);
+    if (beamMaterial) {
+      const beam = new Mesh(new PlaneGeometry(handle.width * 2.3, 13), beamMaterial);
+      beam.rotation.x = -Math.PI / 2;
+      beam.position.set(0, 0.035, handle.length / 2 + 5.6);
+      handle.group.add(beam);
+    }
+    return handle;
+  }
+
+  /** How one car's body is sitting on its springs. `phase` keeps two cars from bobbing in step. */
+  const dynamics = (phase = 0) => ({ v: null, push: 0, pitch: 0, pitchV: 0, roll: 0, vx: 0, sway: 0, clock: phase, lit: 0 });
+  const playerDynamics = dynamics();
+
+  /**
+   * The body moves on its springs the way the car is being driven. A car's speed changes in steps (an answer
+   * lands), so the step is let out over a third of a second: the tail squats under power and the nose dips
+   * under braking, then settles. Turning and changing lane lean it outward. The front wheels point where it is
+   * going, and the brake lamps light when it slows hard or stands.
+   */
+  function animateCar(handle, state, speed, lateralSpeed, turning, steer, dtSeconds) {
+    const v = speed / 3.6;
+    if (state.v === null) state.v = v;
+    state.push += v - state.v;
+    state.v = v;
+    let felt = 0;
+    const parts = Math.max(1, Math.ceil(dtSeconds / 0.03));
+    const dt = dtSeconds / parts;
+    for (let part = 0; part < parts && dt > 0; part += 1) {
+      const out = state.push * Math.min(1, dt * 5);
+      state.push -= out;
+      felt = out / dt;
+      const want = Math.max(-0.05, Math.min(0.065, -felt * 0.0042));
+      state.pitchV += ((want - state.pitch) * 110 - state.pitchV * 13) * dt;
+      state.pitch += state.pitchV * dt;
+    }
+    const across = dtSeconds > 0 ? (lateralSpeed - state.vx) / dtSeconds : 0;
+    state.vx = lateralSpeed;
+    state.sway += (Math.max(-12, Math.min(12, across)) - state.sway) * Math.min(1, dtSeconds * 8);
+    const roll = Math.max(-0.08, Math.min(0.08, -turning * speed * 0.012 - state.sway * 0.006 - steer * Math.min(1, v / 20) * 0.12));
+    state.roll += (roll - state.roll) * Math.min(1, dtSeconds * 7);
+    state.clock += dtSeconds * (4 + speed * 0.09);
+    handle.chassis.rotation.x = state.pitch;
+    handle.chassis.rotation.z = state.roll;
+    handle.chassis.position.y = Math.sin(state.clock) * 0.012 * Math.min(1, speed / 60) - Math.abs(state.pitch) * 0.2;
+    handle.steer(Math.max(-0.42, Math.min(0.42, steer * 1.9 + turning * 3.2)));
+    state.lit = felt < -5 || v < 0.3 ? 0.25 : Math.max(0, state.lit - dtSeconds);
+    handle.brake(state.lit > 0);
+  }
   // How far the view has opened for a car coming up behind, and towards which side (both eased).
   let cameraPull = 0;
   let cameraPan = 0;
 
   /** `steer` turns the car's nose towards the side it is moving to (a lane change), radians. */
-  function poseCar(handle, distance, lane, speed, dtSeconds, isPlayer, steer = 0) {
+  function poseCar(handle, state, distance, lane, speed, dtSeconds, isPlayer, steer = 0, lateralSpeed = 0) {
     const point = circuit.at(distance);
     const ahead = circuit.at(distance + 6);
     const nx = Math.cos(point.heading);
@@ -702,15 +852,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
     handle.group.position.set(point.x + nx * lane, 0, point.z + nz * lane);
     handle.group.rotation.y = point.heading + steer;
     const turning = ahead.heading - point.heading;
-    handle.chassis.rotation.z = Math.max(-0.07, Math.min(0.07, -turning * speed * 0.012));
-    if (isPlayer) {
-      pitch += (pitchTarget - pitch) * Math.min(1, dtSeconds * 9);
-      pitchTarget *= Math.max(0, 1 - dtSeconds * 4);
-      bounceClock += dtSeconds * (4 + speed * 0.09);
-      handle.chassis.rotation.x = pitch;
-      handle.chassis.position.y = Math.sin(bounceClock) * 0.012 * Math.min(1, speed / 60);
-      lean += (Math.max(-0.05, Math.min(0.05, turning * speed * 0.006)) - lean) * Math.min(1, dtSeconds * 3);
-    }
+    animateCar(handle, state, speed, lateralSpeed, turning, steer, dtSeconds);
+    if (isPlayer) lean += (Math.max(-0.05, Math.min(0.05, turning * speed * 0.006)) - lean) * Math.min(1, dtSeconds * 3);
     return point;
   }
 
@@ -744,6 +887,10 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
 
   const cameraPosition = new Vector3();
   const cameraTarget = new Vector3();
+  // Where the camera is actually looking: it follows the target a moment behind, as a camera car would.
+  const cameraLook = new Vector3();
+  let cameraLooking = false;
+  let cameraClock = 0;
   const tilted = new Vector3();
   const probe = new Vector3();
   // What the last frame showed: read by the browser tests and the frame-rate checks.
@@ -771,12 +918,12 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
         scene.remove(player.group);
         player.dispose();
       }
-      player = buildCar(modelKey, { paint, detail: quality.carDetail });
+      player = carFor(modelKey, { paint, detail: quality.carDetail });
       scene.add(player.group);
     },
     /** A shove on the suspension: "boost" squats the car, "brake" dips its nose. */
     pulse(kind) {
-      pitchTarget = kind === "boost" ? -0.05 : 0.045;
+      playerDynamics.pitchV += kind === "boost" ? -0.22 : 0.2;
     },
     /**
      * Draw one frame.
@@ -799,7 +946,7 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
 
       player.roll(playerDistance - lastPlayerDistance);
       lastPlayerDistance = playerDistance;
-      const here = poseCar(player, playerDistance, 0, me.speed, dtSeconds, true);
+      const here = poseCar(player, playerDynamics, playerDistance, 0, me.speed, dtSeconds, true);
       sunTarget.position.set(here.x, 0, here.z);
       sun.position.set(here.x + sunOffset.x, sunOffset.y, here.z + sunOffset.z);
 
@@ -820,7 +967,7 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
             scene.remove(slotCar.handle.group);
             slotCar.handle.dispose();
           }
-          slotCar = { model: item.rival.model, handle: buildCar(item.rival.model, { paint: item.rival.paint, detail: index < 2 ? quality.carDetail : "low" }), paint: item.rival.paint, id: null, last: item.car.distanceM };
+          slotCar = { model: item.rival.model, handle: carFor(item.rival.model, { paint: item.rival.paint, detail: index < 2 ? quality.carDetail : "low" }), paint: item.rival.paint, id: null, last: item.car.distanceM, state: dynamics(index * 1.7 + 0.9) };
           rivalPool[index] = slotCar;
           scene.add(slotCar.handle.group);
         }
@@ -831,13 +978,15 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
         if (slotCar.id !== item.rival.id) {
           slotCar.id = item.rival.id;
           slotCar.last = item.car.distanceM;
+          slotCar.state = dynamics(index * 1.7 + 0.9);
         }
         slotCar.handle.group.visible = true;
         slotCar.handle.roll(item.car.distanceM - slotCar.last);
         slotCar.last = item.car.distanceM;
         // Changing lane, the nose points the way the car is going (never more than a real car steers).
         const steer = Math.max(-0.3, Math.min(0.3, Math.atan2(item.car.lateralSpeed ?? 0, Math.max(6, item.car.speedMs ?? 0))));
-        poseCar(slotCar.handle, item.car.distanceM, item.car.lane, item.rival.speed, dtSeconds, false, steer);
+        // Its speed as it is drawn (it may be making up ground, or waiting behind another car).
+        poseCar(slotCar.handle, slotCar.state, item.car.distanceM, item.car.lane, (item.car.speedMs ?? item.rival.speed / 3.6) * 3.6, dtSeconds, false, steer, item.car.lateralSpeed ?? 0);
       }
 
       // Camera: behind and above, looking down the road. Faster = wider, lower, and it leans into bends.
@@ -855,7 +1004,16 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
       const pan = cameraPan * (narrow ? 1.1 : 1.6);
       cameraTarget.set(far.x + Math.cos(far.heading) * pan, 0.95, far.z - Math.sin(far.heading) * pan);
       camera.up.copy(tilted.set(Math.cos(here.heading) * lean, 1, -Math.sin(here.heading) * lean).normalize());
-      camera.lookAt(cameraTarget);
+      // The view turns into a bend a moment after the car does, and at speed the camera car feels the road.
+      if (cameraLooking) cameraLook.lerp(cameraTarget, Math.min(1, dtSeconds * 9));
+      else cameraLook.copy(cameraTarget);
+      cameraLooking = true;
+      if (!calm) {
+        cameraClock += dtSeconds;
+        const rough = Math.max(0, speedShare - 0.4);
+        camera.position.y += (Math.sin(cameraClock * 37.1) + Math.sin(cameraClock * 23.3)) * 0.0045 * rough;
+      }
+      camera.lookAt(cameraLook);
       const fov = (narrow ? 78 : 62) + speedShare * 12 + cameraPull * (narrow ? 5 : 7);
       if (Math.abs(camera.fov - fov) > 0.2) {
         camera.fov += (fov - camera.fov) * Math.min(1, dtSeconds * 4);
