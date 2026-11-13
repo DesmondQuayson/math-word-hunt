@@ -123,13 +123,21 @@ preflight → non-aliased candidate → candidate probe → promote → live pro
 | Logs | From promotion onwards: no 5xx, no error, fatal or warning entries |
 | Wallets | Agree with their ledgers; no open synthetic room |
 
+### Signed-in checks on Production (after the owner signed in to the review browser)
+
+| Check | Result |
+| --- | --- |
+| Classroom Competition, 1920×1080 | Both tracks 920×624 px, 64 spaces each on the screen (START, 1 to 62 in order, FINISH), smallest space 61 px, nothing to scroll, both answer buttons of both teams on the screen. Two teams pressed in the same instant: each moved exactly one space (, ). |
+| Computer Race, Stage 5, Velocity GT, server-run | Four lead changes made on purpose by answering and then not answering. The computer passed the player at 48.4 s and 116.2 s; the player passed the computer at 55.2 s and 122.1 s. Every pass was drawn a lane to the side with the other car in the picture. Place read-out 1st, 2nd, 1st, 2nd, 1st. "RIVAL MOVED AHEAD" and "YOU MOVED INTO 1ST!" twice each, over the road. The mirror named the computer from 39 m behind. Over 7,958 frames: 0 cars inside one another, 0 off the road, 0 moved by a jump, 0 drawn backwards, 0 ms on the wrong side of the player. 60 frames a second. |
+| Account | The race was left unfinished; the wallet was R$ 5,750 before and after. |
+
+Details:  and the  pictures in the evidence folder.
+
 ### Not done on Production
 
 | | |
 | --- | --- |
-| Signed-in Computer Race with deliberate lead changes | Not run. The review browser was no longer signed in to mathnexa.com, and passwords are not entered on Production by automation. The same build ran scenarios A to E on the hosted staging preview. |
-| Classroom Competition on Production | Not opened, for the same reason. Production serves the same stylesheet and scripts as the staging preview the owner tested. |
-| Physical Smart Board and iPhone on Production | The owner's to do. |
+| Physical Smart Board and iPhone on Production | The owner's to do. Production serves the same stylesheet and scripts as the staging preview the owner tested on the board. |
 
 ## Rollback
 

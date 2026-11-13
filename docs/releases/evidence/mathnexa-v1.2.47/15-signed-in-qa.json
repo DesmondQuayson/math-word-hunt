@@ -1,0 +1,41 @@
+{
+  "when": "2026-11-13, about 03:45Z to 03:52Z",
+  "where": "https://mathnexa.com, the owner's own signed-in account in the review browser (the owner signed in; no password was entered by automation)",
+  "runtime": "styles.css?v=f501374571664087 (build e5decd7)",
+  "classroom": {
+    "viewport": [1920, 1080],
+    "layout": "flow",
+    "scroll": [0, 0],
+    "eachTeam": { "track": [920, 624], "tiles": 64, "tilesOnScreen": 64, "numbersInOrder": true, "first": "START", "last": "FINISH", "smallestTilePx": 61, "answerButtonsOnScreen": 2, "counter": "0 / 62", "stepsLeft": "62 STEPS LEFT" },
+    "twoTeamsPressedInTheSameInstant": { "turquoise": "1 / 62, 61 STEPS LEFT", "pink": "1 / 62, 61 STEPS LEFT" }
+  },
+  "computerRace": {
+    "stage": 5,
+    "car": "Velocity GT",
+    "picture": "high",
+    "viewport": [1366, 768],
+    "how": "The questions on the screen were worked out and answered with the keyboard keys. The player answered until 40 m ahead, stopped answering until the computer was 25 m ahead, answered until 25 m ahead again, and repeated. The race was then left unfinished (nothing is earned for an unfinished race).",
+    "framesRecorded": 7958,
+    "framesPerSecond": 60,
+    "frameMsP95": 16.8,
+    "passes": [
+      { "atMs": 48430, "kind": "computer passes player", "lane": 2.6, "inThePicture": true, "playerKmh": 33, "computerKmh": 66 },
+      { "atMs": 55245, "kind": "player passes computer", "lane": 2.6, "inThePicture": true, "playerKmh": 192, "computerKmh": 69 },
+      { "atMs": 116226, "kind": "computer passes player", "lane": 2.6, "inThePicture": true, "playerKmh": 31, "computerKmh": 95 },
+      { "atMs": 122068, "kind": "player passes computer", "lane": 2.6, "inThePicture": true, "playerKmh": 207, "computerKmh": 52 }
+    ],
+    "placeReadOut": ["1st of 2", "2nd of 2", "1st of 2", "2nd of 2", "1st of 2"],
+    "said": ["RIVAL MOVED AHEAD", "YOU MOVED INTO 1ST!", "RIVAL MOVED AHEAD", "YOU MOVED INTO 1ST!"],
+    "saidOverTheQuestion": 0,
+    "mirror": ["Computer 39 m behind", "Computer alongside", "Computer 39 m behind", "Computer alongside"],
+    "carsInsideOneAnother": 0,
+    "offTheRoad": 0,
+    "movedByAJump": 0,
+    "movedSidewaysByAJump": 0,
+    "drawnGoingBackwards": 0,
+    "msOnTheWrongSideOfThePlayer": 0,
+    "playerAnswers": { "correct": 19, "wrong": 0 },
+    "walletBefore": "R$ 5,750",
+    "walletAfter": "R$ 5,750"
+  }
+}
