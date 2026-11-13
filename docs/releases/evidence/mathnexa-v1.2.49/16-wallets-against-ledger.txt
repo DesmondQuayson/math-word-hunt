@@ -1,0 +1,6 @@
+  "rooms": {
+    "open": 0,
+    "rooms": 0
+  },
+  "result": "PASS"
+}

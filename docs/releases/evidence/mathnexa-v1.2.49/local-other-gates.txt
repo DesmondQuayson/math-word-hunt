@@ -1,0 +1,20 @@
+started 2026-11-13T10:32:48.5612949-06:00
+db-reset exit=0 minutes=0.8 :: 
+db-test exit=0 minutes=0.4 :: Files=44, Tests=1771, 16 wallclock secs ( 0.63 usr  0.27 sys +  0.80 cusr  1.05 csys =  2.75 CPU); Result: PASS
+security-baseline exit=0 minutes=0.2 :: Test Files  27 passed (27); Tests  327 passed (327)
+build exit=0 minutes=0.9 :: ? Compiled successfully in 13.9s
+bundle-audit exit=0 minutes=0 :: 
+tug-classic exit=0 minutes=4.6 :: 1 skipped; 47 passed (4.5m)
+number-logic exit=1 minutes=2.1 :: 1 failed; 1 passed (1.1m)
+number-cross exit=1 minutes=1.6 :: 1 failed
+crosscalc exit=-1073740791 minutes=0.1 :: 
+game-suite exit=0 minutes=5 :: 6 passed (3.5m)
+mvh-real-runtime exit=0 minutes=2.4 :: 40 passed (2.3m)
+finished 2026-11-13T10:50:42.5015367-06:00
+started 2026-11-13T10:52:26.6317066-06:00
+finished 2026-11-13T10:52:26.6748262-06:00
+started 2026-11-13T10:52:33.7147438-06:00
+number-logic exit=0 minutes=1.9 :: 2 passed (1.0m)
+number-cross exit=1 minutes=1.7 :: 1 failed
+crosscalc exit=-1073740791 minutes=0 :: 
+finished 2026-11-13T10:56:15.8903101-06:00

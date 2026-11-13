@@ -1,0 +1,31 @@
+STEP 2026-11-13T12:18:05.206Z probing dpl_GFfAsiH1M3unTf7Zx8SQtxW6Kspj through the CLI protection bypass
+PREVIEW_PROBES {
+  "checks": {
+    "health": true,
+    "webhook": true,
+    "canonicalHost": true,
+    "schedulerReachesRouteClosed": true,
+    "noServerErrors": true,
+    "optimizer": true,
+    "optimizerRemoteRefused": true
+  },
+  "statuses": {
+    "health": "200",
+    "webhookUnsigned": "400",
+    "home": "308 -> https://mathnexa.com/",
+    "account": "308 -> https://mathnexa.com/account",
+    "pricing": "308 -> https://mathnexa.com/pricing",
+    "admin": "308 -> https://mathnexa.com/admin",
+    "scheduler": "401",
+    "fixture": "308 -> https://mathnexa.com/api/internal/billing/fixture",
+    "gameRuntime": "308 -> https://mathnexa.com/game/runtime/index.html",
+    "forgedAccess": "308 -> https://mathnexa.com/play?access=active&trialEndsAt=2099-01-01",
+    "optimizerIcon": "200",
+    "optimizerRemote": "400",
+    "thumbnailAvif": "308 -> https://mathnexa.com/media/games/number-cross.avif"
+  }
+}
+PASS probe-preview
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-probe-preview-1794572412042.json
+(node:32032) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

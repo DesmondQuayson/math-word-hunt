@@ -1,0 +1,7 @@
+STEP 2026-11-13T12:15:11.973Z vercel production identity
+(node:19056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+STEP 2026-11-13T12:15:27.068Z production behaviour before the change
+PREFLIGHT {"apex":"dpl_DVTiEDA6FhpgEN67g5q9m9XqZBm3","rollback":{"id":"dpl_DVTiEDA6FhpgEN67g5q9m9XqZBm3","url":"https://mathnexa-platform-production-23dpy0d2w-bright-path-ed-tech.vercel.app","retained":true},"health":200,"webhookApex":400,"webhookHost":400}
+PASS preflight
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-preflight-1794572128961.json
