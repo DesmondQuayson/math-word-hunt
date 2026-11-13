@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { legacyCss } from "../../scripts/math-race-champions-legacy-css.mjs";
 import { OWNER, PAGE_ERRORS, answer, assertNoScroll, choice, classroomPhase, evidence, newPage, openClassroom, signIn, teamState, type Team } from "./helpers";
 
 const TEAMS: Team[] = ["turquoise", "pink"];
@@ -321,4 +322,103 @@ test("reduced motion: the football lands at once and everything still agrees", a
   expect(facts.badge).toBe("1");
   expect((await panelFacts(page, "turquoise")).count).toBe("1 / 62");
   await context.close();
+});
+
+// A classroom panel often runs a browser several years old. An older browser
+// drops any style rule it cannot read; in v1.2.46 that left the two tracks no
+// room at all on a Promethean panel (the top of the board was there, the lower
+// half was empty). Here the stylesheet is served the way such a browser parses
+// it ("legacy"), and again with the board's height rule gone altogether
+// ("starved", standing in for a browser nobody has tested), and the whole board
+// has to be there and playable either way.
+test.describe("Classroom Competition on an older panel browser", () => {
+  const SIZES: [number, number][] = [
+    [1920, 1080],
+    [1920, 940],
+    [1366, 768],
+    [1280, 720]
+  ];
+  for (const mode of ["legacy", "starved"] as const) {
+    test(`${mode} styles: both complete 62-space tracks, counters, footballs, and two teams pressing at once`, async ({ browser }) => {
+      test.setTimeout(300_000);
+      const { context, page } = await newPage(browser, { viewport: { width: 1920, height: 1080 }, hasTouch: true });
+      await context.route(/\/internal-games\/math-race-champions\/styles\.css/, async (route) => {
+        const response = await route.fetch();
+        let body = legacyCss(await response.text());
+        if (mode === "starved") body = body.replace(/(\.classroom\s*\{[^}]*?)height: 100vh;\s*height: var\(--app-h, 100vh\);/, "$1");
+        await route.fulfill({ response, body });
+      });
+      await signIn(page, OWNER);
+      await openClassroom(page);
+      expect(await page.evaluate(() => document.querySelector<HTMLElement>(".classroom")!.dataset.layout)).toBe(mode === "starved" ? "stated" : "flow");
+
+      for (const [width, height] of SIZES) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(400);
+        for (const team of TEAMS) {
+          const track = await trackFacts(page, team);
+          // START, 1 to 62 in order, FINISH: all 64 on the screen, inside this team's half, big enough to read.
+          expect(track.labels).toHaveLength(64);
+          expect(track.labels.slice(1, 63)).toEqual(Array.from({ length: 62 }, (_, index) => String(index + 1)));
+          for (const tile of track.tiles) {
+            expect(tile.left).toBeGreaterThanOrEqual(-1);
+            expect(tile.right).toBeLessThanOrEqual(width + 1);
+            expect(tile.top).toBeGreaterThanOrEqual(-1);
+            expect(tile.bottom).toBeLessThanOrEqual(height + 1);
+          }
+          expect(Math.min(...track.tiles.map((tile) => tile.size))).toBeGreaterThanOrEqual(width >= 1900 ? 40 : 26);
+          // The track is the biggest thing in the panel, not a strip: at least 40% of the window's height.
+          expect(track.area.bottom - track.area.top).toBeGreaterThanOrEqual(height * 0.4);
+          const state = await teamState(page, team);
+          const here = track.tiles[state.position]!;
+          expect(Math.hypot(track.ball.x - here.x, track.ball.y - here.y)).toBeLessThan(here.size * 0.4);
+          const panel = await panelFacts(page, team);
+          expect(panel.count).toBe(`${state.position} / 62`);
+          expect(panel.left).toBe(`${62 - state.position} STEPS LEFT`);
+          for (const index of [0, 1]) await expect(choice(page, team, index)).toBeInViewport({ ratio: 1 });
+        }
+        // The two tracks sit side by side, one team to each half.
+        const [left, right] = [await trackFacts(page, "turquoise"), await trackFacts(page, "pink")];
+        expect(left.area.right).toBeLessThanOrEqual(width / 2 + 1);
+        expect(right.area.left).toBeGreaterThanOrEqual(width / 2 - 1);
+        await assertNoScroll(page);
+        await evidence(page, `classroom-${mode}-${width}x${height}`);
+
+        // Each team answers once at this size: +1 for correct, the football moves one space.
+        for (const team of TEAMS) {
+          const before = (await teamState(page, team)).position;
+          await answer(page, team, true);
+          expect((await teamState(page, team)).position).toBe(before + 1);
+        }
+      }
+
+      // A wrong answer is +0. Then two fingers, two teams, one event-loop turn: each moves exactly one space.
+      const before = (await teamState(page, "pink")).position;
+      await answer(page, "pink", false);
+      expect((await teamState(page, "pink")).position).toBe(before);
+      const [turquoise, pink] = [await teamState(page, "turquoise"), await teamState(page, "pink")];
+      await page.evaluate(
+        ([first, second]) => {
+          const press = (team: string, index: number, pointerId: number) =>
+            document
+              .querySelector(`.cr-choice[data-team="${team}"][data-choice="${index}"]`)!
+              .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerId, pointerType: "touch", isPrimary: pointerId === 11, button: 0 }));
+          press("turquoise", first, 11);
+          press("pink", second, 12);
+        },
+        [turquoise.correctIndex, pink.correctIndex] as const
+      );
+      await page.waitForTimeout(900);
+      expect((await teamState(page, "turquoise")).position).toBe(turquoise.position + 1);
+      expect((await teamState(page, "pink")).position).toBe(pink.position + 1);
+      for (const team of TEAMS) {
+        const state = await teamState(page, team);
+        const track = await trackFacts(page, team);
+        expect(track.position).toBe(state.position);
+        expect(track.badge).toBe(String(state.position));
+        expect((await panelFacts(page, team)).left).toBe(`${62 - state.position} STEPS LEFT`);
+      }
+      await context.close();
+    });
+  }
 });

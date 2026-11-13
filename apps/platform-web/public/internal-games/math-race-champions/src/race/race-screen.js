@@ -7,10 +7,22 @@
 // given the SAME progress number each frame.
 
 import { formatRaceDollars } from "../api.js";
-import { ACHIEVEMENTS, ACHIEVEMENT_REWARD, viewAt } from "../engine/race.js";
+import { ACHIEVEMENTS, ACHIEVEMENT_REWARD, distanceAllowed, viewAt } from "../engine/race.js";
 import { announce, fill, formatDuration, h, icon, pressable, prefersReducedMotion, questionForm, s } from "../dom.js";
 import { PAINTS, cssColour } from "../palette.js";
 import { createMinimap } from "./minimap.js";
+import { createTraffic } from "./traffic.js";
+
+/** A position message stays up this long, and the next one waits at least this long, ms. */
+const FLASH_MS = 1700;
+/** How many rivals are followed on the road when there is no 3D picture to say. */
+const FLAT_RIVALS = 6;
+/** A rival this close behind (m) is named on the screen, sooner when it is catching up. */
+const REAR_NEAR_M = 14;
+const REAR_FAR_M = 40;
+
+/** Which side of the picture a lane is on: the road's sideways axis runs right to left as the camera looks down it. */
+const screenSide = lane => (lane > 0 ? -1 : 1);
 
 const ORDINALS = ["th", "st", "nd", "rd"];
 export function ordinal(value) {
@@ -156,6 +168,10 @@ export function mount(root, context, params) {
   let lastRank = 0;
   let lastView = null;
   let lastRivals = [];
+  // Where each nearby car is drawn this frame: the 3D road, the sound and the read-outs all use it.
+  const traffic = createTraffic();
+  let lastScene = { cars: [], camera: { pull: 0, side: 0 }, behind: null };
+  let flashUntil = 0;
   let destroyed = false;
   let feedbackUntilLock = false;
   let lastCountdown = null;
@@ -172,6 +188,10 @@ export function mount(root, context, params) {
   const correctText = h("span", { class: "hud-chip-value" });
   const waiting = h("p", { class: "hud-waiting", hidden: true, text: "Answer correctly to drive on!" });
   const banner = h("p", { class: "hud-banner", hidden: true });
+  // A place gained or lost, said once and briefly, over the road and clear of the question.
+  const flash = h("p", { class: "hud-flash", hidden: true, "aria-hidden": "true" });
+  // The mirror: who is close behind, and on which side.
+  const rear = h("p", { class: "hud-rear", hidden: true, "aria-hidden": "true" });
   const board = h("ol", { class: "hud-board", hidden: true, "aria-label": "Leaderboard" });
   const countdown = h("p", { class: "race-countdown", hidden: true, "aria-live": "assertive" });
   const overlay = h("div", { class: "race-overlay", hidden: true });
@@ -208,6 +228,8 @@ export function mount(root, context, params) {
       speedo.element,
       waiting,
       banner,
+      flash,
+      rear,
       countdown
     )
   );
@@ -225,7 +247,7 @@ export function mount(root, context, params) {
       world = createWorld({ canvas, circuit: plan.circuit, themeName: plan.themeName, tier: quality.detectTier(context.prefs.graphics), seed: plan.title });
       world.setPlayer(plan.playerModel, plan.playerPaint);
       // One frame now, so shaders and textures are ready before the lights.
-      world.render({ distanceM: 0, speed: 0 }, [], 16);
+      world.render({ distanceM: 0, speed: 0 }, lastScene, 16);
       main.dataset.graphics = world.tier;
     })
     .catch(() => {
@@ -347,11 +369,40 @@ export function mount(root, context, params) {
     const ahead = rivals.filter(rival => (rival.finished && !view.finished) || (rival.finished && view.finished && rival.finishMs < view.finishMs) || (!rival.finished && !view.finished && rival.progress > view.progress)).length;
     const rank = ahead + 1;
     position.textContent = `${ordinal(rank)} of ${rivals.length + 1}`;
-    if (lastRank && at > 0 && !view.finished) {
-      // A car going past, on alternate sides so a busy race does not pile up on one ear.
-      if (rank !== lastRank) audio.racePass(rank < lastRank, rank % 2 === 0 ? 1 : -1);
+    main.dataset.rank = String(rank);
+    if (lastRank && at > 0 && !view.finished && rank !== lastRank) {
+      // A car going past: heard on the side it is really on, and said once on the screen.
+      const gained = rank < lastRank;
+      const beside = lastScene.cars[0];
+      audio.racePass(gained, beside ? screenSide(beside.lane) : rank % 2 === 0 ? 1 : -1);
+      const now = performance.now();
+      if (now >= flashUntil - FLASH_MS + 600) {
+        flashUntil = now + FLASH_MS;
+        const text = gained ? `YOU MOVED INTO ${ordinal(rank).toUpperCase()}!` : "RIVAL MOVED AHEAD";
+        flash.textContent = text;
+        flash.dataset.kind = gained ? "gained" : "lost";
+        flash.hidden = false;
+        flash.classList.remove("pop");
+        if (!reduced) {
+          void flash.offsetWidth;
+          flash.classList.add("pop");
+        }
+        announce(gained ? `You moved into ${ordinal(rank)} place` : `A rival moved ahead. You are ${ordinal(rank)}`);
+      }
     }
+    if (!flash.hidden && performance.now() >= flashUntil) flash.hidden = true;
     lastRank = rank;
+
+    // The mirror: the closest car behind, when it is near or catching up.
+    const chaser = view.finished || at <= 0 ? null : lastScene.behind;
+    const shown = chaser && (chaser.gapM > -REAR_NEAR_M || (chaser.gapM > -REAR_FAR_M && chaser.closing > 0.5)) ? rivals.find(rival => rival.id === chaser.id) : null;
+    rear.hidden = !shown;
+    if (shown) {
+      const metres = Math.max(1, Math.round(-chaser.gapM));
+      const label = chaser.gapM > -5 ? `${shown.name} alongside` : `${shown.name} ${metres} m behind`;
+      if (rear.textContent !== label) rear.textContent = label;
+      rear.dataset.side = screenSide(chaser.side) < 0 ? "left" : "right";
+    }
     const percent = Math.floor(view.progress * 100);
     progressText.textContent = `${percent}%`;
     progressBar.style.width = `${(view.progress * 100).toFixed(1)}%`;
@@ -398,7 +449,25 @@ export function mount(root, context, params) {
     lastView = view;
     lastRivals = rivals;
 
-    world?.render({ distanceM: view.distanceKm * 1000, speed: view.speed }, rivals.map(rival => ({ id: rival.id, distanceM: rival.distanceM, speed: rival.speed, model: rival.model, paint: rival.paint ?? PAINTS[rival.colour] ?? PAINTS.rival })), frameMs);
+    // Where the nearby cars are drawn. Every car's place comes from its authoritative race distance;
+    // nothing here is sent anywhere or changes the race.
+    const me = { distanceM: view.distanceKm * 1000, speed: view.speed, finished: view.finished };
+    lastScene = traffic.step(
+      frameMs / 1000,
+      me,
+      rivals.map(rival => ({
+        id: rival.id,
+        distanceM: rival.distanceM,
+        speed: rival.speed,
+        finished: rival.finished,
+        // How far this racer's correct answers let it go (the 30-answer rule): a car at its limit stands still.
+        limitM: rival.finished || rival.correct >= driver.minCorrect ? Infinity : distanceAllowed(rival.correct, driver.lengthKm) * 1000,
+        model: rival.model,
+        paint: rival.paint ?? PAINTS[rival.colour] ?? PAINTS.rival
+      })),
+      world?.rivalLimit ?? FLAT_RIVALS
+    );
+    world?.render(me, lastScene, frameMs);
     speedo.set(view.speed);
     // The car's sound is drawn from the same speed as the picture: idle on the
     // grid, then whatever the race model says. Only the two nearest rivals are heard.
@@ -409,7 +478,8 @@ export function mount(root, context, params) {
     audio.updateRace(
       frameMs / 1000,
       { speed: at > 0 ? view.speed : 0, topSpeed: driver.car.topSpeed, distanceM: view.distanceKm * 1000 },
-      rivals.map((rival, index) => ({ id: rival.id, distanceM: rival.distanceM, speed: rival.speed, finished: rival.finished, side: index % 2 === 0 ? 1 : -1 }))
+      // Rivals are heard where they are seen: the drawn place, and the side of the road they are on.
+      lastScene.cars.map(car => ({ id: car.id, distanceM: car.distanceM, speed: car.rival.speed, finished: car.rival.finished, side: screenSide(car.lane) }))
     );
 
     // Lights out.
@@ -469,7 +539,7 @@ export function mount(root, context, params) {
     showQuestion(driver.question());
     audio.startRace(driver.car.key);
     // Read by the browser tests: what the screen is drawing right now.
-    window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), race: { driver, view: () => lastView, rivals: () => lastRivals, graphics: () => main.dataset.graphics ?? "loading" } };
+    window.__MATH_RACE__ = { ...(window.__MATH_RACE__ ?? {}), race: { driver, view: () => lastView, rivals: () => lastRivals, scene: () => lastScene, shown: () => world?.shown ?? null, graphics: () => main.dataset.graphics ?? "loading" } };
     lastFrame = performance.now();
     frame = requestAnimationFrame(tick);
   }

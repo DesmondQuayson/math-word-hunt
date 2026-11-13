@@ -49,6 +49,16 @@ Seven categories, all generated, never a fixed bank (`src/engine/questions.js`):
 - Presses carry their own timestamp (the pointer event's). A second finisher within 100 ms of the first is a tie; neither side is favoured.
 - Options: skills, difficulty, team names, 62 spaces or a 30-space practice race. Keyboard: A/S for Turquoise, K/L for Pink.
 
+### Older panel browsers
+
+A classroom panel often runs a browser several years old, and an older browser drops any style it cannot read. In v1.2.46 the board's height was written in `dvh` (2022) with nothing older beside it. The two tracks take *what is left* of that height, so on a Promethean panel they were given no room at all: the names, counters, questions and answer buttons were there and the lower half of the board was empty. A phone, with a current browser, was right.
+
+- Everything the board's layout depends on is now written with features an old browser has: no dynamic viewport units, no container units, no `inset`, and `:has()` only beside a class that does the same job. Full-height screens (the board, the race) are sized from `--app-h`, the window's real inner height in pixels, which `shell.js` keeps current; `100vh` stands behind it.
+- `classroom.js` then checks, on the board itself, that each track really was given room (`ensureTracks`). If either is under 96 px it states every height outright from the window's own measurements. This is for a browser nobody has tested; it is not how any tested browser is laid out.
+- Sizes follow the window, so a bigger board gets bigger spaces: about 61 px at 1920×1080, 85 px at 2560×1440, 19 px on a 320 px phone.
+- How to Play ends with a line saying what the screen is ("This screen: 1920 × 1080, Chrome 96 on Android 11."), so a board that shows the game differently can be identified by reading it out.
+- `scripts/math-race-champions-board-repro.mjs` opens the board at 13 sizes as a current browser sees it, as an older Chromium parses the stylesheet (`scripts/math-race-champions-legacy-css.mjs`), and with the height rule removed altogether, and fails unless both complete tracks, the footballs, the counters, the questions and all four answer buttons are on the screen with nothing to scroll.
+
 ## 3. The racing model
 
 `src/engine/race.js`. Shared by Race Computer and Online Race, and run by the server.
@@ -137,9 +147,24 @@ Mirrors Polygon Showdown.
 - **3D:** the vendored three.js r0.186.1 subset already used by Math Tug of War and Polygon Showdown (unchanged). Cars (`scene3d/cars.js`) are built from numbers: lofted shells with fenders and carved wheel arches, glass canopies, spoked wheels with brake discs, lights and per-model aero parts; no downloaded mesh or texture. The world (`scene3d/world.js`) paints its road, ground, sky, clouds, windows and boards on canvases, uses instanced scenery (palms, pines, saguaros, towers), ACES tone mapping and, on medium and high, one sun shadow map; the low tier has no shadows or clouds. The garage turntable and the race use the same builder. The road (`engine/circuit.js`) is one line; the 3D road and the minimap are both drawn from it.
 - **Loading:** opening the game or Classroom Competition downloads no 3D code, no shop and no room code (unit-tested on the static import graph). A race against the computer builds the road first and only then asks the server to start the clock.
 - **Graphics tiers:** low, medium, high, chosen from the device and stepped down if frames are slow. Only the nearest 3, 6 or 9 rivals are drawn as cars; everyone is on the minimap. Without WebGL the minimap stands in for the 3D view.
+- **Overtaking:** `race/traffic.js` (pure, unit-tested) decides where each nearby car is drawn, frame by frame. See below.
 - **Server:** `lib/games/math-race-champions/server.ts`, `app/api/games/math-race-champions/{account,play}/route.ts`. Rebuilds each question from a seed the browser never receives, decides the verdict, runs the racing model on the database clock.
 - **Database:** `supabase/migrations/20261112100000_math_race_champions_catalog.sql` (draft catalog entry) and `20261112110000_math_race_champions.sql`. Ten tables (`race_*`), all with forced RLS and no policy; every function `SECURITY DEFINER`, executable by `service_role` only. Rollback: `supabase/rollback/math_race_champions.sql`.
 - **One code space:** `private.live_room_code_guard()` now sits on all three room tables and `public.live_room_game_for_code()` answers for all three games. These two shared functions are the only existing database objects the migration changes.
+
+### Overtaking
+
+The race is decided by the racing model on the server's answers. `race/traffic.js` only draws it: every car's place along the road comes from its authoritative race distance, the same number the minimap, the leaderboard and the place read-out use. Nothing in it is sent anywhere, stored, or fed back into the race; it adds no network requests and no database writes.
+
+- **Lanes.** Five, 2.6 m apart on a 13 m road. The player's car holds the centre lane. Rivals drive in the lanes beside it, so a car that gets ahead is seen coming up, drawing alongside a lane away, and going by. A rival that catches another rival pulls out one lane to pass and drifts back to its own lane when it is 13 m clear.
+- **No car through another.** Whatever the lanes decide, a last check keeps any two cars that share road width a car's length apart: the one that was behind waits behind (it is never pulled back). A boxed-in car falls in behind the car beside it and goes round, or crosses behind the player's car to the other side. Rivals do not drive in the player's lane within 45 m of the player's car.
+- **No teleporting.** In an Online Race other racers arrive as a standings row about once a second, carried forward by the model in between, so a new row can move a car in a step. The drawn car closes the difference by driving: at most 34 m/s over its own speed where the camera can see it. A car that is ahead of its place (word of a wrong answer came late) is seen braking, not jumping back. Lane changes are steered across at 3.4 m/s, never jumped. If the picture itself stood still for over a second (a hidden tab), nobody saw the road in between and the cars are put where the race has them.
+- **Standing cars.** A racer short of correct answers stands at its limit (the 30-answer rule), and before the first answer everyone stands on the grid. Standing cars keep to the kerb lanes so the lanes beside the player stay open: a car about to reach its limit pulls over first. One or two rivals stand on the grid beside the player; more stand in two files along the kerbs.
+- **The finish.** A rival that crosses the line before the player rolls on and slows instead of stopping dead on the line; one that crosses after the player's car has stopped there stops there too, so nobody is drawn ahead of a car that beat them.
+- **Camera, mirror and words.** A car coming up within 26 m behind eases the camera back and up and turns it a little towards that side, and eases it back when the car is clear. A chip at the foot of the road names the closest car behind and the side it is on ("Computer 12 m behind ▶"). A place gained or lost is said once, briefly, over the road ("YOU MOVED INTO 2ND!", "RIVAL MOVED AHEAD"); none of this is ever over the question or the answer buttons, which are in the panel below the road.
+- **Sound.** Rivals are heard where they are drawn and on the side of the road they are on; the pass itself is on that side too. Still only the two nearest within 45 m.
+- **Frame rate.** A frame that covers more than a twentieth of a second is walked in shorter steps, so the cars behave the same at 12 frames a second as at 60.
+- **What it cannot do.** Positions come from the race, not from the road, so in a full room several racers can be within a metre of one another, which is more cars than there are lanes. They are then drawn in a queue (never inside one another), and a car can be drawn a few metres behind slower cars for a few seconds while the leaderboard already has it ahead: mostly as a full room leaves the grid. With two to five racers the car order on the road matches the race to within the moment a late standings row takes to arrive.
 
 ### Sound
 
@@ -174,9 +199,10 @@ Mirrors Polygon Showdown.
 
 | Suite | Where | Count |
 |---|---|---:|
-| Unit (engine, model, server, catalog, documents) | `apps/platform-web/lib/games/math-race-champions/*.test.ts` | 232 |
+| Unit (engine, model, server, catalog, documents, overtaking) | `apps/platform-web/lib/games/math-race-champions/*.test.ts` | 312 |
 | Database (pgTAP) | `supabase/tests/database/43_math_race_champions.test.sql` | 170 |
-| Browser | `e2e/math-race-champions/*.spec.ts` | classroom, computer, shop, online, guest |
+| Browser | `e2e/math-race-champions/*.spec.ts` | classroom (and as an older panel browser), computer, shop, online, guest, overtaking |
+| Board layouts | `scripts/math-race-champions-board-repro.mjs` | 13 sizes × current, older, no height rule |
 | Load | `scripts/math-race-champions-load.mjs` | 10, 20, 30, 40, 50 racers |
 
 ```bash

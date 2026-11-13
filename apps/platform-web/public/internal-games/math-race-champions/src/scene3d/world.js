@@ -689,15 +689,18 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   let bounceClock = 0;
   let lean = 0;
   const rivalPool = [];
-  const lanes = [3.4, -3.4, 1.7, -1.7, 4.6, -4.6, 0];
+  // How far the view has opened for a car coming up behind, and towards which side (both eased).
+  let cameraPull = 0;
+  let cameraPan = 0;
 
-  function poseCar(handle, distance, lane, speed, dtSeconds, isPlayer) {
+  /** `steer` turns the car's nose towards the side it is moving to (a lane change), radians. */
+  function poseCar(handle, distance, lane, speed, dtSeconds, isPlayer, steer = 0) {
     const point = circuit.at(distance);
     const ahead = circuit.at(distance + 6);
     const nx = Math.cos(point.heading);
     const nz = -Math.sin(point.heading);
     handle.group.position.set(point.x + nx * lane, 0, point.z + nz * lane);
-    handle.group.rotation.y = point.heading;
+    handle.group.rotation.y = point.heading + steer;
     const turning = ahead.heading - point.heading;
     handle.chassis.rotation.z = Math.max(-0.07, Math.min(0.07, -turning * speed * 0.012));
     if (isPlayer) {
@@ -742,6 +745,9 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
   const cameraPosition = new Vector3();
   const cameraTarget = new Vector3();
   const tilted = new Vector3();
+  const probe = new Vector3();
+  // What the last frame showed: read by the browser tests and the frame-rate checks.
+  const shown = { cars: 0, onScreen: 0 };
 
   return {
     get tier() {
@@ -749,6 +755,14 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
     },
     get contextLost() {
       return lost;
+    },
+    /** How many rivals this picture draws as cars. */
+    get rivalLimit() {
+      return quality.rivals;
+    },
+    /** The last frame: rival cars drawn, and how many of them were inside the picture. */
+    get shown() {
+      return shown;
     },
     resize,
     /** The player's car: a garage model key, or the online car with a colour. */
@@ -766,11 +780,13 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
     },
     /**
      * Draw one frame.
-     *   me      { distanceM, speed }
-     *   rivals  [{ id, distanceM, speed, model, paint }] — any number; only the
-     *           nearest few are drawn as cars, the rest live on the minimap.
+     *   me     { distanceM, speed }
+     *   drawn  what race/traffic.js worked out for this frame: `cars`, each
+     *          { id, distanceM, lane, lateralSpeed, speedMs, rival: { model, paint, speed } }
+     *          placed where it is to be drawn, and `camera` { pull, side }.
+     *          Only the nearest few rivals are cars; the rest live on the minimap.
      */
-    render(me, rivals, frameMs) {
+    render(me, drawn, frameMs) {
       if (lost || !player) return;
       resize();
       const dtSeconds = Math.min(0.1, frameMs / 1000);
@@ -788,10 +804,9 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
       sun.position.set(here.x + sunOffset.x, sunOffset.y, here.z + sunOffset.z);
 
       // The nearest rivals get a car each; assignments change as cars pass.
-      const near = rivals
-        .map(rival => ({ rival, gap: rival.distanceM - playerDistance }))
+      const near = drawn.cars
+        .map(car => ({ car, rival: car.rival, gap: car.distanceM - playerDistance }))
         .filter(item => item.gap > -BEHIND_M && item.gap < quality.viewDistance)
-        .sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap))
         .slice(0, quality.rivals);
       for (let index = 0; index < Math.max(near.length, rivalPool.length); index += 1) {
         const item = near[index];
@@ -805,7 +820,7 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
             scene.remove(slotCar.handle.group);
             slotCar.handle.dispose();
           }
-          slotCar = { model: item.rival.model, handle: buildCar(item.rival.model, { paint: item.rival.paint, detail: index < 2 ? quality.carDetail : "low" }), paint: item.rival.paint, id: null, last: item.rival.distanceM };
+          slotCar = { model: item.rival.model, handle: buildCar(item.rival.model, { paint: item.rival.paint, detail: index < 2 ? quality.carDetail : "low" }), paint: item.rival.paint, id: null, last: item.car.distanceM };
           rivalPool[index] = slotCar;
           scene.add(slotCar.handle.group);
         }
@@ -815,28 +830,49 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world" }
         }
         if (slotCar.id !== item.rival.id) {
           slotCar.id = item.rival.id;
-          slotCar.last = item.rival.distanceM;
+          slotCar.last = item.car.distanceM;
         }
         slotCar.handle.group.visible = true;
-        slotCar.handle.roll(item.rival.distanceM - slotCar.last);
-        slotCar.last = item.rival.distanceM;
-        poseCar(slotCar.handle, item.rival.distanceM, lanes[hashSeed(String(item.rival.id)) % lanes.length] || 3.4, item.rival.speed, dtSeconds, false);
+        slotCar.handle.roll(item.car.distanceM - slotCar.last);
+        slotCar.last = item.car.distanceM;
+        // Changing lane, the nose points the way the car is going (never more than a real car steers).
+        const steer = Math.max(-0.3, Math.min(0.3, Math.atan2(item.car.lateralSpeed ?? 0, Math.max(6, item.car.speedMs ?? 0))));
+        poseCar(slotCar.handle, item.car.distanceM, item.car.lane, item.rival.speed, dtSeconds, false, steer);
       }
 
       // Camera: behind and above, looking down the road. Faster = wider, lower, and it leans into bends.
+      // A car coming up behind opens the view: the camera eases back and up and turns a little towards
+      // that side, so the car is seen arriving, alongside and going by. It eases back when the car is clear.
+      const ease = Math.min(1, dtSeconds * 2.2);
+      cameraPull += ((drawn.camera?.pull ?? 0) - cameraPull) * ease;
+      cameraPan += ((drawn.camera?.side ?? 0) * (drawn.camera?.pull ?? 0) - cameraPan) * ease;
+      const narrow = camera.aspect < 1;
       const speedShare = Math.min(1, me.speed / 240);
-      const back = circuit.at(playerDistance - (6.6 + speedShare * 1.5));
+      const back = circuit.at(playerDistance - (6.6 + speedShare * 1.5 + cameraPull * (narrow ? 5.5 : 4.4)));
       const far = circuit.at(playerDistance + 16);
-      cameraPosition.set(back.x, 2.55 - speedShare * 0.45, back.z);
+      cameraPosition.set(back.x, 2.55 - speedShare * 0.45 + cameraPull * (narrow ? 1.5 : 0.9), back.z);
       camera.position.lerp(cameraPosition, Math.min(1, dtSeconds * 10));
-      cameraTarget.set(far.x, 0.95, far.z);
+      const pan = cameraPan * (narrow ? 1.1 : 1.6);
+      cameraTarget.set(far.x + Math.cos(far.heading) * pan, 0.95, far.z - Math.sin(far.heading) * pan);
       camera.up.copy(tilted.set(Math.cos(here.heading) * lean, 1, -Math.sin(here.heading) * lean).normalize());
       camera.lookAt(cameraTarget);
-      const fov = (camera.aspect < 1 ? 78 : 62) + speedShare * 12;
+      const fov = (narrow ? 78 : 62) + speedShare * 12 + cameraPull * (narrow ? 5 : 7);
       if (Math.abs(camera.fov - fov) > 0.2) {
         camera.fov += (fov - camera.fov) * Math.min(1, dtSeconds * 4);
         camera.updateProjectionMatrix();
       }
+      // Which rival cars are inside the picture (their centre, at roof height). Each drawn car is told,
+      // so a test can say "the car that went past was on screen while it did".
+      camera.updateMatrixWorld();
+      shown.cars = near.length;
+      shown.onScreen = 0;
+      for (const car of drawn.cars) car.onScreen = false;
+      near.forEach((item, index) => {
+        const at = rivalPool[index].handle.group.position;
+        probe.set(at.x, 0.7, at.z).project(camera);
+        item.car.onScreen = probe.z > -1 && probe.z < 1 && Math.abs(probe.x) < 1 && Math.abs(probe.y) < 1;
+        if (item.car.onScreen) shown.onScreen += 1;
+      });
       farGroup.position.set(camera.position.x, 0, camera.position.z);
       // The ground slides under the camera in whole tiles, so its pattern stays put.
       ground.position.x = Math.round(camera.position.x / 50) * 50;

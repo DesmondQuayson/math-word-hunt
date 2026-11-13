@@ -2497,6 +2497,76 @@ button:disabled {
   text-align: center;
 }
 
+/* A place gained or lost: one short line over the road, gone in under two seconds. It sits in the
+   3D view, never over the question or the answer buttons (those are in the panel below). */
+.hud-flash {
+  position: absolute;
+  top: 36%;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 92%;
+  margin: 0;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(7, 21, 37, 0.86);
+  border: 2px solid var(--turquoise);
+  color: #fff;
+  font-size: clamp(0.95rem, 3.2vmin, 1.9rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hud-flash[data-kind="lost"] {
+  border-color: var(--pink);
+}
+
+.hud-flash.pop {
+  animation: flash-pop 0.28s ease-out;
+}
+
+@keyframes flash-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.86);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* The mirror: who is close behind, on the side of the road they are on. */
+.hud-rear {
+  position: absolute;
+  bottom: clamp(6px, 1.4vmin, 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(7, 21, 37, 0.82);
+  border: 2px solid var(--gold);
+  color: #fff;
+  font-size: clamp(0.72rem, 2.1vmin, 1.05rem);
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hud-rear[data-side="left"]::before {
+  content: "\25C0\00A0";
+  color: var(--gold);
+}
+
+.hud-rear[data-side="right"]::after {
+  content: "\00A0\25B6";
+  color: var(--gold);
+}
+
 .hud-waiting {
   bottom: 14%;
   background: var(--gold);
@@ -2851,8 +2921,13 @@ button:disabled {
     min-width: 70px;
   }
 
-  .hud-title {
+  /* No room for the race's title beside the map; the racer's place stays ("2nd of 6"). */
+  .hud-mode {
     display: none;
+  }
+
+  .hud-title {
+    padding: 6px 12px;
   }
 
   .result-stats {
