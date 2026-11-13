@@ -479,7 +479,8 @@ export function createWorld({ canvas, circuit, themeName, tier, seed = "world", 
   // A verge of packed earth and gravel between the kerb and the land: a road is not cut into grass with a knife.
   const vergeColour = theme.night ? new Color(theme.ground).lerp(new Color(0x2b3646), 0.6) : new Color(theme.ground).lerp(new Color(themeName === "alpine" ? 0xaab4bf : 0x8b7b66), 0.55);
   const vergeMaterial = new MeshLambertMaterial({ color: vergeColour, side: DoubleSide });
-  const verges = [-1, 1].map(side => {
+  // (Not on the lightest picture: a slow device keeps every bit of fill for the road and the cars.)
+  const verges = (tier.name === "low" ? [] : [-1, 1]).map(side => {
     const mesh = new Mesh(strip(false, true), vergeMaterial);
     mesh.frustumCulled = false;
     mesh.receiveShadow = shadows;

@@ -12,6 +12,15 @@ test.describe("Race Computer", () => {
     const admin = adminClient();
     const racerId = await resetAccount(admin, RACER.email);
     const { context, page } = await newPage(browser, { viewport: { width: 1366, height: 768 } });
+    // The lightest picture: a headless browser draws the full one at two or three frames a second, which is
+    // slow enough to decide who wins. The race, the server and the rewards are the same at every picture tier.
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("mathnexa:math-race-champions:preferences", JSON.stringify({ sound: true, music: true, graphics: "low" }));
+      } catch {
+        /* storage refused */
+      }
+    });
     await signIn(page, RACER);
     await waitForScreen(page, "hub");
     await evidence(page, "hub-1366x768");
