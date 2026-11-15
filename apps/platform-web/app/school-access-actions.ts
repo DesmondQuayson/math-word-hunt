@@ -22,6 +22,7 @@ import {
   clearSchoolAccessSession,
   startSchoolAccessSession
 } from "@/lib/school-access/session";
+import { clearShowMePass } from "@/lib/showme-access/server";
 
 export async function authorizeSchoolAccessAction(
   _previous: AuthorizedCodeFormState,
@@ -51,5 +52,7 @@ export async function authorizeSchoolAccessAction(
 
 export async function exitSchoolAccessAction(): Promise<void> {
   await clearSchoolAccessSession();
+  // Ending authorized access also ends this browser's access to ShowMe Math.
+  await clearShowMePass();
   redirect("/");
 }

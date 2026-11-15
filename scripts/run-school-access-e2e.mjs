@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import { resolve } from "node:path";
 
@@ -53,7 +54,9 @@ const environment = {
   BILLING_WEBHOOK_ENABLED: "false",
   BILLING_EMERGENCY_DEFAULT_DENY: "true",
   MATHNEXA_SCHOOL_ACCESS_CODE: authorizedCode,
-  MATHNEXA_SCHOOL_ACCESS_SESSION_SECRET: sessionSecret
+  MATHNEXA_SCHOOL_ACCESS_SESSION_SECRET: sessionSecret,
+  // The ShowMe access pass: a fresh secret every run, known only to this process tree.
+  MVH_SHOWME_ACCESS_SECRET: randomBytes(36).toString("base64url")
 };
 
 const app = spawn(process.execPath, [resolve("node_modules/next/dist/bin/next"), "dev", resolve("apps/platform-web"), "--hostname", "127.0.0.1", "--port", "3181"], {

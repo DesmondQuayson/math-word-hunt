@@ -15,6 +15,7 @@ import { withTimeout } from "@/lib/async/with-timeout";
 import { recordAggregateSignal } from "@/lib/operations/server";
 import { clearConsumerAuthAttempts, consumeConsumerAuthAttempt, observeFailedSignIn } from "@/lib/auth/rate-limit";
 import { recordSecurityEvent } from "@/lib/observability/security-events";
+import { clearShowMePass } from "@/lib/showme-access/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const confirmationEmailCookie = "mathnexa-confirmation-email";
@@ -397,5 +398,7 @@ export async function signOutAction(): Promise<void> {
   if (isProductionPublicMode()) redirect("/");
   const supabase = await createServerSupabaseClient();
   if (supabase) await supabase.auth.signOut();
+  // Signing out also ends this browser's access to ShowMe Math.
+  await clearShowMePass();
   redirect("/sign-in?signedOut=1");
 }

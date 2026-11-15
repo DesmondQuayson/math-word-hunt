@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -130,4 +131,54 @@ test("school access never exposes Checkout and exits without a separate code-ent
   for (const path of ["/school-access", "/access/code"]) {
     expect((await page.request.get(path, { maxRedirects: 0 })).status()).toBe(404);
   }
+});
+
+test("ShowMe Math opens only with a pass: none without access, one for a code holder, gone when access ends", async ({ page, context }) => {
+  const secret = process.env.MVH_SHOWME_ACCESS_SECRET ?? "";
+  expect(secret.length).toBeGreaterThanOrEqual(32);
+  const cookie = async (name: string) => (await context.cookies()).find((item) => item.name === name);
+  const setCookies = (response: { headersArray(): Array<{ name: string; value: string }> }) =>
+    response.headersArray().filter((header) => header.name.toLowerCase() === "set-cookie").flatMap((header) => header.value.split("\n"));
+
+  // Sent here by ShowMe with no access: the ordinary access page, no pass, and the page asked for is remembered.
+  const refused = await page.request.get(`/map-prep/pass?to=${encodeURIComponent("/assignment?a=AbC-123")}`, { maxRedirects: 0 });
+  expect(refused.status()).toBe(307);
+  expect(new URL(refused.headers()["location"]!, "http://127.0.0.1:3181").pathname).toBe("/access");
+  expect(new URL(refused.headers()["location"]!, "http://127.0.0.1:3181").searchParams.get("next")).toBe("/map-prep");
+  expect(await cookie("mathnexa-showme-pass")).toBeUndefined();
+  expect(await cookie("mathnexa-showme-return")).toMatchObject({ httpOnly: true, path: "/map-prep" });
+
+  // The visitor enters the access code. Coming back by way of the ShowMe home page, they get the pass
+  // and are sent to the page they first asked for, on ShowMe and nowhere else.
+  await enterAuthorizedAccess(page, "/games");
+  await expect(page).toHaveURL(/\/games$/);
+  const granted = await page.request.get("/map-prep/pass?to=/", { maxRedirects: 0 });
+  expect(granted.status()).toBe(307);
+  expect(granted.headers()["location"]).toBe("https://showme.mathnexa.com/assignment?a=AbC-123");
+  expect(granted.headers()["cache-control"]).toBe("no-store");
+  expect(setCookies(granted).find((value) => value.startsWith("mathnexa-showme-pass="))).toMatch(/^mathnexa-showme-pass=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+; Path=\/; Expires=[^;]+; Max-Age=43200; HttpOnly; SameSite=lax$/i);
+  expect(await cookie("mathnexa-showme-return")).toBeUndefined();
+  const pass = (await cookie("mathnexa-showme-pass"))!;
+  expect(pass.httpOnly).toBe(true);
+  const [body, signature] = pass.value.split(".") as [string, string];
+  expect(createHmac("sha256", secret).update(body).digest("base64url")).toBe(signature);
+  const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+  expect(Object.keys(payload).sort()).toEqual(["exp", "iat", "v"]);
+  expect(payload.exp - payload.iat).toBe(12 * 60 * 60);
+  await page.goto("/account");
+  expect(await page.evaluate(() => document.cookie)).not.toContain("mathnexa-showme-pass");
+
+  // A hostile return address still lands on ShowMe.
+  for (const to of ["//evil.example", "https://evil.example/", "/\\evil.example"]) {
+    const answer = await page.request.get(`/map-prep/pass?to=${encodeURIComponent(to)}`, { maxRedirects: 0 });
+    expect(new URL(answer.headers()["location"]!).origin, to).toBe("https://showme.mathnexa.com");
+  }
+
+  // Ending authorized access takes the pass away, and the route refuses again.
+  await page.getByRole("button", { name: "Exit authorized access" }).last().click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await cookie("mathnexa-showme-pass")).toBeUndefined();
+  const after = await page.request.get("/map-prep/pass?to=/grades", { maxRedirects: 0 });
+  expect(new URL(after.headers()["location"]!, "http://127.0.0.1:3181").pathname).toBe("/access");
+  expect(await cookie("mathnexa-showme-pass")).toBeUndefined();
 });

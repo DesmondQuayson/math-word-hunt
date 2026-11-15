@@ -26,7 +26,10 @@ const stamp = Date.now();
 const entitledEmail = `perf-entitled-${stamp}@example.invalid`;
 const adminEmail = `perf-admin-${stamp}@example.invalid`;
 const destinationOrigin = "https://showme.mathnexa.com";
-const destinationUrl = `${destinationOrigin}/`;
+// The live ShowMe site now opens only with an access pass, which only the live
+// MathNexa site can issue. This rehearsal measures MathNexa's own hops, so its
+// fixture destination is the one ShowMe page that stays open to everyone.
+const destinationUrl = `${destinationOrigin}/privacy`;
 const fixtureMarker = "Performance fixture destination.";
 const hopBudget = Number(process.env.MVH_NAV_HOP_BUDGET ?? 2);
 const routeBudgetMs = Number(process.env.MVH_NAV_ROUTE_BUDGET_MS ?? 4000);
