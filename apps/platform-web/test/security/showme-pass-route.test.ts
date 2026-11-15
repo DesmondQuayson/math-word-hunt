@@ -108,13 +108,17 @@ describe("who gets a ShowMe pass", () => {
   it("a visitor who is not signed in is sent to the access page and gets no pass", async () => {
     mocks.getGameAccessView.mockResolvedValue(ANONYMOUS());
     const answer = await ask("?to=/grades/6");
-    expect(answer.redirect).toBe("/access?next=/map-prep");
+    expect(answer.status).toBe(307);
+    expect(answer.location).toBe("/access?next=/map-prep");
+    // A refusal is marked no-store like every other answer of this route.
+    expect(answer.headers.get("cache-control")).toBe("no-store");
+    expect(answer.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     expect(passWritten()).toEqual([]);
   });
 
   it("an unconfirmed account is sent to confirm its address and gets no pass", async () => {
     mocks.getGameAccessView.mockResolvedValue(view("unconfirmed", {}, { emailConfirmed: false }));
-    expect((await ask("?to=/worksheets")).redirect).toBe("/confirmation-required?next=/map-prep");
+    expect((await ask("?to=/worksheets")).location).toBe("/confirmation-required?next=/map-prep");
     expect(passWritten()).toEqual([]);
   });
 
@@ -125,10 +129,10 @@ describe("who gets a ShowMe pass", () => {
       { state: "subscription-past-due", periodEndsAt: null }
     ]) {
       mocks.getGameAccessView.mockResolvedValue(view("active", entitlement));
-      expect((await ask("?to=/grades")).redirect).toBe("/subscription?next=/map-prep");
+      expect((await ask("?to=/grades")).location).toBe("/subscription?next=/map-prep");
     }
     mocks.getGameAccessView.mockResolvedValue(view("active", { state: "subscription-active", periodEndsAt: later }, { capability: false }));
-    expect((await ask()).redirect).toBe("/subscription?next=/map-prep");
+    expect((await ask()).location).toBe("/subscription?next=/map-prep");
     expect(passWritten()).toEqual([]);
   });
 });

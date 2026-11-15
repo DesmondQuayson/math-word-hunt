@@ -26,17 +26,29 @@ const destinationModule: Readonly<Record<ProductDestination, MathNexaProductModu
   "/worksheets": "map_prep"
 };
 
-export async function requireProductAccess(destination: ProductDestination): Promise<GameAccessView> {
+/**
+ * Where a visitor without access to a product is sent, or null when they have
+ * access. The one decision behind requireProductAccess; a Route Handler that
+ * must answer with its own response (its own headers, a cookie) asks here
+ * instead of letting a redirect be thrown.
+ */
+export function productAccessDenialHref(access: GameAccessView, destination: ProductDestination): string | null {
   const safeDestination = safeProductDestination(destination);
-  const access = await getGameAccessView();
-  if (hasMathNexaModuleAccess(access.decision, destinationModule[safeDestination])) return access;
+  if (hasMathNexaModuleAccess(access.decision, destinationModule[safeDestination])) return null;
   if (access.context.status === "anonymous" || access.context.status === "unconfigured") {
-    redirect(accessIntentHref(safeDestination));
+    return accessIntentHref(safeDestination);
   }
   if (access.context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") {
-    redirect(confirmationRequiredHref(safeDestination));
+    return confirmationRequiredHref(safeDestination);
   }
-  redirect(subscriptionReviewHref(safeDestination));
+  return subscriptionReviewHref(safeDestination);
+}
+
+export async function requireProductAccess(destination: ProductDestination): Promise<GameAccessView> {
+  const access = await getGameAccessView();
+  const denial = productAccessDenialHref(access, destination);
+  if (denial) redirect(denial);
+  return access;
 }
 
 /**
