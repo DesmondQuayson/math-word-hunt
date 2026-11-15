@@ -410,6 +410,31 @@ export class SupabaseConsumerBillingRepository {
     return String(data);
   }
 
+  /**
+   * Offers one authoritative provider snapshot to the Google Ads conversion
+   * ledger (trial_started, subscription_started). The database function decides
+   * and de-duplicates; this returns the names it recorded now. Measurement
+   * only: nothing here reads or writes subscription or entitlement state.
+   */
+  async recordSubscriptionConversions(input: Readonly<{
+    ownerUserId: string;
+    subscription: ConsumerBillingSubscription;
+    /** Present only for an invoice that is paid, for this subscription, with a known positive amount. */
+    payment: Readonly<{ paidAt: string; amountPaidMinorUnits: number }> | null;
+  }>): Promise<readonly string[]> {
+    const { data, error } = await this.client.rpc("record_consumer_subscription_conversions", {
+      p_owner_user_id: input.ownerUserId,
+      p_stripe_environment: this.environment,
+      p_stripe_subscription_id: input.subscription.id,
+      p_subscription_status: input.subscription.status,
+      p_trial_start: input.subscription.trialStart,
+      p_paid_at: input.payment?.paidAt ?? null,
+      p_amount_paid_minor_units: input.payment?.amountPaidMinorUnits ?? null
+    });
+    if (error) throw new Error("Consumer conversion ledger unavailable");
+    return Array.isArray(data) ? data.filter((name): name is string => typeof name === "string") : [];
+  }
+
   async revokeCustomer(eventRecordId: string, ownerUserId: string, eventCreatedAt: string): Promise<string> {
     const { data, error } = await this.client.rpc("revoke_consumer_billing_customer", {
       p_event_record_id: eventRecordId,

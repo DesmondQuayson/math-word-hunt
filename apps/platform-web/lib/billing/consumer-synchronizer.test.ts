@@ -152,3 +152,74 @@ describe("customer-wide synchronization order", () => {
     expect(result.skipped).toEqual({ [unknown.id]: "unknown_subscription_status" });
   });
 });
+
+describe("Google Ads conversion ledger", () => {
+  const trialing: ConsumerBillingSubscription = {
+    ...subscription, status: "trialing", trialStart: "2026-08-01T00:00:00.000Z", trialEnd: "2026-08-02T00:00:00.000Z",
+    currentPeriodStart: "2026-08-01T00:00:00.000Z", currentPeriodEnd: "2026-08-02T00:00:00.000Z"
+  };
+  const trialInvoice: ConsumerBillingInvoice = { ...paidInvoice, amountPaidMinorUnits: 0 };
+  function ledgerRepository(state = "subscription-active", recorded: readonly string[] | Error = []) {
+    return {
+      synchronizeSubscription: vi.fn(async () => state),
+      recordSubscriptionConversions: vi.fn(async () => { if (recorded instanceof Error) throw recorded; return recorded; })
+    } as unknown as SupabaseConsumerBillingRepository;
+  }
+  const request = (repo: SupabaseConsumerBillingRepository, overrides: Partial<Parameters<typeof synchronizeConsumerSubscription>[0]> = {}) => ({
+    source: "webhook" as const, eventRecordId: "70000000-0000-0000-0000-000000000001", eventType: "invoice.paid",
+    observedAt: "2026-08-02T00:00:10.000Z", ownerUserId: USER_ID, customerId: customer.id, subscription,
+    latestInvoice: paidInvoice, config, repository: repo, correlationId: "evt_test", ...overrides
+  });
+  const offered = (repo: SupabaseConsumerBillingRepository) =>
+    (repo.recordSubscriptionConversions as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0]);
+
+  it("offers a paid invoice with the amount actually paid and the provider's paid time", async () => {
+    const repo = ledgerRepository();
+    await synchronizeConsumerSubscription(request(repo));
+    expect(offered(repo)).toEqual([{ ownerUserId: USER_ID, subscription, payment: { paidAt: "2026-08-01T00:05:00.000Z", amountPaidMinorUnits: 599 } }]);
+  });
+
+  it("never treats the $0 trial invoice, an unpaid invoice, an unknown amount or another subscription's invoice as a payment", async () => {
+    const repo = ledgerRepository();
+    for (const latestInvoice of [trialInvoice, { ...paidInvoice, paid: false, status: "open", paidAt: null },
+      { ...paidInvoice, amountPaidMinorUnits: null }, { ...paidInvoice, subscriptionId: "sub_other" }, null]) {
+      await synchronizeConsumerSubscription(request(repo, { latestInvoice }));
+    }
+    expect(repo.recordSubscriptionConversions).not.toHaveBeenCalled();
+  });
+
+  it("offers a trialing subscription as a trial start, without a payment", async () => {
+    const repo = ledgerRepository("trial-active");
+    await synchronizeConsumerSubscription(request(repo, { subscription: trialing, latestInvoice: trialInvoice, eventType: "checkout.session.completed" }));
+    expect(offered(repo)).toEqual([{ ownerUserId: USER_ID, subscription: trialing, payment: null }]);
+  });
+
+  it("still offers a first payment whose event arrived late and was ignored as stale", async () => {
+    const repo = ledgerRepository("stale_ignored");
+    await synchronizeConsumerSubscription(request(repo));
+    expect(offered(repo)).toHaveLength(1);
+  });
+
+  it("offers nothing while the provider state itself needs a person", async () => {
+    for (const state of ["conflicting_current_subscription", "trial_shape_conflict"]) {
+      const repo = ledgerRepository(state);
+      await synchronizeConsumerSubscription(request(repo));
+      await synchronizeConsumerSubscription(request(repo, { subscription: trialing }));
+      expect(repo.recordSubscriptionConversions, state).not.toHaveBeenCalled();
+    }
+  });
+
+  it("falls back to the event time when the provider gives no paid time", async () => {
+    const repo = ledgerRepository();
+    await synchronizeConsumerSubscription(request(repo, { latestInvoice: { ...paidInvoice, paidAt: null } }));
+    expect(offered(repo)[0].payment).toEqual({ paidAt: "2026-08-02T00:00:10.000Z", amountPaidMinorUnits: 599 });
+  });
+
+  it("returns the projected state unchanged whether the ledger records, is silent or fails", async () => {
+    for (const recorded of [["subscription_started"], [], new Error("ledger down")]) {
+      const repo = ledgerRepository("subscription-active", recorded);
+      await expect(synchronizeConsumerSubscription(request(repo))).resolves.toBe("subscription-active");
+      expect(repo.synchronizeSubscription).toHaveBeenCalledTimes(1);
+    }
+  });
+});

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AdClickCapture } from "@/components/analytics/ad-click-capture";
 import { GoogleTag } from "@/components/analytics/google-tag";
 import { AppShell } from "@/components/layout/app-shell";
 import { isGoogleTagEnabled } from "@/lib/analytics/google-tag";
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" data-scroll-behavior="smooth">
       <head>{googleTag ? <GoogleTag /> : null}</head>
       <body>
+        {/* Accounts exist only on the platform, so only there is an ad click kept. */}
+        {productionPlatform ? <AdClickCapture /> : null}
         <AppShell>{children}</AppShell>
       </body>
     </html>

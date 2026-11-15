@@ -35,9 +35,50 @@ describe("Google tag", () => {
     const scope = { dataLayer: [queued] as unknown[] } as { dataLayer: unknown[] };
     // Run the shipped text with `window` bound to a stand-in global.
     new Function("window", `with (window) { ${GOOGLE_TAG_INITIALIZATION} }`)(scope);
-    expect(scope.dataLayer).toHaveLength(2);
     expect(scope.dataLayer[0]).toBe(queued);
-    expect(Array.from(scope.dataLayer[1] as ArrayLike<unknown>)[0]).toBe("js");
+    expect(Array.from(scope.dataLayer.at(-1) as ArrayLike<unknown>)[0]).toBe("js");
+  });
+
+  /** Runs the shipped text for one visitor and returns what it queued. */
+  function commands(visitor: { globalPrivacyControl?: boolean; cookie?: string } = {}) {
+    const scope = {
+      dataLayer: [] as unknown[],
+      navigator: { globalPrivacyControl: visitor.globalPrivacyControl },
+      document: { cookie: visitor.cookie ?? "" }
+    };
+    new Function("window", `with (window) { ${GOOGLE_TAG_INITIALIZATION} }`)(scope);
+    return scope.dataLayer.map((entry) => Array.from(entry as ArrayLike<unknown>));
+  }
+  const denied = { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied" };
+  const measured = { ad_storage: "granted", ad_user_data: "granted", ad_personalization: "denied", analytics_storage: "granted", region: ["US"] };
+
+  it("sets Consent Mode defaults before the tag starts: denied everywhere, measurement only in the United States", () => {
+    expect(commands()).toEqual([
+      ["consent", "default", denied],
+      ["consent", "default", measured],
+      ["set", "ads_data_redaction", true],
+      ["js", expect.any(Date)]
+    ]);
+  });
+
+  it("never grants ad personalisation to anyone", () => {
+    for (const visitor of [{}, { globalPrivacyControl: true }, { cookie: "mathnexa-ad-choice=opt-out" }]) {
+      for (const command of commands(visitor).filter((entry) => entry[0] === "consent")) {
+        expect((command[2] as Record<string, unknown>).ad_personalization).toBe("denied");
+      }
+    }
+  });
+
+  it("grants nothing when the browser sends Global Privacy Control or the visitor turned ad measurement off", () => {
+    for (const visitor of [{ globalPrivacyControl: true }, { cookie: "mathnexa-ad-choice=opt-out" }, { cookie: "theme=dark; mathnexa-ad-choice=opt-out; other=1" }]) {
+      expect(commands(visitor), JSON.stringify(visitor)).toEqual([
+        ["consent", "default", denied],
+        ["set", "ads_data_redaction", true],
+        ["js", expect.any(Date)]
+      ]);
+    }
+    // A different cookie, or a look-alike name, is not an opt-out.
+    expect(commands({ cookie: "xmathnexa-ad-choice=opt-out; mathnexa-ad-choice=opt-in" })).toHaveLength(4);
   });
 
   it("runs only on MathNexa builds deployed on Vercel", () => {

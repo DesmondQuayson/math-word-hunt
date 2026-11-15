@@ -14,6 +14,7 @@ import type {
   SubscriptionSynchronizationSource,
   SupabaseConsumerBillingRepository
 } from "./consumer-repository";
+import { safeBillingLog } from "./security";
 
 /**
  * Reasons an authoritative Stripe snapshot is refused before it can touch the
@@ -108,7 +109,45 @@ export async function synchronizeConsumerSubscription(request: SubscriptionSynch
     cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     result: state
   }, request.correlationId);
+  await recordSubscriptionConversions(request, state);
   return state;
+}
+
+/** Results that mean the provider itself is in a state a person must resolve. */
+const CONVERSION_BLOCKING_RESULTS = new Set(["conflicting_current_subscription", "trial_shape_conflict"]);
+
+/**
+ * Google Ads conversion ledger (docs/google-ads-conversion-tracking.md). After
+ * the projection, the same authoritative snapshot is offered to the ledger:
+ * a subscription the provider reports as trialing is the trial start, and an
+ * invoice that is paid, belongs to this subscription and carries a known
+ * positive amount is a payment. The database function decides whether either is
+ * a first and records each once, so webhooks, replays and reconciliation can
+ * all arrive here, in any order, without counting twice.
+ *
+ * A stale or superseded snapshot is still offered: a first-payment event that
+ * arrives after a newer event is ignored by the projection, but the payment is
+ * no less real. Measurement must never disturb billing, so a failure is logged
+ * and swallowed.
+ */
+async function recordSubscriptionConversions(request: SubscriptionSynchronizationRequest, state: string): Promise<void> {
+  if (CONVERSION_BLOCKING_RESULTS.has(state)) return;
+  const { subscription, latestInvoice } = request;
+  const payment = latestInvoice && latestInvoice.paid && latestInvoice.subscriptionId === subscription.id &&
+    typeof latestInvoice.amountPaidMinorUnits === "number" && latestInvoice.amountPaidMinorUnits > 0
+    ? { paidAt: latestInvoice.paidAt ?? request.observedAt, amountPaidMinorUnits: latestInvoice.amountPaidMinorUnits }
+    : null;
+  if (!payment && subscription.status !== "trialing") return;
+  try {
+    const recorded = await request.repository.recordSubscriptionConversions({
+      ownerUserId: request.ownerUserId,
+      subscription,
+      payment
+    });
+    if (recorded.length > 0) safeBillingLog("ads-conversion-recorded", { recorded: recorded.join(","), source: request.source });
+  } catch {
+    safeBillingLog("ads-conversion-record-failed", { source: request.source });
+  }
 }
 
 export type CustomerSynchronizationRequest = Readonly<{

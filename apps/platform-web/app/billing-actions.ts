@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { rememberAdClickForAccount } from "@/lib/analytics/ad-attribution";
 import { resolveTeacherContext } from "@/lib/auth/teacher-context";
 import { authorizeOwnedCapability } from "@/lib/capabilities/server";
 import { parseCheckoutIntent } from "@/lib/billing/contracts";
@@ -44,6 +45,9 @@ async function startConsumerCheckout(formData: FormData) {
       consent,
       returnDestination
     });
+    // An account made before it had an ad click (or before clicks were kept)
+    // that now starts Checkout from one. Never throws; the first click wins.
+    await rememberAdClickForAccount(context.userId, "checkout");
     redirect(result.url);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;

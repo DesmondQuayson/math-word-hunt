@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
+import { rememberAdClickForAccount } from "@/lib/analytics/ad-attribution";
 import type { AuthFormState, EmailConfirmationState } from "@/lib/auth/form-state";
 import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
 import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
@@ -136,7 +137,7 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
     ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
     : "/teacher";
   const callback = `${getAppBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}`;
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -145,7 +146,12 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
     }
   });
   if (error) return { status: "error", message: "The account could not be created. Check the information and try again." };
-  if (consumerMode) await rememberConfirmationRequest(email, destination);
+  if (consumerMode) {
+    await rememberConfirmationRequest(email, destination);
+    // A visitor who arrived from a Google ad: keep that click with the new
+    // account. Never throws, and changes nothing the form answers with.
+    await rememberAdClickForAccount(data?.user?.id, "sign-up");
+  }
   return {
     status: "success",
     message: getAuthEmailExperience(process.env, consumerMode ? "consumer" : "teacher").signUpResponse,

@@ -186,7 +186,9 @@ describe("the scheduled sweep is read-only at Stripe", () => {
     const summary = await runConsumerReconciliationSweep({ provider: guardedProvider, repository: guardedRepository, config, limit: 50, now });
     expect(summary).toMatchObject({ checked: 1, synchronized: 1 });
     expect(new Set(providerCalls)).toEqual(READ_METHODS);
-    expect(new Set(repositoryCalls)).toEqual(new Set(["listSubscriptionsDueForReconciliation", "getCustomerMapping", "getSubscriptions", "synchronizeSubscription"]));
+    // recordSubscriptionConversions is the Google Ads conversion ledger: the
+    // paid invoice the sweep read is offered to it. It writes no billing state.
+    expect(new Set(repositoryCalls)).toEqual(new Set(["listSubscriptionsDueForReconciliation", "getCustomerMapping", "getSubscriptions", "synchronizeSubscription", "recordSubscriptionConversions"]));
   });
 
   it("has no route from the sweep or the synchronizer to a provider write", async () => {
