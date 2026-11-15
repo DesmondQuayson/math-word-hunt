@@ -1,0 +1,14 @@
+{
+  "origin": "https://mathnexa.com",
+  "pages": 108,
+  "loadsPerProfile": 3,
+  "refused": [],
+  "googleRequestsCompleted": [
+    "fetch https://ad.doubleclick.net/ccm/s/collect x42 [204]",
+    "fetch https://www.google.com/ccm/collect x54 [200]",
+    "fetch https://www.googleadservices.com/pagead/set_partitioned_cookie x36 [200]",
+    "image https://www.googletagmanager.com/a x1 [200]",
+    "script https://www.googletagmanager.com/gtm.js x108 [200]"
+  ],
+  "result": "PASS"
+}

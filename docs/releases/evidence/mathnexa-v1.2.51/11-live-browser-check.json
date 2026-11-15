@@ -1,0 +1,71 @@
+{
+  "origin": "https://mathnexa.com",
+  "checkedAt": "2026-11-15T03:10:53.712Z",
+  "results": {
+    "chromium": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "pass",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "webkit": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "pass",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "mobile-chrome": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "pass",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "mobile-safari": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "pass",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    }
+  },
+  "failed": 0
+}

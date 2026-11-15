@@ -1,0 +1,16 @@
+Full run on 93bf706:
+head=93bf706eceff82d03275f2636834e4a2569b8946 dirty=0 start=2026-11-15T02:24:01Z
+typecheck exit=0 seconds=29
+lint exit=0 seconds=32
+unit exit=1 seconds=231
+test-security exit=0 seconds=20
+build exit=0 seconds=46
+phase9 exit=0 seconds=396
+ads-conversions exit=1 seconds=263
+school-access exit=0 seconds=96
+dirty-after=0 end=2026-11-15T02:42:36Z
+csp-gates-done
+
+unit rerun: exit 0 (245 core; 1786 web, 1 skipped). The first run failed only lib/games/math-race-champions/traffic.test.ts at its 5 s limit.
+ads-conversions rerun on 60fe35f: 64 passed. The first run failed one WebKit navigation in the test itself; 60fe35f makes that step wait.
+On 60fe35f (release commit): typecheck exit 0, lint exit 0 (8 warnings), test:security exit 0 (353 tests, both audits).

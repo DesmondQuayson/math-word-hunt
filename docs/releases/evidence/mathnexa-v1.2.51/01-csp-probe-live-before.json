@@ -1,0 +1,59 @@
+{
+  "origin": "https://mathnexa.com",
+  "pages": 108,
+  "loadsPerProfile": 3,
+  "refused": [
+    {
+      "request": "connect-src https://www.googleadservices.com/pagead/set_partitioned_cookie",
+      "count": 72,
+      "profiles": [
+        "chromium",
+        "webkit",
+        "mobile-chrome",
+        "mobile-safari"
+      ],
+      "paths": [
+        "/?gclid",
+        "/online-math-prep?gclid",
+        "/math-games?gclid",
+        "/?gbraid",
+        "/?wbraid",
+        "/sign-up?gclid"
+      ]
+    },
+    {
+      "request": "img-src https://www.googleadservices.com/pagead/set_partitioned_cookie",
+      "count": 72,
+      "profiles": [
+        "chromium",
+        "webkit",
+        "mobile-chrome",
+        "mobile-safari"
+      ],
+      "paths": [
+        "/?gclid",
+        "/online-math-prep?gclid",
+        "/math-games?gclid",
+        "/?gbraid",
+        "/?wbraid",
+        "/sign-up?gclid"
+      ]
+    },
+    {
+      "request": "img-src https://www.googletagmanager.com/a",
+      "count": 5,
+      "profiles": [
+        "mobile-chrome"
+      ],
+      "paths": [
+        "/math-games?gclid"
+      ]
+    }
+  ],
+  "googleRequestsCompleted": [
+    "fetch https://ad.doubleclick.net/ccm/s/collect x42 [204]",
+    "fetch https://www.google.com/ccm/collect x54 [200]",
+    "script https://www.googletagmanager.com/gtm.js x108 [200]"
+  ],
+  "result": "FAIL"
+}
