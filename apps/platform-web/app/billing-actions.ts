@@ -37,6 +37,11 @@ async function startConsumerCheckout(formData: FormData) {
     if (!consent) redirect(`/subscription?consent=required&next=${returnDestination}`);
     const repository = createConsumerBillingRepository(config);
     if (!repository) throw new Error("unavailable");
+    // An account made before it had an ad click (or before clicks were kept)
+    // that now starts Checkout from one. Kept when the account asks for
+    // Checkout, whatever the provider then answers. Never throws; the first
+    // click wins.
+    await rememberAdClickForAccount(context.userId, "checkout");
     const result = await createConsumerSetupCheckout({
       context,
       config,
@@ -45,9 +50,6 @@ async function startConsumerCheckout(formData: FormData) {
       consent,
       returnDestination
     });
-    // An account made before it had an ad click (or before clicks were kept)
-    // that now starts Checkout from one. Never throws; the first click wins.
-    await rememberAdClickForAccount(context.userId, "checkout");
     redirect(result.url);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
