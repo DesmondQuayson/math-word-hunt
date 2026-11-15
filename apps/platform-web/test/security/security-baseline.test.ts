@@ -95,9 +95,12 @@ describe("security response headers", () => {
     // sign-in, account and billing pages, so the lists are pinned exactly.
     const directive = (name: string) =>
       new RegExp(`(?:^|; )${name} ([^;]+)`).exec(buildContentSecurityPolicy({}))?.[1]?.trim().split(/\s+/).filter((source) => source.startsWith("https:")) ?? [];
+    // Script hosts are the supply chain and have not grown since v1.2.48. The
+    // image and connect lists each gained one host on 2026-11-15, for requests
+    // the tag makes on an ad landing and for its diagnostics pings.
     expect(directive("script-src")).toEqual(["https://www.googletagmanager.com", "https://googleads.g.doubleclick.net"]);
-    expect(directive("img-src")).toEqual(["https://www.google.com"]);
-    expect(directive("connect-src")).toEqual(["https://www.google.com", "https://ad.doubleclick.net"]);
+    expect(directive("img-src")).toEqual(["https://www.google.com", "https://www.googletagmanager.com"]);
+    expect(directive("connect-src")).toEqual(["https://www.google.com", "https://ad.doubleclick.net", "https://www.googleadservices.com"]);
     for (const name of ["default-src", "frame-src", "worker-src", "font-src", "style-src", "media-src", "form-action"]) {
       expect(directive(name).filter((source) => !source.endsWith("stripe.com")), `${name} gains no Google host`).toEqual([]);
     }

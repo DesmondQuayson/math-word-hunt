@@ -162,6 +162,12 @@ async function reviewProfile(name) {
     check(name, "the click cookie is HttpOnly, Secure, SameSite=Lax, 90 days (the platform placed this visitor in the United States)", /^mathnexa-ad-click=[A-Za-z0-9_-]+; Path=\/; Expires=[^;]+; Max-Age=7776000; Secure; HttpOnly; SameSite=lax$/i.test(setCookie), setCookie.replace(/=[A-Za-z0-9_-]{20,}/, "=[value]"));
     check(name, "page scripts cannot read the click cookie", !(await page.evaluate(() => document.cookie)).includes("mathnexa-ad-click"));
     check(name, "only click identifiers were handed over", JSON.stringify(Object.keys(response.request().postDataJSON() ?? {}).sort()) === JSON.stringify(["gbraid", "gclid", "wbraid"]));
+    // The tag asks for more on a landing that carries a click identifier than on any other page
+    // (v1.2.50 found two hosts the policy refused only here), so this is where the policy is checked.
+    await settle(page);
+    await page.waitForTimeout(1500);
+    const landingViolations = await page.evaluate(() => window.__cspViolations);
+    check(name, "no CSP violation on an ad landing", landingViolations.length === 0, landingViolations);
 
     // Sign in through the real form: the address is typed into the page while the tag is running.
     await page.goto(`${origin}/sign-in`, { waitUntil: "load" });

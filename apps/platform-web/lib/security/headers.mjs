@@ -56,11 +56,21 @@
  * pixel, and its two collection endpoints. Zero violations with exactly these.
  * If the container later gains another destination (Google Analytics, a
  * conversion linker on another host), that host is added here deliberately.
+ *
+ * Two more, measured on the live site on 2026-11-15 (72 page loads in Chrome,
+ * Safari's engine and two phone profiles). The 2026-11-12 measurement loaded
+ * pages without an ad click identifier and so never saw the first:
+ *  - connect `www.googleadservices.com`: on a landing URL that carries gclid,
+ *    gbraid or wbraid, the tag calls /pagead/set_partitioned_cookie. Refused,
+ *    it retried as an image and was refused again, on every ad click.
+ *  - img `www.googletagmanager.com`: the tag's own diagnostics pings (/td and
+ *    /a), sent for a sample of page loads.
+ * Images and fetches only: no new script host.
  */
 export const GOOGLE_TAG_SOURCES = Object.freeze({
   script: Object.freeze(["https://www.googletagmanager.com", "https://googleads.g.doubleclick.net"]),
-  img: Object.freeze(["https://www.google.com"]),
-  connect: Object.freeze(["https://www.google.com", "https://ad.doubleclick.net"])
+  img: Object.freeze(["https://www.google.com", "https://www.googletagmanager.com"]),
+  connect: Object.freeze(["https://www.google.com", "https://ad.doubleclick.net", "https://www.googleadservices.com"])
 });
 
 export function buildContentSecurityPolicy(source = process.env, { developmentServer = false } = {}) {
