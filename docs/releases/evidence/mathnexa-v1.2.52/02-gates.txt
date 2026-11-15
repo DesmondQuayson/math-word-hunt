@@ -1,0 +1,25 @@
+=== lint
+✖ 8 problems (0 errors, 8 warnings)
+EXIT=0
+=== unit
+ Test Files  35 passed (35)
+      Tests  245 passed (245)
+ Test Files  1 failed | 152 passed | 1 skipped (154)
+      Tests  1 failed | 1819 passed | 1 skipped (1821)
+EXIT=1
+=== security
+ Test Files  30 passed (30)
+      Tests  372 passed (372)
+EXIT=0
+=== build
+EXIT=0
+=== school
+  24 passed (1.6m)
+EXIT=0
+=== phase9
+  31 passed (6.4m)
+EXIT=0
+=== ads
+  64 passed (4.4m)
+EXIT=0
+traffic.test.ts rerun alone: 16 passed

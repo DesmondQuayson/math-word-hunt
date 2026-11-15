@@ -1,0 +1,6 @@
+STEP 2026-11-15T20:07:29.806Z uploading the certified runtime as a non-aliased production-configured deployment
+(node:24860) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+PREVIEW {"previewUrl":"https://mathnexa-platform-production-8hx75y5v6-bright-path-ed-tech.vercel.app","deploymentId":"dpl_GrToXUMK37z4dSN4QCxGmcWTQTFZ","ready":"● Ready","runtime":{"certified":"df7f4da8c29904a3742e02ffd55c3b2dcc3cad56","nextVersion":"16.4.2","sharpVersion":"0.35.5","candidateTree":"0a5223723f09236172eea5eb3fe0335af563325f","candidateCommit":"df7f4da8c29904a3742e02ffd55c3b2dcc3cad56"}}
+PASS deploy-preview
+EVIDENCE C:\Users\quays\AppData\Local\Temp\mathnexa-nextjs-hotfix-production-deploy-preview-1794773368086.json

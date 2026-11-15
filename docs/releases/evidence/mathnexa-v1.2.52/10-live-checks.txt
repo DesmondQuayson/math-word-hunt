@@ -1,0 +1,32 @@
+Live checks after promotion, 2026-11-15 20:12-20:20Z (read-only)
+
+/api/health
+  {"status":"ready","environment":"production-platform","build":"df7f4da8c29904a3742e02ffd55c3b2dcc3cad56","searchIndexing":"enabled","payments":"live"}
+
+GET https://mathnexa.com/map-prep/pass?to=/grades/6   (no session)
+  HTTP/1.1 307 Temporary Redirect
+  Cache-Control: no-store
+  Location: /access?next=/map-prep
+  Set-Cookie: mathnexa-showme-return=[value]; Path=/map-prep; Expires=...; Max-Age=1800; Secure; HttpOnly; SameSite=lax
+  X-Robots-Tag: noindex, nofollow
+  (no mathnexa-showme-pass cookie)
+
+GET https://mathnexa.com/map-prep/pass                (no session)
+  307 -> /access?next=/map-prep, no cookie
+
+GET https://mathnexa.com/map-prep/pass?to=//evil.example&site=https://evil.example
+  307 -> /access?next=/map-prep
+
+Before the release the same address answered 404.
+
+Entries unchanged: /map-prep -> 307 /access?next=/map-prep; /worksheets -> 307 /access?next=/worksheets
+
+32 public routes compared before and after (status, redirect, title, description, canonical, robots, headings,
+visible text, structured data): 31 identical; /privacy differs (the new "Online Math Prep access" section).
+robots.txt, sitemap.xml and the Content-Security-Policy header: byte-identical (sha256 prefixes 0e3eb72fbfbab54a,
+b883ad6c79ad3622, 0186c20bae0d876a before and after).
+
+Subscriber read-only check: PASS, active subscriptions match the payment provider.
+Production logs for the new deployment, 30 minutes: 0 responses with a 5xx status, 0 error-level lines.
+Conversion file: 200 with the credential.
+showme.mathnexa.com/grades/6: 200 (ShowMe is released separately; this release does not close it).

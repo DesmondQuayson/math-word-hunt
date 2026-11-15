@@ -1,0 +1,100 @@
+{
+  "origin": "https://mathnexa-platform-staging-ks42xf39l-bright-path-ed-tech.vercel.app",
+  "run": "048293b2",
+  "startedAt": "2026-11-15T19:25:15.685Z",
+  "profiles": {
+    "chromium": {
+      "checks": {
+        "a visitor with no session is sent to the access page": "pass",
+        "and is given no pass": "pass",
+        "the answer is not cached and not indexed": "pass",
+        "a signed-in account without access is sent to subscribe": "pass",
+        "the page it asked for is remembered for half an hour, out of reach of page scripts": "pass",
+        "with a trial, it is sent to the ShowMe page it first asked for": "pass",
+        "the pass cookie is HttpOnly, Secure, SameSite=Lax, twelve hours, on this host only": "pass",
+        "the pass is signed with this deployment's secret": "pass",
+        "the pass holds a version and two times twelve hours apart, and nothing else": "pass",
+        "nothing about the account is in the pass": "pass",
+        "the remembered page is forgotten once used": "pass",
+        "the answer is not cached": "pass",
+        "to the page asked for": "pass",
+        "to the ShowMe staging copy only when it is named": "pass",
+        "never anywhere but ShowMe, whatever the address says": "pass",
+        "the Worksheet Generator entry still redirects an account with access to ShowMe": "pass"
+      },
+      "cleanup": "synthetic account deleted"
+    },
+    "webkit": {
+      "checks": {
+        "a visitor with no session is sent to the access page": "pass",
+        "and is given no pass": "pass",
+        "the answer is not cached and not indexed": "pass",
+        "a signed-in account without access is sent to subscribe": "pass",
+        "the page it asked for is remembered for half an hour, out of reach of page scripts": "pass",
+        "with a trial, it is sent to the ShowMe page it first asked for": "pass",
+        "the pass cookie is HttpOnly, Secure, SameSite=Lax, twelve hours, on this host only": "pass",
+        "the pass is signed with this deployment's secret": "pass",
+        "the pass holds a version and two times twelve hours apart, and nothing else": "pass",
+        "nothing about the account is in the pass": "pass",
+        "the remembered page is forgotten once used": "pass",
+        "the answer is not cached": "pass",
+        "to the page asked for": "pass",
+        "to the ShowMe staging copy only when it is named": "pass",
+        "never anywhere but ShowMe, whatever the address says": "pass",
+        "the Worksheet Generator entry still redirects an account with access to ShowMe": "pass"
+      },
+      "cleanup": "synthetic account deleted"
+    },
+    "mobile-chrome": {
+      "checks": {
+        "a visitor with no session is sent to the access page": "pass",
+        "and is given no pass": "pass",
+        "the answer is not cached and not indexed": "pass",
+        "a signed-in account without access is sent to subscribe": "pass",
+        "the page it asked for is remembered for half an hour, out of reach of page scripts": "pass",
+        "with a trial, it is sent to the ShowMe page it first asked for": "pass",
+        "the pass cookie is HttpOnly, Secure, SameSite=Lax, twelve hours, on this host only": "pass",
+        "the pass is signed with this deployment's secret": "pass",
+        "the pass holds a version and two times twelve hours apart, and nothing else": "pass",
+        "nothing about the account is in the pass": "pass",
+        "the remembered page is forgotten once used": "pass",
+        "the answer is not cached": "pass",
+        "to the page asked for": "pass",
+        "to the ShowMe staging copy only when it is named": "pass",
+        "never anywhere but ShowMe, whatever the address says": "pass",
+        "the Worksheet Generator entry still redirects an account with access to ShowMe": "pass"
+      },
+      "cleanup": "synthetic account deleted"
+    },
+    "mobile-safari": {
+      "checks": {
+        "a visitor with no session is sent to the access page": "pass",
+        "and is given no pass": "pass",
+        "the answer is not cached and not indexed": "pass",
+        "a signed-in account without access is sent to subscribe": "pass",
+        "the page it asked for is remembered for half an hour, out of reach of page scripts": "pass",
+        "with a trial, it is sent to the ShowMe page it first asked for": "pass",
+        "the pass cookie is HttpOnly, Secure, SameSite=Lax, twelve hours, on this host only": "pass",
+        "the pass is signed with this deployment's secret": "pass",
+        "the pass holds a version and two times twelve hours apart, and nothing else": "pass",
+        "nothing about the account is in the pass": "pass",
+        "the remembered page is forgotten once used": "pass",
+        "the answer is not cached": "pass",
+        "to the page asked for": "pass",
+        "to the ShowMe staging copy only when it is named": "pass",
+        "never anywhere but ShowMe, whatever the address says": "pass",
+        "the Worksheet Generator entry still redirects an account with access to ShowMe": "pass"
+      },
+      "cleanup": "synthetic account deleted"
+    }
+  },
+  "health": {
+    "status": 200,
+    "build": "df7f4da8c29904a3742e02ffd55c3b2dcc3cad56",
+    "environment": "production-platform",
+    "payments": "test"
+  },
+  "syntheticAccountsLeft": 0,
+  "failures": [],
+  "result": "PASS"
+}
