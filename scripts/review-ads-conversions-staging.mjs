@@ -63,8 +63,10 @@ function check(profile, name, condition, detail) {
 
 /** A context that can reach the protected preview, recording everything it sends to Google. */
 async function open(browser, options, visitor = {}) {
-  const context = await browser.newContext({ ...options, ...(visitor.gpc ? { extraHTTPHeaders: { "Sec-GPC": "1" } } : {}) });
+  const context = await browser.newContext({ ...options });
   await protection.install(context);
+  // Global Privacy Control as page scripts see it. The Sec-GPC request header (the server's side of the same rule)
+  // is exercised by e2e/ads-conversions; this context sends no header of its own, by the bypass rules.
   if (visitor.gpc) await context.addInitScript(() => Object.defineProperty(navigator, "globalPrivacyControl", { value: true, configurable: true }));
   await context.addInitScript(() => {
     window.__cspViolations = [];
