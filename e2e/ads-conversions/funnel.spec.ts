@@ -119,6 +119,23 @@ async function landFromAd(page: Page, path: string) {
   return { request: response.request(), setCookie: (await response.headerValue("set-cookie")) ?? "" };
 }
 
+/**
+ * Goes to a page that may still be finishing a navigation of its own: the
+ * Checkout return page redirects by itself once the trial is active, and a
+ * navigation started at that moment is reported as interrupted.
+ */
+async function visit(page: Page, path: string) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await page.goto(path);
+      return;
+    } catch (error) {
+      if (attempt >= 2 || !/interrupted by another navigation/.test(String(error))) throw error;
+      await page.waitForLoadState("load").catch(() => undefined);
+    }
+  }
+}
+
 async function signIn(page: Page, email: string) {
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(email);
@@ -438,7 +455,7 @@ test.describe("an existing account that clicks an ad later, and a payment no web
     expect(paid.value_minor_units).toBe(599);
     expect(Date.parse(paid.occurred_at)).toBe(start.getTime());
     // Billing itself reached the same answer the provider holds.
-    await page.goto("/game-access");
+    await visit(page, "/game-access");
     await expect(page.getByText("Subscription active", { exact: true })).toBeVisible();
     const rows = await feedFor(request, gclid);
     expect(rows.map((row) => row["Conversion Name"]).sort()).toEqual(["subscription_started", "trial_started"]);
