@@ -1,0 +1,39 @@
+First run (4b1d9e5):
+head=4b1d9e58a4e104eb2f2909368cdfc2586a10c3cd dirty=0 start=2026-11-15T00:17:06Z
+typecheck exit=0 seconds=11
+lint exit=0 seconds=32
+unit exit=0 seconds=243
+audit-phase11 exit=1 seconds=0
+audit-phase7c exit=0 seconds=1
+audit-quiz-pdfs exit=0 seconds=0
+test-quiz-pdfs exit=0 seconds=6
+database exit=1 seconds=18
+ads-conversions exit=0 seconds=280
+phase7b exit=0 seconds=66
+phase7c exit=0 seconds=95
+phase7e exit=0 seconds=44
+phase9 exit=0 seconds=388
+school-access exit=0 seconds=96
+tug-free-access exit=0 seconds=161
+quiz-pdfs exit=0 seconds=427
+number-cross exit=0 seconds=94
+build exit=0 seconds=42
+test-security exit=1 seconds=20
+dirty-after=1 end=2026-11-15T00:50:55Z
+release-gates-done
+
+Final run (e70b21e):
+head=e70b21ed0fba0d01878ce0598cb61ecaee23ef7f dirty=0 start=2026-11-15T00:53:32Z
+typecheck exit=0 seconds=29
+lint exit=0 seconds=35
+unit exit=1 seconds=241
+test-security exit=0 seconds=20
+build exit=0 seconds=44
+db-reset exit=0 seconds=37
+database exit=0 seconds=18
+ads-conversions exit=0 seconds=287
+phase7c exit=0 seconds=93
+dirty-after=0 end=2026-11-15T01:06:59Z
+final-gates-done
+
+unit rerun unloaded: exit 0 (245 core, 1786 web, 1 skipped); phase7e 3/3 and phase7b 10/10 rerun on e70b21e; lint and test:security rerun on 8907692.

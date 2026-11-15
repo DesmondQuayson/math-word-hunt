@@ -1,0 +1,71 @@
+{
+  "origin": "https://mathnexa.com",
+  "checkedAt": "2026-11-15T01:50:22.401Z",
+  "results": {
+    "chromium": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "FAIL [\"connect-src https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=12&frm=0&apvc=1&auid=1111056913.1794707394&dt=MathNexa%20%7C%20Online%20Math%20Prep%2C%20Homework%20PDFs%2C%20Quiz%20PDFs%20%26%20Worksheets&tid=AW-18462869878&en=page_view&gclid=Cj0KCQjw-LIVECHECK_chromium_0123456789&u",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "webkit": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "FAIL [\"connect-src https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=10&frm=0&apvc=1&auid=885333293.1794707401&dt=MathNexa%20%7C%20Online%20Math%20Prep%2C%20Homework%20PDFs%2C%20Quiz%20PDFs%20%26%20Worksheets&tid=AW-18462869878&en=page_view&gclid=Cj0KCQjw-LIVECHECK_webkit_0123456789&url=",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "mobile-chrome": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "FAIL [\"connect-src https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=12&frm=0&apvc=1&auid=1273518978.1794707409&dt=MathNexa%20%7C%20Online%20Math%20Prep%2C%20Homework%20PDFs%2C%20Quiz%20PDFs%20%26%20Worksheets&tid=AW-18462869878&en=page_view&gclid=Cj0KCQjw-LIVECHECK_mobilechrome_01234567",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    },
+    "mobile-safari": {
+      "consent defaults before the tag starts": "pass",
+      "container loads once": "pass",
+      "no CSP violation": "FAIL [\"connect-src https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=2&frm=0&apvc=1&auid=935280365.1794707416&dt=MathNexa%20%7C%20Online%20Math%20Prep%2C%20Homework%20PDFs%2C%20Quiz%20PDFs%20%26%20Worksheets&tid=AW-18462869878&en=page_view&gclid=Cj0KCQjw-LIVECHECK_mobilesafari_0123456789",
+      "ad click answered 204 with an HttpOnly Secure cookie": "pass",
+      "page scripts cannot read the click cookie": "pass",
+      "hits to Google carry the non-personalised flag": "pass",
+      "Privacy Notice has the advertising section": "pass",
+      "turning it off is answered 204": "pass",
+      "the click cookie and the tag's cookies are gone": "pass",
+      "after opting out the tag starts denied": "pass",
+      "GPC: only the denied default": "pass",
+      "GPC: no advertising cookie, no click cookie, no hand-over": "pass",
+      "GPC: click identifier not sent to Google": "pass",
+      "GPC: every hit says consent denied": "pass"
+    }
+  },
+  "failed": 4
+}

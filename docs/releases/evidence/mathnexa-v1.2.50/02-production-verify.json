@@ -1,0 +1,109 @@
+{
+  "stage": "verify",
+  "startedAt": "2026-11-15T01:27:59.365Z",
+  "projectRef": "[production ref]",
+  "pooler": "aws-0-us-east-2.pooler.supabase.com",
+  "identity": {
+    "refWellFormedAndNotStaging": true,
+    "poolerAuthenticatedAs": "postgres.[production ref]@aws-0-us-east-2.pooler.supabase.com",
+    "apiMatchesDatabase": true,
+    "productionQuizFingerprint": "8/8",
+    "accounts": 49
+  },
+  "environment": "PRODUCTION",
+  "snapshot": {
+    "acceptances": 16,
+    "accounts": 49,
+    "auth_users": 49,
+    "billing_function_digest": "d41cd588f9113ec4a8842970ee3a7b62",
+    "catalog": 8,
+    "customers": 9,
+    "entitlement_states": "subscription-active:5,subscription-expired:1",
+    "entitlements": 6,
+    "history": 50,
+    "history_digest": "20260726190000:29,20260726190100:43,20260726210000:21,20260726220000:19,20260726230000:18,20260727200000:17,20260729180000:6,20260730210000:40,20260731210000:23,20260731213000:2,20260731214000:2,20260801163000:3,20260801170000:1,20260801210000:26,20260802010000:3,20260802200000:58,20260803200000:91,20260803210000:30,20260803220000:49,20260803230000:56,20260804000000:53,20260804010000:40,20260804020000:4,20260805120000:64,20260805200000:69,20260806100000:5,20260807100000:7,20260808100000:15,20260809100000:1,20260814190000:1,20260815120000:3,20260816050000:4,20260907130000:21,20260927100000:38,20260928100000:7,20260929100000:2,20260930100000:27,20261103100000:91,20261106100000:11,20261106110000:2,20261106120000:5,20261107100000:27,20261108100000:47,20261108110000:2,20261109100000:104,20261109110000:17,20261111100000:33,20261112100000:1,20261112110000:117",
+    "other_account_triggers": 2,
+    "resources": 225,
+    "subscription_states": "active:5,canceled:1",
+    "subscriptions": 6,
+    "webhook_events": 53
+  },
+  "objects": {
+    "functions": 4,
+    "tables": 3,
+    "triggers": 2
+  },
+  "rowSecurity": [
+    {
+      "forced": true,
+      "policies": 0,
+      "relname": "ad_click_attributions",
+      "rls": true
+    },
+    {
+      "forced": true,
+      "policies": 0,
+      "relname": "ads_conversion_events",
+      "rls": true
+    },
+    {
+      "forced": true,
+      "policies": 0,
+      "relname": "ads_conversion_settings",
+      "rls": true
+    }
+  ],
+  "tableGrants": [
+    {
+      "grantee": "service_role",
+      "privileges": "SELECT",
+      "table_name": "ad_click_attributions"
+    },
+    {
+      "grantee": "service_role",
+      "privileges": "SELECT",
+      "table_name": "ads_conversion_events"
+    },
+    {
+      "grantee": "service_role",
+      "privileges": "SELECT",
+      "table_name": "ads_conversion_settings"
+    }
+  ],
+  "functions": [
+    {
+      "signature": "public.store_ad_click_attribution",
+      "browserExecute": false,
+      "serviceRole": true,
+      "securityDefiner": true
+    },
+    {
+      "signature": "public.erase_ad_click_attribution",
+      "browserExecute": false,
+      "serviceRole": true,
+      "securityDefiner": true
+    },
+    {
+      "signature": "public.record_consumer_subscription_conversions",
+      "browserExecute": false,
+      "serviceRole": true,
+      "securityDefiner": true
+    },
+    {
+      "signature": "public.list_reportable_ads_conversions",
+      "browserExecute": false,
+      "serviceRole": true,
+      "securityDefiner": true
+    }
+  ],
+  "measurement": {
+    "rows": 1,
+    "tracking_started_at": "2026-11-15T01:19:39.844504Z"
+  },
+  "ledger": {
+    "by_event": null,
+    "clicks": 0,
+    "conversions": 0
+  },
+  "result": "PASS"
+}

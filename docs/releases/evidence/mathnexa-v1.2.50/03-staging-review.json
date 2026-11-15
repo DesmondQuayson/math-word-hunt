@@ -1,0 +1,262 @@
+{
+  "origin": "https://mathnexa-platform-staging-axaf2lueo-bright-path-ed-tech.vercel.app",
+  "run": "038d54ae",
+  "startedAt": "2026-11-15T00:53:36.141Z",
+  "profiles": {
+    "chromium": {
+      "checks": {
+        "consent defaults are queued before the tag starts": "pass",
+        "the container loads once": "pass",
+        "no CSP violation on the home page": "pass",
+        "GPC: only the denied default is set": "pass",
+        "GPC: no advertising cookie is written": "pass",
+        "GPC: the page does not hand the click to the server": "pass",
+        "GPC: MathNexa keeps no click cookie": "pass",
+        "GPC: the click identifier is not sent to Google": "pass",
+        "GPC: every hit to Google says consent is denied": "pass",
+        "the ad click is answered 204": "pass",
+        "the click cookie is HttpOnly, Secure, SameSite=Lax, 90 days (the platform placed this visitor in the United States)": "pass",
+        "page scripts cannot read the click cookie": "pass",
+        "only click identifiers were handed over": "pass",
+        "the synthetic account is signed in": "pass",
+        "asking for Checkout ends on Stripe's test page or an honest unavailable notice": "pass",
+        "asking for Checkout kept the click with the account": "pass",
+        "the browser copy is cleared once the account holds the click": "pass",
+        "opening Checkout records no trial and no purchase": "pass",
+        "no email address, hash of it, or user-data field was sent to Google": "pass",
+        "no CSP violation on a signed-in page": "pass",
+        "a trialing snapshot records trial_started once": "pass",
+        "the file is refused without the exact credential": "pass",
+        "the file is served to the credential, never cached or indexed": "pass",
+        "it reports the trial for this click, and not the account that predates the click": "pass",
+        "the file holds no address, account id or provider id": "pass",
+        "the Privacy Notice describes advertising measurement": "pass",
+        "turning ad measurement off is answered 204": "pass",
+        "it erases the click kept with the signed-in account": "pass",
+        "it removes the tag's advertising cookies": "pass",
+        "nothing of that account is reported afterwards": "pass",
+        "after opting out, the tag starts with consent denied": "pass"
+      },
+      "defaultVisitor": {
+        "googleRequests": 3,
+        "consentStates": [
+          "G111"
+        ],
+        "cookies": [
+          "_gcl_au"
+        ]
+      },
+      "checkout": "this preview answered billing unavailable (no provider session)",
+      "signedInVisitor": {
+        "googleRequests": 8,
+        "hosts": [
+          "ad.doubleclick.net",
+          "www.google.com",
+          "www.googleadservices.com",
+          "www.googletagmanager.com"
+        ],
+        "consentStates": [
+          "G111"
+        ],
+        "nonPersonalisedAds": [
+          "1"
+        ]
+      },
+      "cspViolations": [],
+      "cleanup": "synthetic account deleted"
+    },
+    "webkit": {
+      "checks": {
+        "consent defaults are queued before the tag starts": "pass",
+        "the container loads once": "pass",
+        "no CSP violation on the home page": "pass",
+        "GPC: only the denied default is set": "pass",
+        "GPC: no advertising cookie is written": "pass",
+        "GPC: the page does not hand the click to the server": "pass",
+        "GPC: MathNexa keeps no click cookie": "pass",
+        "GPC: the click identifier is not sent to Google": "pass",
+        "GPC: every hit to Google says consent is denied": "pass",
+        "the ad click is answered 204": "pass",
+        "the click cookie is HttpOnly, Secure, SameSite=Lax, 90 days (the platform placed this visitor in the United States)": "pass",
+        "page scripts cannot read the click cookie": "pass",
+        "only click identifiers were handed over": "pass",
+        "the synthetic account is signed in": "pass",
+        "asking for Checkout ends on Stripe's test page or an honest unavailable notice": "pass",
+        "asking for Checkout kept the click with the account": "pass",
+        "the browser copy is cleared once the account holds the click": "pass",
+        "opening Checkout records no trial and no purchase": "pass",
+        "no email address, hash of it, or user-data field was sent to Google": "pass",
+        "no CSP violation on a signed-in page": "pass",
+        "a trialing snapshot records trial_started once": "pass",
+        "the file is refused without the exact credential": "pass",
+        "the file is served to the credential, never cached or indexed": "pass",
+        "it reports the trial for this click, and not the account that predates the click": "pass",
+        "the file holds no address, account id or provider id": "pass",
+        "the Privacy Notice describes advertising measurement": "pass",
+        "turning ad measurement off is answered 204": "pass",
+        "it erases the click kept with the signed-in account": "pass",
+        "it removes the tag's advertising cookies": "pass",
+        "nothing of that account is reported afterwards": "pass",
+        "after opting out, the tag starts with consent denied": "pass"
+      },
+      "defaultVisitor": {
+        "googleRequests": 3,
+        "consentStates": [
+          "G111"
+        ],
+        "cookies": [
+          "_gcl_au"
+        ]
+      },
+      "checkout": "this preview answered billing unavailable (no provider session)",
+      "signedInVisitor": {
+        "googleRequests": 7,
+        "hosts": [
+          "ad.doubleclick.net",
+          "www.google.com",
+          "www.googletagmanager.com"
+        ],
+        "consentStates": [
+          "G111"
+        ],
+        "nonPersonalisedAds": [
+          "1"
+        ]
+      },
+      "cspViolations": [],
+      "cleanup": "synthetic account deleted"
+    },
+    "mobile-chrome": {
+      "checks": {
+        "consent defaults are queued before the tag starts": "pass",
+        "the container loads once": "pass",
+        "no CSP violation on the home page": "pass",
+        "GPC: only the denied default is set": "pass",
+        "GPC: no advertising cookie is written": "pass",
+        "GPC: the page does not hand the click to the server": "pass",
+        "GPC: MathNexa keeps no click cookie": "pass",
+        "GPC: the click identifier is not sent to Google": "pass",
+        "GPC: every hit to Google says consent is denied": "pass",
+        "the ad click is answered 204": "pass",
+        "the click cookie is HttpOnly, Secure, SameSite=Lax, 90 days (the platform placed this visitor in the United States)": "pass",
+        "page scripts cannot read the click cookie": "pass",
+        "only click identifiers were handed over": "pass",
+        "the synthetic account is signed in": "pass",
+        "asking for Checkout ends on Stripe's test page or an honest unavailable notice": "pass",
+        "asking for Checkout kept the click with the account": "pass",
+        "the browser copy is cleared once the account holds the click": "pass",
+        "opening Checkout records no trial and no purchase": "pass",
+        "no email address, hash of it, or user-data field was sent to Google": "pass",
+        "no CSP violation on a signed-in page": "pass",
+        "a trialing snapshot records trial_started once": "pass",
+        "the file is refused without the exact credential": "pass",
+        "the file is served to the credential, never cached or indexed": "pass",
+        "it reports the trial for this click, and not the account that predates the click": "pass",
+        "the file holds no address, account id or provider id": "pass",
+        "the Privacy Notice describes advertising measurement": "pass",
+        "turning ad measurement off is answered 204": "pass",
+        "it erases the click kept with the signed-in account": "pass",
+        "it removes the tag's advertising cookies": "pass",
+        "nothing of that account is reported afterwards": "pass",
+        "after opting out, the tag starts with consent denied": "pass"
+      },
+      "defaultVisitor": {
+        "googleRequests": 3,
+        "consentStates": [
+          "G111"
+        ],
+        "cookies": [
+          "_gcl_au"
+        ]
+      },
+      "checkout": "this preview answered billing unavailable (no provider session)",
+      "signedInVisitor": {
+        "googleRequests": 8,
+        "hosts": [
+          "ad.doubleclick.net",
+          "www.google.com",
+          "www.googleadservices.com",
+          "www.googletagmanager.com"
+        ],
+        "consentStates": [
+          "G111"
+        ],
+        "nonPersonalisedAds": [
+          "1"
+        ]
+      },
+      "cspViolations": [],
+      "cleanup": "synthetic account deleted"
+    },
+    "mobile-safari": {
+      "checks": {
+        "consent defaults are queued before the tag starts": "pass",
+        "the container loads once": "pass",
+        "no CSP violation on the home page": "pass",
+        "GPC: only the denied default is set": "pass",
+        "GPC: no advertising cookie is written": "pass",
+        "GPC: the page does not hand the click to the server": "pass",
+        "GPC: MathNexa keeps no click cookie": "pass",
+        "GPC: the click identifier is not sent to Google": "pass",
+        "GPC: every hit to Google says consent is denied": "pass",
+        "the ad click is answered 204": "pass",
+        "the click cookie is HttpOnly, Secure, SameSite=Lax, 90 days (the platform placed this visitor in the United States)": "pass",
+        "page scripts cannot read the click cookie": "pass",
+        "only click identifiers were handed over": "pass",
+        "the synthetic account is signed in": "pass",
+        "asking for Checkout ends on Stripe's test page or an honest unavailable notice": "pass",
+        "asking for Checkout kept the click with the account": "pass",
+        "the browser copy is cleared once the account holds the click": "pass",
+        "opening Checkout records no trial and no purchase": "pass",
+        "no email address, hash of it, or user-data field was sent to Google": "pass",
+        "no CSP violation on a signed-in page": "pass",
+        "a trialing snapshot records trial_started once": "pass",
+        "the file is refused without the exact credential": "pass",
+        "the file is served to the credential, never cached or indexed": "pass",
+        "it reports the trial for this click, and not the account that predates the click": "pass",
+        "the file holds no address, account id or provider id": "pass",
+        "the Privacy Notice describes advertising measurement": "pass",
+        "turning ad measurement off is answered 204": "pass",
+        "it erases the click kept with the signed-in account": "pass",
+        "it removes the tag's advertising cookies": "pass",
+        "nothing of that account is reported afterwards": "pass",
+        "after opting out, the tag starts with consent denied": "pass"
+      },
+      "defaultVisitor": {
+        "googleRequests": 3,
+        "consentStates": [
+          "G111"
+        ],
+        "cookies": [
+          "_gcl_au"
+        ]
+      },
+      "checkout": "this preview answered billing unavailable (no provider session)",
+      "signedInVisitor": {
+        "googleRequests": 7,
+        "hosts": [
+          "ad.doubleclick.net",
+          "www.google.com",
+          "www.googletagmanager.com"
+        ],
+        "consentStates": [
+          "G111"
+        ],
+        "nonPersonalisedAds": [
+          "1"
+        ]
+      },
+      "cspViolations": [],
+      "cleanup": "synthetic account deleted"
+    }
+  },
+  "health": {
+    "status": 200,
+    "build": "e70b21ed0fba0d01878ce0598cb61ecaee23ef7f",
+    "environment": "production-platform",
+    "payments": "test"
+  },
+  "syntheticAccountsLeft": 0,
+  "failures": [],
+  "result": "PASS"
+}
