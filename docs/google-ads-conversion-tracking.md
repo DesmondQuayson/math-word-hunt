@@ -117,31 +117,53 @@ Once the three actions below exist, set "Sign-up" to Secondary or remove it (an 
 No conversion id or label is used. In Data manager **each connection feeds one conversion action**, so the same file
 is connected three times, each time filtered to one value of the `Conversion Name` column.
 
-1. **Create three conversion actions** (Goals > Conversions > Summary > Create conversion action > tick "Conversions
-   offline" > Save and continue). The names must match exactly, lower case with underscores.
+**State on 15 November 2026, 05:30 UTC** (changes made with the owner's approval, in the account's own interface):
+
+| Step | State |
+| --- | --- |
+| 1. Three conversion actions | **Done**, created 05:17 UTC |
+| 2. Feed password | **Done**; in effect since the 04:57 UTC production redeploy |
+| 3. Data manager connections | **Open**: the owner enters the password |
+| 4. User-provided data off | **Done**; Google tag version 2 is live |
+| 5. Old "Sign-up" action | **Done**: Secondary |
+
+1. **Three conversion actions** (Goals > Conversions > Summary > Create conversion action > tick "Conversions
+   offline" > "Skip this step and set up a data source later"). The names match the file exactly.
 
    | Name | Category | Value | Count | Click-through window | Role |
    | --- | --- | --- | --- | --- | --- |
    | `account_created` | Sign-up | Don't use a value | One | 30 days | Secondary |
-   | `trial_started` | Begin checkout | Don't use a value | One | 30 days | Secondary |
-   | `subscription_started` | Purchase | Use different values for each conversion; default 5.99 USD | One | 90 days | **Primary** |
+   | `trial_started` | Sign-up | Don't use a value | One | 30 days | Secondary |
+   | `subscription_started` (type ID `7903472354`) | Purchase | Use different values for each conversion; default 5.99 USD | One | 90 days | **Primary** |
 
-   Attribution model: data-driven (the default). Create the actions **before** running ads: Google Ads cannot credit
-   a click made before the conversion action existed, and needs 4 to 6 hours after creation before the first import.
+   - **`trial_started` sits in Sign-up, not Begin checkout.** Google makes the first action of a new category Primary
+     and greys out Secondary. Sign-up already had an action, and Google describes it as "signs up for a free
+     newsletter or trial".
+   - **The wizard asked for one statement to be ticked** before it would create them: "This data was collected and is
+     being shared with Google in compliance with Google's EU user consent policy and customer data policies, as
+     applicable." The owner authorised it. "Turn on enhanced conversions for leads" was left off.
+   - **Purchase became an account-default goal**, used by both campaigns, with `subscription_started` as its one
+     Primary action.
+   - **Sign-up is an account-default goal with no Primary action** now that the old website action is Secondary, and
+     Google labels the goal "Misconfigured". Nothing bids on it. Taking Sign-up out of the account-default goals
+     clears the label (an owner decision).
+   - Attribution model: data-driven (the default). Google Ads cannot credit a click made before the action existed,
+     and needs 4 to 6 hours after creation before the first import.
 2. **The feed password.** `MVH_ADS_FEED_PASSWORD` was added to the production Vercel project on 15 November 2026 as a
    Sensitive variable (40 random letters and digits, never displayed). A copy is kept for the owner in
-   `%USERPROFILE%\.mathnexa-secrets\ads-feed-credential.clixml`, readable only by that Windows user. It takes effect
-   with the next production deployment; until then the file answers 404. To copy it to the clipboard:
+   `%USERPROFILE%\.mathnexa-secrets\ads-feed-credential.clixml`, readable only by that Windows user. Production was
+   redeployed from the same commit so that it applies: the file now answers 401 without the credential and 200 with
+   it. To copy the password to the clipboard:
 
    ```powershell
    (Import-Clixml "$env:USERPROFILE\.mathnexa-secrets\ads-feed-credential.clixml").GetNetworkCredential().Password | Set-Clipboard
    ```
-3. **Connect the file three times, once per conversion action** (Tools > Data manager > Connect product > HTTPS >
-   Direct connection > use case Conversions). For each connection:
-   - Accept the customer data policy when asked (the owner does this).
-   - Do **not** tick "Turn on enhanced conversions".
+3. **Connect the file three times, once per conversion action** (open the action under Goals > Conversions, then
+   "Connect data source" > HTTPS > Next > Continue, which opens "Set up connection": Connect a source, Select data,
+   Map fields, Review). For each connection:
+   - Leave "Turn on enhanced conversions" unticked.
    - URL `https://mathnexa.com/api/internal/ads/google-ads-conversions.csv`, user name `mathnexa-ads-feed`, the
-     password from step 2.
+     password from step 2. The owner types the password.
    - Filter: `Conversion Name` equals the action's name.
    - Map `Google Click ID` to GCLID, `GBRAID`, `WBRAID`, `Conversion Time` to "Conversion date and time",
      `Conversion Value`, `Order ID`. Set the event source to Web. The other columns may stay unmapped.
@@ -150,9 +172,10 @@ is connected three times, each time filtered to one value of the `Conversion Nam
    Data manager reads `.csv` files with a header row and ISO 8601 times with an offset, which is what the file
    sends. Wait 4 to 6 hours after creating an action before its first run. The production firewall has no rule that
    could block Google's fetcher, so Google's list of addresses to allow needs no action.
-4. **Turn off user-provided data** on the Google tag (Tools > Data manager > Google tag > Manage > Settings > "Allow
-   user-provided data capabilities" off, then publish the container). MathNexa promises not to send those.
-5. **Then change the old "Sign-up" action** to Secondary, or remove it.
+4. **User-provided data is off** on the Google tag (Tools > Data manager > Google tag > Manage > Settings > "Allow
+   user-provided data capabilities"). Published as container version 2, "Disable user-provided data capabilities
+   setting"; the live tag file carries `vtp_isEnabled: false`. MathNexa promises not to send those.
+5. **The old website "Sign-up" action is Secondary.** Its snippet stays off the site.
 
 ## Consent
 

@@ -119,3 +119,22 @@ RELEASE_CERTIFIED_RUNTIME=60fe35f RELEASE_ROLLBACK_DEPLOYMENT=dpl_EC4eQfcPYodg9q
 ```
 
 A rollback only brings the console messages back. Nothing else depends on this release.
+
+## Addendum: redeploy for the feed password (2026-11-15 04:57Z)
+
+The owner approved a production redeploy of the same commit so that `MVH_ADS_FEED_PASSWORD`, added to the production
+Vercel project the same day, takes effect. No code changed, and there is no new version or tag.
+
+| | |
+| --- | --- |
+| Production runtime | `dpl_EGGuePFbKkpQzj4BrjA15TGCmrqh`, build `60fe35f` (the same tree, `74b98dc`), promoted 04:57:04–04:57:24Z |
+| Previous runtime | `dpl_G1VvgqVGyKzXRh47o59f9fVLSfdx` (the same build without the variable), retained |
+| Pipeline | Preflight PASS; live probe 22/22 before and after; candidate probe 7/7 |
+| Conversion file | Before: 404. After: 401 without a credential or with a wrong one; 200 with the stored credential, `text/csv`, `no-store`, the header row and 0 data rows |
+| Pages (32 routes) | 32 identical; `robots.txt`, `sitemap.xml` and the CSP header byte-identical |
+| Paid subscribers | 6, identical before and after |
+| Logs since promotion | 0 5xx, 0 error, 0 fatal |
+| ShowMe Math Lab | ETag unchanged |
+
+To close the file again, remove the variable and redeploy, or move the alias back to
+`dpl_G1VvgqVGyKzXRh47o59f9fVLSfdx` with the rollback stage (`RELEASE_ROLLBACK_DEPLOYMENT` set to that id).
