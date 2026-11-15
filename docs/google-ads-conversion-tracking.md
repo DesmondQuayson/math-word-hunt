@@ -123,7 +123,7 @@ is connected three times, each time filtered to one value of the `Conversion Nam
 | --- | --- |
 | 1. Three conversion actions | **Done**, created 05:17 UTC |
 | 2. Feed password | **Done**; in effect since the 04:57 UTC production redeploy |
-| 3. Data manager connections | **Open**: the owner enters the password |
+| 3. Data manager connections | **Open**: HTTPS is linked and Google's fetch succeeds, but Data manager cannot read the columns until the file holds its first data row (see step 3) |
 | 4. User-provided data off | **Done**; Google tag version 2 is live |
 | 5. Old "Sign-up" action | **Done**: Secondary |
 
@@ -168,6 +168,14 @@ is connected three times, each time filtered to one value of the `Conversion Nam
    - Map `Google Click ID` to GCLID, `GBRAID`, `WBRAID`, `Conversion Time` to "Conversion date and time",
      `Conversion Value`, `Order ID`. Set the event source to Web. The other columns may stay unmapped.
    - Schedule: daily.
+
+   **Tried on 15 November 2026:** Google connected ("Connected to HTTPS"). Its fetcher asks once without a
+   credential, takes the 401 challenge, and asks again with HTTP Basic, which the file answers 200. The next step,
+   "Select data", then stopped with "Failed to determine the data type or schema of the data source. Make sure that
+   you have correct headers and at least one row of valid data": the file had only its header row, because no ad
+   visitor had converted yet. The connections can be finished as soon as the file holds one real row. Nothing is
+   lost in the meantime: conversions stay in the ledger and are offered for 30 days (`?days=90` at most), inside
+   Google's 90-day limit. HTTPS stays listed under Connected products.
 
    Data manager reads `.csv` files with a header row and ISO 8601 times with an offset, which is what the file
    sends. Wait 4 to 6 hours after creating an action before its first run. The production firewall has no rule that
