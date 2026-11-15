@@ -311,11 +311,12 @@ async function smoke() {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const reportable = (await call("list_reportable_ads_conversions", { p_since: since, p_stripe_environment: "test" })).filter((row) => row.gclid === gclid);
     evidence.reportable = reportable.map((row) => ({ event_name: row.event_name, value_minor_units: row.value_minor_units, currency: row.currency }));
-    // account_created happened before this click, so only what followed it is reportable.
-    check(JSON.stringify(reportable.map((row) => row.event_name).sort()) === JSON.stringify(["subscription_started", "trial_started"]), "reportable-rows-wrong");
+    // The click is a minute old and everything above happened after it.
+    check(JSON.stringify(reportable.map((row) => row.event_name).sort()) === JSON.stringify(["account_created", "subscription_started", "trial_started"]), "reportable-rows-wrong");
     check(reportable.find((row) => row.event_name === "subscription_started")?.value_minor_units === 599, "first-payment-value-wrong");
     const live = (await call("list_reportable_ads_conversions", { p_since: since, p_stripe_environment: "live" })).filter((row) => row.gclid === gclid);
-    check(live.length === 0, "test-mode-conversion-in-live-report");
+    // account_created has no billing mode; the billing conversions above are test-mode.
+    check(live.every((row) => row.event_name === "account_created"), "test-mode-conversion-in-live-report");
 
     if (publishable) {
       const anon = createClient(`https://${STAGING_PROJECT_REF}.supabase.co`, publishable, { auth: { persistSession: false } });
