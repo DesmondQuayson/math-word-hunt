@@ -805,15 +805,21 @@ test("teacher-first homepage matches mobile, desktop, and smartboard visual base
 });
 
 test("SEO boundaries, admin isolation, and signed-out billing isolation remain explicit", async ({ page, request }) => {
-  for (const path of ["/access?next=/games", "/sign-in", "/sign-up", "/forgot-password"]) {
+  // Signed out, each of these is (or redirects to) a page that says noindex. The gated routes are linked from every
+  // public page, so search engines find them; robots.txt must let crawlers follow them to read that noindex.
+  for (const path of ["/access?next=/games", "/sign-in", "/sign-up", "/forgot-password", "/homework", "/games", "/worksheets",
+    "/account", "/subscription", "/pricing"]) {
     await page.goto(path);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.locator('meta[name="robots"]'), path).toHaveAttribute("content", /noindex/);
   }
   const robots = await request.get("/robots.txt");
   expect(robots.status()).toBe(200);
   const robotsText = await robots.text();
-  for (const path of ["/access", "/sign-in", "/subscription", "/checkout", "/account", "/admin", "/api"]) {
+  for (const path of ["/admin", "/api"]) {
     expect(robotsText).toContain(`Disallow: ${path}`);
+  }
+  for (const path of ["/access", "/sign-in", "/sign-up", "/subscription", "/checkout", "/account", "/pricing"]) {
+    expect(robotsText, `${path} stays crawlable so its noindex can be read`).not.toMatch(new RegExp(`^Disallow: ${path}$`, "m"));
   }
   const adminResponse = await request.get("/admin");
   expect(adminResponse.status()).toBe(404);

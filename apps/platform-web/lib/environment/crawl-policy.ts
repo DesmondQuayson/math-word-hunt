@@ -11,42 +11,38 @@ import { isProductionPublicMode } from "./production-public";
  * private-route deny list since launch. The page contradicted the shipped
  * policy because nothing connected the two.
  *
- * This module only DESCRIBES configuration. It never changes indexing: the
- * "*" rules below are the same ones robots.txt already served, and the private
- * prefixes stay denied. Two owner decisions (2026-11-01) add to them: a
- * separate group that opts AI model-training crawlers out of the whole site,
- * and an Allow that keeps /accessibility crawlable (PLATFORM_CRAWL_ALLOW).
+ * This module only DESCRIBES configuration; robots.txt publishes it. Owner
+ * decisions add to the "*" rules: a separate group that opts AI model-training
+ * crawlers out of the whole site, and an Allow that keeps /accessibility
+ * crawlable (PLATFORM_CRAWL_ALLOW), both 2026-11-01.
  */
 
 type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 /**
- * Authenticated, billing and machine routes stay out of search results. They
- * are deny entries, not evidence that the public site is blocked.
+ * The only routes crawlers are asked not to fetch: Super Admin and the machine
+ * endpoints. They are deny entries, not evidence that the public site is
+ * blocked.
+ *
+ * Sign-in, account and billing pages are deliberately NOT listed. Each of them
+ * declares `noindex` itself (or only redirects to a page that does), and a
+ * search engine can read that only on a page robots.txt lets it fetch. Until
+ * 2026-11-16 they were denied here as well. Every public page links to gated
+ * routes such as /homework, /games and /worksheets, which send a signed-out
+ * visitor (and so Googlebot) to /access or /sign-in. With those targets denied,
+ * Google could not see their noindex. It indexed the gated URLs anyway, from
+ * the links alone: Search Console's "Indexed, though blocked by robots.txt".
+ * Google's guidance is the same: robots.txt is not a way to keep a page out of
+ * search; noindex is, and only on a page crawlers may fetch.
  */
-export const PLATFORM_CRAWL_DISALLOW = [
-  "/access",
-  "/confirmation-required",
-  "/sign-in",
-  "/sign-up",
-  "/forgot-password",
-  "/update-password",
-  "/account",
-  "/my-account",
-  "/subscription",
-  "/pricing",
-  "/checkout",
-  "/game-access",
-  "/subscriber-management",
-  "/admin",
-  "/api"
-] as const;
+export const PLATFORM_CRAWL_DISALLOW = ["/admin", "/api"] as const;
 
 /**
- * Public pages that a deny entry above would otherwise catch. robots.txt
- * rules are prefix matches, so "/access" also matched "/accessibility", a
- * sitemap page, and hid it from every search engine. Crawlers apply the
- * longest matching rule (RFC 9309), so this Allow wins for that page only.
+ * "/accessibility" once needed this Allow because the "/access" deny entry
+ * prefix-matched it and hid the page from every search engine (fixed in
+ * v1.2.34). No deny entry overlaps it now; the Allow stays so a future prefix
+ * can never hide the page again. Crawlers apply the longest matching rule
+ * (RFC 9309), so it wins for that page only.
  */
 export const PLATFORM_CRAWL_ALLOW = ["/", "/accessibility"] as const;
 

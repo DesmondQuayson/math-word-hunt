@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import robots from "../../app/robots";
 import sitemap from "../../app/sitemap";
@@ -12,10 +14,42 @@ import {
 /**
  * Production bug sweep BS-02. The crawl policy is the single source of truth
  * behind robots.txt and the operational status page, so these tests pin both
- * the published rules and the derived public-indexing verdict. The "*" deny
- * list is unchanged since BS-02; the AI-training group and the /accessibility
- * Allow were added on 2026-11-01.
+ * the published rules and the derived public-indexing verdict. The AI-training
+ * group and the /accessibility Allow were added on 2026-11-01. On 2026-11-16
+ * the "*" deny list shrank to Super Admin and the API: sign-in, account and
+ * billing pages carry noindex, which search engines can only read on a page
+ * robots.txt lets them fetch (Search Console had reported /homework, /games and
+ * /worksheets as "Indexed, though blocked by robots.txt").
  */
+
+/** Pages that send a signed-out visitor to sign in, and the sign-in pages they send them to. */
+const SIGN_IN_ACCOUNT_AND_BILLING_PAGES = [
+  "/access",
+  "/access?next=/games",
+  "/access?next=/homework",
+  "/confirmation-required",
+  "/sign-in",
+  "/sign-in?next=%2Fcancellation",
+  "/sign-up",
+  "/sign-up?next=/subscription",
+  "/forgot-password",
+  "/update-password",
+  "/account",
+  "/my-account",
+  "/subscription",
+  "/pricing",
+  "/checkout/status",
+  "/game-access",
+  "/subscriber-management",
+  "/homework",
+  "/games",
+  "/worksheets",
+  "/quizzes",
+  "/map-prep",
+  "/play",
+  "/cancellation",
+  "/refunds"
+] as const;
 
 const publicSite = { MVH_APP_ENVIRONMENT: "production-public" };
 const platform = { MVH_APP_ENVIRONMENT: "production-platform" };
@@ -32,14 +66,12 @@ describe("public crawl policy", () => {
     });
   });
 
-  it("allows the platform's public pages while keeping private routes out of search", () => {
+  it("allows the platform's public pages and denies only Super Admin and the API", () => {
     const policy = getPublicCrawlPolicy(platform);
     expect(policy.publicIndexing).toBe("enabled");
     expect(policy.surface).toBe("platform");
     expect(policy.rules).toEqual([{ userAgent: "*", allow: [...PLATFORM_CRAWL_ALLOW], disallow: [...PLATFORM_CRAWL_DISALLOW] }, trainingGroup]);
-    for (const path of ["/sign-in", "/account", "/subscription", "/pricing", "/checkout", "/admin", "/api"]) {
-      expect(policy.rules[0].disallow).toContain(path);
-    }
+    expect(policy.rules[0].disallow).toEqual(["/admin", "/api"]);
     expect(policy.sitemap).toBe(CRAWL_SITEMAP_URL);
   });
 
@@ -82,30 +114,7 @@ describe("robots.txt publishes the policy", () => {
   it("serves the platform rules, with /accessibility allowed, plus the AI-training group", () => {
     process.env.MVH_APP_ENVIRONMENT = "production-platform";
     expect(robots()).toEqual({
-      rules: [
-        {
-          userAgent: "*",
-          allow: ["/", "/accessibility"],
-          disallow: [
-            "/access",
-            "/confirmation-required",
-            "/sign-in",
-            "/sign-up",
-            "/forgot-password",
-            "/update-password",
-            "/account",
-            "/my-account",
-            "/subscription",
-            "/pricing",
-            "/checkout",
-            "/game-access",
-            "/subscriber-management",
-            "/admin",
-            "/api"
-          ]
-        },
-        training
-      ],
+      rules: [{ userAgent: "*", allow: ["/", "/accessibility"], disallow: ["/admin", "/api"] }, training],
       sitemap: "https://mathnexa.com/sitemap.xml"
     });
   });
@@ -168,14 +177,60 @@ describe("robots.txt and the sitemap agree", () => {
     }
   });
 
-  it("keeps every private route blocked, /access itself included", () => {
+  it("keeps Super Admin and the API closed to crawlers", () => {
     process.env.MVH_APP_ENVIRONMENT = "production-platform";
     const { rules } = robots();
-    for (const path of ["/access", "/access?next=/games", "/confirmation-required", "/sign-in", "/sign-up", "/forgot-password",
-      "/update-password", "/account", "/my-account", "/subscription", "/pricing", "/checkout", "/game-access",
-      "/subscriber-management", "/admin", "/api/health"]) {
-      expect(crawlable(rules, "Googlebot", path), path).toBe(false);
+    for (const path of ["/admin", "/admin/sign-in", "/admin/mfa", "/api/health", "/api/stripe/webhook"]) {
+      for (const crawler of ["Googlebot", "Bingbot"]) {
+        expect(crawlable(rules, crawler, path), `${crawler} ${path}`).toBe(false);
+      }
+    }
+  });
+
+  it("lets search crawlers reach sign-in, account and billing pages, so they can read noindex", () => {
+    process.env.MVH_APP_ENVIRONMENT = "production-platform";
+    const { rules } = robots();
+    for (const path of SIGN_IN_ACCOUNT_AND_BILLING_PAGES) {
+      for (const crawler of ["Googlebot", "Bingbot"]) {
+        expect(crawlable(rules, crawler, path), `${crawler} ${path}`).toBe(true);
+      }
+      expect(crawlable(rules, "GPTBot", path), `GPTBot ${path}`).toBe(false);
     }
     expect(crawlable(rules, "GPTBot", "/accessibility")).toBe(false);
+  });
+});
+
+describe("pages crawlers may now reach keep themselves out of search", () => {
+  /**
+   * robots.txt used to deny these route families. Now that crawlers may fetch
+   * them, each page must say noindex itself, or only redirect (in which case
+   * the page it redirects to answers for it). A new page under one of them
+   * without noindex would be indexable, so this fails until it declares it.
+   */
+  const appDirectory = join(process.cwd(), "app");
+  const formerlyDenied = ["access", "confirmation-required", "sign-in", "sign-up", "forgot-password", "update-password", "account",
+    "my-account", "subscription", "pricing", "checkout", "game-access", "subscriber-management"];
+
+  function pagesUnder(directory: string): string[] {
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return pagesUnder(path);
+      return /^page\.(t|j)sx?$/.test(entry.name) ? [path] : [];
+    });
+  }
+
+  it("finds a page in every route family that robots.txt no longer denies", () => {
+    for (const family of formerlyDenied) expect(pagesUnder(join(appDirectory, family)).length, family).toBeGreaterThan(0);
+  });
+
+  it("every one of those pages declares noindex or only redirects", () => {
+    for (const family of formerlyDenied) {
+      for (const page of pagesUnder(join(appDirectory, family))) {
+        const source = readFileSync(page, "utf8");
+        const noindex = /robots:\s*[^;]*index:\s*false/.test(source);
+        const redirectOnly = /^import \{ redirect \} from "next\/navigation";\s*export default function \w+\(\)\s*\{\s*redirect\("\/[^"]*"\);\s*\}\s*$/.test(source.trim());
+        expect(noindex || redirectOnly, page).toBe(true);
+      }
+    }
   });
 });
