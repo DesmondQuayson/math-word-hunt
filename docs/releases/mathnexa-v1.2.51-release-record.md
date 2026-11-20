@@ -119,3 +119,39 @@ RELEASE_CERTIFIED_RUNTIME=60fe35f RELEASE_ROLLBACK_DEPLOYMENT=dpl_EC4eQfcPYodg9q
 ```
 
 A rollback only brings the console messages back. Nothing else depends on this release.
+
+## Addendum: redeploy for the feed password (2026-11-15 04:57Z)
+
+The owner approved a production redeploy of the same commit so that `MVH_ADS_FEED_PASSWORD`, added to the production
+Vercel project the same day, takes effect. No code changed, and there is no new version or tag.
+
+| | |
+| --- | --- |
+| Production runtime | `dpl_EGGuePFbKkpQzj4BrjA15TGCmrqh`, build `60fe35f` (the same tree, `74b98dc`), promoted 04:57:04–04:57:24Z |
+| Previous runtime | `dpl_G1VvgqVGyKzXRh47o59f9fVLSfdx` (the same build without the variable), retained |
+| Pipeline | Preflight PASS; live probe 22/22 before and after; candidate probe 7/7 |
+| Conversion file | Before: 404. After: 401 without a credential or with a wrong one; 200 with the stored credential, `text/csv`, `no-store`, the header row and 0 data rows |
+| Pages (32 routes) | 32 identical; `robots.txt`, `sitemap.xml` and the CSP header byte-identical |
+| Paid subscribers | 6, identical before and after |
+| Logs since promotion | 0 5xx, 0 error, 0 fatal |
+| ShowMe Math Lab | ETag unchanged |
+
+To close the file again, remove the variable and redeploy, or move the alias back to
+`dpl_G1VvgqVGyKzXRh47o59f9fVLSfdx` with the rollback stage (`RELEASE_ROLLBACK_DEPLOYMENT` set to that id).
+
+## Addendum: the password was changed in the dashboard, then restored (2026-11-15 05:45–06:08Z)
+
+| Time (UTC) | What happened |
+| --- | --- |
+| 05:45:54 | `MVH_ADS_FEED_PASSWORD` was edited in the Vercel dashboard. The new value was under 24 characters or blank. |
+| 05:47:53 | Production was redeployed from the dashboard ("Redeploy", without build cache): `dpl_FSuwND5gvqRjiqSUmQTACofByPVC`, a rebuild of `dpl_EGGuePFbKkpQzj4BrjA15TGCmrqh`. |
+| 05:49–06:08 | The conversion file answered 404, as designed for a missing or short password, and Google Ads reported "Invalid credentials". `/api/health` reported build `unknown`: a dashboard redeploy does not carry the deployment-scoped `MVH_SOURCE_REVISION`. Everything else was healthy (live probe 22/22, 32 of 32 pages identical). |
+| 06:04:43 | With the owner's approval, the generated password was put back from the owner's protected copy, without being displayed. |
+| 06:08:10–06:08:30 | Production redeployed through the pipeline from the same commit: `dpl_9AVnNMSBY65vpFiRth7iLR7CVAfP`, build `60fe35f`. Preflight PASS, candidate probe 7/7, live probe 22/22. |
+
+After the restore: the file answers 401 without the credential and 200 with it; `/api/health` reports `60fe35f`;
+32 of 32 pages and the CSP header are identical to the v1.2.51 capture; 6 subscribers, identical; no 5xx or error
+in the logs of either deployment; ShowMe unchanged.
+
+**For next time:** change this variable only to a value of 24 characters or more, and redeploy through the pipeline
+rather than the dashboard button, so the build stays stamped.

@@ -72,32 +72,118 @@ Each account can hold each conversion once: `ads_conversion_events` has a unique
   its `Parameters:TimeZone=+0000` row.
 - **No personal data:** no name, email address, account id, Stripe id or page address is in the file.
 
-## What the owner sets up in Google Ads (account 589-904-8460)
+## The Google Ads account as audited (589-904-8460, 15 November 2026)
 
-Nothing below is done by the code, and no conversion id or label is needed: Google Ads matches imported conversions
-to conversion actions by **name**.
+Read in the account itself, signed in as the owner, without changing anything.
 
-1. **Create three conversion actions** (Goals > Summary > Create conversion action > Conversions offline > add a
-   data source for conversions from clicks). The names must match exactly, lower case with underscores.
+**Identifiers.** They are four different kinds of number, and they agree with each other:
+
+| Identifier | Value | What it is |
+| --- | --- | --- |
+| Customer ID | `589-904-8460` | the Google Ads account |
+| Google tag destination | `AW-18462869878` | the account's tag (conversion) ID |
+| Container | `GTM-53VDQ6ZL` | the same Google tag; Google upgraded it to a Tag Manager container. It is the one installed on the site, and its only destination is `AW-18462869878`. |
+| Conversion type ID | `7901107820` | the existing "Sign-up" conversion action (below) |
+
+**The existing "Sign-up" conversion action.** Website source, created 13 November 2026, Primary, in the account-default
+goal that both campaigns use, count One, 90-day click window, "use different values, default US$1", status "Awaiting
+conversions", nothing recorded. It is measured by an event snippet (its own label on `AW-18462869878`) that is **not
+installed on the site and must not be**:
+
+- A browser event on the sign-up form cannot tell a new address from an existing one, and fires before the address
+  is confirmed.
+- It would count the same person twice once `account_created` is imported.
+- Its default value would report US$1 that nobody paid.
+
+Until it is changed it is the only Primary action, so the campaigns optimise towards an action that never records.
+Once the three actions below exist, set "Sign-up" to Secondary or remove it (an owner decision).
+
+**Also found:**
+
+- No import conversion action and no Data manager connection exist yet.
+- Goals > Conversions > Uploads no longer takes new schedules ("New data connections can be made in Data Manager"),
+  so the `?layout=legacy` file is not needed for this account.
+- Customer data terms: not accepted. Enhanced conversions and enhanced conversions for leads: not configured. Leave
+  all three as they are: this design sends no user-provided data.
+- Google tag > Settings > "Allow user-provided data capabilities" is **on**, with automatic detection of email, phone
+  number, and name and address. Google states that nothing is processed or sent until the customer data terms are
+  accepted, which they are not.
+- Google tag diagnostics: "Container quality: Urgent", because the site's Content Security Policy refuses
+  `connect-src https://pagead2.googlesyndication.com` (see Consent below), plus the two hosts v1.2.51 has since
+  allowed.
+
+## What is set up in Google Ads
+
+No conversion id or label is used. In Data manager **each connection feeds one conversion action**, so the same file
+is connected three times, each time filtered to one value of the `Conversion Name` column.
+
+**State on 15 November 2026, 05:30 UTC** (changes made with the owner's approval, in the account's own interface):
+
+| Step | State |
+| --- | --- |
+| 1. Three conversion actions | **Done**, created 05:17 UTC |
+| 2. Feed password | **Done**; in effect since the 04:57 UTC production redeploy |
+| 3. Data manager connections | **Open**: HTTPS is linked and Google's fetch succeeds, but Data manager cannot read the columns until the file holds its first data row (see step 3) |
+| 4. User-provided data off | **Done**; Google tag version 2 is live |
+| 5. Old "Sign-up" action | **Done**: Secondary |
+
+1. **Three conversion actions** (Goals > Conversions > Summary > Create conversion action > tick "Conversions
+   offline" > "Skip this step and set up a data source later"). The names match the file exactly.
 
    | Name | Category | Value | Count | Click-through window | Role |
    | --- | --- | --- | --- | --- | --- |
    | `account_created` | Sign-up | Don't use a value | One | 30 days | Secondary |
-   | `trial_started` | Begin checkout | Don't use a value | One | 30 days | Secondary |
-   | `subscription_started` | Purchase | Use different values for each conversion; default 5.99 USD | One | 90 days | **Primary** |
+   | `trial_started` | Sign-up | Don't use a value | One | 30 days | Secondary |
+   | `subscription_started` (type ID `7903472354`) | Purchase | Use different values for each conversion; default 5.99 USD | One | 90 days | **Primary** |
 
-   Attribution model: data-driven (the default). Create the actions **before** running ads: Google Ads cannot credit
-   a click made before the conversion action existed, and needs 4 to 6 hours after creation before the first import.
-2. **Set the feed password.** Add `MVH_ADS_FEED_PASSWORD` (a long random value) to the production Vercel project and
-   redeploy. Keep the value in the password manager.
-3. **Connect the file** (Tools > Data manager > Connect product > HTTPS > Direct connection > Conversions):
-   URL `https://mathnexa.com/api/internal/ads/google-ads-conversions.csv`, user name `mathnexa-ads-feed`, the
-   password from step 2. Map the columns by name and schedule it **daily**.
-4. **Turn off automatic user-provided data detection** on the Google tag (Tools > Data manager > Google tag > Manage >
-   "Allow user-provided data capabilities"). The published container has automatic email, phone and address detection
-   switched on; MathNexa promises not to send those.
+   - **`trial_started` sits in Sign-up, not Begin checkout.** Google makes the first action of a new category Primary
+     and greys out Secondary. Sign-up already had an action, and Google describes it as "signs up for a free
+     newsletter or trial".
+   - **The wizard asked for one statement to be ticked** before it would create them: "This data was collected and is
+     being shared with Google in compliance with Google's EU user consent policy and customer data policies, as
+     applicable." The owner authorised it. "Turn on enhanced conversions for leads" was left off.
+   - **Purchase became an account-default goal**, used by both campaigns, with `subscription_started` as its one
+     Primary action.
+   - **Sign-up is an account-default goal with no Primary action** now that the old website action is Secondary, and
+     Google labels the goal "Misconfigured". Nothing bids on it. Taking Sign-up out of the account-default goals
+     clears the label (an owner decision).
+   - Attribution model: data-driven (the default). Google Ads cannot credit a click made before the action existed,
+     and needs 4 to 6 hours after creation before the first import.
+2. **The feed password.** `MVH_ADS_FEED_PASSWORD` was added to the production Vercel project on 15 November 2026 as a
+   Sensitive variable (40 random letters and digits, never displayed). A copy is kept for the owner in
+   `%USERPROFILE%\.mathnexa-secrets\ads-feed-credential.clixml`, readable only by that Windows user. Production was
+   redeployed from the same commit so that it applies: the file now answers 401 without the credential and 200 with
+   it. To copy the password to the clipboard:
 
-The first import can be checked by hand: download the file with the credential and upload it once.
+   ```powershell
+   (Import-Clixml "$env:USERPROFILE\.mathnexa-secrets\ads-feed-credential.clixml").GetNetworkCredential().Password | Set-Clipboard
+   ```
+3. **Connect the file three times, once per conversion action** (open the action under Goals > Conversions, then
+   "Connect data source" > HTTPS > Next > Continue, which opens "Set up connection": Connect a source, Select data,
+   Map fields, Review). For each connection:
+   - Leave "Turn on enhanced conversions" unticked.
+   - URL `https://mathnexa.com/api/internal/ads/google-ads-conversions.csv`, user name `mathnexa-ads-feed`, the
+     password from step 2. The owner types the password.
+   - Filter: `Conversion Name` equals the action's name.
+   - Map `Google Click ID` to GCLID, `GBRAID`, `WBRAID`, `Conversion Time` to "Conversion date and time",
+     `Conversion Value`, `Order ID`. Set the event source to Web. The other columns may stay unmapped.
+   - Schedule: daily.
+
+   **Tried on 15 November 2026:** Google connected ("Connected to HTTPS"). Its fetcher asks once without a
+   credential, takes the 401 challenge, and asks again with HTTP Basic, which the file answers 200. The next step,
+   "Select data", then stopped with "Failed to determine the data type or schema of the data source. Make sure that
+   you have correct headers and at least one row of valid data": the file had only its header row, because no ad
+   visitor had converted yet. The connections can be finished as soon as the file holds one real row. Nothing is
+   lost in the meantime: conversions stay in the ledger and are offered for 30 days (`?days=90` at most), inside
+   Google's 90-day limit. HTTPS stays listed under Connected products.
+
+   Data manager reads `.csv` files with a header row and ISO 8601 times with an offset, which is what the file
+   sends. Wait 4 to 6 hours after creating an action before its first run. The production firewall has no rule that
+   could block Google's fetcher, so Google's list of addresses to allow needs no action.
+4. **User-provided data is off** on the Google tag (Tools > Data manager > Google tag > Manage > Settings > "Allow
+   user-provided data capabilities"). Published as container version 2, "Disable user-provided data capabilities
+   setting"; the live tag file carries `vtp_isEnabled: false`. MathNexa promises not to send those.
+5. **The old website "Sign-up" action is Secondary.** Its snippet stays off the site.
 
 ## Consent
 
@@ -114,6 +200,15 @@ The Google tag follows the same rule through Consent Mode defaults set before it
 States and only without an opt-out; `ad_personalization` denied for everyone; `ads_data_redaction` on. A campaign
 that targets another country needs a consent banner first, and then that country added to
 `AD_MEASUREMENT_COUNTRIES`.
+
+**Where measurement is off, nothing reaches Google beyond the tag's own script.** Measured on the live site on
+15 November 2026 (60 page loads in Chromium and WebKit): with consent denied (Global Privacy Control, the Privacy
+page switch, and so every visitor outside the United States) the tag tries one cookieless ping per page to
+`https://pagead2.googlesyndication.com/ccm/collect`, and the Content Security Policy refuses it. With consent
+granted the tag uses the hosts the policy lists and nothing is refused. Google's tag diagnostics report the refused
+host as "security settings are blocking measurement". Allowing it would let Google model conversions for visitors
+who said no; it is left refused unless the owner decides otherwise, because the conversions here are imported by
+click identifier and do not depend on it.
 
 ## Privacy
 
