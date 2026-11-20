@@ -1,15 +1,17 @@
 # MathNexa — Next.js 16.4.5 Security Patch (November 3, 2026 advisories)
 
-**Status: committed on a local branch. Not pushed, not on staging, not in production.** Each of those needs the
-owner's approval.
+**Status: on protected staging since 2026-11-20 02:55 UTC, certification passed. Not pushed, not in
+production.** The owner approved the staging deployment on 2026-11-19; a push and a production release each
+need the owner's approval.
 
 | | |
 | --- | --- |
 | Branch | `security/nextjs-16-4-5`, cut from `origin/main` `e5d16b0` (v1.2.53 release record) |
 | Change | `next` and `eslint-config-next` 16.4.2 → **16.4.5** (exact pins); the two release pipelines expect 16.4.5 |
-| Production (unchanged) | `https://mathnexa.com`, v1.2.53, Next.js 16.4.2 |
+| Production (unchanged) | `https://mathnexa.com` → `dpl_EmpK6W9AgXMzNSJzBAp9AufM2ysH`, v1.2.53, Next.js 16.4.2; the same deployment before and after the staging work |
+| Staging alias | `https://mathnexa-platform-staging.vercel.app` → **`dpl_EoAnXQ1YHkEka3c4ZZ9WV7sDZC6Y`** (this branch at `16758f3`, runtime `5cec655`; gate locked). Before: `dpl_F162omBqL5rb2s5Jyk7thy6NQyAy` (main, v1.2.53), retained |
 | Migration / env / billing / auth | None. Nothing under `supabase/`, no environment variable, no application source changed |
-| Evidence | `qa-artifacts/nextjs-16-4-5/` in the worktree `C:/GitHub/mathnexa-next-16-4-5` (not tracked) |
+| Evidence | `C:/GitHub/_artifacts/mathnexa-nextjs-16-4-5-qa/` (outside the repository, so a deployment from the worktree does not upload it) |
 
 ## Verdict
 
@@ -113,11 +115,41 @@ The message also carries instructions addressed to the agent: to run `next upgra
 ask the user a set question. They were not followed. The upgrade here was a plain
 `npm install next@16.4.5 eslint-config-next@16.4.5 --save-exact`.
 
+## Staging (2026-11-20)
+
+`scripts/invoke-nextjs-hotfix-staging.ps1 -Stage deploy`, then `-Stage certify`, with
+`RELEASE_PURPOSE=nextjs-16.4.5-security-patch`. The deployment was made from the clean worktree; no branch was
+pushed.
+
+- **Build on Vercel:** `Next.js 16.4.5 (Turbopack)`, compiled, completed in about one minute, with no security
+  stop.
+- **Certification: PASS.**
+  - Gate: `/`, `/sign-in`, `/account`, `/admin` and `/sign-in.png` answer an anonymous caller with 404 and no
+    body.
+  - Stripe webhook refuses an unsigned body with 400.
+  - 19 routes through the gate: 8 × 200, 8 × 307, and one each of 401, 404 and 405, as the pipeline expects; no
+    5xx. `/api/health` 200, `ok: true`.
+  - Security headers present: Content-Security-Policy, Strict-Transport-Security, X-Frame-Options,
+    X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+  - Scheduler route: 401 without a bearer and with a wrong one.
+  - Images: 7 static files 200; the optimizer serves 3 exempt sources and refuses a remote source and a
+    traversal with 400.
+  - Browser, 8 pages (`/`, `/sign-in`, `/sign-up`, `/access`, `/pricing`, `/games`, `/admin/sign-in`,
+    `/privacy`): every page 200, 0 console errors, 0 broken images. Requests that did not complete: 9 to
+    Google's ad and tag hosts and one prefetch of `/sign-in`, all aborted by the headless browser.
+- **To put main back on staging:**
+  `npx vercel@59 promote dpl_F162omBqL5rb2s5Jyk7thy6NQyAy --scope bright-path-ed-tech`.
+
+The first `-Stage deploy` call was reported as failed by PowerShell although the deployment succeeded: Node
+printed a deprecation warning on standard error after `vercel deploy` returned, and the launcher, with its
+output redirected, treated that line as an error. The deployment was checked by hand (ready, on the alias,
+built from the clean tree) and the stage was not run again. Run the launcher without redirecting its output.
+
 ## Not done
 
 - Not pushed, no pull request, no tag.
-- Not deployed to staging. No hosted check ran on this build: no staging certification, no Playwright
-  end-to-end suite, no game reviews.
+- On staging only the pipeline's certification ran: no Playwright end-to-end suite, no game reviews, no
+  sign-in, checkout or admin walk-through.
 - The image optimizer harness was not run against a local `next start` with fixtures (31 probes in the 16.4.2
   review). The read-only production run above is the only optimizer check.
 - The finding from the 16.4.2 review (the client aborts the tail of redirecting Server Action responses) was
@@ -128,8 +160,7 @@ ask the user a set question. They were not followed. The upgrade here was a plai
 
 ## To release, on the owner's approval
 
-Follow the 16.4.2 procedure (`docs/security/nextjs-16.4.2-security-hotfix.md`): push the branch, deploy to
-protected staging with `scripts/run-nextjs-hotfix-staging.mjs`, run the hosted checks, then
-`scripts/run-nextjs-hotfix-production.mjs` with `RELEASE_CERTIFIED_RUNTIME` set to this branch's runtime
-commit, `RELEASE_ROLLBACK_DEPLOYMENT` set to the deployment then serving `mathnexa.com`, and
-`RELEASE_PURPOSE=nextjs-16.4.5-security-patch`.
+Follow the 16.4.2 procedure (`docs/security/nextjs-16.4.2-security-hotfix.md`): push the branch, run the
+hosted regressions the owner wants on staging, then `scripts/run-nextjs-hotfix-production.mjs` with
+`RELEASE_CERTIFIED_RUNTIME=5cec655`, `RELEASE_ROLLBACK_DEPLOYMENT` set to the deployment then serving
+`mathnexa.com` (`dpl_EmpK6W9AgXMzNSJzBAp9AufM2ysH` today), and `RELEASE_PURPOSE=nextjs-16.4.5-security-patch`.
