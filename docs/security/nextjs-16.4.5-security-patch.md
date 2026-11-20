@@ -1,8 +1,13 @@
 # MathNexa — Next.js 16.4.5 Security Patch (November 3, 2026 advisories)
 
-**Status: on protected staging since 2026-11-20 02:55 UTC, certification passed. Not pushed, not in
-production.** The owner approved the staging deployment on 2026-11-19; a push and a production release each
-need the owner's approval.
+**Status: RELEASED as v1.2.54 on 2026-11-20.** The owner approved staging, then the push and the pull request,
+then the release ("do not stop until everything is finish and live"). Production serves
+`dpl_BCHbDA5j4D17ikYBRcvHob3yj3Hd`, built from `f46c364` with the certified runtime `5cec655`. The release record,
+with the end-to-end and hosted results, is `docs/releases/mathnexa-v1.2.54-release-record.md`. The sections below
+are the review as it stood before the release.
+
+*Earlier status:* on protected staging since 2026-11-20 02:55 UTC, certification passed; not pushed, not in
+production.
 
 | | |
 | --- | --- |
