@@ -97,8 +97,9 @@ request that the page never sent. The server answered every request it received 
 - The Bingo pages are a game document served by a route handler; the upgrade does not change its script.
 - Earlier work on Bingo records this test as needing a 30-minute budget in WebKit (22.7 minutes then) and a banner
   race, and passing after re-runs.
-- The hosted Bingo review ends the same way on the patched build and on the unpatched v1.2.53 build: 5 of 6, both
-  stopping where the host creates a room on staging.
+- The hosted Bingo review, run after the release on a staging preview of this runtime, passed 41 of 41: a real
+  game to three Bingos with the host in Chromium, one student in WebKit at 390 × 844 (nine correct taps and the
+  first Bingo) and two in Chromium. See the correction below.
 - **Not done:** the same WebKit test was not run on 16.4.2 today. An agent cannot start the 16.4.2 development
   server (Next's notice stops it every time on this repository), and running it with the agent markers removed was
   refused by the permission system.
@@ -118,8 +119,8 @@ It is recorded as open. A person can settle it by running
 | Subscription certification | PASS |
 | Stripe test-clock lifecycle (test mode only; live keys refused by the script) | 11/11 stages: trial, four payments, a missed webhook healed, a failed payment with grace and recovery, cancel at period end, expiry denying games and Online Math Prep, a new subscription. Cleanup left 0 rows |
 | Math Tug of War classic review | 102/102; 4 synthetic users and 2 rooms removed |
-| Quiz PDFs review | 240 ok, 37 failed, and exactly the same 37 on the unpatched v1.2.53 build (below) |
-| Math Bingo Live review | 5 of 6, the same on the unpatched v1.2.53 build (above) |
+| Quiz PDFs review | 240 ok, 37 failed, and exactly the same 37 on the unpatched v1.2.53 build (below). With the review corrected afterwards: 277 ok, 0 failed |
+| Math Bingo Live review | Before the release: 5 of 6 on the patched and the unpatched build alike, on previews that could not serve the game (below). After it, on a preview that could: 41/41 |
 | Super Admin session contract (staging database) | `verify` PASS, `contract` PASS |
 
 **The 37 Quiz PDF review failures are not from this release.** Run against the unpatched v1.2.53 preview
@@ -127,7 +128,18 @@ It is recorded as open. A person can settle it by running
 say the preview page holds one web-storage entry where the review expects none; the application writes none there,
 and the Google tag (added in v1.2.48, after the review was written) does. One says the Worksheet Generator entry
 sends a subscriber to `/access?next=/map-prep`; on a staging host that is what the ShowMe gate (v1.2.52) does,
-because the pass cookie cannot leave `vercel.app`. The review script needs updating; no page changed.
+because the pass cookie cannot leave `vercel.app`. No page changed. The review was corrected on 2026-11-20
+(`75c356d`): it names what is in web storage, allows the tag's own `_gcl_ls` entry and nothing else, and reads
+MathNexa's own redirect for the Worksheet Generator entry. It then gave 277 ok, 0 failed on the patched runtime.
+
+**Correction, 2026-11-20: the Bingo review script was not out of date.** The first version of this record said
+it was. On the staging database the Bingo catalog entry is a draft (it was published on production only), and a
+draft is served only by a preview deployed with `MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review`
+(`docs/math-bingo-live-v1.md`, "Availability gate"). The previews used before the release were not deployed that
+way, so the host page answered 404 once the teacher had signed in, on the patched and the unpatched build alike,
+and the review timed out without saying why. On a preview deployed with that setting
+(`mathnexa-platform-staging-e6wn8qe53`, built from `75c356d`, the released runtime plus the review scripts) it
+passed 41 of 41. The review now reports the screen it is on and names the missing setting when the page is a 404.
 
 ## Release pipeline
 
@@ -163,9 +175,11 @@ No synthetic account was created in production, so no sign-in, checkout or admin
 
 ## Known limitations and owner follow-ups
 
-- **The Bingo WebKit test above** is open until a person runs it on both versions.
-- **The Quiz PDFs and Bingo hosted review scripts** are out of date with the product (the Google tag's storage
-  entry, the ShowMe gate, room creation on staging) and fail the same way on v1.2.53.
+- **The local Bingo WebKit test above** has still not passed on this computer. The hosted review (41/41, with a
+  WebKit student) shows the game working in WebKit on this runtime; the local test itself is open until a person
+  runs it on both versions.
+- **The Quiz PDFs review** was out of date with the product (the Google tag's storage entry, the ShowMe gate) and
+  is corrected in `75c356d`. The Bingo review needs a preview deployed with the staging owner preview on.
 - **Not checked by hand:** a real customer's sign-in, a real checkout, the owner's Super Admin session with a real
   authenticator, and any physical phone or tablet.
 - **Next.js 16.4.6** adds automatic compression of route handler responses and was left out on purpose.
