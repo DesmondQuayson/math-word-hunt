@@ -19,7 +19,12 @@ import { getGameAccessView } from "@/lib/game-access/server";
 import { loadGameCatalogSummary } from "@/lib/seo/catalog-summaries";
 import { freeGamesStatement, listedGames } from "@/lib/seo/free-games-statement";
 import { redirect } from "next/navigation";
-import { accessIntentHref, confirmationRequiredHref } from "@/lib/auth/access-intent";
+import Link from "next/link";
+import { confirmationRequiredHref } from "@/lib/auth/access-intent";
+import { TrialPlanSummary, describeApprovedPlan } from "@/components/consumer/trial-plan-summary";
+import { START_TRIAL_SIGN_UP_HREF } from "@/lib/consumer/header-cta";
+import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
+import { SCHOOL_ACCESS_DURATION_SECONDS } from "@/lib/school-access/session";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -37,13 +42,42 @@ function money(amount: number | null, currency: string | null): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(amount / 100);
 }
 
+/**
+ * The plan as anyone can read it before creating an account: price, trial,
+ * card requirement, automatic renewal and the cancel rule, from the same
+ * commercial policy the consent form and Checkout bind to. Starting the trial
+ * still goes through account creation, email confirmation, the consent step
+ * and Stripe; nothing here can start a trial or a charge.
+ */
+function PublicPricingPage({ free }: Readonly<{ free: string | null }>) {
+  const plan = describeApprovedPlan();
+  return <Container width="compact" className="page-stack">
+    <PageHeader eyebrow="MathNexa subscription" title={`${plan.price} ${plan.currency} per month`} description={`One monthly subscription for every MathNexa resource, with a ${plan.trialLabel} free trial. No annual plan.${free ? ` ${free}.` : ""}`} />
+    <Card variant="highlighted" className="public-pricing-card">
+      <TrialPlanSummary />
+      <div className="button-row">
+        <LinkButton href={START_TRIAL_SIGN_UP_HREF}>Start free trial</LinkButton>
+        <LinkButton variant="secondary" href="/sign-in?next=/subscription">Sign in</LinkButton>
+      </div>
+      <p className="form-footnote">Create your account and confirm your email. Then add a payment method on Stripe&apos;s secure checkout to begin the trial.</p>
+    </Card>
+    <section aria-labelledby="pricing-terms-heading">
+      <h2 id="pricing-terms-heading">Subscription terms</h2>
+      <SubscriptionTermsList />
+      <p>Read the full <Link href="/terms">subscription terms</Link>, including <Link href="/terms#terms-cancellation">cancellation and refunds</Link>.</p>
+    </section>
+    <Notice label="School access" tone="information"><strong>Have a code from your school?</strong><p>Enter it in the <Link href={`/#${AUTHORIZED_ACCESS_ANCHOR}`}>Authorize Code box on the home page</Link>. It opens MathNexa resources in that browser for up to {SCHOOL_ACCESS_DURATION_SECONDS / 3600} hours, without an account.</p></Notice>
+  </Container>;
+}
+
 async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: string; billing?: string; consent?: string }) {
   // The free games are named from the published catalog and the access policy
   // (lib/seo/free-games-statement.ts). The catalog read never rejects and is
   // bounded at four seconds; when it fails, Math Tug of War alone is named.
   const [context, access, catalog] = await Promise.all([resolveConsumerContext(), getGameAccessView(), loadGameCatalogSummary()]);
   if (access.source === "school-access") redirect("/account");
-  if (context.status === "anonymous" || context.status === "unconfigured") redirect(accessIntentHref("/subscription"));
+  // Public since 2026-11: a visitor reads the plan before any account exists.
+  if (context.status === "anonymous" || context.status === "unconfigured") return <PublicPricingPage free={freeGamesStatement(listedGames(catalog))} />;
   if (context.status === "unconfirmed" || access.decision.reason === "email-confirmation-required") redirect(confirmationRequiredHref("/subscription"));
   const config = tryGetConsumerBillingConfiguration();
   // A customer whose subscription is live at the provider but locally denied

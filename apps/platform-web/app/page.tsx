@@ -11,6 +11,7 @@ import { StructuredCmsContent } from "@/components/cms/structured-cms-content";
 import { loadPublishedCmsDocument } from "@/lib/cms/public";
 import { TeacherFirstHome } from "@/components/public/teacher-first-home";
 import { getGameAccessView } from "@/lib/game-access/server";
+import { resolveHeaderCta } from "@/lib/consumer/header-cta";
 import { loadPublicGameCatalog } from "@/lib/games/catalog";
 import { homeFreeGames } from "@/lib/games/home-free-games";
 import type { Metadata } from "next";
@@ -83,10 +84,13 @@ export default async function HomePage() {
       : access.context.status === "unconfirmed"
         ? "unconfirmed"
         : "signed-in";
+    // The hero offers the trial by the header's own rule (never a second trial).
+    const headerCta = resolveHeaderCta(access);
     return <>
       <TeacherFirstHome
         authState={authState}
         entitled={access.decision.allowed}
+        heroCta={headerCta ? { label: headerCta.label, href: headerCta.href } : null}
         schoolAccess={access.source === "school-access"}
         freeGames={homeFreeGames(catalog.state === "unavailable" ? null : catalog.games.map((game) => ({
           stableKey: game.stableKey,

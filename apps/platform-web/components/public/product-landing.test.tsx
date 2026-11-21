@@ -87,7 +87,8 @@ describe("public product pages", () => {
   it.each(PAGES)("%s links only to public pages and to product routes that check access, never to a file", async (_path, page) => {
     const { container } = await renderPage(page);
     for (const href of hrefs(container)) {
-      expect(href, href).toMatch(/^\/(?:[a-z-]+(?:\/[a-z-]+)*)?(?:#[a-z-]+)?$/);
+      // A public path, or account creation that returns to a product route (it checks access there).
+      expect(href, href).toMatch(/^\/(?:[a-z-]+(?:\/[a-z-]+)*)?(?:#[a-z-]+)?$|^\/sign-up\?next=\/(?:map-prep|games|homework|quizzes|worksheets|subscription)$/);
       expect(href).not.toMatch(/\/resources\/|download|preview/);
     }
     for (const image of container.querySelectorAll("img")) expect(decodeURIComponent(image.getAttribute("src") ?? "")).toContain("/media/");
@@ -104,6 +105,12 @@ describe("public product pages", () => {
     await renderPage(OnlineMathPrepPage);
     expect(screen.getByRole("heading", { level: 1, name: "Online Math Prep for Grades 3–8" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open Online Math Prep" }).getAttribute("href")).toBe("/map-prep");
+    // The trial is offered at the top (2026-11 funnel fix): account creation that returns to Online Math Prep.
+    expect(screen.getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/sign-up?next=/map-prep");
+    const offer = document.querySelector(".product-landing .trial-offer-note");
+    expect(offer?.textContent).toMatch(/^24-hour free trial, then \$5\.99 USD a month\. A card is needed to start/);
+    // The offer sits in the page header, before the first content section.
+    expect(offer?.compareDocumentPosition(screen.getByRole("region", { name: "How each idea is taught" })) ?? 0).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     const method = within(screen.getByRole("region", { name: "How each idea is taught" })).getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent);
     expect(method).toEqual(["Learn", "Guided practice", "Independent practice", "Quick check", "Mastery"]);
     expect(screen.getByText("Find the unit rate: 12 bars ÷ 3 cups = 4 bars per cup.")).toBeTruthy();

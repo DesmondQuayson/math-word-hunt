@@ -184,9 +184,18 @@ describe("Pricing (signed in)", () => {
     expect(lede(rendered.container)).toBe("One monthly subscription for every MathNexa resource. No annual plan.");
   });
 
-  it("still sends a signed-out visitor to sign in first", async () => {
+  it("shows a signed-out visitor the public plan, with the trial started through account creation only (2026-11)", async () => {
     mocks.context.mockResolvedValue({ status: "anonymous", userId: null });
     mocks.access.mockResolvedValue({ source: "none", decision: { allowed: false, reason: "anonymous", nextAction: "sign-in" } });
-    await expect(renderPricing()).rejects.toMatchObject({ digest: expect.stringContaining("/access?next=/subscription") });
+    const rendered = await renderPricing();
+    const text = rendered.container.textContent ?? "";
+    expect(rendered.container.querySelector("h1")?.textContent).toBe("$5.99 USD per month");
+    expect(text).toContain("24-hour free trial");
+    expect(text).toContain("renews automatically until canceled");
+    expect(text).toContain("A payment method is required in Stripe-hosted Checkout before trial activation.");
+    expect(within(rendered.container).getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/sign-up?next=/subscription");
+    expect(within(rendered.container).getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in?next=/subscription");
+    // Nothing on the public plan can start Checkout: no consent form, no checkbox, no submit.
+    expect(rendered.container.querySelector("form, input[type=checkbox], button[type=submit]")).toBeNull();
   });
 });

@@ -78,10 +78,15 @@ test("public consumer pages state the exact product and minimum-data boundary", 
     await expect(page.getByRole("banner").getByLabel("MathNexa home")).toBeVisible();
     await expect(page.getByText("Teacher Pro", { exact: false })).toHaveCount(0);
   }
+  // Public since the 2026-11 funnel fixes: the plan is readable before any
+  // account exists, and nothing on it can start Checkout.
   await page.goto("/pricing");
-  await expect(page).toHaveURL("/access?next=/subscription");
-  await expect(page.getByRole("heading", { name: "Continue to Subscription" })).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|Stripe|Checkout/i);
+  await expect(page).toHaveURL("/pricing");
+  await expect(page.getByRole("heading", { level: 1, name: "$5.99 USD per month" })).toBeVisible();
+  await expect(page.getByText("24-hour free trial", { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/sign-up?next=/subscription");
+  await expect(page.getByRole("main").getByRole("checkbox")).toHaveCount(0);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
 
 test("signup collects only account credentials and rejects forged profile data", async ({ page }) => {
@@ -101,7 +106,8 @@ test("signup collects only account credentials and rejects forged profile data",
       form.append(input);
     }
   });
-  await page.getByRole("button", { name: "Create account" }).click();
+  // /sign-up with no destination is the trial onboarding since 2026-11; account creation is unchanged.
+  await page.getByRole("button", { name: /^(Create account|Start free trial)$/ }).click();
   await expect(page.getByText(/Only email and password are accepted/)).toBeVisible();
   const users = await admin.auth.admin.listUsers();
   expect(users.data.users.some((user) => user.email === forgedEmail)).toBe(false);
@@ -112,7 +118,7 @@ test("general account signup requires confirmation and recovery stays generic", 
   await page.getByLabel("Email address").fill(signupEmail);
   await page.locator("#signup-password").fill(password);
   await page.locator("#signup-password-confirmation").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByRole("button", { name: /^(Create account|Start free trial)$/ }).click();
   const confirmationDialog = page.getByRole("dialog", { name: "Check your email" });
   await expect(confirmationDialog).toBeVisible();
   await expect(confirmationDialog.getByText(/Open the email and select “Confirm email”/)).toBeVisible();
@@ -125,7 +131,9 @@ test("general account signup requires confirmation and recovery stays generic", 
   await expect(confirmationDialog.locator("#confirmation-dialog-cooldown")).toHaveText("You can request another email in 60 seconds.");
   await expect(confirmationDialog.locator("#confirmation-dialog-cooldown")).toHaveAttribute("aria-live", "polite");
   await confirmationDialog.getByRole("button", { name: "I've confirmed my email" }).click();
-  await expect(confirmationDialog.getByText("Your email has not been confirmed yet. Check your inbox and try again.")).toBeVisible();
+  // No session in this browser yet: the link may have been opened on another device, so sign-in is offered.
+  await expect(confirmationDialog.getByText(/This browser isn't signed in yet\..*sign in here to continue\./)).toBeVisible();
+  await expect(confirmationDialog.getByRole("link", { name: "Sign in to continue" })).toHaveAttribute("href", "/sign-in?next=/subscription");
   const users = await admin.auth.admin.listUsers();
   signupUser = users.data.users.find((user) => user.email === signupEmail);
   expect(signupUser).toBeDefined();
@@ -133,11 +141,24 @@ test("general account signup requires confirmation and recovery stays generic", 
   expect((await admin.from("consumer_accounts").select("email_confirmed_at").eq("user_id", signupUser!.id).single()).data?.email_confirmed_at).toBeNull();
   expect((await admin.from("teacher_profiles").select("user_id", { count: "exact", head: true }).eq("user_id", signupUser!.id)).count).toBe(0);
 
+  // A wrong password for the unconfirmed account gets the one generic answer (no enumeration)...
+  await page.goto("/sign-in");
+  await page.getByLabel("Email address").fill(signupEmail);
+  await page.locator("input[name=\"password\"]").fill(`${password}x`);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByText(/email or password was not accepted/i)).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // ...and the right password is offered a new confirmation email instead of a dead end.
   await page.goto("/sign-in");
   await page.getByLabel("Email address").fill(signupEmail);
   await page.locator("input[name=\"password\"]").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText(/email or password was not accepted/i)).toBeVisible();
+  const confirmFirst = page.getByRole("dialog", { name: "Confirm your email first" });
+  await expect(confirmFirst).toBeVisible();
+  await expect(confirmFirst.getByText(/isn’t confirmed yet/)).toBeVisible();
+  await expect(page.getByText("Your email address is not confirmed yet.")).toBeAttached();
+  await expect(confirmFirst.getByRole("button", { name: /^(Resend confirmation email|Resend available in \d+s)$/ })).toBeVisible();
+  await confirmFirst.getByRole("button", { name: "Continue browsing" }).click();
 
   await page.goto("/forgot-password");
   await page.getByLabel("Email address").fill(`${run}-unknown@example.test`);

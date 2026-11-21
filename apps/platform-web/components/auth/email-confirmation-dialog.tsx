@@ -50,7 +50,12 @@ function CooldownStatus({ id, announcement }: Readonly<{ id: string; announcemen
   return <p id={id} className="confirmation-cooldown-status" role="status" aria-live="polite">{announcement}</p>;
 }
 
-export function EmailConfirmationDialog({ maskedEmail, initialCooldownSeconds = 0 }: Readonly<{ maskedEmail: string; initialCooldownSeconds?: number }>) {
+/**
+ * "sign-up": the account was just created and a confirmation email is on its
+ * way. "sign-in": the password matched an account whose email was never
+ * confirmed; nothing has been sent yet, so the resend button is the next step.
+ */
+export function EmailConfirmationDialog({ maskedEmail, initialCooldownSeconds = 0, origin = "sign-up" }: Readonly<{ maskedEmail: string; initialCooldownSeconds?: number; origin?: "sign-up" | "sign-in" }>) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -106,12 +111,15 @@ export function EmailConfirmationDialog({ maskedEmail, initialCooldownSeconds = 
           <span>✓</span>
         </div>
         <p className="eyebrow">One quick step</p>
-        <h2 id="confirmation-dialog-title">Check your email</h2>
+        <h2 id="confirmation-dialog-title">{origin === "sign-in" ? "Confirm your email first" : "Check your email"}</h2>
         <div id="confirmation-dialog-description" className="confirmation-dialog-copy">
-          <p>We sent a confirmation link to <strong>{maskedEmail}</strong>. Open the email and select “Confirm email” to finish setting up your MathNexa account.</p>
+          {origin === "sign-in"
+            ? <p>Your MathNexa account for <strong>{maskedEmail}</strong> isn’t confirmed yet. Select “Resend confirmation email”, then open the link in that email on this device.</p>
+            : <p>We sent a confirmation link to <strong>{maskedEmail}</strong>. Open the email and select “Confirm email” to finish setting up your MathNexa account.</p>}
           <p>Once your email is confirmed, return to MathNexa and continue where you left off.</p>
         </div>
         <ConfirmationStatus status={checkState.status} message={checkState.message} />
+        {checkState.signInHref ? <p className="confirmation-sign-in"><Link href={checkState.signInHref}>Sign in to continue</Link></p> : null}
         {resendState.message ? <ConfirmationStatus status={resendState.status} message={resendState.message} /> : null}
         <div className="confirmation-dialog-actions">
           <form action={checkAction}>

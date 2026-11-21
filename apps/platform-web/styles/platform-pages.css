@@ -51,6 +51,34 @@
   padding-top: var(--space-2);
 }
 
+/* The offer beside "Start free trial" (components/consumer/trial-offer-note):
+   one quiet line in the secondary text colour, wrapping within its column. */
+.trial-offer-note {
+  max-width: 38rem;
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
+  line-height: 1.5;
+}
+
+.trial-offer-note strong {
+  color: var(--color-text-primary);
+}
+
+.trial-offer-note a {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.confirmation-sign-in {
+  margin: 0;
+  font-weight: 700;
+}
+
+.public-pricing-card .button-row {
+  margin-top: var(--space-2);
+}
+
 .classroom-toolkit {
   position: relative;
   min-width: 0;

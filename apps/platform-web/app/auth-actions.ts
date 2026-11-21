@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 
 import { rememberAdClickForAccount } from "@/lib/analytics/ad-attribution";
 import type { AuthFormState, EmailConfirmationState } from "@/lib/auth/form-state";
-import { POST_AUTH_DESTINATION } from "@/lib/auth/access-intent";
+import { POST_AUTH_DESTINATION, signUpDestination } from "@/lib/auth/access-intent";
 import { getAppBaseUrl, safeInternalRedirect } from "@/lib/auth/safe-redirect";
 import { RESEND_COOLDOWN_SECONDS, providerResendWaitSeconds, resendCooldownMessage, resendCooldownRemaining } from "@/lib/email/resend-cooldown";
 import { getAuthEmailExperience } from "@/lib/email/server";
@@ -46,7 +46,7 @@ function maskEmail(email: string): string {
   return `${local.slice(0, 1)}${"•".repeat(Math.min(Math.max(local.length - 1, 4), 8))}@${domain}`;
 }
 
-async function rememberConfirmationRequest(email: string, destination: string) {
+async function rememberConfirmationRequest(email: string, destination: string, emailJustSent = true) {
   const cookieStore = await cookies();
   const options = confirmationCookieOptions();
   cookieStore.set(confirmationEmailCookie, email, options);
@@ -54,11 +54,25 @@ async function rememberConfirmationRequest(email: string, destination: string) {
   // Sign-up just sent the first confirmation email, and the provider refuses
   // another to the same address for a minute. Starting the countdown here
   // keeps the resend button from offering a request that would be refused.
+  // A sign-in attempt sent nothing, so it starts no countdown: the provider's
+  // own pacing answer still applies if an email went out moments ago.
+  if (!emailJustSent) return;
   cookieStore.set(
     confirmationCooldownCookie,
     String(Math.floor(Date.now() / 1000) + resendCooldownSeconds),
     confirmationCookieOptions(resendCooldownSeconds)
   );
+}
+
+/**
+ * Supabase Auth answers a password sign-in for an unconfirmed address with
+ * `email_not_confirmed`, and only after the password matched; a wrong password
+ * gets the same invalid-credentials answer as an unknown address. Telling this
+ * person their email still needs confirming therefore reveals nothing to
+ * someone who does not already hold the password.
+ */
+function isEmailNotConfirmed(error: { code?: string; message?: string }): boolean {
+  return error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message ?? "");
 }
 
 async function confirmationDestination(): Promise<string> {
@@ -134,8 +148,10 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   if (limit === "throttled") {
     return { status: "error", message: "Too many account attempts. Wait a few minutes and try again." };
   }
+  // A new account that asked for nothing specific continues to the trial step
+  // after confirming (lib/auth/access-intent.ts signUpDestination).
   const destination = consumerMode
-    ? safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION)
+    ? signUpDestination(safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION))
     : "/teacher";
   const callback = `${getAppBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}`;
   const { data, error } = await supabase.auth.signUp({
@@ -156,7 +172,7 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
   return {
     status: "success",
     message: getAuthEmailExperience(process.env, consumerMode ? "consumer" : "teacher").signUpResponse,
-    confirmation: consumerMode ? { maskedEmail: maskEmail(email), cooldownSeconds: resendCooldownSeconds } : undefined
+    confirmation: consumerMode ? { maskedEmail: maskEmail(email), cooldownSeconds: resendCooldownSeconds, origin: "sign-up" } : undefined
   };
 }
 
@@ -252,7 +268,18 @@ export async function checkEmailConfirmationAction(
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { status: "error", message: "Email confirmation could not be checked. Try again later." };
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user?.email_confirmed_at) {
+  if (!data.user) {
+    // No session in this browser. Either the link has not been opened yet, or
+    // it was opened on another device: confirming there cannot sign this
+    // browser in, so offer sign-in instead of repeating "not confirmed".
+    const destination = await confirmationDestination();
+    return {
+      status: "error",
+      message: "This browser isn't signed in yet. Open the link in your email on this device, or if you already confirmed on another device, sign in here to continue.",
+      signInHref: `/sign-in?next=${destination}`
+    };
+  }
+  if (error || !data.user.email_confirmed_at) {
     return {
       status: "error",
       message: "Your email has not been confirmed yet. Check your inbox and try again."
@@ -296,6 +323,18 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
     // rather than in the limiter, which runs before the password is checked. A
     // classroom signing in successfully must contribute nothing to it.
     await observeFailedSignIn();
+    if (consumerMode && isEmailNotConfirmed(error)) {
+      // The password matched, but the address was never confirmed: offer a new
+      // confirmation email instead of a dead end. Nothing is sent until the
+      // person asks; the resend action keeps its server-side budget.
+      const destination = signUpDestination(safeInternalRedirect(field(formData, "next"), POST_AUTH_DESTINATION));
+      await rememberConfirmationRequest(email, destination, false);
+      return {
+        status: "error",
+        message: "Your email address is not confirmed yet.",
+        confirmation: { maskedEmail: maskEmail(email), cooldownSeconds: 0, origin: "sign-in" }
+      };
+    }
     return { status: "error", message: "The email or password was not accepted." };
   }
   await clearConsumerAuthAttempts("sign-in", email);

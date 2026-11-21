@@ -24,6 +24,18 @@ export const PRODUCT_DESTINATIONS = [
 export const POST_AUTH_DESTINATION = "/" as const;
 
 /**
+ * Where a NEW account continues after it confirms its email when it asked for
+ * nothing more specific: the subscription page, which for an account that has
+ * never redeemed its one trial is the "Start your free trial" step.
+ *
+ * Signing in keeps POST_AUTH_DESTINATION. Only account creation changes: a
+ * person who just made an account and confirmed it used to land back on the
+ * homepage with no next step, and most never found the trial (2026-11-21 funnel
+ * audit: 8 of 11 confirmed accounts in 30 days never opened it).
+ */
+export const NEW_ACCOUNT_DESTINATION = "/subscription" as const;
+
+/**
  * Games that are free for any signed-in MathNexa account
  * (lib/games/access-policy.ts). Their play route is a server-owned return
  * destination so "Play for Free Now" → sign in / create account → the game.
@@ -55,6 +67,22 @@ const freeGameDestinations = new Set<string>(FREE_GAME_DESTINATIONS);
 
 export function isFreeGameDestination(value: string | null | undefined): value is FreeGameDestination {
   return typeof value === "string" && freeGameDestinations.has(value);
+}
+
+export function isProductDestination(value: string | null | undefined): value is ProductDestination {
+  return typeof value === "string" && productDestinations.has(value);
+}
+
+/**
+ * The destination of a new account's confirmation link. `requested` must
+ * already be an allowlisted path (safeInternalRedirect). A free game, a
+ * product, the subscription page or My Account is kept: the free game opens
+ * with no trial language, and a product re-checks access and sends an account
+ * without a subscription to /subscription?next=<product>. Nothing asked for,
+ * or the generic homepage, becomes the trial step.
+ */
+export function signUpDestination(requested: string | null | undefined): string {
+  return !requested || requested === POST_AUTH_DESTINATION ? NEW_ACCOUNT_DESTINATION : requested;
 }
 
 export function safeProductDestination(

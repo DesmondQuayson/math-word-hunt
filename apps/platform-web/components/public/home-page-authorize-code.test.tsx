@@ -114,11 +114,14 @@ function expectNoCodeCard(container: HTMLElement, label: string) {
   expect(screen.queryByRole("button", { name: /Show code|Hide code/ }), label).toBeNull();
   expect(screen.queryByRole("button", { name: "Continue" }), label).toBeNull();
   expect(container.textContent, label).not.toMatch(/Authorize Code|Authorized access active/);
-  // The rest of the homepage is intact, and the hero copy ends with its actions.
+  // The rest of the homepage is intact, and the hero copy ends with its actions
+  // (or, while the account's one trial is unused, the trial offer under them).
   expect(screen.getByRole("heading", { level: 1 }).textContent, label).toBe("Online math prep that shows the thinking, not just the answer.");
   expect(screen.getByRole("link", { name: /Quiz PDFs Assess · Print/ }).getAttribute("href"), label).toBe("/quizzes");
   const last = container.querySelector(".teacher-home-copy")?.lastElementChild;
-  expect(last?.classList.contains("teacher-home-actions") || last?.classList.contains("teacher-home-ready"), label).toBe(true);
+  const closesHero = last?.classList.contains("teacher-home-actions") || last?.classList.contains("teacher-home-ready") ||
+    (last?.classList.contains("trial-offer-note") && last.previousElementSibling?.classList.contains("teacher-home-actions"));
+  expect(closesHero, label).toBe(true);
 }
 
 describe("homepage Authorize Code card follows the server-side session", () => {
@@ -138,7 +141,11 @@ describe("homepage Authorize Code card follows the server-side session", () => {
       expect(code.getAttribute("type"), status).toBe("text");
       await user.click(entry.getByRole("button", { name: "Hide code" }));
       expect(code.getAttribute("type"), status).toBe("password");
-      expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href"), status).toBe("/sign-up");
+      // The hero's first step is the trial (2026-11 funnel fix), with the offer stated beside it.
+      const heroTrial = container.querySelector<HTMLAnchorElement>(".teacher-home-actions a");
+      expect(heroTrial?.textContent, status).toBe("Start free trial");
+      expect(heroTrial?.getAttribute("href"), status).toBe("/sign-up?next=/subscription");
+      expect(container.querySelector(".teacher-home-copy .trial-offer-note")?.textContent, status).toMatch(/^24-hour free trial, then \$5\.99 USD a month\./);
       cleanup();
     }
   });

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { TrialOfferNote } from "@/components/consumer/trial-offer-note";
 import { Notice } from "@/components/feedback/notice";
 import { ProductFigure, ProductLanding } from "@/components/public/product-landing";
 import { LinkButton } from "@/components/ui/link-button";
@@ -30,7 +31,15 @@ export default function OnlineMathPrepPage() {
     eyebrow={`${label} · Grades 3–8`}
     title="Online Math Prep for Grades 3–8"
     description="Visual lessons, guided and independent practice, and quick checks for Grades 3–8 math, plus a worksheet generator for printing practice."
-    actions={<LinkButton href="/map-prep">Open {label}</LinkButton>}
+    // "Start free trial" creates the account with Online Math Prep as its
+    // destination: after confirming, /map-prep re-checks access and offers the
+    // trial, and a finished Checkout continues into Online Math Prep. A signed-in
+    // visitor who presses it is sent straight on by /sign-up.
+    actions={<>
+      <LinkButton href="/sign-up?next=/map-prep">Start free trial</LinkButton>
+      <LinkButton variant="secondary" href="/map-prep">Open {label}</LinkButton>
+    </>}
+    offer={<TrialOfferNote />}
     access="subscription"
     schoolAccessHours={SCHOOL_ACCESS_DURATION_SECONDS / 3600}
   >

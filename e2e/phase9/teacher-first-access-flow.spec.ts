@@ -108,7 +108,16 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page.locator("body")).not.toContainText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes");
   await expect(page.getByRole("heading", { level: 1, name: "Online math prep that shows the thinking, not just the answer." })).toBeVisible();
   await expect(page.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
+  // The trial offer (owner-approved 2026-11) appears once, in the line under the hero buttons; nothing else sells.
+  await expect(page.locator(".teacher-home-copy .trial-offer-note")).toHaveText(
+    "24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends. See pricing"
+  );
+  expect(await page.locator("body").evaluate((body) => {
+    const copy = body.cloneNode(true) as HTMLElement;
+    // Visible text only: the note, and scripts (structured data) and styles, are left out.
+    copy.querySelectorAll(".trial-offer-note, script, style, noscript").forEach((node) => node.remove());
+    return copy.textContent ?? "";
+  })).not.toMatch(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   // The permanent product strip: six destinations, in the approved order.
@@ -180,11 +189,13 @@ test("pointer and keyboard choices reach the preserved account-intent path", asy
   await page.getByRole("link", { name: /Online Math Prep [(]Grades 3–8[)]/ }).click();
   await expect(page).toHaveURL("/access?next=/map-prep");
   await page.goto("/");
-  const createAccount = page.getByRole("link", { name: "Create an account" });
-  await createAccount.focus();
-  await expect(createAccount).toBeFocused();
+  // The hero's first step is the trial since the 2026-11 funnel fixes (the header offers it too).
+  const startTrial = page.locator(".teacher-home-actions").getByRole("link", { name: "Start free trial" });
+  await startTrial.focus();
+  await expect(startTrial).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/sign-up$/);
+  await expect(page).toHaveURL(/\/sign-up\?next=\/subscription$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Start your free trial" })).toBeVisible();
 });
 
 test("confirmed accounts without entitlement reach the authenticated subscription review", async ({ page, context }) => {
@@ -234,7 +245,7 @@ test("server-entitled accounts reach all four selected products and validated On
   await expect(page.getByRole("combobox", { name: "Grade" })).toHaveCount(0);
   await expect(page.locator("body")).not.toContainText("game doesn’t exist");
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Create an account" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
   await page.getByRole("button", { name: "Open account menu" }).click();
   await expect(page.getByRole("navigation", { name: "Account navigation" }).getByRole("button", { name: "Sign out" })).toBeVisible();
@@ -356,8 +367,9 @@ test("homepage and account-intent UI remain accessible across target devices and
     await page.setViewportSize(viewport);
     await page.goto("/");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-    // One visible header call to action at every width, never wrapped.
-    const cta = page.getByRole("link", { name: "Start free trial" });
+    // One visible header call to action at every width, never wrapped (the
+    // hero offers the trial too since 2026-11; this checks the header's).
+    const cta = page.getByRole("banner").getByRole("link", { name: "Start free trial" });
     await expect(cta).toHaveCount(1);
     await expect(cta).toBeVisible();
     const ctaBox = await cta.boundingBox();
@@ -604,7 +616,9 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
       };
     });
-    expect(layout.lastClass, label).toMatch(/teacher-home-(actions|ready)/);
+    // The hero copy ends with its actions, the ready note, or (an unused trial,
+    // 2026-11) the one-line offer directly under the actions.
+    expect(layout.lastClass, label).toMatch(/teacher-home-(actions|ready)|trial-offer-note/);
     expect(Math.abs(layout.trailing), label + " trailing space in the hero copy").toBeLessThanOrEqual(1);
     expect(Math.abs(layout.flowGap), label + " gap before the next section").toBeLessThanOrEqual(1);
     expect(layout.overflow, label + " horizontal overflow").toBeLessThanOrEqual(0);
@@ -656,7 +670,10 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await signIn(page, eligibleEmail, "/");
     await expect(page).toHaveURL("/");
     await expectNoEntry("B signed in, non-subscriber (trial eligible), 1366px");
-    await expect(page.getByRole("link", { name: "View access options" })).toHaveAttribute("href", "/subscription");
+    // An unused trial: the hero offers it by the header's own rule (2026-11), with the offer line.
+    await expect(page.locator(".teacher-home-actions").getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
+    await expect(page.getByRole("link", { name: "View access options" })).toHaveCount(0);
+    await expect(page.locator(".teacher-home-copy .trial-offer-note")).toBeVisible();
     await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
     for (const width of [...phoneWidths, ...wideWidths]) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });

@@ -45,9 +45,15 @@ describe("teacher-first public homepage", () => {
   });
 
   it("shows account actions, the approved product art, and every product card on its unchanged route", () => {
-    render(<TeacherFirstHome />);
-    expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/sign-up");
+    const { container } = render(<TeacherFirstHome />);
+    // The trial is the first step, with its offer stated beside the button (2026-11 funnel fix).
+    expect(screen.getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/sign-up?next=/subscription");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
+    expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
+    expect(container.querySelector(".teacher-home-copy .trial-offer-note")?.textContent).toBe(
+      "24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends. See pricing"
+    );
+    expect(screen.getByRole("link", { name: "See pricing" }).getAttribute("href")).toBe("/pricing");
     // The approved Math Vocabulary Hunt key art, not the Math Word Hunt split art.
     expect(decodeURIComponent(screen.getByAltText(/Math Vocabulary Hunt game artwork/).getAttribute("src") ?? "")).toContain("/media/games/math-vocabulary-hunt.webp");
     // New customer-facing names; the route paths behind them are the indexed originals.
@@ -284,8 +290,9 @@ describe("teacher-first public homepage", () => {
     expect(code.getAttribute("type")).toBe("text");
     await user.click(entry.getByRole("button", { name: "Hide code" }));
     expect(code.getAttribute("type")).toBe("password");
-    // Placement unchanged: directly after the hero actions, in the hero copy.
-    expect(anchor.previousElementSibling?.classList.contains("teacher-home-actions")).toBe(true);
+    // Placement: right after the hero actions and the one-line trial offer under them, in the hero copy.
+    expect(anchor.previousElementSibling?.classList.contains("trial-offer-note")).toBe(true);
+    expect(anchor.previousElementSibling?.previousElementSibling?.classList.contains("teacher-home-actions")).toBe(true);
     expect(anchor.parentElement?.classList.contains("teacher-home-copy")).toBe(true);
     expect(container.textContent).not.toContain("Start learning");
   });
@@ -326,6 +333,17 @@ describe("teacher-first public homepage", () => {
     render(<TeacherFirstHome authState="signed-in" />);
     expect(screen.getByRole("link", { name: "View access options" }).getAttribute("href")).toBe("/subscription");
     expect(screen.getByRole("link", { name: "My Account" }).getAttribute("href")).toBe("/account");
+    cleanup();
+    // An unused trial (the header's own rule, passed in by app/page.tsx): the hero offers it too.
+    const { container } = render(<TeacherFirstHome authState="signed-in" heroCta={{ label: "Start free trial", href: "/subscription" }} />);
+    expect(screen.getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/subscription");
+    expect(screen.queryByRole("link", { name: "View access options" })).toBeNull();
+    expect(container.querySelector(".teacher-home-copy")?.lastElementChild?.classList.contains("trial-offer-note")).toBe(true);
+    cleanup();
+    // A used trial never gets a second offer: "Subscribe" keeps the neutral access link.
+    render(<TeacherFirstHome authState="signed-in" heroCta={{ label: "Subscribe", href: "/pricing" }} />);
+    expect(screen.getByRole("link", { name: "View access options" }).getAttribute("href")).toBe("/subscription");
+    expect(screen.queryByRole("link", { name: "Start free trial" })).toBeNull();
   });
 
   it("shows the exit control in that place instead of a second code prompt while an authorized code is already active", () => {
@@ -336,10 +354,17 @@ describe("teacher-first public homepage", () => {
     expect(screen.queryByLabelText(/^Code/)).toBeNull();
   });
 
-  it("carries no commercial details, testimonials, statistics or retired showcase copy", () => {
+  it("carries no commercial details beyond the one hero offer line, and no testimonials, statistics or retired showcase copy", () => {
     const { container } = render(<TeacherFirstHome />);
     expect(container.textContent).not.toMatch(/MathNexa in action|real resources waiting|Designed around teaching|calmer path|Whole-class energy|Interactive Games/i);
-    expect(container.textContent).not.toMatch(/\$5\.99|24-hour|stripe|checkout|consent|automatic renewal|phase \d/i);
+    // The trial offer (owner-approved 2026-11) lives in exactly one place, the
+    // line under the hero buttons; nothing else on the page sells.
+    const offers = container.querySelectorAll(".trial-offer-note");
+    expect(offers).toHaveLength(1);
+    const rest = container.cloneNode(true) as HTMLElement;
+    rest.querySelector(".trial-offer-note")?.remove();
+    expect(rest.textContent).not.toMatch(/\$5\.99|24-hour|stripe|checkout|consent|automatic renewal|phase \d/i);
+    expect(container.textContent).not.toMatch(/stripe|checkout|consent|phase \d/i);
     expect(container.textContent).not.toMatch(/\d+\s?%|testimonial|rated|reviews|★|“|”/i);
   });
 
@@ -347,7 +372,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect(["/sign-up", "/sign-up?next=/subscription", "/pricing", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

@@ -5,8 +5,10 @@ import { Fragment } from "react";
 import { ConfirmationReminder } from "@/components/auth/email-confirmation-dialog";
 import { AuthorizedAccessActivePanel } from "@/components/auth/authorized-access-active-panel";
 import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
+import { TrialOfferNote } from "@/components/consumer/trial-offer-note";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
+import { START_TRIAL_SIGN_UP_HREF } from "@/lib/consumer/header-cta";
 import { homeFreeGames, type HomeFreeGame } from "@/lib/games/home-free-games";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
@@ -23,9 +25,17 @@ import { PrepBoard } from "./home/prep-board";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
 
+/**
+ * The hero's next step for a signed-in visitor without access, chosen in
+ * app/page.tsx by the same rule as the header button (lib/consumer/header-cta):
+ * "Start free trial" only while the account's one trial is unused.
+ */
+export type HomeHeroCta = Readonly<{ label: string; href: string }>;
+
 type TeacherFirstHomeProps = Readonly<{
   authState?: HomeAuthState;
   entitled?: boolean;
+  heroCta?: HomeHeroCta | null;
   /** The visitor's access comes from an authorized (school) code already entered in this session. */
   schoolAccess?: boolean;
   /**
@@ -36,18 +46,27 @@ type TeacherFirstHomeProps = Readonly<{
   freeGames?: readonly HomeFreeGame[];
 }>;
 
-function HeroActions({ authState, entitled }: Readonly<{ authState: HomeAuthState; entitled: boolean }>) {
+function HeroActions({ authState, entitled, heroCta }: Readonly<{ authState: HomeAuthState; entitled: boolean; heroCta?: HomeHeroCta | null }>) {
   if (authState === "signed-out") {
-    return <div className="button-row teacher-home-actions">
-      <LinkButton href="/sign-up">Create an account</LinkButton>
-      <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
-    </div>;
+    // The offer is stated where the button is: the trial, the price after it,
+    // the card requirement and the cancel rule (components/consumer/trial-offer-note).
+    return <>
+      <div className="button-row teacher-home-actions">
+        <LinkButton href={START_TRIAL_SIGN_UP_HREF}>Start free trial</LinkButton>
+        <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
+      </div>
+      <TrialOfferNote />
+    </>;
   }
   if (!entitled) {
-    return <div className="button-row teacher-home-actions">
-      <LinkButton href="/subscription">View access options</LinkButton>
-      <LinkButton variant="secondary" href="/account">My Account</LinkButton>
-    </div>;
+    const trialHref = heroCta && heroCta.label === "Start free trial" ? heroCta.href : null;
+    return <>
+      <div className="button-row teacher-home-actions">
+        <LinkButton href={trialHref ?? "/subscription"}>{trialHref ? "Start free trial" : "View access options"}</LinkButton>
+        <LinkButton variant="secondary" href="/account">My Account</LinkButton>
+      </div>
+      {trialHref ? <TrialOfferNote /> : null}
+    </>;
   }
   return <p className="teacher-home-ready" role="status">
     <span aria-hidden="true">✓</span> Your MathNexa resource shelf is ready below.
@@ -204,6 +223,7 @@ function FreeGames({ games }: Readonly<{ games: readonly HomeFreeGame[] }>) {
 export function TeacherFirstHome({
   authState = "signed-out",
   entitled = false,
+  heroCta = null,
   schoolAccess = false,
   freeGames
 }: TeacherFirstHomeProps) {
@@ -217,7 +237,7 @@ export function TeacherFirstHome({
         <h1 id="home-title">{HOME_HEADLINE_LEAD}<span className={styles.headlineMark}>{HOME_HEADLINE_MARK}</span>{HOME_HEADLINE_TAIL}</h1>
         <p className={styles.lede}>{PLATFORM_HERO_DESCRIPTION}</p>
         <p className={styles.audience}>{PLATFORM_HERO_AUDIENCE}</p>
-        <HeroActions authState={authState} entitled={entitled} />
+        <HeroActions authState={authState} entitled={entitled} heroCta={heroCta} />
         {/* The authorized-code entry is for signed-out visitors only (the
             banner carries no code item: this form is the entry). A session
             that already entered a code sees its exit control in the same

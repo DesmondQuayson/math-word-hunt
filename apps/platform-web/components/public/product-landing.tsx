@@ -27,6 +27,8 @@ type ProductLandingProps = Readonly<{
   description: string;
   /** The buttons under the heading. */
   actions: ReactNode;
+  /** Optional line under the buttons (the trial offer on Online Math Prep). */
+  offer?: ReactNode;
   /** "subscription": trial, then the monthly price. "free-game": any signed-in account. */
   access: "subscription" | "free-game";
   /** SCHOOL_ACCESS_DURATION_SECONDS / 3600; passed in because that module is server-only. */
@@ -75,12 +77,13 @@ export function ProductFigure({ src, alt, width, height }: Readonly<{ src: strin
   </figure>;
 }
 
-export function ProductLanding({ path, eyebrow, title, description, actions, access, schoolAccessHours, children }: ProductLandingProps) {
+export function ProductLanding({ path, eyebrow, title, description, actions, offer, access, schoolAccessHours, children }: ProductLandingProps) {
   const trail = productPageTrail(path);
   return <Container className="page-stack product-landing">
     <Breadcrumb trail={trail} />
     <PageHeader eyebrow={eyebrow} title={title} description={description}>
       <div className="button-row">{actions}</div>
+      {offer}
     </PageHeader>
     {children}
     <AccessSection access={access} schoolAccessHours={schoolAccessHours} />

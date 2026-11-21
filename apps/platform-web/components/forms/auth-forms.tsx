@@ -131,7 +131,7 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
         <p className="form-switch">Already have an account? <Link href={trial.signInHref}>Sign in</Link></p>
       </div> : <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{submitLabel}</Button><Link href={isFreeGameDestination(nextDestination) ? `/sign-in?next=${nextDestination}` : "/sign-in"}>Already have an account?</Link></div>}
     </form>
-    {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} initialCooldownSeconds={state.confirmation.cooldownSeconds} /> : null}
+    {state.confirmation ? <EmailConfirmationDialog maskedEmail={state.confirmation.maskedEmail} initialCooldownSeconds={state.confirmation.cooldownSeconds} origin="sign-up" /> : null}
     </>
   );
 }
@@ -144,6 +144,7 @@ export function SignInForm({ configured, nextDestination, signUpHref, consumerMo
     password: currentPasswordError(fieldValue(form, "password"))
   }), consumerMode);
   return (
+    <>
     <form className="prototype-form account-form" action={action} onSubmit={onSubmit} onInput={onInput} noValidate>
       <FormMessage state={state} messageRef={messageRef} />
       {nextDestination ? <input type="hidden" name="next" value={nextDestination} /> : null}
@@ -152,6 +153,10 @@ export function SignInForm({ configured, nextDestination, signUpHref, consumerMo
       <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{pending ? "Signing in…" : "Sign in"}</Button><Link href="/forgot-password">Forgot password?</Link></div>
       {signUpHref ? <p className="form-switch">New to MathNexa? <Link href={signUpHref}>{isFreeGameDestination(nextDestination) ? "Create a free account" : "Start free trial"}</Link></p> : null}
     </form>
+    {/* The password matched an unconfirmed account: offer a new confirmation
+        email in place of a dead end. Keyed so a second attempt reopens it. */}
+    {state.confirmation ? <EmailConfirmationDialog key={state.confirmation.maskedEmail} maskedEmail={state.confirmation.maskedEmail} initialCooldownSeconds={state.confirmation.cooldownSeconds} origin="sign-in" /> : null}
+    </>
   );
 }
 
