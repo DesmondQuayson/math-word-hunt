@@ -16,6 +16,11 @@ param(
 #   -Stage review    real browsers against -Origin <staging preview URL> (synthetic free teacher, deleted)
 #   -Stage load      50 virtual students + a real host screen against -Origin (synthetic, deleted)
 #
+# review and load need a preview that serves the game. On the staging database
+# the catalog entry is a draft, so the preview must have been deployed with
+# `--env MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review` (docs/math-bingo-live-v1.md,
+# "Availability gate"); any other preview answers 404 for the host page.
+#
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/invoke-math-bingo-live-staging.ps1 -Stage identify
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot

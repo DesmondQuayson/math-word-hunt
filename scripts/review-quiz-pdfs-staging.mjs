@@ -82,6 +82,14 @@ const REVIEW_WIDTHS = [320, 375, 390, 430, 768, 820, 1180, 1366, 1920];
 const PRODUCTS = [["Home", "/"], ["Math Games", "/games"], ["Online Math Prep", "/map-prep"], ["Homework PDFs", "/homework"], ["Quiz PDFs", "/quizzes"], ["Worksheet Generator", "/worksheets"]];
 const PRODUCT_LABELS = PRODUCTS.map(([label]) => label).join("|");
 const WORKSHEET_GENERATOR_URL = "https://showme.mathnexa.com/worksheets";
+// Since the ShowMe access gate (v1.2.52, docs/showme-access-gate.md) ShowMe opens only with a
+// pass that MathNexa sets for mathnexa.com. A staging host on vercel.app cannot set a cookie
+// for that domain, so there ShowMe's gate sends the browser to the production access page.
+const SHOWME_GATE_LANDING = (url) => url.origin === "https://mathnexa.com" && url.pathname === "/access" && url.searchParams.get("next") === "/map-prep";
+// What must never be in the preview page or its web storage: the file's storage address or a signed link.
+const STORAGE_MARKERS = /supabase|resource-files|signedUrl|token=/i;
+// The Google tag's own web-storage entries (the conversion linker, since v1.2.48).
+const GOOGLE_TAG_STORAGE = /^_gcl_/;
 
 // The grade's display title is whatever the target database holds (production: "grade 6").
 let gradeTitle = "Grade 6";
@@ -413,9 +421,23 @@ async function previewFacts(page, item, label) {
   const drawn = await drawnPages(page);
   const facts = await pageFacts(page);
   const embedded = await page.locator("iframe, object, embed").count();
-  const stored = await page.evaluate(() => localStorage.length + sessionStorage.length);
-  const leaked = /supabase|resource-files|signedUrl|token=/i.test(await page.content());
-  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every((entry) => entry.ok) && facts.overflow === 0 && embedded === 0 && stored === 0 && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn (ink ${drawn.map((entry) => entry.ink).join("/")}, fit ${drawn.every((entry) => entry.fit)}), overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
+  // Web storage. The viewer keeps nothing there: no page of the quiz, no address of the file,
+  // nothing about the account. The Google tag (v1.2.48) keeps its own conversion-linker entry
+  // on every page of the site; that one is named and allowed, and its value is still read for
+  // anything of the quiz's. Any other entry, by any name, fails the check.
+  const storage = await page.evaluate(({ markers, needles }) => {
+    const entries = [...Object.entries(localStorage).map(([key, value]) => ["local", key, String(value)]), ...Object.entries(sessionStorage).map(([key, value]) => ["session", key, String(value)])];
+    const pattern = new RegExp(markers, "i");
+    return entries.map(([area, key, value]) => ({ name: `${area}:${key}`, key, holdsQuizData: pattern.test(key + value) || needles.some((needle) => (key + value).includes(needle)) }));
+  }, { markers: STORAGE_MARKERS.source, needles: [item.resourceId, item.quiz.slug] });
+  const tagEntries = storage.filter((entry) => GOOGLE_TAG_STORAGE.test(entry.key));
+  const ownEntries = storage.filter((entry) => !GOOGLE_TAG_STORAGE.test(entry.key));
+  const storageClean = ownEntries.length === 0 && storage.every((entry) => !entry.holdsQuizData);
+  const stored = `${ownEntries.length}${ownEntries.length ? ` (${ownEntries.map((entry) => entry.name).join(", ").slice(0, 200)})` : ""}` +
+    `${tagEntries.length ? `, Google tag ${tagEntries.length} (${tagEntries.map((entry) => entry.name).join(", ")})` : ""}` +
+    `${storage.some((entry) => entry.holdsQuizData) ? `, QUIZ DATA in ${storage.filter((entry) => entry.holdsQuizData).map((entry) => entry.name).join(", ")}` : ""}`;
+  const leaked = STORAGE_MARKERS.test(await page.content());
+  check(canvases === item.quiz.pages && drawn.length === item.quiz.pages && drawn.every((entry) => entry.ok) && facts.overflow === 0 && embedded === 0 && storageClean && !leaked && new URL(page.url()).pathname.endsWith("/preview"), `${label}: preview ${item.quiz.slug}: ${canvases}/${item.quiz.pages} pages drawn (ink ${drawn.map((entry) => entry.ink).join("/")}, fit ${drawn.every((entry) => entry.fit)}), overflow ${facts.overflow}px, embedded ${embedded}, web storage ${stored}, storage markers ${leaked}`);
 }
 async function openPreview(page, item, label) {
   // domcontentloaded, not networkidle: the PDF itself streams in after load, and the status line is the real readiness signal.
@@ -582,8 +604,18 @@ async function productDestinations(page, state, label) {
         "Online Math Prep": (url) => (url.host === originHost ? url.pathname.startsWith("/map-prep") : url.protocol === "https:"),
         "Homework PDFs": (url) => url.host === originHost && url.pathname === "/homework",
         "Quiz PDFs": (url) => url.host === originHost && url.pathname === "/quizzes",
-        "Worksheet Generator": (url) => url.href.startsWith(WORKSHEET_GENERATOR_URL)
+        // On production the browser ends on ShowMe's Worksheet Generator. On a staging host it
+        // ends where ShowMe's gate sends a browser with no pass; the first hop, read below
+        // without being followed, is what shows that MathNexa sent it to the right place.
+        "Worksheet Generator": (url) => url.href.startsWith(WORKSHEET_GENERATOR_URL) || (!isProduction && SHOWME_GATE_LANDING(url))
       }[name];
+    // MathNexa's own answer for the Worksheet Generator entry, for an account that is signed in.
+    let firstHop = null;
+    if (name === "Worksheet Generator" && state !== "anonymous") {
+      const answer = await page.context().request.get(`${origin}${href}`, { maxRedirects: 0 });
+      firstHop = { status: answer.status(), location: answer.headers().location ?? "" };
+    }
+    const firstHopRight = !firstHop || (firstHop.status === 307 && firstHop.location === WORKSHEET_GENERATOR_URL);
     await settle(page);
     await link.click();
     if (name !== "Home") await page.waitForURL((url) => expected(url) && url.pathname !== "/", { timeout: 30_000 }).catch(() => undefined);
@@ -592,7 +624,7 @@ async function productDestinations(page, state, label) {
     const landed = new URL(page.url());
     const notFound = landed.host === originHost && notFoundHeading !== "" &&
       (await page.locator("h1").allTextContents()).some((heading) => heading.trim() === notFoundHeading);
-    check(text === name && target === href && onScreen && expected(landed) && !notFound, `${label}: banner "${name}" (${target}, on screen ${onScreen}) -> ${landed.host === originHost ? "" : landed.host}${landed.pathname}${landed.search}${notFound ? " [site 404 page]" : ""}`);
+    check(text === name && target === href && onScreen && expected(landed) && firstHopRight && !notFound, `${label}: banner "${name}" (${target}, on screen ${onScreen}) -> ${landed.host === originHost ? "" : landed.host}${landed.pathname}${landed.search}${notFound ? " [site 404 page]" : ""}${firstHop ? `; MathNexa's answer ${firstHop.status} to ${firstHop.location || "(no location)"}` : ""}`);
   }
 }
 
