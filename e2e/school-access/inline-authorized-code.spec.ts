@@ -20,7 +20,7 @@ test.beforeAll(() => {
 test("the existing access screen keeps public account choices and shows the masked code field inline", async ({ page }) => {
   await page.goto("/access?next=/map-prep");
   await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?next=/map-prep");
-  await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/sign-up?next=/map-prep");
+  await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/sign-up?next=/map-prep&entry=account");
   await expect(page.getByRole("heading", { name: "Authorize Code" })).toBeVisible();
   const input = page.getByLabel("Code (required)");
   await expect(input).toHaveAttribute("type", "password");

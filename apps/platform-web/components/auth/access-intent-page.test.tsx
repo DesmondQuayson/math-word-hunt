@@ -20,8 +20,8 @@ vi.mock("@/lib/school-access/session", () => ({
 
 import AccessIntentPage from "@/app/access/page";
 
-async function renderAccessPage() {
-  render(await AccessIntentPage({ searchParams: Promise.resolve({ next: "/map-prep" }) }));
+async function renderAccessPage(next = "/map-prep") {
+  render(await AccessIntentPage({ searchParams: Promise.resolve({ next }) }));
 }
 
 function expectInlineAuthorizedCode() {
@@ -41,10 +41,17 @@ afterEach(cleanup);
 describe("authorized-code initial visibility on /access", () => {
   it("renders sign-in, account creation, and the code field together for signed-out visitors", async () => {
     await renderAccessPage();
-    expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Create account" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in?next=/map-prep");
+    // The sign-up page in its account wording ("Create your MathNexa account"), keeping the product.
+    expect(screen.getByRole("link", { name: "Create account" }).getAttribute("href")).toBe("/sign-up?next=/map-prep&entry=account");
     expectInlineAuthorizedCode();
     expect(document.body.textContent).not.toContain("Use the code provided by your school. No personal account is created.");
+  });
+
+  it("keeps a free game's Create account link unchanged (it already opens the free-account wording)", async () => {
+    await renderAccessPage("/games/math-tug-of-war/play");
+    expect(screen.getByRole("link", { name: "Create account" }).getAttribute("href")).toBe("/sign-up?next=/games/math-tug-of-war/play");
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in?next=/games/math-tug-of-war/play");
   });
 
   it.each([

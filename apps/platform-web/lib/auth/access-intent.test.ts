@@ -4,8 +4,10 @@ import {
   ACCESS_INTENT_DESTINATIONS,
   POST_AUTH_DESTINATION,
   PRODUCT_DESTINATIONS,
+  FREE_GAME_DESTINATIONS,
   SIGN_UP_ACCOUNT_ENTRY,
   accessIntentHref,
+  createAccountHref,
   destinationLabel,
   safeAccessIntentDestination,
   safeProductDestination,
@@ -91,6 +93,14 @@ describe("consumer access intent", () => {
     // The destination never depends on the entry mode: both modes confirm into the same next step.
     expect(signUpDestination(undefined)).toBe("/subscription");
     expect(signUpDestination("/map-prep")).toBe("/map-prep");
+  });
+
+  it("Create account toward a destination keeps the destination and adds the account wording, except for a free game", () => {
+    for (const destination of [POST_AUTH_DESTINATION, ...PRODUCT_DESTINATIONS, "/subscription", "/account"] as const) {
+      expect(createAccountHref(destination)).toBe(`/sign-up?next=${destination}&entry=account`);
+    }
+    // A free game already opens "Create a free account to play": its link is unchanged.
+    for (const destination of FREE_GAME_DESTINATIONS) expect(createAccountHref(destination)).toBe(`/sign-up?next=${destination}`);
   });
 
   it("treats the Worksheet Generator entry as a product destination: gated, remembered as next, never the off-site URL", () => {

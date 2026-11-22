@@ -163,11 +163,19 @@ test("signed-out product and account choices preserve only allowlisted destinati
     await page.goto(destination);
     await expect(page).toHaveURL(`/access?next=${destination}`);
     await expect(page.getByRole("heading", { name: `Continue to ${label}` })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", `/sign-up?next=${destination}`);
+    await expect(page.getByRole("link", { name: "Create account" })).toHaveAttribute("href", `/sign-up?next=${destination}&entry=account`);
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", `/sign-in?next=${destination}`);
     await expect(page.locator("body")).not.toContainText(/\$5\.99|24-hour|stripe|checkout|consent|phase \d/i);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   }
+  // Create account from a product's "Continue to" page: the sign-up page in its account wording, keeping the product.
+  await page.goto("/access?next=/map-prep");
+  await page.getByRole("link", { name: "Create account" }).click();
+  await expect(page).toHaveURL("/sign-up?next=/map-prep&entry=account");
+  await expect(page.getByRole("heading", { level: 1, name: "Create your MathNexa account" })).toBeVisible();
+  await expect(page.locator(".onboarding-header .trial-offer-note")).toContainText("A card is needed to start");
+  await expect(page.locator("form").first().locator('input[name="next"]')).toHaveValue("/map-prep");
+  await expect(page.locator("form").first().getByRole("button", { name: "Create account" })).toBeVisible();
 
   for (const value of [
     "https://attacker.example",

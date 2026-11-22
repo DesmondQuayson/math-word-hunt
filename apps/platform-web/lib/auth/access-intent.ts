@@ -102,6 +102,16 @@ export function signUpEntryMode(value: unknown): SignUpEntryMode {
   return value === SIGN_UP_ACCOUNT_ENTRY ? "account" : "trial";
 }
 
+/**
+ * "Create account" toward a chosen destination (the "Continue to …" page): the
+ * one sign-up page, keeping the destination, in its account wording. A free
+ * game already opens its own free-account wording, so its link is unchanged.
+ */
+export function createAccountHref(destination: AccessIntentDestination): string {
+  const href = `/sign-up?next=${destination}`;
+  return isFreeGameDestination(destination) ? href : `${href}&entry=${SIGN_UP_ACCOUNT_ENTRY}`;
+}
+
 export function safeProductDestination(
   value: string | null | undefined,
   fallback: ProductDestination = "/games"

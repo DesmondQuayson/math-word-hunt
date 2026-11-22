@@ -6,6 +6,7 @@ import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import {
+  createAccountHref,
   destinationLabel,
   isFreeGameDestination,
   safeAccessIntentDestination
@@ -55,7 +56,7 @@ export default async function AccessIntentPage({
         <LinkButton href="/subscription" variant="secondary">Subscription</LinkButton>
       </> : <>
         <LinkButton href={`/sign-in?next=${destination}`}>Sign in</LinkButton>
-        <LinkButton href={`/sign-up?next=${destination}`} variant="secondary">Create account</LinkButton>
+        <LinkButton href={createAccountHref(destination)} variant="secondary">Create account</LinkButton>
       </>}
     </div>
     {schoolSession
