@@ -60,6 +60,9 @@ describe("web analytics redaction", () => {
     expect(layout).toMatch(/const webAnalytics = productionPlatform && isWebAnalyticsEnabled\(\);/);
     expect(layout).toMatch(/\{webAnalytics \? <SiteAnalytics \/> : null\}/);
     expect(read("components/analytics/site-analytics.tsx")).toMatch(/<Analytics beforeSend=\{beforeSendAnalyticsEvent\} debug=\{false\} \/>/);
+    // An analytics failure stays inside analytics: the component only ever renders inside its error boundary.
+    expect(read("components/analytics/site-analytics.tsx")).toMatch(/return <AnalyticsBoundary><Analytics beforeSend=\{beforeSendAnalyticsEvent\} debug=\{false\} \/><\/AnalyticsBoundary>;/);
+    expect(read("components/analytics/site-analytics.tsx").match(/<Analytics /g)).toHaveLength(1);
   });
 
   it("is off unless the flag is exactly enabled", () => {
