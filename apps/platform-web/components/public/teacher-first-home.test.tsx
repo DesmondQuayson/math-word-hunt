@@ -46,9 +46,14 @@ describe("teacher-first public homepage", () => {
 
   it("shows account actions, the approved product art, and every product card on its unchanged route", () => {
     const { container } = render(<TeacherFirstHome />);
-    // The trial is the first step, with its offer stated beside the button (2026-11 funnel fix).
-    expect(screen.getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/sign-up?next=/subscription");
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
+    // The trial is the first step, with its offer stated beside the button (2026-11 funnel fix),
+    // then account creation and sign-in on their existing routes (2026-11-22).
+    const actions = [...container.querySelectorAll<HTMLAnchorElement>(".teacher-home-actions a")];
+    expect(actions.map((link) => [link.textContent, link.getAttribute("href"), link.className])).toEqual([
+      ["Start free trial", "/sign-up?next=/subscription", "button button-primary"],
+      ["Create account", "/sign-up", "button button-secondary"],
+      ["Sign in", "/sign-in", "button button-ghost"]
+    ]);
     expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
     expect(container.querySelector(".teacher-home-copy .trial-offer-note")?.textContent).toBe(
       "24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends. See pricing"
@@ -340,10 +345,14 @@ describe("teacher-first public homepage", () => {
     expect(screen.queryByRole("link", { name: "View access options" })).toBeNull();
     expect(container.querySelector(".teacher-home-copy")?.lastElementChild?.classList.contains("trial-offer-note")).toBe(true);
     cleanup();
-    // A used trial never gets a second offer: "Subscribe" keeps the neutral access link.
-    render(<TeacherFirstHome authState="signed-in" heroCta={{ label: "Subscribe", href: "/pricing" }} />);
-    expect(screen.getByRole("link", { name: "View access options" }).getAttribute("href")).toBe("/subscription");
+    // A used trial never gets a second offer: the hero takes the header's own "Subscribe" (Pricing,
+    // which offers Checkout without a trial), with no trial line under it.
+    const used = render(<TeacherFirstHome authState="signed-in" heroCta={{ label: "Subscribe", href: "/pricing" }} />);
+    expect(screen.getByRole("link", { name: "Subscribe" }).getAttribute("href")).toBe("/pricing");
     expect(screen.queryByRole("link", { name: "Start free trial" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Create account" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+    expect(used.container.querySelector(".trial-offer-note")).toBeNull();
   });
 
   it("shows the exit control in that place instead of a second code prompt while an authorized code is already active", () => {

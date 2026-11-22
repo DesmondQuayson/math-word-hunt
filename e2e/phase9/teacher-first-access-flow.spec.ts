@@ -625,6 +625,10 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await expectBanner(label);
   };
 
+  // The hero's actions (2026-11-22): a signed-in account never sees Create account or Sign in there,
+  // and sees Start free trial only while the server says its one trial is unused.
+  const heroActions = () => page.locator(".teacher-home-actions a").evaluateAll((links) => links.map((link) => [link.textContent?.trim(), link.getAttribute("href")]));
+
   // A: signed out. The card, Show/Hide, and a typed code reaches neither the URL nor web storage.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -675,6 +679,7 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await expect(page.getByRole("link", { name: "View access options" })).toHaveCount(0);
     await expect(page.locator(".teacher-home-copy .trial-offer-note")).toBeVisible();
     await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveAttribute("href", "/subscription");
+    expect(await heroActions()).toEqual([["Start free trial", "/subscription"], ["My Account", "/account"]]);
     for (const width of [...phoneWidths, ...wideWidths]) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
       await page.goto("/");
@@ -689,12 +694,22 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await expectNoEntry("E signed in, used trial");
     await expect(banner.getByRole("link", { name: "Subscribe" })).toHaveAttribute("href", "/pricing");
     await expect(banner.getByRole("link", { name: "Start free trial" })).toHaveCount(0);
+    // The hero takes the header's own "Subscribe"; typing the trial pages' addresses never offers a second trial.
+    expect(await heroActions()).toEqual([["Subscribe", "/pricing"], ["My Account", "/account"]]);
+    await page.goto("/sign-up?next=/subscription");
+    await expect(page).toHaveURL(/\/subscription$/);
+    await expect(page.getByRole("heading", { name: "Start your free trial" })).toHaveCount(0);
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "See subscription options" })).toHaveAttribute("href", "/pricing");
+    await page.goto("/pricing");
+    await expect(page.getByRole("button", { name: "Start free trial" })).toHaveCount(0);
     await context.clearCookies();
 
     // F: signed in with a payment problem (subscription past due).
     await signIn(page, pastDueEmail, "/");
     await expect(page).toHaveURL("/");
     await expectNoEntry("F signed in, payment problem (past due)");
+    expect(await heroActions()).toEqual([["Manage subscription", "/subscription"], ["My Account", "/account"]]);
     await context.clearCookies();
 
     // D: active subscriber - at every phone, tablet and desktop width.
@@ -703,6 +718,7 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await expectNoEntry("D active subscriber, 1366px");
     await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
     await expect(banner.getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
+    expect(await heroActions()).toEqual([]);
     for (const width of [...phoneWidths, ...wideWidths]) {
       await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
       await page.goto("/");
@@ -719,6 +735,7 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
   await expect(page).toHaveURL("/");
   await expectNoEntry("C active trial");
   await expect(banner.getByRole("link", { name: /Start free trial|Subscribe/ })).toHaveCount(0);
+  expect(await heroActions()).toEqual([]);
   await context.clearCookies();
 
   // Signed out again: the card is back.

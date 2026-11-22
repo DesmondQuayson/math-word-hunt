@@ -8,7 +8,7 @@ import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { TrialOfferNote } from "@/components/consumer/trial-offer-note";
 import { Container } from "@/components/layout/container";
 import { LinkButton } from "@/components/ui/link-button";
-import { START_TRIAL_SIGN_UP_HREF } from "@/lib/consumer/header-cta";
+import { CREATE_ACCOUNT_HREF, SIGN_IN_HREF, START_TRIAL_SIGN_UP_HREF } from "@/lib/consumer/header-cta";
 import { homeFreeGames, type HomeFreeGame } from "@/lib/games/home-free-games";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
 import {
@@ -27,8 +27,11 @@ export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
 
 /**
  * The hero's next step for a signed-in visitor without access, chosen in
- * app/page.tsx by the same rule as the header button (lib/consumer/header-cta):
- * "Start free trial" only while the account's one trial is unused.
+ * app/page.tsx from the server's access decision by the same rule as the header
+ * button (lib/consumer/header-cta): "Start free trial" only while the account's
+ * one trial is unused, "Subscribe" once it is used and access has ended,
+ * "Manage subscription" for a payment problem, "Trial status" while a trial is
+ * activating.
  */
 export type HomeHeroCta = Readonly<{ label: string; href: string }>;
 
@@ -48,24 +51,31 @@ type TeacherFirstHomeProps = Readonly<{
 
 function HeroActions({ authState, entitled, heroCta }: Readonly<{ authState: HomeAuthState; entitled: boolean; heroCta?: HomeHeroCta | null }>) {
   if (authState === "signed-out") {
+    // No session: the server cannot know whether this person already used a
+    // trial, so all three existing entry points show, trial first. Trial
+    // eligibility is decided on the server once they sign in or sign up.
     // The offer is stated where the button is: the trial, the price after it,
     // the card requirement and the cancel rule (components/consumer/trial-offer-note).
     return <>
       <div className="button-row teacher-home-actions">
         <LinkButton href={START_TRIAL_SIGN_UP_HREF}>Start free trial</LinkButton>
-        <LinkButton variant="secondary" href="/sign-in">Sign in</LinkButton>
+        <LinkButton variant="secondary" href={CREATE_ACCOUNT_HREF}>Create account</LinkButton>
+        <LinkButton variant="ghost" href={SIGN_IN_HREF}>Sign in</LinkButton>
       </div>
       <TrialOfferNote />
     </>;
   }
   if (!entitled) {
-    const trialHref = heroCta && heroCta.label === "Start free trial" ? heroCta.href : null;
+    // Signed in without access: exactly the header's server-decided next step,
+    // so a used trial is never offered again; without one, the access page.
+    const action = heroCta ?? { label: "View access options", href: "/subscription" };
+    const offersTrial = action.label === "Start free trial";
     return <>
       <div className="button-row teacher-home-actions">
-        <LinkButton href={trialHref ?? "/subscription"}>{trialHref ? "Start free trial" : "View access options"}</LinkButton>
+        <LinkButton href={action.href}>{action.label}</LinkButton>
         <LinkButton variant="secondary" href="/account">My Account</LinkButton>
       </div>
-      {trialHref ? <TrialOfferNote /> : null}
+      {offersTrial ? <TrialOfferNote /> : null}
     </>;
   }
   return <p className="teacher-home-ready" role="status">

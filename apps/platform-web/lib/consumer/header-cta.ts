@@ -18,6 +18,15 @@ export type HeaderCta = Readonly<{
 
 /** Where "Start free trial" begins for someone without an account. */
 export const START_TRIAL_SIGN_UP_HREF = "/sign-up?next=/subscription" as const;
+/**
+ * "Create account" for a signed-out visitor: the one canonical registration
+ * route. With no destination it continues, after email confirmation, to the
+ * trial step like every consumer sign-up (lib/auth/access-intent
+ * signUpDestination); creating an account never starts a trial by itself.
+ */
+export const CREATE_ACCOUNT_HREF = "/sign-up" as const;
+/** The existing sign-in page. */
+export const SIGN_IN_HREF = "/sign-in" as const;
 /** The existing subscription page: it holds the approved terms and the Stripe hand-off. */
 export const START_TRIAL_SUBSCRIPTION_HREF = "/subscription" as const;
 /**
