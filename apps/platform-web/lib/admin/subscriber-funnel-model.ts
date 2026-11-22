@@ -238,7 +238,7 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
     firstPaymentDetail = "Accounts with a real payment on record (dates before the conversion log are not recorded)";
   } else {
     firstPaymentIds = null;
-    firstPaymentDetail = "Not recorded for this period: Stripe could not be read and the server conversion log starts later";
+    firstPaymentDetail = "Not recorded for this period: Stripe invoices are not available here, and the server conversion log starts later";
   }
   const genuineFirstPayments = firstPaymentIds?.size ?? null;
 
@@ -258,7 +258,7 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
   const revenue = invoices
     ? invoices.filter((invoice) => invoice.status === "paid" && inPeriod(invoice.paidAt)).reduce((sum, invoice) => sum + invoice.amountPaidMinorUnits, 0)
     : null;
-  const stripeMissing = "Stripe invoices could not be read, so this is not shown";
+  const stripeMissing = "Needs Stripe invoices, which are not available right now";
 
   const subscriptionsByOwner = new Map<string, FunnelSubscription[]>();
   for (const row of subscriptions) subscriptionsByOwner.set(row.ownerId, [...(subscriptionsByOwner.get(row.ownerId) ?? []), row]);
