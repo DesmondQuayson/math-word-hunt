@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 
 import { AdClickCapture } from "@/components/analytics/ad-click-capture";
 import { GoogleTag } from "@/components/analytics/google-tag";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { AppShell } from "@/components/layout/app-shell";
 import { isGoogleTagEnabled } from "@/lib/analytics/google-tag";
+import { isWebAnalyticsEnabled } from "@/lib/analytics/web-analytics-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { isProductionPublicMode } from "@/lib/environment/production-public";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
@@ -16,6 +18,8 @@ const publicProduction = isProductionPublicMode();
 const productionPlatform = isProductionPlatformMode();
 const mathNexa = publicProduction || productionPlatform;
 const googleTag = isGoogleTagEnabled(mathNexa);
+// Off unless the deployment sets MVH_WEB_ANALYTICS=enabled (after Web Analytics is enabled for the Vercel project).
+const webAnalytics = productionPlatform && isWebAnalyticsEnabled();
 
 export const metadata: Metadata = {
   // Without metadataBase + a canonical, Google may elect a *.vercel.app or www
@@ -47,6 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Accounts exist only on the platform, so only there is an ad click kept. */}
         {productionPlatform ? <AdClickCapture /> : null}
         <AppShell>{children}</AppShell>
+        {webAnalytics ? <SiteAnalytics /> : null}
       </body>
     </html>
   );

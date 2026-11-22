@@ -17,6 +17,8 @@ import {
   newPasswordError,
   type AccountFieldErrors
 } from "@/lib/auth/field-validation";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/attribution";
+import { sessionStorageOrNull, trackFunnelEvent } from "@/lib/analytics/client";
 import { isFreeGameDestination } from "@/lib/auth/access-intent";
 import { initialAuthFormState, type AuthFormState } from "@/lib/auth/form-state";
 
@@ -105,6 +107,16 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
   useEffect(() => {
     if (state.confirmation) formRef.current?.reset();
   }, [state.confirmation]);
+  const reportedConfirmation = useRef<unknown>(undefined);
+  useEffect(() => {
+    // The server accepted the sign-up (a confirmation email is on its way).
+    // Counted once per confirmation, with only the visit's first page and
+    // source class; nothing typed into the form is ever sent. Does nothing
+    // when Web Analytics is not mounted, and can never throw into the form.
+    if (!consumerMode || !state.confirmation || reportedConfirmation.current === state.confirmation) return;
+    reportedConfirmation.current = state.confirmation;
+    trackFunnelEvent(ANALYTICS_EVENTS.signUpSubmitted, sessionStorageOrNull());
+  }, [consumerMode, state.confirmation]);
   const accountFields = <>
     <TextField id="signup-email" name="email" type="email" autoComplete="email" inputMode="email" label="Email address" required error={errors.email ?? state.fieldErrors?.email} />
     {!consumerMode ? <><TextField id="signup-display-name" name="displayName" autoComplete="name" label="Display name" description="Use the teacher name you want shown in the workspace." required maxLength={80} error={state.fieldErrors?.displayName} />
