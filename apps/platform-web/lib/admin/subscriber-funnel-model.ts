@@ -123,6 +123,8 @@ export type FunnelInvoice = Readonly<{
 }>;
 export type FunnelTimestamped = Readonly<{ ownerId: string; at: string }>;
 export type FunnelConversion = Readonly<{ ownerId: string; eventName: string; at: string }>;
+/** A refund Stripe completed for a known customer's payment. */
+export type FunnelRefund = Readonly<{ ownerId: string; createdAt: string; amountMinorUnits: number }>;
 
 export type FunnelInput = Readonly<{
   accounts: readonly FunnelAccount[];
@@ -137,6 +139,8 @@ export type FunnelInput = Readonly<{
   /** Stripe invoices for known customers, or null when Stripe could not be read. */
   invoices: readonly FunnelInvoice[] | null;
   invoiceNote: string | null;
+  /** Completed Stripe refunds for known customers, or null when Stripe refunds could not be read. */
+  refunds: readonly FunnelRefund[] | null;
   /** When the server conversion log began (first payments are recorded there from then on). */
   conversionLogStartedAt: string | null;
   webAnalytics: "not-enabled" | "enabled";
@@ -159,7 +163,12 @@ export type SubscriberFunnelSnapshot = Readonly<{
   sources: readonly FunnelMetric[];
   rates: readonly FunnelRate[];
   notes: readonly string[];
+  /** Key counts for today, the last 7 days, this month and lifetime side by side; null when not computed. */
+  summary: FunnelSummary | null;
 }>;
+
+export type FunnelSummaryRow = Readonly<{ key: string; label: string; format?: "count" | "usd"; values: readonly (number | null)[] }>;
+export type FunnelSummary = Readonly<{ periods: readonly Readonly<{ key: FunnelPeriodKey; label: string }>[]; rows: readonly FunnelSummaryRow[] }>;
 
 const TRIAL_MS = DAY_MS;
 const time = (iso: string | null | undefined) => (iso ? Date.parse(iso) : Number.NaN);
@@ -255,10 +264,14 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
   const recoveredFirst = countInvoices((invoice) => firstInvoices.has(invoice) && invoice.status === "paid" && invoice.attemptCount > 1 && inPeriod(invoice.paidAt));
   const failedRenewals = countInvoices((invoice) => !firstInvoices.has(invoice) && failedAttempt(invoice) && inPeriod(invoice.createdAt));
   const recoveredRenewals = countInvoices((invoice) => !firstInvoices.has(invoice) && invoice.status === "paid" && invoice.attemptCount > 1 && inPeriod(invoice.paidAt));
+  const successfulRenewals = countInvoices((invoice) => !firstInvoices.has(invoice) && invoice.status === "paid" && invoice.amountPaidMinorUnits > 0 && inPeriod(invoice.paidAt));
   const revenue = invoices
     ? invoices.filter((invoice) => invoice.status === "paid" && inPeriod(invoice.paidAt)).reduce((sum, invoice) => sum + invoice.amountPaidMinorUnits, 0)
     : null;
   const stripeMissing = "Needs Stripe invoices, which are not available right now";
+  const refundsInPeriod = input.refunds?.filter((refund) => known(refund.ownerId) && inPeriod(refund.createdAt)) ?? null;
+  const refunded = refundsInPeriod ? refundsInPeriod.reduce((sum, refund) => sum + refund.amountMinorUnits, 0) : null;
+  const netRevenue = revenue !== null && refunded !== null ? revenue - refunded : null;
 
   const subscriptionsByOwner = new Map<string, FunnelSubscription[]>();
   for (const row of subscriptions) subscriptionsByOwner.set(row.ownerId, [...(subscriptionsByOwner.get(row.ownerId) ?? []), row]);
@@ -304,7 +317,10 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
       { key: "recovered-first", label: "Recovered first payments", value: recoveredFirst, detail: recoveredFirst === null ? stripeMissing : "Declined first charges later paid" },
       { key: "failed-renewals", label: "Failed renewals", value: failedRenewals, detail: failedRenewals === null ? stripeMissing : "Monthly charges declined at least once" },
       { key: "recovered-renewals", label: "Recovered renewals", value: recoveredRenewals, detail: recoveredRenewals === null ? stripeMissing : "Declined monthly charges later paid" },
+      { key: "successful-renewals", label: "Successful renewals", value: successfulRenewals, detail: successfulRenewals === null ? stripeMissing : "Monthly charges after the first that were paid" },
       { key: "revenue", label: "Revenue collected", value: revenue, detail: revenue === null ? stripeMissing : "Paid invoices above $0, before refunds and Stripe fees", format: "usd" },
+      { key: "refunds", label: "Refunds", value: refunded, detail: refundsInPeriod === null ? "Needs Stripe refunds, which are not available right now" : `${refundsInPeriod.length} refund${refundsInPeriod.length === 1 ? "" : "s"} Stripe completed`, format: "usd" },
+      { key: "net-revenue", label: "Net revenue", value: netRevenue, detail: netRevenue === null ? "Needs both Stripe invoices and refunds" : "Revenue collected minus refunds, before Stripe fees", format: "usd" },
       { key: "refund-requests", label: "Refund requests", value: input.refundRequests.filter((row) => known(row.ownerId) && inPeriod(row.at)).length, detail: "First-charge refund reviews requested" },
       { key: "returning", label: "Returning subscribers", value: returning, detail: "Accounts that subscribed again after an earlier subscription" }
     ]),
@@ -328,6 +344,46 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
       rate("paid-rate", "Became paying customers", cohort.filter((account) => everPaid(account.id)).length, cohort.length),
       rate("trial-to-paid", "Trials that ended in a payment", endedInPeriod.filter((trial) => everPaid(trial.id)).length, trialsEnded)
     ]),
-    notes: Object.freeze(notes)
+    notes: Object.freeze(notes),
+    summary: null
+  });
+}
+
+/** The columns of the "at a glance" table: daily, weekly, monthly and lifetime. */
+export const FUNNEL_SUMMARY_PERIODS: readonly FunnelPeriodKey[] = ["today", "7d", "month", "lifetime"];
+
+type MetricSection = "acquisition" | "trials" | "payments" | "current";
+const SUMMARY_METRICS: readonly Readonly<{ section: MetricSection; key: string; label?: string }>[] = [
+  { section: "acquisition", key: "registrations" },
+  { section: "acquisition", key: "verified" },
+  { section: "trials", key: "trial-activations" },
+  { section: "payments", key: "first-payments" },
+  { section: "payments", key: "failed-first" },
+  { section: "payments", key: "successful-renewals" },
+  { section: "payments", key: "revenue" },
+  { section: "payments", key: "refunds" },
+  { section: "payments", key: "net-revenue" },
+  { section: "current", key: "canceled", label: "Subscriptions canceled" }
+];
+
+/**
+ * The same counting rules as the main view, run for each summary period, so
+ * the table can never disagree with the period view. A count that is not
+ * recorded for a period stays null there.
+ */
+export function summarizeSubscriberFunnel(input: FunnelInput, environment: "live" | "test", now = new Date()): FunnelSummary {
+  const snapshots = FUNNEL_SUMMARY_PERIODS.map((key) => computeSubscriberFunnel(input, resolveFunnelPeriod({ period: key }, now), environment, now));
+  const find = (snapshot: SubscriberFunnelSnapshot, section: MetricSection, key: string) => snapshot[section].find((metric) => metric.key === key);
+  return Object.freeze({
+    periods: Object.freeze(snapshots.map((snapshot) => Object.freeze({ key: snapshot.period.key, label: snapshot.period.label }))),
+    rows: Object.freeze(SUMMARY_METRICS.map(({ section, key, label }) => {
+      const first = snapshots[0] ? find(snapshots[0], section, key) : undefined;
+      return Object.freeze({
+        key,
+        label: label ?? first?.label ?? key,
+        ...(first?.format ? { format: first.format } : {}),
+        values: Object.freeze(snapshots.map((snapshot) => find(snapshot, section, key)?.value ?? null))
+      });
+    }))
   });
 }

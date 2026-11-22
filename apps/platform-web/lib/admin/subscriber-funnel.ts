@@ -11,8 +11,11 @@ import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import {
   computeSubscriberFunnel,
   isReservedTestAddress,
+  summarizeSubscriberFunnel,
+  type FunnelInput,
   type FunnelInvoice,
   type FunnelPeriod,
+  type FunnelRefund,
   type SubscriberFunnelSnapshot
 } from "./subscriber-funnel-model";
 
@@ -25,6 +28,7 @@ const PAGE = 1_000;
 const MAX_ROWS = 50_000;
 const STRIPE_TIMEOUT_MS = 8_000;
 const MAX_INVOICES = 5_000;
+const MAX_REFUNDS = 2_000;
 
 /** Every row of a select, a page at a time (the API returns at most 1,000 rows per request). */
 async function allRows(page: (from: number, to: number) => Query): Promise<Row[] | null> {
@@ -99,13 +103,44 @@ async function stripeInvoices(customers: ReadonlyMap<string, string>): Promise<{
   }
 }
 
+/**
+ * Read-only: refunds Stripe completed for the customers MathNexa created.
+ * Returns null when Stripe is not configured, is the local fixture, fails, or
+ * the key may not read refunds; the view then says refunds are not available.
+ */
+async function stripeRefunds(customers: ReadonlyMap<string, string>): Promise<FunnelRefund[] | null> {
+  const config = tryGetConsumerBillingConfiguration();
+  if (!config || config.provider !== "stripe") return null;
+  const stripe = new Stripe(config.secretKey, { apiVersion: STRIPE_API_VERSION, maxNetworkRetries: 1, timeout: STRIPE_TIMEOUT_MS });
+  try {
+    return await withTimeout((async () => {
+      const collected: FunnelRefund[] = [];
+      let seen = 0;
+      for await (const refund of stripe.refunds.list({ limit: 100, expand: ["data.charge"] })) {
+        seen += 1;
+        if (seen > MAX_REFUNDS) break;
+        const charge = refund.charge;
+        if (refund.status !== "succeeded" || !charge || typeof charge === "string") continue;
+        if (charge.livemode !== (config.stripeMode === "live")) continue;
+        const customer = typeof charge.customer === "string" ? charge.customer : charge.customer?.id ?? "";
+        const ownerId = customers.get(customer);
+        if (!ownerId) continue;
+        collected.push({ ownerId, createdAt: new Date(refund.created * 1000).toISOString(), amountMinorUnits: refund.amount });
+      }
+      return collected;
+    })(), STRIPE_TIMEOUT_MS * 2);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSubscriberFunnel(period: FunnelPeriod, now = new Date()): Promise<SubscriberFunnelSnapshot> {
   const config = tryGetConsumerBillingConfiguration();
   const environment: "live" | "test" = config?.stripeMode ?? (isProductionPlatformMode() ? "live" : "test");
   const client = createServiceSupabaseClient();
   const unavailable = computeSubscriberFunnel({
     accounts: [], adminIds: new Set(), testIds: new Set(), subscriptions: [], acceptances: [], stripePagesOpened: [], conversions: [],
-    refundRequests: [], invoices: null, invoiceNote: null, conversionLogStartedAt: null, webAnalytics: isWebAnalyticsEnabled() ? "enabled" : "not-enabled",
+    refundRequests: [], invoices: null, invoiceNote: null, refunds: null, conversionLogStartedAt: null, webAnalytics: isWebAnalyticsEnabled() ? "enabled" : "not-enabled",
     adClickAccounts: null
   }, period, environment, now);
   if (!client) return { ...unavailable, state: "unavailable" };
@@ -129,8 +164,8 @@ export async function loadSubscriberFunnel(period: FunnelPeriod, now = new Date(
   if (!accounts) return { ...unavailable, state: "unavailable" };
 
   const customerOwners = new Map((customers ?? []).filter(sameEnvironment).map((row) => [str(row.stripe_customer_id), str(row.owner_consumer_id)]));
-  const { invoices, note } = await stripeInvoices(customerOwners);
-  return computeSubscriberFunnel({
+  const [{ invoices, note }, stripeRefundList] = await Promise.all([stripeInvoices(customerOwners), stripeRefunds(customerOwners)]);
+  const input: FunnelInput = {
     accounts: accounts.map((row) => ({ id: str(row.user_id), createdAt: str(row.created_at), emailConfirmedAt: iso(row.email_confirmed_at), trialRedeemedAt: iso(row.trial_redeemed_at) })),
     adminIds: new Set((admins ?? []).map((row) => str(row.user_id))),
     testIds,
@@ -144,8 +179,10 @@ export async function loadSubscriberFunnel(period: FunnelPeriod, now = new Date(
     refundRequests: (refunds ?? []).map((row) => ({ ownerId: str(row.owner_user_id), at: str(row.requested_at) })),
     invoices,
     invoiceNote: note,
+    refunds: stripeRefundList,
     conversionLogStartedAt: iso((settings.data as Row | null)?.tracking_started_at),
     webAnalytics: isWebAnalyticsEnabled() ? "enabled" : "not-enabled",
     adClickAccounts: adClicks ? new Set(adClicks.map((row) => str(row.user_id))) : null
-  }, period, environment, now, failures);
+  };
+  return { ...computeSubscriberFunnel(input, period, environment, now, failures), summary: summarizeSubscriberFunnel(input, environment, now) };
 }

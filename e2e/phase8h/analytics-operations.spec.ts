@@ -20,7 +20,12 @@ test("owner reviews aggregate analytics and audited server operations without id
 
   // Subscriber funnel (2026-11-22): counts only, owner and test accounts left out, unrecorded values say so.
   await page.getByRole("link",{name:/Subscriber funnel/}).click();await expect(page.getByRole("heading",{name:"Subscriber funnel"})).toBeVisible();await expect(page.getByRole("heading",{name:/^Last 30 days · \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/})).toBeVisible();
-  for(const label of["Owner (Super Admin) accounts left out","Test accounts left out","School-code users","Accounts created","Trials started","Genuine first payments","Active paid subscriptions","Confirmed their email"])await expect(page.getByText(label,{exact:true})).toBeVisible();
+  for(const label of["Owner (Super Admin) accounts left out","Test accounts left out","School-code users"])await expect(page.getByText(label,{exact:true})).toBeVisible();
+  for(const label of["Accounts created","Trials started","Genuine first payments","Successful renewals","Refunds","Net revenue","Active paid subscriptions","Confirmed their email"])await expect(page.locator("article.admin-metric").getByText(label,{exact:true})).toBeVisible();
+  // At a glance: today, 7 days, this month and lifetime side by side. The local billing fixture has no Stripe invoices or refunds, so money rows say not recorded rather than $0.
+  const glance=page.getByRole("table",{name:"At a glance"});await expect(glance.getByRole("columnheader")).toHaveText(["Count","Today","Last 7 days","This month","Lifetime"]);
+  for(const label of["Accounts created","Trials started","Genuine first payments","Successful renewals","Revenue collected","Refunds","Net revenue","Subscriptions canceled"])await expect(glance.getByRole("rowheader",{name:label,exact:true})).toBeVisible();
+  await expect(glance.getByRole("row",{name:/^Revenue collected/})).toContainText("Not recorded");
   await expect(page.getByText("Not recorded: Web Analytics is not enabled").first()).toBeVisible();await expect(page.getByText(/school-code users are not counted anywhere here/)).toBeVisible();
   expect(await page.locator("body").innerText()).not.toContain(ownerEmail);
   // Owner-review screenshots only when asked for (local data, synthetic accounts).

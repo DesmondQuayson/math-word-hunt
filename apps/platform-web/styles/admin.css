@@ -393,6 +393,11 @@ body:has(.admin-command-center) > main {
 .admin-funnel-period select { min-height: var(--size-target-min); padding: var(--space-3); border: 1px solid var(--admin-line); background: #071c2a; color: var(--admin-ink); font: inherit; }
 .admin-funnel .admin-metric[data-recorded="no"] > strong { font-size: clamp(1.4rem,3vw,2rem); color: var(--admin-muted); }
 .admin-funnel-notes { display: grid; gap: var(--space-2); margin: var(--space-4) 0 0; padding-left: var(--space-5); color: var(--admin-muted); }
+.admin-funnel-glance-note { margin: 0 0 var(--space-4); color: var(--admin-muted); }
+.admin-funnel-summary-table { min-width: 36rem; }
+.admin-funnel-summary-table td:first-child { width: auto; }
+.admin-funnel-summary-table tbody th { width: 34%; color: var(--admin-ink); font: 700 var(--font-size-body, 1rem) var(--font-body, inherit); letter-spacing: normal; text-transform: none; }
+.admin-funnel-summary-table th:not(:first-child),.admin-funnel-summary-table td { text-align: right; font-variant-numeric: tabular-nums; }
 .admin-popular-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-4); }
 .admin-popular-grid > .admin-section-heading { grid-column: 1/-1; }
 .admin-popular-grid article,.admin-provider-grid article,.admin-flag-grid article,.admin-ops-summary { min-width: 0; padding: var(--space-5); border: 1px solid var(--admin-line); background: var(--admin-panel); }

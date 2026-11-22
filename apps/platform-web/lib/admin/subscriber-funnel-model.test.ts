@@ -7,6 +7,7 @@ import {
   hasRealPaymentEvidence,
   isReservedTestAddress,
   resolveFunnelPeriod,
+  summarizeSubscriberFunnel,
   type FunnelInput,
   type FunnelInvoice,
   type SubscriberFunnelSnapshot
@@ -19,7 +20,7 @@ const metric = (snapshot: SubscriberFunnelSnapshot, key: string) =>
 
 const base = (overrides: Partial<FunnelInput> = {}): FunnelInput => ({
   accounts: [], adminIds: new Set(), testIds: new Set(), subscriptions: [], acceptances: [], stripePagesOpened: [], conversions: [],
-  refundRequests: [], invoices: [], invoiceNote: null, conversionLogStartedAt: "2026-11-15T07:00:00.000Z", webAnalytics: "not-enabled",
+  refundRequests: [], invoices: [], invoiceNote: null, refunds: [], conversionLogStartedAt: "2026-11-15T07:00:00.000Z", webAnalytics: "not-enabled",
   adClickAccounts: new Set(), ...overrides
 });
 
@@ -109,8 +110,32 @@ describe("payments from Stripe invoices", () => {
     expect(metric(snapshot, "failed-first")).toBe(2); // b and c
     expect(metric(snapshot, "recovered-first")).toBe(1); // b
     expect([metric(snapshot, "failed-renewals"), metric(snapshot, "recovered-renewals")]).toEqual([0, 0]);
+    expect(metric(snapshot, "successful-renewals")).toBe(1); // a's later monthly charge
     expect(metric(snapshot, "revenue")).toBe(599 * 3); // a's first + renewal in the period, b
+    expect([metric(snapshot, "refunds"), metric(snapshot, "net-revenue")]).toEqual([0, 599 * 3]);
     expect(metric(snapshot, "trials-expired")).toBe(1); // c never paid
+  });
+
+  it("subtracts refunds Stripe completed for customers in the period, and only those", () => {
+    const snapshot = computeSubscriberFunnel(base({
+      accounts: [...accounts, { id: "owner", createdAt: "2026-10-01T15:00:00.000Z", emailConfirmedAt: null, trialRedeemedAt: null }],
+      adminIds: new Set(["owner"]),
+      invoices: [invoice({ ownerId: "a" })],
+      refunds: [
+        { ownerId: "a", createdAt: "2026-11-19T16:00:00.000Z", amountMinorUnits: 599 },
+        { ownerId: "a", createdAt: "2026-09-02T16:00:00.000Z", amountMinorUnits: 599 }, // before the period
+        { ownerId: "owner", createdAt: "2026-11-19T16:00:00.000Z", amountMinorUnits: 599 }, // the owner's own account
+        { ownerId: "stranger", createdAt: "2026-11-19T16:00:00.000Z", amountMinorUnits: 599 } // not a MathNexa account
+      ]
+    }), resolveFunnelPeriod({ period: "7d" }, NOW), "live", NOW);
+    expect([metric(snapshot, "revenue"), metric(snapshot, "refunds"), metric(snapshot, "net-revenue")]).toEqual([599, 599, 0]);
+    expect(snapshot.payments.find((entry) => entry.key === "refunds")?.detail).toBe("1 refund Stripe completed");
+  });
+
+  it("shows refunds and net revenue as not recorded when Stripe refunds cannot be read", () => {
+    const snapshot = computeSubscriberFunnel(base({ accounts, invoices: [invoice({ ownerId: "a" })], refunds: null }), resolveFunnelPeriod({ period: "7d" }, NOW), "live", NOW);
+    expect([metric(snapshot, "revenue"), metric(snapshot, "refunds"), metric(snapshot, "net-revenue")]).toEqual([599, null, null]);
+    expect(snapshot.payments.find((entry) => entry.key === "refunds")?.detail).toMatch(/not available/);
   });
 
   it("counts a declined and recovered monthly charge as a renewal", () => {
@@ -122,6 +147,32 @@ describe("payments from Stripe invoices", () => {
       ]
     }), resolveFunnelPeriod({ period: "7d" }, NOW), "live", NOW);
     expect([metric(snapshot, "failed-renewals"), metric(snapshot, "recovered-renewals"), metric(snapshot, "failed-first")]).toEqual([1, 1, 0]);
+    expect(metric(snapshot, "successful-renewals")).toBe(1);
+  });
+});
+
+describe("at a glance summary", () => {
+  const accounts = [
+    ["today", "2026-11-22T15:00:00.000Z"], ["week", "2026-11-18T15:00:00.000Z"], ["month", "2026-11-05T15:00:00.000Z"], ["older", "2026-10-01T15:00:00.000Z"]
+  ].map(([id, createdAt]) => ({ id: id as string, createdAt: createdAt as string, emailConfirmedAt: null, trialRedeemedAt: null }));
+
+  it("puts today, the last 7 days, this month and lifetime side by side with the period view's rules", () => {
+    const input = base({ accounts, invoices: null, conversions: [{ ownerId: "week", eventName: "subscription_started", at: "2026-11-20T16:00:00.000Z" }] });
+    const summary = summarizeSubscriberFunnel(input, "live", NOW);
+    expect(summary.periods.map((period) => period.label)).toEqual(["Today", "Last 7 days", "This month", "Lifetime"]);
+    const row = (key: string) => summary.rows.find((entry) => entry.key === key);
+    expect(row("registrations")?.values).toEqual([1, 2, 3, 4]);
+    // First payments come from the conversion log only inside its coverage (from 15 Nov); this month starts earlier.
+    expect(row("first-payments")?.values).toEqual([0, 1, null, 1]);
+    expect(row("revenue")).toMatchObject({ format: "usd", values: [null, null, null, null] });
+    expect(row("canceled")?.label).toBe("Subscriptions canceled");
+    expect(summary.rows.map((entry) => entry.key)).toEqual(["registrations", "verified", "trial-activations", "first-payments", "failed-first", "successful-renewals", "revenue", "refunds", "net-revenue", "canceled"]);
+    const week = computeSubscriberFunnel(input, resolveFunnelPeriod({ period: "7d" }, NOW), "live", NOW);
+    expect(row("registrations")?.values[1]).toBe(metric(week, "registrations"));
+  });
+
+  it("is left out of a single-period snapshot", () => {
+    expect(computeSubscriberFunnel(base(), resolveFunnelPeriod({}, NOW), "live", NOW).summary).toBeNull();
   });
 });
 

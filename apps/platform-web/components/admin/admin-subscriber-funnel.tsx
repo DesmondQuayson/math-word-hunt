@@ -1,7 +1,22 @@
-import { FUNNEL_PERIODS, type FunnelMetric, type SubscriberFunnelSnapshot } from "@/lib/admin/subscriber-funnel-model";
+import { FUNNEL_PERIODS, type FunnelMetric, type FunnelSummary, type SubscriberFunnelSnapshot } from "@/lib/admin/subscriber-funnel-model";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const show = (metric: FunnelMetric) => metric.value === null ? "Not recorded" : metric.format === "usd" ? usd.format(metric.value / 100) : metric.value.toLocaleString("en-US");
+const formatValue = (value: number | null, format?: "count" | "usd") => value === null ? "Not recorded" : format === "usd" ? usd.format(value / 100) : value.toLocaleString("en-US");
+const show = (metric: FunnelMetric) => formatValue(metric.value, metric.format);
+
+function SummaryTable({ summary }: Readonly<{ summary: FunnelSummary }>) {
+  return <section aria-labelledby="funnel-glance">
+    <div className="admin-section-heading"><div><p className="admin-eyebrow">Daily, weekly, monthly and lifetime</p><h2 id="funnel-glance">At a glance</h2></div></div>
+    <p className="admin-funnel-glance-note">The same counting rules as the sections below, side by side. The period you pick does not change this table.</p>
+    <div className="admin-table-scroll"><table className="admin-resource-table admin-funnel-summary-table" aria-labelledby="funnel-glance">
+      <thead><tr><th scope="col">Count</th>{summary.periods.map((period) => <th scope="col" key={period.key}>{period.label}</th>)}</tr></thead>
+      <tbody>{summary.rows.map((row) => <tr key={row.key} data-summary-row={row.key}>
+        <th scope="row">{row.label}</th>
+        {summary.periods.map((period, index) => <td key={period.key}>{formatValue(row.values[index] ?? null, row.format)}</td>)}
+      </tr>)}</tbody>
+    </table></div>
+  </section>;
+}
 
 function PeriodForm({ snapshot }: Readonly<{ snapshot: SubscriberFunnelSnapshot }>) {
   const { period } = snapshot;
@@ -48,6 +63,7 @@ export function AdminSubscriberFunnel({ snapshot }: Readonly<{ snapshot: Subscri
         <div><dt>Billing records</dt><dd>{snapshot.environment === "live" ? "Live Stripe" : "Stripe test mode"}</dd></div>
       </dl>
     </section>
+    {snapshot.summary ? <SummaryTable summary={snapshot.summary} /> : null}
     <MetricGroup id="funnel-acquisition" eyebrow="Step 1" title="Visitors and sign-ups" metrics={snapshot.acquisition} />
     <MetricGroup id="funnel-trials" eyebrow="Step 2" title="Trials" metrics={snapshot.trials} />
     <MetricGroup id="funnel-payments" eyebrow="Step 3" title="Payments" metrics={snapshot.payments} />
