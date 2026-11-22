@@ -121,4 +121,12 @@ test("a returning customer whose trial is used subscribes again and has access a
   // And no further Checkout is offered while the subscription is live.
   await page.goto("/pricing");
   await expect(page.getByRole("button", { name: /^(Start free trial|Continue to secure checkout)$/ })).toHaveCount(0);
+  // One confirmation for a paid subscription without a trial (2026-11-22), from the local capture stub.
+  const emails = async () => ((await (await fetch(process.env.EMAIL_CAPTURE_URL ?? "")).json()) as Array<{ message: { to: string[]; subject: string; text: string } }>)
+    .filter((entry) => entry.message.to?.includes(email));
+  await expect.poll(async () => (await emails()).length, { timeout: 15_000 }).toBe(1);
+  const [confirmation] = await emails();
+  expect(confirmation.message.subject).toBe("Your MathNexa subscription has started");
+  expect(confirmation.message.text).toContain("Your card was charged $5.99 USD today");
+  expect(confirmation.message.text).toContain("Your account has already used its free trial.");
 });

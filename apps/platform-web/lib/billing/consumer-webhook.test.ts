@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+// The Checkout activation itself is covered elsewhere; here it only returns the subscription it started.
+const activation = vi.hoisted(() => ({ result: null as unknown }));
+vi.mock("./consumer-service", () => ({ activateConsumerSetupCheckout: vi.fn(async () => activation.result) }));
+
 import { parseConsumerBillingConfiguration } from "./consumer-config";
 import type { ConsumerBillingEvent, ConsumerBillingSubscription } from "./consumer-models";
 import type { ConsumerBillingProvider } from "./consumer-provider";
@@ -140,6 +144,7 @@ function dependencies(currentEvent = event(), options: Readonly<{ subscriptions?
       email: null
     })),
     retrieveSubscription: vi.fn(async () => authoritativeSubscription),
+    retrieveSetupCheckout: vi.fn(async () => ({ id: "cs_fixture123456", customerId: subscription.customerId, ownerUserId: USER_ID })),
     listCustomerSubscriptions: vi.fn(async () => options.subscriptions ?? [authoritativeSubscription]),
     retrieveInvoice: vi.fn(async () => ({
       id: "in_fixture123456",
@@ -362,5 +367,38 @@ describe("consumer Stripe webhook boundary", () => {
     await expect(signed(deps)).resolves.toMatchObject({ status: 503, body: { received: false, state: "retryable-failure" } });
     expect(deps.repository.finishEvent).toHaveBeenCalledWith(RECEIPT_ID, "retryable_failure", "provider_unavailable");
     expect(deps.repository.synchronizeSubscription).not.toHaveBeenCalled();
+  });
+});
+
+describe("subscription confirmation request (2026-11-22)", () => {
+  const trialing: ConsumerBillingSubscription = {
+    ...subscription, status: "trialing", trialStart: "2026-07-31T12:00:00.000Z", trialEnd: "2026-08-01T12:00:00.000Z"
+  };
+  const checkoutEvent = () => event("checkout.session.completed", { id: "evt_checkout123456", objectId: "cs_fixture123456", customerId: null, subscriptionId: null });
+
+  it("asks the route to confirm the subscription a completed Checkout started, outside the response body", async () => {
+    activation.result = trialing;
+    const deps = dependencies(checkoutEvent(), { retrieved: trialing });
+    (deps.repository.synchronizeSubscription as ReturnType<typeof vi.fn>).mockResolvedValueOnce("trial-active");
+    const result = await signed(deps);
+    expect(result).toMatchObject({ status: 200, body: { received: true, state: "trial-active" } });
+    expect(result.confirmation).toEqual({ ownerUserId: USER_ID, subscription: trialing, correlationId: "evt_checkout123456" });
+    expect(Object.keys(result.body).sort()).toEqual(["received", "state"]);
+  });
+
+  it.each(["customer.subscription.updated", "invoice.paid", "invoice.payment_failed"])("never confirms on %s", async (type) => {
+    const deps = dependencies(event(type));
+    expect((await signed(deps)).confirmation).toBeUndefined();
+  });
+
+  it("never confirms a replayed Checkout completion or one that needed review", async () => {
+    activation.result = trialing;
+    const replay = dependencies(checkoutEvent(), { retrieved: trialing });
+    (replay.repository.registerEvent as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: RECEIPT_ID, state: "processed", duplicate: true, conflict: false });
+    expect((await signed(replay)).confirmation).toBeUndefined();
+    const reviewed = dependencies(checkoutEvent(), { retrieved: trialing, subscriptions: [trialing, { ...trialing, id: "sub_fixture999999" }] });
+    const result = await signed(reviewed);
+    expect(result.body.state).toBe("manual-review");
+    expect(result.confirmation).toBeUndefined();
   });
 });

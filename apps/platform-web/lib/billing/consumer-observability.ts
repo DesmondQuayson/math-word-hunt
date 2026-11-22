@@ -22,7 +22,10 @@ export const BILLING_LIFECYCLE_EVENTS = {
   WEBHOOK_API_VERSION_DRIFT: { code: "webhook-api-version-drift", severity: "warning" },
   WEBHOOK_MANUAL_REVIEW: { code: "webhook-manual-review", severity: "warning" },
   WEBHOOK_PROCESSING_FAILED: { code: "webhook-processing-failed", severity: "error" },
-  RECONCILIATION_SWEEP_COMPLETED: { code: "reconciliation-sweep-completed", severity: "info" }
+  RECONCILIATION_SWEEP_COMPLETED: { code: "reconciliation-sweep-completed", severity: "info" },
+  CONFIRMATION_EMAIL_SENT: { code: "confirmation-email-sent", severity: "info" },
+  CONFIRMATION_EMAIL_SKIPPED: { code: "confirmation-email-skipped", severity: "info" },
+  CONFIRMATION_EMAIL_FAILED: { code: "confirmation-email-failed", severity: "warning" }
 } as const;
 
 export type BillingLifecycleEventName = keyof typeof BILLING_LIFECYCLE_EVENTS;

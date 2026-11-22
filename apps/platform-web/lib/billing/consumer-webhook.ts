@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { isTerminalConsumerSubscriptionStatus } from "@math-vocabulary-hunt/platform-core";
 
 import type { ConsumerBillingConfiguration } from "./consumer-config";
+import type { ConsumerBillingSubscription } from "./consumer-models";
 import { emitBillingLifecycleEvent, redactProviderReference } from "./consumer-observability";
 import type { ConsumerBillingProvider } from "./consumer-provider";
 import type { SupabaseConsumerBillingRepository } from "./consumer-repository";
@@ -31,7 +32,14 @@ const EVENTS = new Set([
 
 const INVOICE_PAID_EVENTS = new Set(["invoice.paid", "invoice.payment_succeeded"]);
 
-type Result = Readonly<{ status: number; body: { received: boolean; state: string } }>;
+/**
+ * A subscription that a completed Checkout has just started: the route sends
+ * the customer's confirmation email after answering Stripe. Never part of the
+ * HTTP response body.
+ */
+export type SubscriptionConfirmationRequest = Readonly<{ ownerUserId: string; subscription: ConsumerBillingSubscription; correlationId: string }>;
+
+type Result = Readonly<{ status: number; body: { received: boolean; state: string }; confirmation?: SubscriptionConfirmationRequest }>;
 
 export async function processConsumerBillingWebhook(input: Readonly<{
   payload: string;
@@ -187,7 +195,12 @@ export async function processConsumerBillingWebhook(input: Readonly<{
     });
     if (result.state === null) return review(result.skipped[subscription.id] ?? "projection_conflict");
     safeBillingLog("consumer-webhook-processed", { state: result.state, eventAllowed: true });
-    return { status: 200, body: { received: true, state: result.state } };
+    // Only the Checkout completion starts a subscription; a replay of it never
+    // reaches this line (the receipt check above answers first).
+    const confirmation = event.type === "checkout.session.completed"
+      ? { ownerUserId: mapping.ownerUserId, subscription, correlationId: event.id }
+      : undefined;
+    return { status: 200, body: { received: true, state: result.state }, ...(confirmation ? { confirmation } : {}) };
   } catch {
     emitBillingLifecycleEvent("WEBHOOK_PROCESSING_FAILED", {
       eventType: event.type,

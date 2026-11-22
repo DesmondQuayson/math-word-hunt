@@ -1,5 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
+import { createServer } from "node:http";
 import { resolve } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
@@ -63,8 +64,37 @@ const environment = {
   STRIPE_WEBHOOK_SECRET: "whsec_fixture12345",
   STRIPE_PRODUCT_MATHNEXA: "prod_mathnexa123",
   STRIPE_PRICE_MATHNEXA_MONTHLY: "price_mathnexa123",
-  STRIPE_PORTAL_CONFIGURATION_ID: "bpc_mathnexa123"
+  STRIPE_PORTAL_CONFIGURATION_ID: "bpc_mathnexa123",
+  // Subscription confirmation emails go to a local capture stub that answers
+  // like Resend (one message per Idempotency-Key); nothing leaves the machine.
+  MVH_BILLING_EMAILS: "enabled",
+  RESEND_API_KEY: "re_local_capture_key_000000000000",
+  MVH_EMAIL_API_BASE_URL: "http://127.0.0.1:3901"
 };
+
+const captured = [];
+const capture = createServer((request, response) => {
+  if (request.method === "GET" && request.url === "/captured") {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(captured));
+    return;
+  }
+  if (request.method !== "POST" || request.url !== "/emails") {
+    response.writeHead(404).end();
+    return;
+  }
+  let raw = "";
+  request.on("data", (chunk) => { raw += chunk; });
+  request.on("end", () => {
+    const key = String(request.headers["idempotency-key"] ?? "");
+    const existing = captured.find((entry) => key && entry.idempotencyKey === key);
+    if (existing) existing.attempts += 1;
+    else captured.push({ idempotencyKey: key, authorization: String(request.headers.authorization ?? "").replace(/Bearer .+/, "Bearer [present]"), attempts: 1, message: JSON.parse(raw || "{}") });
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ id: `local_${captured.length}` }));
+  });
+});
+await new Promise((done) => capture.listen(3901, "127.0.0.1", done));
 
 const app = spawn(
   process.execPath,
@@ -98,7 +128,8 @@ try {
         ...environment,
         SUPABASE_TEST_URL: status.API_URL,
         SUPABASE_TEST_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY,
-        SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY
+        SUPABASE_TEST_SECRET_KEY: status.SECRET_KEY,
+        EMAIL_CAPTURE_URL: "http://127.0.0.1:3901/captured"
       },
       stdio: "inherit"
     }
@@ -106,6 +137,7 @@ try {
   [exitCode] = await once(tests, "exit");
 } finally {
   await stopVerificationNextProcess(app);
+  capture.close();
   const restored = await admin.rpc("set_platform_identity_model", { p_identity_model: "legacy-preview" });
   if (restored.error) {
     console.error("Failed to restore the local Preview identity model.", restored.error.message);

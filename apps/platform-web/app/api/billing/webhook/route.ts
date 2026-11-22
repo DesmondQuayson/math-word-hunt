@@ -1,4 +1,7 @@
+import { after } from "next/server";
+
 import { tryGetBillingConfiguration } from "@/lib/billing/config";
+import { sendSubscriptionConfirmationEmail } from "@/lib/billing/subscription-confirmation-email";
 import { createBillingProvider } from "@/lib/billing/provider-factory";
 import { createBillingRepository } from "@/lib/billing/service";
 import { processBillingWebhook } from "@/lib/billing/webhook";
@@ -34,6 +37,10 @@ export async function POST(request: Request) {
       provider: createConsumerBillingProvider(config),
       repository
     });
+    // The customer's confirmation email goes out after Stripe has its answer;
+    // it never delays, changes or fails the webhook.
+    const confirmation = result.confirmation;
+    if (confirmation) after(() => sendSubscriptionConfirmationEmail({ ...confirmation, config }).then(() => undefined));
     return Response.json(result.body, { status: result.status });
   }
   const config = tryGetBillingConfiguration();

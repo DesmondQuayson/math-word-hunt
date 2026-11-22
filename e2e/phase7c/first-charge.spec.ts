@@ -56,6 +56,13 @@ async function fixture(request: APIRequestContext, body: Record<string, unknown>
 
 const invoiceObject = (id: string) => ({ id, object: "invoice", customer: customerId, parent: { subscription_details: { subscription: subscriptionId } } });
 
+type CapturedEmail = Readonly<{ idempotencyKey: string; attempts: number; message: { from: string; to: string[]; subject: string; text: string; html: string } }>;
+/** Confirmation emails the local capture stub received for this run's account (scripts/run-phase7c-e2e.mjs). */
+async function emailsToAccount(): Promise<CapturedEmail[]> {
+  const response = await fetch(process.env.EMAIL_CAPTURE_URL ?? "");
+  return ((await response.json()) as CapturedEmail[]).filter((entry) => entry.message.to?.includes(email));
+}
+
 async function localSubscription() {
   const row = await admin.from("billing_subscriptions")
     .select("subscription_status, first_paid_at, last_paid_at, last_payment_failed_at, renewal_grace_ends_at")
@@ -119,6 +126,16 @@ test("the trial starts as before", async ({ page, request }) => {
   if (row.error) throw row.error;
   subscriptionId = row.data.stripe_subscription_id;
   expect(await productAccess(page)).toBe(true);
+  // The trial confirmation email (2026-11-22) goes out after the webhook has answered: one, for this subscription.
+  await expect.poll(async () => (await emailsToAccount()).length, { timeout: 15_000 }).toBe(1);
+  const [confirmation] = await emailsToAccount();
+  expect(confirmation.idempotencyKey).toBe(`mathnexa-subscription-confirmation/${subscriptionId}`);
+  expect(confirmation.message.from).toBe("MathNexa <billing@auth.mathnexa.com>");
+  expect(confirmation.message.subject).toBe("Your MathNexa free trial has started");
+  expect(confirmation.message.text).toMatch(/Trial ends: \w{3}, \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M C[SD]T/);
+  expect(confirmation.message.text).toContain("When the trial ends, your card is charged $5.99 USD, then $5.99 USD every month");
+  expect(confirmation.message.text).toContain("open http://127.0.0.1:3000/subscription and choose \"Manage or cancel in Stripe\"");
+  expect(confirmation.message.text).not.toContain(subscriptionId);
 });
 
 test("the trial's $0 invoice is not recorded as a payment", async ({ page, request }) => {
@@ -163,4 +180,6 @@ test("a successful retry restores access at once and records the real first paym
   expect(sub.first_paid_at).not.toBeNull();
   expect(await localEntitlement()).toMatchObject({ entitlement_state: "subscription-active" });
   expect(await productAccess(page)).toBe(true);
+  // Invoices (the $0 trial invoice, the declined and the paid first charge) never send another confirmation.
+  expect((await emailsToAccount()).map((entry) => [entry.message.subject, entry.attempts])).toEqual([["Your MathNexa free trial has started", 1]]);
 });
