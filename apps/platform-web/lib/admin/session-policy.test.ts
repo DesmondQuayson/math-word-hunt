@@ -89,6 +89,8 @@ describe("Phase 2B return destination after signing in again", () => {
 
   it("keeps only the parameters that identify the page", () => {
     expect(safeAdminNextPath("/admin?section=users&csrf=invalid#top")).toBe("/admin?section=users");
+    // The Subscriber funnel's period survives signing in again (2026-11-22).
+    expect(safeAdminNextPath("/admin?section=funnel&period=custom&from=2026-11-01&to=2026-11-15&ops=x")).toBe("/admin?section=funnel&from=2026-11-01&to=2026-11-15&period=custom");
     expect(safeAdminNextPath("/admin?section=users&account=emergency-revoke-succeeded")).toBe("/admin?section=users");
     expect(safeAdminNextPath("/admin?section=analytics&from=2026-09-01&to=2026-09-30&ops=flag-updated")).toBe("/admin?section=analytics&from=2026-09-01&to=2026-09-30");
   });

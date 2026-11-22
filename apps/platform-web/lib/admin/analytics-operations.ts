@@ -128,7 +128,7 @@ export async function loadAdminAnalyticsOperations(range: AdminAnalyticsRange): 
     metrics: [
       { key: "account-growth", label: "Account growth", value: accountGrowth, detail: "Adult-owned consumer accounts created" },
       { key: "trials", label: "Trials", value: trials, detail: "One-time trials redeemed" },
-      { key: "conversions", label: "Conversions", value: conversions, detail: "First verified paid events" },
+      { key: "conversions", label: "Conversions", value: conversions, detail: "First payments recorded; before 22 Nov 2026 trial starts were counted here (see Subscriber funnel)" },
       { key: "active-subscriptions", label: "Active subscriptions", value: activeSubscriptions, detail: "Current authoritative projections" },
       { key: "cancellations", label: "Cancellations", value: cancellations, detail: "Provider-confirmed cancellations" },
       { key: "failed-payments", label: "Failed payments", value: failedPayments, detail: "Provider-confirmed payment failures" },

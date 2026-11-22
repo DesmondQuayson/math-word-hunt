@@ -9,6 +9,9 @@ import { AdminCmsLibrary,AdminMediaLibrary } from "@/components/admin/admin-cms-
 import { AdminAccountsLibrary } from "@/components/admin/admin-accounts-library";
 import { AdminAnalyticsOperations } from "@/components/admin/admin-analytics-operations";
 import { AdminMapPrep } from "@/components/admin/admin-map-prep";
+import { AdminSubscriberFunnel } from "@/components/admin/admin-subscriber-funnel";
+import { loadSubscriberFunnel } from "@/lib/admin/subscriber-funnel";
+import { resolveFunnelPeriod } from "@/lib/admin/subscriber-funnel-model";
 import { parseAdminAnalyticsRange } from "@math-vocabulary-hunt/platform-core";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -29,12 +32,12 @@ import { adminSessionDeadline, adminStepUpNeeded } from "@/lib/admin/session-pol
 export const metadata = { title: "Super Admin", robots: { index: false, follow: false, noarchive: true } };
 export const dynamic = "force-dynamic";
 
-type AdminSearchParams = { csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; ops?:string; taxonomy?:string; map?:string; grade?:string; topic?:string; lesson?:string; query?:string };
+type AdminSearchParams = { csrf?: string; section?: string; upload?: string; publish?: string; package?: string; cms?:string; media?:string; account?:string; from?:string; to?:string; period?:string; ops?:string; taxonomy?:string; map?:string; grade?:string; topic?:string; lesson?:string; query?:string };
 
 /** The admin page being viewed, without one-shot result flags: where to come back to after signing in again. */
 function currentAdminPath(params: AdminSearchParams): string {
   const kept = new URLSearchParams();
-  for (const key of ["section", "from", "to", "grade", "topic", "lesson", "query"] as const) {
+  for (const key of ["section", "from", "to", "period", "grade", "topic", "lesson", "query"] as const) {
     const value = params[key];
     if (typeof value === "string" && value) kept.set(key, value);
   }
@@ -82,11 +85,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const accountsLibrary = allowedSection === "users" || allowedSection === "subscriptions" ? await loadAdminAccounts() : null;
   const analyticsRange = parseAdminAnalyticsRange({ from: params.from ?? "", to: params.to ?? "" }) ?? parseAdminAnalyticsRange({})!;
   const analyticsOperations = ["analytics", "settings", "audit-log"].includes(allowedSection) ? await loadAdminAnalyticsOperations(analyticsRange) : null;
+  const subscriberFunnel = allowedSection === "funnel" ? await loadSubscriberFunnel(resolveFunnelPeriod({ period: params.period, from: params.from, to: params.to }, now), now) : null;
 
   return <>
     {params.csrf === "invalid" ? <Container className="page-stack" width="compact"><PageHeader eyebrow="Request expired" title="The state-changing request was blocked" description="Reload the admin workspace before trying again." /></Container> : null}
     <AdminCommandCenter snapshot={snapshot} activeSection={allowedSection} csrfToken={csrfToken} signOutAction={adminSignOutAction}
       session={sessionTiming} returnPath={currentAdminPath(params)}
-      moduleContent={analyticsOperations && (allowedSection === "analytics" || allowedSection === "settings" || allowedSection === "audit-log") ? <AdminAnalyticsOperations snapshot={analyticsOperations} csrfToken={csrfToken} section={allowedSection} result={params.ops} stepUpRequired={stepUpRequired} /> : accountsLibrary && (allowedSection === "users" || allowedSection === "subscriptions") ? <AdminAccountsLibrary snapshot={accountsLibrary} csrfToken={csrfToken} result={params.account} mode={allowedSection} stepUpRequired={stepUpRequired} /> : allowedSection === "cms" && cmsLibrary ? <AdminCmsLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.cms} /> : allowedSection === "media-library" && cmsLibrary ? <AdminMediaLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.media} /> : allowedSection === "map-prep" && cmsLibrary ? <AdminMapPrep snapshot={cmsLibrary} csrfToken={csrfToken} result={params.map} /> : allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library && taxonomy ? <AdminResourceLibrary kind={libraryKind} snapshot={library} taxonomy={taxonomy} csrfToken={csrfToken} result={params.upload??params.publish} taxonomyResult={params.taxonomy} initialFilters={{grade:params.grade,topic:params.topic,lesson:params.lesson,query:params.query}} /> : undefined} />
+      moduleContent={subscriberFunnel ? <AdminSubscriberFunnel snapshot={subscriberFunnel} /> : analyticsOperations && (allowedSection === "analytics" || allowedSection === "settings" || allowedSection === "audit-log") ?<AdminAnalyticsOperations snapshot={analyticsOperations} csrfToken={csrfToken} section={allowedSection} result={params.ops} stepUpRequired={stepUpRequired} /> : accountsLibrary && (allowedSection === "users" || allowedSection === "subscriptions") ? <AdminAccountsLibrary snapshot={accountsLibrary} csrfToken={csrfToken} result={params.account} mode={allowedSection} stepUpRequired={stepUpRequired} /> : allowedSection === "cms" && cmsLibrary ? <AdminCmsLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.cms} /> : allowedSection === "media-library" && cmsLibrary ? <AdminMediaLibrary snapshot={cmsLibrary} csrfToken={csrfToken} result={params.media} /> : allowedSection === "map-prep" && cmsLibrary ? <AdminMapPrep snapshot={cmsLibrary} csrfToken={csrfToken} result={params.map} /> : allowedSection === "games" && gameLibrary ? <AdminGamePackageLibrary snapshot={gameLibrary} csrfToken={csrfToken} result={params.package} /> : libraryKind && library && taxonomy ? <AdminResourceLibrary kind={libraryKind} snapshot={library} taxonomy={taxonomy} csrfToken={csrfToken} result={params.upload??params.publish} taxonomyResult={params.taxonomy} initialFilters={{grade:params.grade,topic:params.topic,lesson:params.lesson,query:params.query}} /> : undefined} />
   </>;
 }

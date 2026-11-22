@@ -102,7 +102,7 @@ export function isAdminFirstPartyRequest(fetchSite: string | null): boolean {
  */
 const RETURNABLE_ADMIN_PATH = /^\/admin(?:\/resources\/[0-9a-f-]{36}|\/games\/[0-9a-f-]{36}\/preview|\/map-prep)?$/;
 const PLACEHOLDER_ORIGIN = "https://admin-return.invalid";
-const RETURNABLE_ADMIN_PARAMETERS = ["section", "from", "to", "grade", "topic", "lesson", "query", "kind"] as const;
+const RETURNABLE_ADMIN_PARAMETERS = ["section", "from", "to", "period", "grade", "topic", "lesson", "query", "kind"] as const;
 
 export function safeAdminNextPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0 || value.length > 512) return null;

@@ -6,6 +6,7 @@ export const ADMIN_SECTIONS = [
   ["quizzes", "Quizzes", "PDF library"],
   ["users", "Users", "Accounts"],
   ["subscriptions", "Subscriptions", "Billing operations"],
+  ["funnel", "Subscriber funnel", "Trials and payments"],
   ["analytics", "Analytics", "Aggregate signals"],
   ["media-library", "Media Library", "Protected assets"],
   ["cms", "CMS", "Structured pages"],
