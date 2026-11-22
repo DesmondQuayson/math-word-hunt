@@ -68,3 +68,14 @@ Set `MVH_BILLING_EMAILS=enabled` and `RESEND_API_KEY` (the production Resend sen
 environment and redeploy; optionally `MVH_BILLING_EMAIL_FROM`. The owner should also turn on Stripe's
 successful-payment receipts and failed-payment emails in the Stripe Dashboard, and consider a DMARC record for
 `auth.mathnexa.com`.
+
+## Email switched on (2026-11-22, owner: "Switch it on")
+
+| | |
+| --- | --- |
+| Settings added | Vercel production: `RESEND_API_KEY` (Sensitive; the production Resend sending key, from the owner's DPAPI vault through stdin, never printed) and `MVH_BILLING_EMAILS=enabled`. Sender left at the default `MathNexa <billing@auth.mathnexa.com>`. |
+| Production runtime | `dpl_9yGUCxSqGWWqp9Pr3GMWyTm3xzTw` (`https://mathnexa-platform-production-cncrhzaxz-bright-path-ed-tech.vercel.app`), built after the settings were added from `0ab3544` (this record's commit: the same runtime as `0118394`, which the pipeline checks), promoted 2026-11-22 05:27 UTC. `/api/health` reports build `0ab3544…`, payments `live`. |
+| Rollback runtime | `dpl_4nq7bQSFMV2Ns28PQVGK6kwoYJwW` (v1.2.60 without the settings, so no email): `npx vercel@59 promote dpl_4nq7bQSFMV2Ns28PQVGK6kwoYJwW --scope bright-path-ed-tech`. Removing either setting and redeploying also switches it off. |
+| Pipeline | RELEASE_CERTIFIED_RUNTIME=0118394, RELEASE_ROLLBACK_DEPLOYMENT=dpl_4nq7bQSFMV2Ns28PQVGK6kwoYJwW, RELEASE_PURPOSE=v1.2.60-confirmation-email-enabled: preflight PASS; probe-live before 22/22; deploy-preview PASS; probe-preview 7/7; promote PASS; probe-live after 22/22. |
+| Live checks | Pages 14/14; 0 responses with 5xx and 0 error-level logs after promotion; Web Analytics still not mounted; Google Ads conversion file 200 with the same 2 rows; records unchanged (6 subscriptions: 5 active; 16 acceptances; 10 bindings; 53 accounts); `/admin` 404; Authorize Code live; ShowMe 401. |
+| Effect | From now on, each new trial (or paid subscription without a trial) gets one confirmation email after Stripe confirms the Checkout. Existing subscribers receive nothing. Each send logs `confirmation-email-sent` (or `-failed`) in the Vercel logs, without the address. No live send could be exercised at switch-on without a real customer Checkout; the owner's test send through the same key and sender was accepted earlier the same night. |
