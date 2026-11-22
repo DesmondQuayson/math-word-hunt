@@ -410,7 +410,7 @@ test("320px at 200% text reflows without horizontal scrolling, including the sch
     expect(overflow, `${path} overflows by ${overflow}px at 320px + 200% text`).toBeLessThanOrEqual(0);
   };
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/sign-in", "/sign-up?next=/subscription", "/access?next=/games"]) {
+  for (const path of ["/", "/sign-in", "/sign-up?next=/subscription", "/sign-up?entry=account", "/access?next=/games"]) {
     await measure(path);
     // The authorized school-code form stays usable: field, reveal control and
     // Continue all on screen with project-minimum targets.
@@ -701,6 +701,23 @@ test("Authorize Code: the homepage card is for signed-out visitors only, every s
     await expect(page.getByRole("heading", { name: "Start your free trial" })).toHaveCount(0);
     await expect(page.getByRole("checkbox")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "See subscription options" })).toHaveAttribute("href", "/pricing");
+    // D. Neither sign-up wording, nor any hand-edited address, offers this account a second trial:
+    // the entry mode is wording only, and the server still decides from the redeemed trial.
+    for (const path of [
+      "/sign-up?entry=account",
+      "/sign-up?entry=trial",
+      "/sign-up?entry=account&next=/subscription",
+      "/sign-up?next=/map-prep&entry=account",
+      "/subscription?entry=account",
+      "/subscription?entry=trial&trial=1"
+    ]) {
+      await page.goto(path);
+      await expect(page, path).toHaveURL(/\/subscription(\?|$)/);
+      await expect(page.getByRole("heading", { name: /Start your free trial|Create your MathNexa account/ }), path).toHaveCount(0);
+      await expect(page.getByRole("checkbox"), path).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Start free trial" }), path).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "See subscription options" }), path).toHaveAttribute("href", "/pricing");
+    }
     await page.goto("/pricing");
     await expect(page.getByRole("button", { name: "Start free trial" })).toHaveCount(0);
     await context.clearCookies();

@@ -47,11 +47,11 @@ describe("teacher-first public homepage", () => {
   it("shows account actions, the approved product art, and every product card on its unchanged route", () => {
     const { container } = render(<TeacherFirstHome />);
     // The trial is the first step, with its offer stated beside the button (2026-11 funnel fix),
-    // then account creation and sign-in on their existing routes (2026-11-22).
+    // then account creation (the same sign-up page in its account wording) and sign-in (2026-11-22).
     const actions = [...container.querySelectorAll<HTMLAnchorElement>(".teacher-home-actions a")];
     expect(actions.map((link) => [link.textContent, link.getAttribute("href"), link.className])).toEqual([
       ["Start free trial", "/sign-up?next=/subscription", "button button-primary"],
-      ["Create account", "/sign-up", "button button-secondary"],
+      ["Create account", "/sign-up?entry=account", "button button-secondary"],
       ["Sign in", "/sign-in", "button button-ghost"]
     ]);
     expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
@@ -381,7 +381,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up", "/sign-up?next=/subscription", "/pricing", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect(["/sign-up?entry=account", "/sign-up?next=/subscription", "/pricing", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

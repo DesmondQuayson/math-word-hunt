@@ -85,6 +85,23 @@ export function signUpDestination(requested: string | null | undefined): string 
   return !requested || requested === POST_AUTH_DESTINATION ? NEW_ACCOUNT_DESTINATION : requested;
 }
 
+/**
+ * The /sign-up entry mode, for WORDING ONLY. "Create account" opens the one
+ * sign-up page with `entry=account`, so the page leads with the account rather
+ * than the trial; no value, or any other value, keeps the trial wording that
+ * "Start free trial" has always used. Only the page's heading, lead and button
+ * label read it. The form never carries it, so the sign-up action, the
+ * post-confirmation destination, trial eligibility (consumer_accounts.
+ * trial_redeemed_at), pricing and checkout cannot see it.
+ */
+export const SIGN_UP_ACCOUNT_ENTRY = "account" as const;
+
+export type SignUpEntryMode = "account" | "trial";
+
+export function signUpEntryMode(value: unknown): SignUpEntryMode {
+  return value === SIGN_UP_ACCOUNT_ENTRY ? "account" : "trial";
+}
+
 export function safeProductDestination(
   value: string | null | undefined,
   fallback: ProductDestination = "/games"

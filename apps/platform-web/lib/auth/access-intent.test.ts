@@ -4,10 +4,13 @@ import {
   ACCESS_INTENT_DESTINATIONS,
   POST_AUTH_DESTINATION,
   PRODUCT_DESTINATIONS,
+  SIGN_UP_ACCOUNT_ENTRY,
   accessIntentHref,
   destinationLabel,
   safeAccessIntentDestination,
   safeProductDestination,
+  signUpDestination,
+  signUpEntryMode,
   subscriptionReviewHref
 } from "./access-intent";
 
@@ -77,6 +80,17 @@ describe("consumer access intent", () => {
     expect(destinationLabel("/subscription")).toBe("Subscription");
     expect(destinationLabel("/account")).toBe("My Account");
     expect(PRODUCT_DESTINATIONS).toEqual(["/games", "/map-prep", "/homework", "/quizzes", "/worksheets"]);
+  });
+
+  it("reads the sign-up entry mode as wording only: exactly \"account\" is the account wording, anything else the trial wording", () => {
+    expect(SIGN_UP_ACCOUNT_ENTRY).toBe("account");
+    expect(signUpEntryMode("account")).toBe("account");
+    for (const value of [undefined, null, "", "trial", "Account", "ACCOUNT", " account", "account ", "<b>account</b>", ["account"], ["account", "account"], 1, {}]) {
+      expect(signUpEntryMode(value), JSON.stringify(value)).toBe("trial");
+    }
+    // The destination never depends on the entry mode: both modes confirm into the same next step.
+    expect(signUpDestination(undefined)).toBe("/subscription");
+    expect(signUpDestination("/map-prep")).toBe("/map-prep");
   });
 
   it("treats the Worksheet Generator entry as a product destination: gated, remembered as next, never the off-site URL", () => {

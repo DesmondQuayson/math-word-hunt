@@ -1,7 +1,7 @@
 import { decideGameAccess, markVerificationUnavailable } from "@math-vocabulary-hunt/platform-core";
 import { describe, expect, it } from "vitest";
 
-import { resolveHeaderCta } from "./header-cta";
+import { CREATE_ACCOUNT_HREF, START_TRIAL_SIGN_UP_HREF, resolveHeaderCta } from "./header-cta";
 
 const now = new Date("2026-09-24T12:00:00.000Z");
 const hour = 60 * 60 * 1000;
@@ -23,6 +23,17 @@ const entitledEvidence = [
   { state: "subscription-grace-period", periodEndsAt: iso(-hour), graceEndsAt: iso(6 * 24 * hour) },
   { state: "subscription-canceled-through-period-end", periodEndsAt: iso(5 * 24 * hour) }
 ];
+
+describe("sign-up entry links", () => {
+  it("Create account and Start free trial open the same /sign-up page; only Create account adds the wording-only entry=account", () => {
+    const create = new URL(CREATE_ACCOUNT_HREF, "https://mathnexa.test");
+    const trial = new URL(START_TRIAL_SIGN_UP_HREF, "https://mathnexa.test");
+    expect(create.pathname).toBe("/sign-up");
+    expect(trial.pathname).toBe("/sign-up");
+    expect([...create.searchParams]).toEqual([["entry", "account"]]);
+    expect([...trial.searchParams]).toEqual([["next", "/subscription"]]);
+  });
+});
 
 describe("resolveHeaderCta", () => {
   it("offers the free trial to an anonymous visitor, starting at account creation", () => {

@@ -1,16 +1,42 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // The logged-out homepage hero (2026-11-22): Start free trial, Create account and
 // Sign in, in that order, on their existing routes; reachable by keyboard in the
 // same order with a visible focus indicator; never clipped, overlapping or
 // scrolling sideways; roomy touch targets; and no axe findings for contrast,
 // names or target size. Signed-in states are covered in teacher-first-access-flow.
+//
+// Create account opens the same /sign-up page as Start free trial, in its
+// account wording (entry=account): heading, lead and button label only. The
+// form, its destination and the request it sends are identical.
 
 const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf8");
-const EXPECTED = [["Start free trial", "/sign-up?next=/subscription"], ["Create account", "/sign-up"], ["Sign in", "/sign-in"]];
+const EXPECTED = [["Start free trial", "/sign-up?next=/subscription"], ["Create account", "/sign-up?entry=account"], ["Sign in", "/sign-in"]];
+const OFFER_LINE = "24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends.";
+const SIGN_UP_MODES = [
+  { name: "Create account", path: "/sign-up?entry=account", heading: "Create your MathNexa account", button: "Create account" },
+  { name: "Start free trial", path: "/sign-up?next=/subscription", heading: "Start your free trial", button: "Start free trial" }
+] as const;
+
+async function settleAnimations(page: Page) {
+  // Let one-shot entrance animations finish (never wait on an endless one), so nothing is measured half faded in.
+  await page.evaluate(async () => {
+    const finite = document.getAnimations().filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)));
+    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
+  });
+}
+
+async function axeViolations(page: Page, context: string) {
+  await page.evaluate(axeSource);
+  return page.evaluate(async (selector) => {
+    const axe = (window as unknown as { axe: { run: (context: string, options: unknown) => Promise<{ violations: { id: string; nodes: { target: string[] }[] }[] }> } }).axe;
+    const result = await axe.run(selector, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } });
+    return result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+  }, context);
+}
 
 test("logged-out hero: the three entry points in order, by pointer and keyboard", async ({ page }) => {
   await page.goto("/");
@@ -36,13 +62,137 @@ test("logged-out hero: the three entry points in order, by pointer and keyboard"
   }
 
   // Each goes to its existing page.
+  // A. Start free trial: the sign-up page in its trial wording, unchanged.
+  await page.locator(".teacher-home-actions").getByRole("link", { name: "Start free trial", exact: true }).click();
+  await expect(page).toHaveURL(/\/sign-up\?next=\/subscription$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Start your free trial" })).toBeVisible();
+  await expect(page.locator("form").first().getByRole("button", { name: "Start free trial" })).toBeVisible();
+  await expect(page.locator(".onboarding-header .trial-offer-note")).toHaveCount(0);
+  // B. Create account: the same page and form, led by the account, with the terms and card requirement in view.
+  await page.goto("/");
   await page.locator(".teacher-home-actions").getByRole("link", { name: "Create account", exact: true }).click();
-  await expect(page).toHaveURL(/\/sign-up$/);
+  await expect(page).toHaveURL(/\/sign-up\?entry=account$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Create your MathNexa account" })).toBeVisible();
+  await expect(page.locator(".onboarding-header .lede")).toHaveText("Set up your account to access MathNexa. After you confirm your email, new eligible accounts can start the free trial before the monthly subscription begins.");
+  await expect(page.locator(".onboarding-header .trial-offer-note")).toHaveText(OFFER_LINE);
+  await expect(page.getByRole("region", { name: "Plan" })).toContainText("After the trial, $5.99 USD is billed monthly and renews automatically until canceled.");
+  await expect(page.locator("form").first().getByRole("button", { name: "Create account" })).toBeVisible();
+  await expect(page.locator("form").first().locator('input[name="next"]')).toHaveValue("/subscription");
   await expect(page.getByLabel("Email address")).toBeVisible();
   await page.goto("/");
   await page.locator(".teacher-home-actions").getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+});
+
+test("C. both sign-up wordings send the same request to the same sign-up action: same fields, next=/subscription, no entry", async ({ page }) => {
+  // The submission is captured and stopped in the browser, so no account is created and no email is sent.
+  const captured: { action: string; fields: string[][] }[] = [];
+  await page.route("**/sign-up**", async (route) => {
+    const request = route.request();
+    const action = request.headers()["next-action"];
+    if (request.method() !== "POST" || !action) return route.continue();
+    const body = request.postData() ?? "";
+    captured.push({ action, fields: [...body.matchAll(/name="([^"]+)"\r\n\r\n([\s\S]*?)\r\n--/g)].map(([, name, value]) => [name, value]) });
+    await route.abort();
+  });
+  for (const [index, mode] of [SIGN_UP_MODES[1], SIGN_UP_MODES[0]].entries()) {
+    await page.goto(mode.path);
+    await expect(page.getByRole("heading", { level: 1, name: mode.heading })).toBeVisible();
+    const form = page.locator("form").first();
+    await form.locator('input[name="email"]').fill("same-person@example.test");
+    await form.locator('input[name="password"]').fill("SyntheticAdult42!");
+    await form.locator('input[name="passwordConfirmation"]').fill("SyntheticAdult42!");
+    await form.getByRole("button", { name: mode.button }).click();
+    await expect.poll(() => captured.length, mode.name).toBe(index + 1);
+  }
+  const [trial, account] = captured;
+  expect(account).toEqual(trial);
+  const next = trial.fields.find(([name]) => /(^|_)next$/.test(name));
+  expect(next?.[1]).toBe("/subscription");
+  expect(trial.fields.map(([name]) => name).join(" ")).not.toMatch(/entry/);
+  expect(JSON.stringify(trial.fields)).not.toContain("entry");
+});
+
+test("sign-up wordings at phone, tablet and desktop widths: no sideways scroll or clipping, one h1 and ordered headings, labelled controls, keyboard order, focus ring and no axe findings", async ({ page }) => {
+  test.setTimeout(240_000);
+  for (const mode of SIGN_UP_MODES) {
+    for (const width of [320, 375, 390, 768, 820, 1024, 1366, 1920]) {
+      const label = `${mode.name} ${width}px`;
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      await page.goto(mode.path);
+      await expect(page.getByRole("heading", { level: 1 }), label).toHaveText(mode.heading);
+      await settleAnimations(page);
+      const facts = await page.evaluate(() => {
+        const visible = (element: Element) => {
+          const box = element.getBoundingClientRect();
+          return box.width > 0 && box.height > 0 && getComputedStyle(element).visibility !== "hidden";
+        };
+        const clientWidth = document.documentElement.clientWidth;
+        const main = document.querySelector("main") ?? document.body;
+        const levels = [...main.querySelectorAll("h1, h2, h3, h4, h5, h6")].filter(visible).map((heading) => Number(heading.tagName[1]));
+        const disclosure = [...document.querySelectorAll(".onboarding-header h1, .onboarding-header .lede, .onboarding-header .trial-offer-note, .plan-summary, .plan-facts li, .form-footnote, .form-actions button")];
+        // Text is cut off only where overflow is hidden: by the element itself (its content is larger than its
+        // box) or by an ancestor whose box ends before the element does. Glyph tails past a tight line height
+        // in a visible-overflow box are not clipping.
+        const hides = (element: Element) => { const style = getComputedStyle(element); return style.overflowX !== "visible" || style.overflowY !== "visible"; };
+        const cutOff = (element: Element) => {
+          if (hides(element) && (element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1)) return true;
+          const box = element.getBoundingClientRect();
+          for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+            if (!hides(parent)) continue;
+            const frame = parent.getBoundingClientRect();
+            if (box.left < frame.left - 1 || box.right > frame.right + 1 || box.top < frame.top - 1 || box.bottom > frame.bottom + 1) return true;
+          }
+          return false;
+        };
+        return {
+          overflow: document.documentElement.scrollWidth - clientWidth,
+          levels,
+          clipped: disclosure.filter(cutOff).map((element) => element.className || element.tagName),
+          outside: disclosure.filter((element) => { const box = element.getBoundingClientRect(); return box.left < -0.5 || box.right > clientWidth + 0.5; }).map((element) => element.className || element.tagName),
+          disclosureShown: disclosure.length > 0 && disclosure.every(visible)
+        };
+      });
+      expect(facts.overflow, `${label} horizontal overflow`).toBeLessThanOrEqual(0);
+      expect(facts.clipped, `${label} clipped text`).toEqual([]);
+      expect(facts.outside, `${label} outside the viewport`).toEqual([]);
+      expect(facts.disclosureShown, `${label} terms shown`).toBe(true);
+      expect(facts.levels.filter((level) => level === 1), `${label} one h1`).toHaveLength(1);
+      expect(facts.levels[0], `${label} h1 first`).toBe(1);
+      expect(facts.levels.every((level, index) => index === 0 || level <= facts.levels[index - 1] + 1), `${label} heading levels ${facts.levels.join(",")}`).toBe(true);
+      // Screen-reader names for every control of the form.
+      const form = page.locator("form").first();
+      await expect(form.getByLabel("Email address"), label).toBeVisible();
+      await expect(form.getByLabel(/^Password/), label).toBeVisible();
+      await expect(form.getByLabel(/^Confirm password/), label).toBeVisible();
+      await expect(form.getByRole("button", { name: "Show password" }), label).toHaveCount(2);
+      await expect(form.getByRole("button", { name: mode.button }), label).toBeVisible();
+      if (mode.name === "Create account") await expect(page.locator(".onboarding-header .trial-offer-note"), label).toHaveText(OFFER_LINE);
+      expect(await axeViolations(page, "main"), `${label} axe`).toEqual([]);
+    }
+
+    // Keyboard: from the email field, Tab walks the form in reading order to the button and Sign in, each with a visible focus ring.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(mode.path);
+    const form = page.locator("form").first();
+    await form.locator('input[name="email"]').focus();
+    const order: string[] = [];
+    for (let step = 0; step < 7; step += 1) {
+      const focused = await page.evaluate(() => {
+        const element = document.activeElement as HTMLElement | null;
+        if (!element) return { name: "none", ring: false };
+        const style = getComputedStyle(element);
+        const ring = (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== "none";
+        const name = element.tagName === "INPUT" ? `input:${(element as HTMLInputElement).name}` : `${element.tagName.toLowerCase()}:${element.getAttribute("aria-label") ?? element.textContent?.trim()}`;
+        return { name, ring };
+      });
+      order.push(focused.name);
+      expect(focused.ring, `${mode.name} focus ring on ${focused.name}`).toBe(true);
+      await page.keyboard.press("Tab");
+    }
+    expect(order, mode.name).toEqual(["input:email", "input:password", "button:Show password", "input:passwordConfirmation", "button:Show password", `button:${mode.button}`, "a:Sign in"]);
+  }
 });
 
 test("logged-out hero: no sideways scroll, clipping or overlap, roomy targets, and no axe findings at phone, tablet and desktop widths", async ({ page }) => {

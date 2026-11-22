@@ -86,7 +86,7 @@ describe("homepage hero actions by account state", () => {
   it("A. logged out: Start free trial, Create account, Sign in, in that order, on the existing routes", async () => {
     for (const status of ["anonymous", "unconfigured"] as const) {
       const result = await hero(signedOut(status));
-      expect(result.actions, status).toEqual([["Start free trial", "/sign-up?next=/subscription"], ["Create account", "/sign-up"], ["Sign in", "/sign-in"]]);
+      expect(result.actions, status).toEqual([["Start free trial", "/sign-up?next=/subscription"], ["Create account", "/sign-up?entry=account"], ["Sign in", "/sign-in"]]);
       expect(result.trialNote, status).toBe(true);
       cleanup();
     }

@@ -33,9 +33,11 @@ type SignUpFormProps = AuthFormProps & Readonly<{
   /**
    * The free-trial onboarding layout: the plan summary (rendered by the page
    * from the approved commercial policy) sits between the account fields and
-   * the call to action. Account creation itself is unchanged.
+   * the call to action. Account creation itself is unchanged. `submitLabel`
+   * words the button for the page's entry mode ("Create account" when the
+   * visitor chose Create account); it defaults to "Start free trial".
    */
-  trial?: Readonly<{ planSummary: ReactNode; signInHref: string }>;
+  trial?: Readonly<{ planSummary: ReactNode; signInHref: string; submitLabel?: string }>;
 }>;
 type SignInFormProps = AuthFormProps & Readonly<{ nextDestination?: string; signUpHref?: string; consumerMode?: boolean }>;
 
@@ -126,7 +128,7 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
   </>;
   const submitLabel = pending
     ? "Creating your account…"
-    : trial ? "Start free trial" : consumerMode ? "Create account" : "Create teacher account";
+    : trial ? trial.submitLabel ?? "Start free trial" : consumerMode ? "Create account" : "Create teacher account";
   return (
     <>
     <form className={`prototype-form${trial ? " account-form account-form--trial" : ""}`} action={action} onSubmit={onSubmit} onInput={onInput} noValidate ref={formRef}>

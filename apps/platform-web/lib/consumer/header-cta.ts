@@ -1,3 +1,4 @@
+import { SIGN_UP_ACCOUNT_ENTRY } from "@/lib/auth/access-intent";
 import type { GameAccessView } from "@/lib/game-access/server";
 
 /**
@@ -20,11 +21,14 @@ export type HeaderCta = Readonly<{
 export const START_TRIAL_SIGN_UP_HREF = "/sign-up?next=/subscription" as const;
 /**
  * "Create account" for a signed-out visitor: the one canonical registration
- * route. With no destination it continues, after email confirmation, to the
- * trial step like every consumer sign-up (lib/auth/access-intent
- * signUpDestination); creating an account never starts a trial by itself.
+ * route in its account wording (`entry=account` changes the heading, lead and
+ * button label only: lib/auth/access-intent signUpEntryMode). The form, the
+ * destination and everything after it are those of "Start free trial": with
+ * no destination it continues, after email confirmation, to the trial step
+ * like every consumer sign-up (signUpDestination); creating an account never
+ * starts a trial by itself.
  */
-export const CREATE_ACCOUNT_HREF = "/sign-up" as const;
+export const CREATE_ACCOUNT_HREF = `/sign-up?entry=${SIGN_UP_ACCOUNT_ENTRY}` as const;
 /** The existing sign-in page. */
 export const SIGN_IN_HREF = "/sign-in" as const;
 /** The existing subscription page: it holds the approved terms and the Stripe hand-off. */
