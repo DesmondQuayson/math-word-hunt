@@ -330,8 +330,10 @@ async function probeLive() {
     health: results.health.status === 200 && results.configuredHostHealth.status === 200,
     browserHostRedirects: isApexRedirect(results.browserHostStillRedirects),
     wwwRedirects: isApexRedirect(results.www),
-    publicPages: [results.home, results.signIn, results.signUp, results.access, results.adminSignIn].every((r) => r.status === 200),
-    productSurfacesRedirect: [results.pricing, results.games, results.mapPrep, results.homework, results.quizzes].every(accessRedirect),
+    // /pricing is a public page since v1.2.55 (the plan is readable before an
+    // account exists); it still says noindex and can start nothing.
+    publicPages: [results.home, results.signIn, results.signUp, results.access, results.adminSignIn, results.pricing].every((r) => r.status === 200),
+    productSurfacesRedirect: [results.games, results.mapPrep, results.homework, results.quizzes].every(accessRedirect),
     privateNoStore: [results.account, results.subscription, results.gameAccess].every((r) => accessRedirect(r) && /no-store/.test(r.cacheControl ?? "")),
     adminFailsClosed: results.admin.status === 404 && /no-store/.test(results.admin.cacheControl ?? ""),
     schedulerFailsClosed: [401, 503].includes(results.scheduler.status),
