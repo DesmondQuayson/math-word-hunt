@@ -819,7 +819,9 @@
 .checkout-key-terms {
   display: grid;
   gap: var(--space-3);
-  margin: 0;
+  /* The top margin comes from the consent form's own spacing between its parts. */
+  margin-inline: 0;
+  margin-bottom: 0;
   padding: var(--space-4);
   border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-medium);
