@@ -538,13 +538,6 @@
   font-size: var(--font-size-body-large);
 }
 
-/* "Create account" wording (/sign-up?entry=account): the offer line under the
-   lead, in the lead's column. */
-.onboarding-header .trial-offer-note {
-  max-width: 30rem;
-  margin: 0 auto;
-}
-
 .account-form--trial,
 .onboarding-card {
   max-width: none;
@@ -984,8 +977,7 @@
     text-align: left;
   }
 
-  .onboarding-header .lede,
-  .onboarding-header .trial-offer-note {
+  .onboarding-header .lede {
     margin-inline: 0;
   }
 }

@@ -35,9 +35,11 @@ type SignUpFormProps = AuthFormProps & Readonly<{
    * from the approved commercial policy) sits between the account fields and
    * the call to action. Account creation itself is unchanged. `submitLabel`
    * words the button for the page's entry mode ("Create account" when the
-   * visitor chose Create account); it defaults to "Start free trial".
+   * visitor chose Create account); it defaults to "Start free trial". The
+   * account wording passes no plan summary and its own short `footnote` (the
+   * next-step line under the button).
    */
-  trial?: Readonly<{ planSummary: ReactNode; signInHref: string; submitLabel?: string }>;
+  trial?: Readonly<{ planSummary?: ReactNode; signInHref: string; submitLabel?: string; footnote?: string }>;
 }>;
 type SignInFormProps = AuthFormProps & Readonly<{ nextDestination?: string; signUpHref?: string; consumerMode?: boolean }>;
 
@@ -138,10 +140,10 @@ export function SignUpForm({ configured, consumerMode = false, nextDestination, 
         <legend>Account</legend>
         {accountFields}
       </fieldset> : accountFields}
-      {trial ? trial.planSummary : null}
+      {trial?.planSummary ?? null}
       {trial ? <div className="form-actions form-actions--primary">
         <Button type="submit" className="button-large" loading={pending} disabled={!configured}>{submitLabel}</Button>
-        <p className="form-footnote">Next, confirm your email. Then add a payment method on Stripe&apos;s secure checkout to begin the trial.</p>
+        <p className="form-footnote">{trial.footnote ?? "Next, confirm your email. Then add a payment method on Stripe's secure checkout to begin the trial."}</p>
         <p className="form-switch">Already have an account? <Link href={trial.signInHref}>Sign in</Link></p>
       </div> : <div className="form-actions"><Button type="submit" loading={pending} disabled={!configured}>{submitLabel}</Button><Link href={isFreeGameDestination(nextDestination) ? `/sign-in?next=${nextDestination}` : "/sign-in"}>Already have an account?</Link></div>}
     </form>

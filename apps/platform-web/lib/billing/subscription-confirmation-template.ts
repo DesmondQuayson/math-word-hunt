@@ -4,7 +4,10 @@ import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
  * The confirmation a customer keeps after starting a MathNexa subscription:
  * the automatic-renewal terms they agreed to, the trial's exact end, when and
  * how much is charged, how to cancel (and that canceling before the trial ends
- * costs nothing), the refund rule, the policy versions, and how to reach us.
+ * costs nothing), the policy versions, and how to reach us. The refund-review
+ * rule appears only in the paid-subscription email (a charge was made today);
+ * the free-trial email leaves it out (owner, 2026-11-22). The refund policy
+ * itself lives in the Subscription Terms and is unchanged.
  * Plain text plus simple HTML; every value is escaped; no ids or secrets.
  */
 
@@ -111,13 +114,13 @@ export function renderSubscriptionConfirmation(input: SubscriptionConfirmationIn
       ]],
       ["How to cancel", [
         `Open ${subscriptionUrl} and choose "Manage or cancel in Stripe". You can cancel at any time; canceling stops future charges and your access continues to the end of the month you paid for.`
+      ]],
+      ["Refunds", [
+        "Ask within seven days of your first charge and we review a refund by hand. Refunds are not automatic or guaranteed."
       ]]
     );
   }
   sections.push(
-    ["Refunds", [
-      "Ask within seven days of your first charge and we review a refund by hand. Refunds are not automatic or guaranteed."
-    ]],
     ["What you agreed to", [
       `The automatic renewal terms above, the MathNexa Subscription Terms (version ${COMMERCIAL_POLICY.termsVersion}) including the cancellation and refund policies, and the Privacy Notice (version ${COMMERCIAL_POLICY.privacyVersion}).`,
       `Subscription Terms: ${termsUrl}`,

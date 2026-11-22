@@ -87,30 +87,40 @@ describe("/sign-up", () => {
 });
 
 describe("/sign-up entry modes (2026-11-22): wording only", () => {
-  it("A. Start free trial (/sign-up?next=/subscription): the trial heading, lead and button", async () => {
+  it("A. Start free trial (/sign-up?next=/subscription): the trial heading, lead, plan card and button", async () => {
     const { container } = await signUp("/subscription");
     expect(screen.getByRole("heading", { level: 1, name: "Start your free trial" })).toBeTruthy();
     expect(container.textContent).toContain("Get full access to MathNexa math practice, games, learning tools, and premium resources.");
+    // The trial wording keeps its plan card and next-step line.
+    expect(screen.getByRole("heading", { level: 2, name: "Plan" })).toBeTruthy();
+    expect(container.querySelector(".plan-summary-card")?.textContent).toContain("MathNexa monthly");
+    expect(container.textContent).toContain("After the trial, $5.99 USD is billed monthly and renews automatically until canceled.");
+    expect(container.querySelector(".form-footnote")?.textContent).toBe("Next, confirm your email. Then add a payment method on Stripe's secure checkout to begin the trial.");
     expect(screen.getByRole("button", { name: "Start free trial" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Create your MathNexa account" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Create account" })).toBeNull();
   });
 
-  it("B. Create account (/sign-up?entry=account): the account heading, the real next step, the trial terms and card requirement in view", async () => {
+  it("B. Create account (/sign-up?entry=account): registration first, no plan card, one short next-step line under the button", async () => {
     const { container } = await signUp(undefined, { entry: "account" });
     expect(screen.getByRole("heading", { level: 1, name: "Create your MathNexa account" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Start your free trial" })).toBeNull();
     const header = container.querySelector(".onboarding-header");
-    expect(header?.querySelector(".lede")?.textContent).toBe("Set up your account to access MathNexa. After you confirm your email, new eligible accounts can start the free trial before the monthly subscription begins.");
-    // The existing offer line, from the commercial policy: trial length, price, card, cancellation.
-    expect(header?.querySelector(".trial-offer-note")?.textContent).toBe("24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends.");
-    expect(header?.querySelector("a")).toBeNull();
-    // The same plan card and next-step line as the trial wording.
+    expect(header?.querySelector(".lede")?.textContent).toBe("Set up your account to access MathNexa.");
+    expect(header?.querySelector(".trial-offer-note")).toBeNull();
+    // No plan card: no Plan heading, no MathNexa monthly card, no large price, no trial/renewal/cancellation bullets.
+    expect(screen.queryByRole("heading", { name: "Plan" })).toBeNull();
+    expect(container.querySelector(".plan-summary, .plan-summary-card, .plan-facts, .plan-summary-price")).toBeNull();
     const text = container.textContent ?? "";
-    expect(text).toContain("After the trial, $5.99 USD is billed monthly and renews automatically until canceled.");
-    expect(text).toContain("Cancel before the 24-hour trial ends and you won't be charged.");
-    expect(text).toContain("Next, confirm your email. Then add a payment method on Stripe's secure checkout to begin the trial.");
-    expect(screen.getByRole("button", { name: "Create account" })).toBeTruthy();
+    for (const removed of ["MathNexa monthly", "USD / month", "with full access to Math Games", "billed monthly and renews automatically", "Cancel before the 24-hour trial ends"]) {
+      expect(text, removed).not.toContain(removed);
+    }
+    // The registration form and its button stay; the short disclosure sits right under the button.
+    for (const name of ["email", "password", "passwordConfirmation", "next"]) expect(container.querySelector(`form [name="${name}"]`), name).toBeTruthy();
+    const button = screen.getByRole("button", { name: "Create account" });
+    const footnote = container.querySelector(".form-actions--primary .form-footnote");
+    expect(footnote?.textContent).toBe("After creating your account and confirming your email, you can start your 24-hour free trial. A payment method is required to begin the trial. After the trial, MathNexa renews at $5.99/month unless canceled.");
+    expect(button.nextElementSibling).toBe(footnote);
     expect(screen.queryByRole("button", { name: "Start free trial" })).toBeNull();
   });
 

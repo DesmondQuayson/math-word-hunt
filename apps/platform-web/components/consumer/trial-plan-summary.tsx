@@ -18,6 +18,15 @@ export function describeApprovedPlan(policy: Pick<typeof COMMERCIAL_POLICY, "amo
   });
 }
 
+/**
+ * The short, secondary next-step line under the "Create account" button on
+ * /sign-up?entry=account, where the page shows no plan card (owner,
+ * 2026-11-22). Values come from the commercial policy like everything above.
+ */
+export function accountEntryDisclosure(plan: ReturnType<typeof describeApprovedPlan> = describeApprovedPlan()): string {
+  return `After creating your account and confirming your email, you can start your ${plan.trialLabel} free trial. A payment method is required to begin the trial. After the trial, MathNexa renews at ${plan.price}/${plan.interval} unless canceled.`;
+}
+
 function Check() {
   return <svg className="plan-fact-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
     <path d="M4.5 10.5l3.5 3.5 7.5-8" />

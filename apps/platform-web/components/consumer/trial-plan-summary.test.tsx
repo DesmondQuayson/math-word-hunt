@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { COMMERCIAL_POLICY } from "@/lib/commercial/policy";
 
-import { describeApprovedPlan, TrialPlanSummary } from "./trial-plan-summary";
+import { accountEntryDisclosure, describeApprovedPlan, TrialPlanSummary } from "./trial-plan-summary";
 
 afterEach(cleanup);
 
@@ -17,6 +17,10 @@ describe("trial plan summary", () => {
     expect(plan.trialLabel).toBe("24-hour");
     expect(COMMERCIAL_POLICY.amountMinorUnits).toBe(599);
     expect(COMMERCIAL_POLICY.trialSeconds).toBe(86_400);
+  });
+
+  it("words the Create account next-step line from the same policy values (trial length, payment method, renewal price)", () => {
+    expect(accountEntryDisclosure()).toBe("After creating your account and confirming your email, you can start your 24-hour free trial. A payment method is required to begin the trial. After the trial, MathNexa renews at $5.99/month unless canceled.");
   });
 
   it("names every protected product, Worksheet Generator included, with the unchanged trial and billing facts", () => {

@@ -6,8 +6,7 @@ import { AuthorizedCodeForm } from "@/components/auth/authorized-code-form";
 import { SignUpForm } from "@/components/forms/auth-forms";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
-import { TrialOfferNote } from "@/components/consumer/trial-offer-note";
-import { TrialPlanSummary } from "@/components/consumer/trial-plan-summary";
+import { TrialPlanSummary, accountEntryDisclosure } from "@/components/consumer/trial-plan-summary";
 import { isSupabaseConfigured } from "@/lib/supabase/public-config";
 import { isProductionPlatformMode } from "@/lib/environment/production-platform";
 import { resolveConsumerContext } from "@/lib/auth/consumer-context";
@@ -38,9 +37,11 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   }
   // A free game: the same account creation, without subscription language.
   const freeGame = isFreeGameDestination(nextDestination);
-  // "Create account" (entry=account) leads with the account and states the
-  // trial terms up front; anything else keeps the trial wording. Wording only:
-  // the form, its destination and everything after it are the same in both.
+  // "Create account" (entry=account) is registration first: the account
+  // heading, no plan card, and one short next-step line (trial, payment
+  // method, renewal price) under the button. Anything else keeps the trial
+  // wording with its plan card. Presentation only: the form, its destination
+  // and everything after it are the same in both.
   const accountEntry = signUpEntryMode(params.entry) === "account";
   // Everything else shows the offer with the form first: the plan, the trial
   // and its terms, before any notice.
@@ -49,8 +50,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
       <p className="eyebrow">MathNexa</p>
       {accountEntry ? <>
         <h1>Create your MathNexa account</h1>
-        <p className="lede">Set up your account to access MathNexa. After you confirm your email, new eligible accounts can start the free trial before the monthly subscription begins.</p>
-        <TrialOfferNote pricingLink={false} />
+        <p className="lede">Set up your account to access MathNexa.</p>
       </> : <>
         <h1>Start your free trial</h1>
         <p className="lede">Get full access to MathNexa math practice, games, learning tools, and premium resources.</p>
@@ -61,7 +61,9 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
       configured={configured}
       consumerMode
       nextDestination={nextDestination}
-      trial={{ planSummary: <TrialPlanSummary />, signInHref: `/sign-in?next=${nextDestination}`, submitLabel: accountEntry ? "Create account" : undefined }}
+      trial={accountEntry
+        ? { signInHref: `/sign-in?next=${nextDestination}`, submitLabel: "Create account", footnote: accountEntryDisclosure() }
+        : { planSummary: <TrialPlanSummary />, signInHref: `/sign-in?next=${nextDestination}` }}
     />
     <AuthEmailStatus label="Confirmation delivery" />
     <Notice label="Privacy guidance" tone="information"><strong>Minimum account information only.</strong><p>MathNexa does not request profile, school, class, student, organization, assignment, or gameplay-progress information.</p></Notice>

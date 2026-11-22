@@ -173,7 +173,8 @@ test("signed-out product and account choices preserve only allowlisted destinati
   await page.getByRole("link", { name: "Create account" }).click();
   await expect(page).toHaveURL("/sign-up?next=/map-prep&entry=account");
   await expect(page.getByRole("heading", { level: 1, name: "Create your MathNexa account" })).toBeVisible();
-  await expect(page.locator(".onboarding-header .trial-offer-note")).toContainText("A card is needed to start");
+  await expect(page.locator(".form-actions--primary .form-footnote")).toContainText("A payment method is required to begin the trial.");
+  await expect(page.getByRole("region", { name: "Plan" })).toHaveCount(0);
   await expect(page.locator("form").first().locator('input[name="next"]')).toHaveValue("/map-prep");
   await expect(page.locator("form").first().getByRole("button", { name: "Create account" })).toBeVisible();
 

@@ -10,12 +10,14 @@ import { expect, test, type Page } from "@playwright/test";
 // names or target size. Signed-in states are covered in teacher-first-access-flow.
 //
 // Create account opens the same /sign-up page as Start free trial, in its
-// account wording (entry=account): heading, lead and button label only. The
-// form, its destination and the request it sends are identical.
+// account presentation (entry=account): the account heading and lead, no plan
+// card, the button "Create account" and one short next-step line under it.
+// The form, its destination and the request it sends are identical.
 
 const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf8");
 const EXPECTED = [["Start free trial", "/sign-up?next=/subscription"], ["Create account", "/sign-up?entry=account"], ["Sign in", "/sign-in"]];
-const OFFER_LINE = "24-hour free trial, then $5.99 USD a month. A card is needed to start, and you won’t be charged if you cancel before the trial ends.";
+// Create account is registration first (2026-11-22): no plan card, only this short line under its button.
+const ACCOUNT_DISCLOSURE = "After creating your account and confirming your email, you can start your 24-hour free trial. A payment method is required to begin the trial. After the trial, MathNexa renews at $5.99/month unless canceled.";
 const SIGN_UP_MODES = [
   { name: "Create account", path: "/sign-up?entry=account", heading: "Create your MathNexa account", button: "Create account" },
   { name: "Start free trial", path: "/sign-up?next=/subscription", heading: "Start your free trial", button: "Start free trial" }
@@ -67,15 +69,18 @@ test("logged-out hero: the three entry points in order, by pointer and keyboard"
   await expect(page).toHaveURL(/\/sign-up\?next=\/subscription$/);
   await expect(page.getByRole("heading", { level: 1, name: "Start your free trial" })).toBeVisible();
   await expect(page.locator("form").first().getByRole("button", { name: "Start free trial" })).toBeVisible();
-  await expect(page.locator(".onboarding-header .trial-offer-note")).toHaveCount(0);
-  // B. Create account: the same page and form, led by the account, with the terms and card requirement in view.
+  // The trial wording keeps its plan card.
+  await expect(page.getByRole("region", { name: "Plan" })).toContainText("After the trial, $5.99 USD is billed monthly and renews automatically until canceled.");
+  // B. Create account: the same page and form, registration first: no plan card, one short line under the button.
   await page.goto("/");
   await page.locator(".teacher-home-actions").getByRole("link", { name: "Create account", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-up\?entry=account$/);
   await expect(page.getByRole("heading", { level: 1, name: "Create your MathNexa account" })).toBeVisible();
-  await expect(page.locator(".onboarding-header .lede")).toHaveText("Set up your account to access MathNexa. After you confirm your email, new eligible accounts can start the free trial before the monthly subscription begins.");
-  await expect(page.locator(".onboarding-header .trial-offer-note")).toHaveText(OFFER_LINE);
-  await expect(page.getByRole("region", { name: "Plan" })).toContainText("After the trial, $5.99 USD is billed monthly and renews automatically until canceled.");
+  await expect(page.locator(".onboarding-header .lede")).toHaveText("Set up your account to access MathNexa.");
+  await expect(page.getByRole("region", { name: "Plan" })).toHaveCount(0);
+  await expect(page.locator(".plan-summary, .plan-summary-card, .plan-facts")).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText(/MathNexa monthly|USD \/ month|renews automatically until canceled/);
+  await expect(page.locator(".form-actions--primary .form-footnote")).toHaveText(ACCOUNT_DISCLOSURE);
   await expect(page.locator("form").first().getByRole("button", { name: "Create account" })).toBeVisible();
   await expect(page.locator("form").first().locator('input[name="next"]')).toHaveValue("/subscription");
   await expect(page.getByLabel("Email address")).toBeVisible();
@@ -168,7 +173,12 @@ test("sign-up wordings at phone, tablet and desktop widths: no sideways scroll o
       await expect(form.getByLabel(/^Confirm password/), label).toBeVisible();
       await expect(form.getByRole("button", { name: "Show password" }), label).toHaveCount(2);
       await expect(form.getByRole("button", { name: mode.button }), label).toBeVisible();
-      if (mode.name === "Create account") await expect(page.locator(".onboarding-header .trial-offer-note"), label).toHaveText(OFFER_LINE);
+      if (mode.name === "Create account") {
+        await expect(page.locator(".form-actions--primary .form-footnote"), label).toHaveText(ACCOUNT_DISCLOSURE);
+        await expect(page.getByRole("region", { name: "Plan" }), label).toHaveCount(0);
+      } else {
+        await expect(page.getByRole("region", { name: "Plan" }), label).toBeVisible();
+      }
       expect(await axeViolations(page, "main"), `${label} axe`).toEqual([]);
     }
 
