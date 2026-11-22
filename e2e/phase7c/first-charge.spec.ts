@@ -146,7 +146,9 @@ test("a declined first charge pauses access at once, with no renewal grace and a
   await page.goto("/subscription");
   // The status notice (the page also names the state elsewhere).
   await expect(page.getByText("Payment requires attention", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Your card payment didn’t go through, so access is paused. Update your payment method in Stripe, and access returns as soon as the payment succeeds.")).toBeVisible();
+  await expect(page.getByText("Your card payment didn’t go through, so access is paused. To restore it, choose “Manage or cancel in Stripe” on your Subscription page and update your card. Access returns as soon as a payment succeeds; Stripe may also retry the card on its own. You can cancel there too.")).toBeVisible();
+  // The way to fix it is on the same page.
+  await expect(page.getByRole("button", { name: "Manage or cancel in Stripe" })).toBeVisible();
 });
 
 test("a successful retry restores access at once and records the real first payment", async ({ page, request }) => {
