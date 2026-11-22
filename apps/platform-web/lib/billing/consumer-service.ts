@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import type { ConsumerContext } from "@/lib/auth/consumer-context";
 import type { CommercialConsentDecision } from "@/lib/commercial/policy";
+import { setupCheckoutSubmitMessage } from "@/lib/commercial/checkout-copy";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import type { AccessIntentDestination } from "@/lib/auth/access-intent";
 
@@ -168,12 +169,16 @@ export async function createConsumerSetupCheckout(input: Readonly<{
   const acceptance = await input.repository.recordCommercialAcceptance(activeOwner.userId, input.consent);
 
   const window = Math.floor(Date.now() / (30 * 60 * 1000));
+  const trialEligible = activeOwner.account.trialRedeemedAt === null;
   const session = await input.provider.createSetupCheckout({
     userId: activeOwner.userId,
     customerId: customer.stripeCustomerId,
     successUrl: `${input.config.applicationBaseUrl}/checkout/status?session_id={CHECKOUT_SESSION_ID}&next=${input.returnDestination}`,
     cancelUrl: `${input.config.applicationBaseUrl}/subscription?checkout=canceled&next=${input.returnDestination}`,
-    idempotencyKey: billingIdempotencyKey("consumer-setup", activeOwner.userId, `${input.config.stripeMode}:${window}`)
+    idempotencyKey: billingIdempotencyKey("consumer-setup", activeOwner.userId, `${input.config.stripeMode}:${window}`),
+    // The price was verified against the commercial policy above; the trial is
+    // mentioned only while this account's one trial is unused.
+    submitMessage: setupCheckoutSubmitMessage({ trialEligible })
   });
   if (!session.url || !validHostedRedirect(session.url, input.config, "checkout") ||
     session.livemode !== expectedLivemode(input.config) || session.customerId !== customer.stripeCustomerId ||
@@ -184,7 +189,7 @@ export async function createConsumerSetupCheckout(input: Readonly<{
   if (!await input.repository.bindCommercialAcceptance(acceptance.id, activeOwner.userId, checkoutHash)) {
     throw new ConsumerBillingOperationError("commercial-consent-required");
   }
-  return { url: session.url, trialEligible: activeOwner.account.trialRedeemedAt === null };
+  return { url: session.url, trialEligible };
 }
 
 export async function activateConsumerSetupCheckout(input: Readonly<{

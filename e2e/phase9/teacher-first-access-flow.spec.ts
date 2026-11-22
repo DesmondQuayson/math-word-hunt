@@ -859,11 +859,14 @@ test("no 'Start learning' anywhere in the current experience; activation success
   await page.goto("/sign-up?next=/subscription");
   await expect(page.getByText(/free trial with full access to Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator\./)).toBeVisible();
 
-  // Post-activation success: the action is "Go to Math Games" (destination unchanged: /games).
+  // Post-activation success (2026-11): Online Math Prep first, then "Go to Math Games" (destination unchanged: /games).
   await signIn(page, entitledEmail, "/");
   await expect(page).toHaveURL("/");
   await page.goto("/subscription?activated=1");
   await expect(page.getByRole("heading", { name: "You're all set!" })).toBeVisible();
+  const actions = page.locator(".success-panel-actions").getByRole("link");
+  await expect(actions).toHaveText(["Open Online Math Prep", "Go to Math Games"]);
+  await expect(actions.first()).toHaveAttribute("href", "/map-prep");
   const go = page.getByRole("link", { name: "Go to Math Games" });
   await expect(go).toHaveAttribute("href", "/games");
   await expect(page.locator("body")).not.toContainText("Start learning");

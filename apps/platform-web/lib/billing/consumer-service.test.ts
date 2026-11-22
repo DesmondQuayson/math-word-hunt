@@ -158,6 +158,21 @@ describe("consumer Setup Checkout and subscription activation", () => {
     expect(deps.repository.bindCommercialAcceptance).toHaveBeenCalledOnce();
   });
 
+  it("tells Stripe's page the price and the trial, and never promises a trial to an account that used it (2026-11)", async () => {
+    const eligible = dependencies();
+    await createConsumerSetupCheckout({ context: context(), config, consent, returnDestination: "/subscription", ...eligible });
+    expect(eligible.provider.createSetupCheckout).toHaveBeenCalledWith(expect.objectContaining({
+      submitMessage: "Saving your card starts your 24-hour free trial. After the trial, MathNexa renews at $5.99 USD a month until you cancel. Cancel before the trial ends and you won't be charged."
+    }));
+
+    const used = dependencies("2026-08-01T12:00:00.000Z");
+    await expect(createConsumerSetupCheckout({ context: context("2026-08-01T12:00:00.000Z"), config, consent, returnDestination: "/subscription", ...used }))
+      .resolves.toMatchObject({ trialEligible: false });
+    const call = (used.provider.createSetupCheckout as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as { submitMessage?: string };
+    expect(call.submitMessage).toBe("MathNexa is $5.99 USD a month and renews until you cancel. This account has already used its free trial.");
+    expect(call.submitMessage).not.toMatch(/starts your|24-hour|won't be charged/);
+  });
+
   it("does not create Setup Checkout without current server-bound consent", async () => {
     const deps = dependencies();
     (deps.repository.bindCommercialAcceptance as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);

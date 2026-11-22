@@ -119,7 +119,10 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         metadata: metadata(input.userId),
         setup_intent_data: { metadata: metadata(input.userId) },
         success_url: input.successUrl,
-        cancel_url: input.cancelUrl
+        cancel_url: input.cancelUrl,
+        // Setup mode has no line items, so this line is the only place the
+        // hosted page states the price and the trial (lib/commercial/checkout-copy).
+        ...(input.submitMessage ? { custom_text: { submit: { message: input.submitMessage } } } : {})
       }, { idempotencyKey: input.idempotencyKey });
       return this.normalizeSetup(session, false);
     } catch (error) {

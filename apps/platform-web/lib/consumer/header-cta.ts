@@ -27,7 +27,13 @@ export const START_TRIAL_SUBSCRIPTION_HREF = "/subscription" as const;
  * accounts.
  */
 export const SUBSCRIBE_HREF = "/pricing" as const;
-/** Where a newly activated account continues from the subscription success panel. */
+/**
+ * The subscription success panel's first step: Online Math Prep, the product
+ * the ads and the trial lead with (2026-11 funnel fixes). /map-prep re-checks
+ * access and opens the approved destination.
+ */
+export const ACTIVATION_PRIMARY_DESTINATION = "/map-prep" as const;
+/** The success panel's second step (its only step before 2026-11). */
 export const SUBSCRIBER_DESTINATION = "/games" as const;
 
 type HeaderAccessView = Readonly<{

@@ -20,6 +20,8 @@ export interface ConsumerBillingProvider {
     successUrl: string;
     cancelUrl: string;
     idempotencyKey: string;
+    /** Shown beside the hosted page's button: the price, and the trial when one applies. */
+    submitMessage?: string;
   }>): Promise<ConsumerSetupSession>;
   retrieveSetupCheckout(reference: string): Promise<ConsumerSetupSession>;
   createSubscription(input: Readonly<{

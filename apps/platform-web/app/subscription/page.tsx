@@ -14,7 +14,7 @@ import { ConsumerSubscriptionSummary } from "@/components/consumer/subscription-
 import { SubscriptionTermsList } from "@/components/consumer/subscription-terms";
 import { describeApprovedPlan } from "@/components/consumer/trial-plan-summary";
 import { accessIntentHref, confirmationRequiredHref, safeAccessIntentDestination } from "@/lib/auth/access-intent";
-import { SUBSCRIBER_DESTINATION } from "@/lib/consumer/header-cta";
+import { ACTIVATION_PRIMARY_DESTINATION, SUBSCRIBER_DESTINATION } from "@/lib/consumer/header-cta";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -96,7 +96,10 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       </span>
       <h1 id="activation-success-heading">You&apos;re all set!</h1>
       <p role="status">Your MathNexa access is ready.</p>
-      <LinkButton href={SUBSCRIBER_DESTINATION} className="button-large">Go to Math Games</LinkButton>
+      <div className="success-panel-actions">
+        <LinkButton href={ACTIVATION_PRIMARY_DESTINATION} className="button-large">Open Online Math Prep</LinkButton>
+        <LinkButton href={SUBSCRIBER_DESTINATION} variant="secondary" className="button-large">Go to Math Games</LinkButton>
+      </div>
       <a className="success-panel-secondary" href="/subscription">View subscription details</a>
     </section> : <PageHeader eyebrow="Subscription" title={`${plan.price} ${plan.currency} ${plan.intervalAdverb} MathNexa access`} description="Trial access ends exactly 24 hours after activation. Billing begins after the trial and renews monthly until canceled; Stripe controls invoice and payment-attempt timing." />}
     {justActivated ? null : <Notice label="Included with your subscription" tone="information"><strong>One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.</strong><p>Every included area uses the same server-verified trial or subscription. You will not be asked to subscribe again for another module.</p></Notice>}

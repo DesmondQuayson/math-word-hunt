@@ -902,6 +902,19 @@
   margin-top: var(--space-3);
 }
 
+/* Online Math Prep first, Math Games second (2026-11); they wrap, centred, on narrow screens. */
+.success-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.success-panel-actions .button {
+  margin-top: 0;
+}
+
 .success-panel-icon {
   width: 3.5rem;
   height: 3.5rem;

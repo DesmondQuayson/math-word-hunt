@@ -43,6 +43,24 @@ describe("Stripe Sandbox consumer provider", () => {
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("subscription_data");
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("line_items");
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("expires_at");
+    // No message asked for: no custom text.
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("custom_text");
+
+    // With a message (the price and trial line, 2026-11): it is shown beside Stripe's button, nothing else changes.
+    await provider.createSetupCheckout({
+      userId: "90000000-0000-0000-0000-000000000001",
+      customerId: "cus_test_123456",
+      successUrl: "https://mathnexa.example/checkout/status?session_id={CHECKOUT_SESSION_ID}",
+      cancelUrl: "https://mathnexa.example/pricing?checkout=canceled",
+      idempotencyKey: "mvh-consumer-setup-key-2",
+      submitMessage: "Saving your card starts your 24-hour free trial."
+    });
+    expect(create.mock.calls[1]?.[0]).toMatchObject({
+      mode: "setup",
+      custom_text: { submit: { message: "Saving your card starts your 24-hour free trial." } }
+    });
+    expect(create.mock.calls[1]?.[0]).not.toHaveProperty("line_items");
+    expect(create.mock.calls[1]?.[0]).not.toHaveProperty("subscription_data");
   });
 
   it("requires a completed standard SetupIntent and rejects Managed Payments state", async () => {
