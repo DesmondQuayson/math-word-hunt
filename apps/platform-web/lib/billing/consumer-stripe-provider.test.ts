@@ -34,6 +34,12 @@ describe("Stripe Sandbox consumer provider", () => {
       customer: "cus_test_123456",
       payment_method_types: ["card"],
       managed_payments: { enabled: false },
+      // The consent wording version stays with the session in Stripe (2026-11-22, two agreements).
+      metadata: {
+        mathnexa_account_id: "90000000-0000-0000-0000-000000000001",
+        mathnexa_plan: "mathnexa-monthly",
+        mathnexa_consent_presentation: "2026-11-22"
+      },
       setup_intent_data: {
         metadata: expect.objectContaining({
           mathnexa_account_id: "90000000-0000-0000-0000-000000000001"

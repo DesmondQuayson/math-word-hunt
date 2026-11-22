@@ -100,11 +100,12 @@ async function ConsumerPricingPage({ checkout, billing, consent }: { checkout?: 
     <PageHeader eyebrow="MathNexa subscription" title="$5.99 USD per month" description={`One monthly subscription for every MathNexa resource. No annual plan.${free ? ` ${free}.` : ""}`} />
     {checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {billing === "unavailable" ? <Notice label="Billing status" tone="warning" live><strong>Billing is temporarily unavailable.</strong><p>No access or subscription change was made. Try again later.</p></Notice> : null}
-    {consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}
+    {consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Please tick both boxes.</strong><p>Both agreements are needed before MathNexa can open Stripe. Nothing was charged or changed.</p></Notice> : null}
     <Card variant="highlighted">
       <p className="card-kicker">MathNexa monthly subscription</p>
       <h2>$5.99 USD / month</h2>
-      <SubscriptionTermsList />
+      {/* When the consent form shows, it states the terms itself, right above the two agreements. */}
+      {canCheckout ? null : <SubscriptionTermsList />}
       {canCheckout
         ? <CommercialConsentForm trialEligible={access.decision.nextAction === "start-checkout"} />
         : access.decision.allowed

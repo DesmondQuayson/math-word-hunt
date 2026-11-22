@@ -815,6 +815,35 @@
   font-size: var(--font-size-label);
 }
 
+/* The material terms, stated once, directly above the two agreements. */
+.checkout-key-terms {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.checkout-key-terms > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.checkout-key-terms dt {
+  font-weight: 800;
+}
+
+.checkout-key-terms dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.checkout-key-terms a {
+  font-weight: 700;
+}
+
 .consent-list {
   display: grid;
   gap: var(--space-1);
@@ -845,6 +874,13 @@
 
 .consent-actions .button {
   width: 100%;
+}
+
+.consent-enrollment-note {
+  margin: 0;
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  text-align: center;
 }
 
 .secure-note {

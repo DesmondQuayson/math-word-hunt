@@ -79,7 +79,9 @@ test("Setup Checkout collects a payment method and activates one exact server-ow
   await signIn(page);
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
-  await expect(page.getByText(/Stripe controls invoice creation and payment-attempt timing/i)).toBeVisible();
+  // Where Checkout is offered, the consent form states the terms right above its two agreements (2026-11-22).
+  await expect(page.getByLabel("Key subscription terms").getByText(/Stripe sets the exact minute of each charge/i)).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(2);
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);

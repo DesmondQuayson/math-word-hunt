@@ -213,9 +213,9 @@ test("confirmed accounts without entitlement reach the authenticated subscriptio
   await expect(page).toHaveURL("/subscription?next=/homework");
   await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
   await expect(page.getByText("One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.", { exact: true })).toBeVisible();
-  await expect(page.getByText(/one full, non-renewable 24-hour trial/i)).toBeVisible();
-  await expect(page.getByText(/renews automatically for \$5\.99 USD monthly/i)).toBeVisible();
-  await expect(page.getByRole("checkbox")).toHaveCount(7);
+  await expect(page.getByLabel("Key subscription terms").getByText(/One free trial per account\./)).toBeVisible();
+  await expect(page.getByLabel("Key subscription terms").getByText(/then \$5\.99 USD every month, automatically, until you cancel\./)).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Start free trial" })).toBeEnabled();
   // Signed in without a subscription: the header still offers the trial,
   // now straight to the subscription step.
@@ -304,7 +304,7 @@ test("fixture Checkout polls server entitlement and returns to the selected prod
   // The route now streams behind a loading boundary, so the URL changes before
   // the consent form exists: wait for the rendered form, not just the URL.
   await expect(page.getByRole("heading", { name: "Start your free trial" })).toBeVisible();
-  await expect(page.getByRole("checkbox")).toHaveCount(7);
+  await expect(page.getByRole("checkbox")).toHaveCount(2);
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture[A-Za-z0-9_]+&next=\/quizzes/);

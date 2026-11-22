@@ -11,7 +11,6 @@ import { tryGetConsumerBillingConfiguration } from "@/lib/billing/consumer-confi
 import { createConsumerBillingRepository } from "@/lib/billing/consumer-service";
 import { CommercialConsentForm } from "@/components/consumer/commercial-consent-form";
 import { ConsumerSubscriptionSummary } from "@/components/consumer/subscription-summary";
-import { SubscriptionTermsList } from "@/components/consumer/subscription-terms";
 import { describeApprovedPlan } from "@/components/consumer/trial-plan-summary";
 import { accessIntentHref, confirmationRequiredHref, safeAccessIntentDestination } from "@/lib/auth/access-intent";
 import { ACTIVATION_PRIMARY_DESTINATION, SUBSCRIBER_DESTINATION } from "@/lib/consumer/header-cta";
@@ -27,7 +26,7 @@ function CheckoutNotices({ params, configured }: { params: { billing?: string; c
   return <>
     {params.checkout === "canceled" ? <Notice label="Checkout status" tone="information" live><strong>Payment-method setup canceled.</strong><p>No trial, subscription, charge, or access change was made.</p></Notice> : null}
     {params.billing === "unavailable" ? <Notice label="Billing management" tone="warning" live><strong>Billing management is unavailable.</strong><p>No subscription or access change was made.</p></Notice> : null}
-    {params.consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Affirmative consent is required.</strong><p>Review and accept every current commercial term before continuing to Stripe.</p></Notice> : null}
+    {params.consent === "required" ? <Notice label="Subscription consent" tone="warning" live><strong>Please tick both boxes.</strong><p>Both agreements are needed before MathNexa can open Stripe. Nothing was charged or changed.</p></Notice> : null}
     {!configured ? <Notice label="Checkout availability" tone="warning"><strong>Checkout is not active.</strong><p>Subscription setup remains safely unavailable until the server has a complete approved billing configuration.</p></Notice> : null}
   </>;
 }
@@ -72,10 +71,6 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
               <p className="plan-summary-price"><strong>{plan.price}</strong> <span>{plan.currency} / {plan.interval}</span></p>
             </div>
             <p className="plan-summary-includes">One MathNexa subscription includes Math Games, Online Math Prep, Homework PDFs, Quiz PDFs, and Worksheet Generator.</p>
-            <div className="plan-terms">
-              <p className="plan-terms-title">Trial and billing terms</p>
-              <SubscriptionTermsList />
-            </div>
           </div>
         </section>
         <CommercialConsentForm returnDestination={destination} enabled={config?.checkoutEnabled === true} trialEligible />

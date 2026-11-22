@@ -162,6 +162,9 @@ async function confirmationLink(email: string, page: Page): Promise<string> {
 /** Starts the trial through the product and returns the provider references. */
 async function startTrial(page: Page, userId: string) {
   await page.goto("/pricing");
+  // The trial-end date appears only once the page is running in the browser: tick the boxes after that,
+  // so a click cannot land while the page is still starting up (seen once in WebKit).
+  await expect(page.getByTestId("trial-end-estimate")).toBeVisible();
   for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.check();
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);

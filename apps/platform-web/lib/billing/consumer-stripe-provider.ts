@@ -4,6 +4,8 @@ import type Stripe from "stripe";
 
 import { normalizeBillingSubscriptionStatus } from "@math-vocabulary-hunt/platform-core";
 
+import { COMMERCIAL_CONSENT_PRESENTATION_VERSION } from "@/lib/commercial/policy";
+
 import type { ConsumerBillingProvider } from "./consumer-provider";
 import { ConsumerBillingProviderError } from "./consumer-provider";
 import { MATHNEXA_TRIAL_SECONDS, type ConsumerBillingSubscription } from "./consumer-models";
@@ -116,7 +118,9 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         client_reference_id: input.userId,
         payment_method_types: ["card"],
         managed_payments: { enabled: false },
-        metadata: metadata(input.userId),
+        // The consent wording the customer agreed to (COMMERCIAL_CONSENT_PRESENTATION_VERSION) stays with
+        // the Checkout session in Stripe, beside the acceptance record bound to it.
+        metadata: { ...metadata(input.userId), mathnexa_consent_presentation: COMMERCIAL_CONSENT_PRESENTATION_VERSION },
         setup_intent_data: { metadata: metadata(input.userId) },
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,

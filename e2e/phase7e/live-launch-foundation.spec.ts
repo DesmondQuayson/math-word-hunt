@@ -65,27 +65,32 @@ test.afterAll(async () => {
 test("requires versioned affirmative consent before exact-trial Setup Checkout", async ({ page, request }) => {
   await signIn(page, "/pricing");
   await expect(page.getByRole("heading", { name: "$5.99 USD per month" })).toBeVisible();
-  await expect(page.getByText(/Trial access ends exactly 24 hours after activation/)).toBeVisible();
-  await expect(page.getByText(/does not promise an exact card-charge minute/)).toBeVisible();
+  const keyTerms = page.getByLabel("Key subscription terms");
+  await expect(keyTerms.getByText(/24-hour free trial starts\. You are not charged today\. One free trial per account\./)).toBeVisible();
+  await expect(keyTerms.getByText(/then \$5\.99 USD every month, automatically, until you cancel\./)).toBeVisible();
+  await expect(keyTerms.getByText(/Stripe sets the exact minute of each charge\./)).toBeVisible();
+  // The cancel-by and first-charge date, in this browser's time zone, once the page is running.
+  await expect(page.getByTestId("trial-end-estimate")).toHaveText(/^\w{3}, \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2}\s?[AP]M \S+$/);
+  await expect(keyTerms.getByText(/Manage or cancel in Stripe/)).toBeVisible();
   // No Pro plan copy ("Pro" as a word; the footer's "Products" heading is not plan copy).
   expect(await page.getByText(/\bPro\b/).allTextContents()).toEqual([]);
   const checkboxes = page.getByRole("checkbox");
-  await expect(checkboxes).toHaveCount(7);
-  expect(await checkboxes.evaluateAll((inputs) => inputs.every((input) => (input as HTMLInputElement).required))).toBe(true);
+  await expect(checkboxes).toHaveCount(2);
+  expect(await checkboxes.evaluateAll((inputs) => inputs.every((input) => (input as HTMLInputElement).required && !(input as HTMLInputElement).checked))).toBe(true);
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/pricing$/);
   // Consent is enforced by the server too: with the browser's required check
-  // removed, six of seven consents are refused before anything is recorded.
+  // removed, the renewal agreement alone is refused before anything is recorded.
   await checkboxes.evaluateAll((inputs) => inputs.forEach((input) => input.removeAttribute("required")));
-  for (const checkbox of (await checkboxes.all()).slice(0, 6)) await checkbox.check();
+  await checkboxes.first().check();
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/subscription\?consent=required&next=(?:\/|%2F)subscription$/);
-  await expect(page.getByText("Affirmative consent is required.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Please tick both boxes.", { exact: true })).toBeVisible();
   for (const [table, column] of [["consumer_commercial_acceptances", "owner_user_id"], ["billing_customers", "owner_consumer_id"]] as const) {
     expect((await admin.from(table).select(column, { count: "exact", head: true }).eq(column, accountUser.id)).count, table).toBe(0);
   }
   await page.goto("/pricing");
-  await expect(checkboxes).toHaveCount(7);
+  await expect(checkboxes).toHaveCount(2);
   for (const checkbox of await checkboxes.all()) await checkbox.check();
   await page.getByRole("button", { name: "Start free trial" }).click();
   await expect(page).toHaveURL(/\/checkout\/status\?session_id=cs_fixture/);
