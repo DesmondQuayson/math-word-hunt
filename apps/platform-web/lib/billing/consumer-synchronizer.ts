@@ -69,6 +69,27 @@ export type SubscriptionSynchronizationRequest = Readonly<{
   correlationId: string;
 }>;
 
+/**
+ * The event type the database synchronizer sees for a paid invoice of $0 (the
+ * trial's first invoice). The synchronizer treats "invoice.paid" as payment
+ * evidence and stamps the subscription's first payment from it, so a $0 trial
+ * invoice used to count as the first payment: a declined first real charge then
+ * looked like a renewal failure and received renewal grace, about a week of
+ * unpaid access. Under this type the invoice is applied as an ordinary snapshot
+ * (status, period, trial) with no payment evidence, so only money actually
+ * collected starts the paid relationship. Renewal grace for customers who have
+ * paid is unchanged, and an invoice of unknown amount is still treated as paid.
+ */
+export const ZERO_AMOUNT_INVOICE_EVENT_TYPE = "invoice.paid.zero_amount";
+
+function projectionEventType(request: SubscriptionSynchronizationRequest): string | null {
+  const { eventType, latestInvoice, subscription } = request;
+  const paidEvent = eventType === "invoice.paid" || eventType === "invoice.payment_succeeded";
+  const zeroInvoice = latestInvoice !== null && latestInvoice.subscriptionId === subscription.id &&
+    latestInvoice.amountPaidMinorUnits === 0;
+  return paidEvent && zeroInvoice ? ZERO_AMOUNT_INVOICE_EVENT_TYPE : eventType;
+}
+
 export const SYNCHRONIZATION_NON_STATE_RESULTS = new Set([
   "stale_ignored",
   "superseded_ignored",
@@ -87,10 +108,11 @@ export async function synchronizeConsumerSubscription(request: SubscriptionSynch
     (latestInvoice.amountPaidMinorUnits === null || latestInvoice.amountPaidMinorUnits > 0)
     ? latestInvoice.paidAt
     : null;
+  const eventType = projectionEventType(request);
   const state = await request.repository.synchronizeSubscription({
     source: request.source,
     eventRecordId: request.eventRecordId,
-    eventType: request.eventType,
+    eventType,
     observedAt: request.observedAt,
     ownerUserId: request.ownerUserId,
     customerId: request.customerId,
@@ -99,7 +121,7 @@ export async function synchronizeConsumerSubscription(request: SubscriptionSynch
     graceDays: request.config.renewalGraceDays,
     emergencyDefaultDeny: request.config.emergencyDefaultDeny
   });
-  const renewal = request.eventType === "invoice.paid" || request.eventType === "invoice.payment_succeeded";
+  const renewal = eventType === "invoice.paid" || eventType === "invoice.payment_succeeded";
   emitBillingLifecycleEvent(renewal ? "SUBSCRIPTION_RENEWAL_SYNCHRONIZED" : "SUBSCRIPTION_SYNCHRONIZED", {
     source: request.source,
     eventType: request.eventType,

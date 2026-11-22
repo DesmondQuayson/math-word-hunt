@@ -10,7 +10,7 @@ const copy: Record<GameAccessDecision["reason"], { title: string; message: strin
   "trial-access-active": { title: "Trial access active", message: "The server verified the trial window. MathNexa resources stay open until the displayed access end.", tone: "success" },
   "trial-ended": { title: "Trial ended", message: "The one-time trial cannot be restarted or extended from the browser.", tone: "warning" },
   "subscription-access-active": { title: "Subscription active", message: "The server verified an active subscription period. MathNexa resources are open.", tone: "success" },
-  "payment-past-due": { title: "Payment requires attention", message: "Access is unavailable while the subscription is past due.", tone: "warning" },
+  "payment-past-due": { title: "Payment requires attention", message: "Your card payment didn’t go through, so access is paused. Update your payment method in Stripe, and access returns as soon as the payment succeeds.", tone: "warning" },
   "renewal-grace-active": { title: "Renewal payment requires attention", message: "A verified renewal grace period is active. Update the payment method before the displayed grace end to avoid losing access.", tone: "warning" },
   "canceled-access-active": { title: "Cancellation scheduled", message: "Access remains available only through the verified current period end.", tone: "information" },
   "subscription-ended": { title: "Subscription ended", message: "Access is unavailable because the verified subscription period ended.", tone: "warning" },

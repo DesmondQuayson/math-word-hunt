@@ -4,6 +4,7 @@ import { parseConsumerBillingConfiguration } from "./consumer-config";
 import type { ConsumerBillingCustomer, ConsumerBillingInvoice, ConsumerBillingSubscription } from "./consumer-models";
 import type { SupabaseConsumerBillingRepository } from "./consumer-repository";
 import {
+  ZERO_AMOUNT_INVOICE_EVENT_TYPE,
   synchronizeConsumerSubscription,
   synchronizeCustomerSubscriptions,
   validateAuthoritativeSubscription
@@ -105,6 +106,35 @@ describe("single-subscription synchronization", () => {
     await synchronizeConsumerSubscription({ ...base, latestInvoice: { ...paidInvoice, amountPaidMinorUnits: 0 } });
     const paidAt = (repo.synchronizeSubscription as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0].latestInvoicePaidAt);
     expect(paidAt).toEqual(["2026-08-01T00:05:00.000Z", null, null, null]);
+  });
+
+  it("never lets a $0 invoice become the first payment, so a declined first real charge gets no renewal grace (2026-11-22)", async () => {
+    const repo = repository();
+    const base = { source: "webhook" as const, eventRecordId: "70000000-0000-0000-0000-000000000001", observedAt: "2026-09-07T12:00:00.000Z", ownerUserId: USER_ID, customerId: customer.id, subscription, config, repository: repo, correlationId: "test" };
+    const trialInvoice = { ...paidInvoice, amountPaidMinorUnits: 0 };
+    // The trial's $0 invoice, under either event name: applied without payment evidence.
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.paid", latestInvoice: trialInvoice });
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.payment_succeeded", latestInvoice: trialInvoice });
+    // A real $5.99 payment, and an invoice whose amount is unknown: still payment evidence.
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.paid", latestInvoice: paidInvoice });
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.paid", latestInvoice: { ...paidInvoice, amountPaidMinorUnits: null } });
+    // A $0 invoice of another subscription changes nothing about this one's event.
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.paid", latestInvoice: { ...trialInvoice, subscriptionId: "sub_other" } });
+    // Every other event type passes through unchanged.
+    await synchronizeConsumerSubscription({ ...base, eventType: "invoice.payment_failed", latestInvoice: { ...paidInvoice, paid: false, status: "open", paidAt: null } });
+    await synchronizeConsumerSubscription({ ...base, eventType: "customer.subscription.updated", latestInvoice: trialInvoice });
+    const types = (repo.synchronizeSubscription as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0].eventType);
+    expect(types).toEqual([
+      ZERO_AMOUNT_INVOICE_EVENT_TYPE,
+      ZERO_AMOUNT_INVOICE_EVENT_TYPE,
+      "invoice.paid",
+      "invoice.paid",
+      "invoice.paid",
+      "invoice.payment_failed",
+      "customer.subscription.updated"
+    ]);
+    // The $0 invoice carries no paid timestamp either.
+    expect((repo.synchronizeSubscription as ReturnType<typeof vi.fn>).mock.calls[0]![0].latestInvoicePaidAt).toBeNull();
   });
 });
 
