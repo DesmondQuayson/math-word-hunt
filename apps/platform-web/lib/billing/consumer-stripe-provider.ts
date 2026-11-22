@@ -145,7 +145,16 @@ export class ConsumerStripeBillingProvider implements ConsumerBillingProvider {
         items: [{ price: input.priceId, quantity: 1 }],
         default_payment_method: input.paymentMethodId,
         collection_method: "charge_automatically",
-        payment_behavior: "default_incomplete",
+        // With a trial the first invoice is $0, so "default_incomplete" is
+        // safe and stays as certified. Without a trial (an account whose one
+        // trial is used, subscribing again) "default_incomplete" left the
+        // $5.99 invoice waiting for a confirmation step nothing performs:
+        // Stripe never charged the saved card and expired the subscription
+        // after 23 hours (Stripe test mode, 2026-11-22). "allow_incomplete"
+        // charges the saved card at once; a declined or authentication-bound
+        // first payment leaves the subscription "incomplete", which grants
+        // no access.
+        payment_behavior: input.trialEndsAt ? "default_incomplete" : "allow_incomplete",
         payment_settings: { save_default_payment_method: "on_subscription" },
         metadata: metadata(input.userId),
         // The trial is requested as a duration, not as an end instant. Stripe

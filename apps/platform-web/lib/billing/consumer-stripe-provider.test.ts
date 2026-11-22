@@ -153,6 +153,8 @@ describe("Stripe Sandbox consumer provider", () => {
       default_payment_method: "pm_test_123456",
       items: [{ price: "price_test_123456", quantity: 1 }],
       collection_method: "charge_automatically",
+      // The trial path keeps its certified behaviour: the first invoice is $0.
+      payment_behavior: "default_incomplete",
       trial_period_days: 1,
       trial_settings: { end_behavior: { missing_payment_method: "cancel" } }
     });
@@ -187,6 +189,23 @@ describe("Stripe Sandbox consumer provider", () => {
     expect(parameters).not.toHaveProperty("trial_settings");
     expect(stripe.update).not.toHaveBeenCalled();
     expect(subscription.trialStart).toBeNull();
+  });
+
+  it("charges the saved card at once when there is no trial (re-subscribe fix, 2026-11-22)", async () => {
+    // Stripe test mode showed "default_incomplete" without a trial leaves the
+    // first $5.99 invoice unattempted until the subscription expires.
+    const stripe = trialStripe((created) => ({ trial_start: created, trial_end: created + 86_400 }));
+    await stripe.provider.createSubscription(request(null));
+    const parameters = stripe.create.mock.calls[0]![0] as Record<string, unknown>;
+    expect(parameters).toMatchObject({
+      customer: "cus_test_123456",
+      default_payment_method: "pm_test_123456",
+      items: [{ price: "price_test_123456", quantity: 1 }],
+      collection_method: "charge_automatically",
+      payment_behavior: "allow_incomplete",
+      payment_settings: { save_default_payment_method: "on_subscription" }
+    });
+    expect(stripe.create.mock.calls[0]![1]).toEqual({ idempotencyKey: "mvh-consumer-subscription-key" });
   });
 
   it("lists subscriptions without an unsupported five-level expansion", async () => {
