@@ -330,7 +330,7 @@ export function computeSubscriberFunnel(input: FunnelInput, period: FunnelPeriod
       { key: "ads-accounts", label: "Accounts from a Google Ads click", value: cohort.filter((account) => input.adClickAccounts!.has(account.id)).length, detail: `of ${cohort.length} accounts created; Search and Performance Max are split in Google Ads` },
       { key: "ads-trials", label: "Trials from a Google Ads click", value: accounts.filter((account) => inPeriod(account.trialRedeemedAt) && input.adClickAccounts!.has(account.id)).length, detail: "Trials started by accounts that arrived from an ad" },
       { key: "ads-first-payments", label: "First payments from a Google Ads click", value: firstPaymentIds === null ? null : [...firstPaymentIds].filter((id) => input.adClickAccounts!.has(id)).length, detail: firstPaymentIds === null ? "Not recorded for this period" : "Genuine first payments by accounts that arrived from an ad" },
-      notRecorded("other-sources", "Facebook, TikTok, YouTube, search, direct, referral", input.webAnalytics === "enabled" ? "Sign-up sources are in Vercel Web Analytics (event sign_up_submitted)" : "Not recorded: needs Web Analytics")
+      notRecorded("other-sources", "Facebook, TikTok, YouTube, search, direct, referral", input.webAnalytics === "enabled" ? "Sign-up and checkout sources are in Vercel Web Analytics (events sign_up_submitted and trial_checkout_submitted)" : "Not recorded: needs Web Analytics")
     ]),
     current: Object.freeze([
       { key: "active-trials", label: "Trials running now", value: subscriptions.filter((row) => row.status === "trialing").length, detail: "Right now, whatever the period" },

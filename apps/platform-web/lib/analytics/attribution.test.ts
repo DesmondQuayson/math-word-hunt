@@ -52,8 +52,8 @@ describe("visit sources", () => {
     expect(isSourceClass(undefined)).toBe(false);
   });
 
-  it("has exactly one funnel event", () => {
-    expect(Object.values(ANALYTICS_EVENTS)).toEqual(["sign_up_submitted"]);
+  it("has exactly the sign-up and checkout funnel events", () => {
+    expect(Object.values(ANALYTICS_EVENTS)).toEqual(["sign_up_submitted", "trial_checkout_submitted", "paid_checkout_submitted"]);
   });
 });
 

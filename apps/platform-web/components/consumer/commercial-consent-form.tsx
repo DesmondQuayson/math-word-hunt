@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useSyncExternalStore, type FormEvent } 
 import { useFormStatus } from "react-dom";
 
 import { startCheckoutAction } from "@/app/billing-actions";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/attribution";
+import { sessionStorageOrNull, trackFunnelEvent } from "@/lib/analytics/client";
 import { COMMERCIAL_CONSENT_PRESENTATION_VERSION, COMMERCIAL_POLICY } from "@/lib/commercial/policy";
 import type { AccessIntentDestination } from "@/lib/auth/access-intent";
 import { describeApprovedPlan } from "./trial-plan-summary";
@@ -110,6 +112,8 @@ export function CommercialConsentForm({
       return;
     }
     submitting.current = true;
+    // Counted only when Web Analytics is mounted; never throws, never delays the request.
+    trackFunnelEvent(trialEligible ? ANALYTICS_EVENTS.trialCheckoutSubmitted : ANALYTICS_EVENTS.paidCheckoutSubmitted, sessionStorageOrNull());
   };
 
   return <form action={startCheckoutAction} onSubmit={onSubmit} className="prototype-form consent-form" aria-labelledby="commercial-consent-heading" data-consent-presentation={COMMERCIAL_CONSENT_PRESENTATION_VERSION}>

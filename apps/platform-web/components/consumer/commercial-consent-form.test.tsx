@@ -7,12 +7,19 @@ vi.mock("@/app/billing-actions", () => ({
   // Never settles, like a redirect to Stripe that is still in flight.
   startCheckoutAction: vi.fn(() => { checkout.calls += 1; return new Promise(() => {}); })
 }));
+const analytics = vi.hoisted(() => ({ events: [] as Array<[string, unknown]>, fail: false }));
+vi.mock("@vercel/analytics", () => ({
+  track: vi.fn((name: string, properties?: unknown) => {
+    if (analytics.fail) throw new Error("analytics down");
+    analytics.events.push([name, properties]);
+  })
+}));
 
 import { COMMERCIAL_CONSENT_FIELDS, COMMERCIAL_CONSENT_INPUTS, parseCommercialConsentForm } from "@/lib/commercial/policy";
 
 import { CommercialConsentForm } from "./commercial-consent-form";
 
-afterEach(() => { cleanup(); checkout.calls = 0; });
+afterEach(() => { cleanup(); checkout.calls = 0; analytics.events = []; analytics.fail = false; });
 
 const textOf = (element: Element) => (element.textContent ?? "").replace(/\s+/g, " ").trim();
 
@@ -76,6 +83,35 @@ describe("CommercialConsentForm", () => {
     await user.click(button);
     await waitFor(() => expect(screen.getByRole("button", { name: /Opening secure checkout/ })).toHaveProperty("disabled", true));
     expect(checkout.calls).toBe(1);
+    // Counted once, with only the visit's first page and source class (none stored here).
+    expect(analytics.events).toEqual([["trial_checkout_submitted", { landing: "other", source: "direct" }]]);
+  });
+
+  it("counts a checkout without a trial separately", async () => {
+    const user = userEvent.setup();
+    render(<CommercialConsentForm trialEligible={false} />);
+    for (const box of screen.getAllByRole("checkbox")) await user.click(box);
+    await user.click(screen.getByRole("button", { name: "Continue to secure checkout" }));
+    await waitFor(() => expect(checkout.calls).toBe(1));
+    expect(analytics.events.map(([name]) => name)).toEqual(["paid_checkout_submitted"]);
+  });
+
+  it("still opens checkout when analytics fails", async () => {
+    analytics.fail = true;
+    const user = userEvent.setup();
+    render(<CommercialConsentForm />);
+    for (const box of screen.getAllByRole("checkbox")) await user.click(box);
+    await user.click(screen.getByRole("button", { name: "Start free trial" }));
+    await waitFor(() => expect(checkout.calls).toBe(1));
+    expect(analytics.events).toEqual([]);
+  });
+
+  it("counts nothing when the agreements are not ticked", async () => {
+    const user = userEvent.setup();
+    render(<CommercialConsentForm />);
+    await user.click(screen.getByRole("button", { name: "Start free trial" }));
+    expect(checkout.calls).toBe(0);
+    expect(analytics.events).toEqual([]);
   });
 });
 

@@ -9,7 +9,11 @@ import type { BeforeSendEvent } from "@vercel/analytics";
 
 export const ANALYTICS_EVENTS = Object.freeze({
   /** The sign-up form was accepted by the server (a confirmation email is on its way). */
-  signUpSubmitted: "sign_up_submitted"
+  signUpSubmitted: "sign_up_submitted",
+  /** Both subscription agreements were ticked and secure checkout was requested for a free trial. */
+  trialCheckoutSubmitted: "trial_checkout_submitted",
+  /** The same for an account whose trial is used, so it is charged at checkout. */
+  paidCheckoutSubmitted: "paid_checkout_submitted"
 } as const);
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
 
