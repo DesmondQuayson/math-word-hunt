@@ -87,9 +87,17 @@ const capture = createServer((request, response) => {
   request.on("data", (chunk) => { raw += chunk; });
   request.on("end", () => {
     const key = String(request.headers["idempotency-key"] ?? "");
+    const message = JSON.parse(raw || "{}");
+    // Addresses starting "email-failure-" simulate Resend being down (email failure handling spec).
+    const failing = Array.isArray(message.to) && message.to.some((address) => String(address).startsWith("email-failure-"));
     const existing = captured.find((entry) => key && entry.idempotencyKey === key);
     if (existing) existing.attempts += 1;
-    else captured.push({ idempotencyKey: key, authorization: String(request.headers.authorization ?? "").replace(/Bearer .+/, "Bearer [present]"), attempts: 1, message: JSON.parse(raw || "{}") });
+    else captured.push({ idempotencyKey: key, authorization: String(request.headers.authorization ?? "").replace(/Bearer .+/, "Bearer [present]"), attempts: 1, failed: failing, message });
+    if (failing) {
+      response.writeHead(503, { "content-type": "application/json" });
+      response.end(JSON.stringify({ name: "application_error", message: "simulated outage" }));
+      return;
+    }
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({ id: `local_${captured.length}` }));
   });
