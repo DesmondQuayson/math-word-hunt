@@ -44,8 +44,8 @@ type PublicPageSeo = Readonly<{ title: string | { absolute: string }; descriptio
 
 export const PUBLIC_PAGE_SEO = Object.freeze({
   "/about": {
-    title: { absolute: "About MathNexa: Online Math Prep for Grades 3–8" },
-    description: "What a MathNexa subscription includes: online math prep for Grades 3–8, math games, Homework PDFs, Quiz PDFs and a worksheet generator, and how to start."
+    title: { absolute: "About MathNexa: Online Math Prep for Grades 1–8" },
+    description: "What a MathNexa subscription includes: online math prep for Grades 1–8, math games, Homework PDFs, Quiz PDFs and a worksheet generator, and how to start."
   },
   "/help": {
     title: "Help with accounts and access",
@@ -75,8 +75,8 @@ export const PUBLIC_PAGE_SEO = Object.freeze({
   },
   // The public product pages (lib/seo/product-pages.ts).
   "/online-math-prep": {
-    title: "Online Math Prep for Grades 3–8",
-    description: `Visual lessons, guided and independent practice, quick checks and a worksheet generator for Grades 3–8 math. ${TRIAL_HOURS}-hour free trial, then ${MONTHLY_PRICE_LABEL} a month.`
+    title: "Online Math Prep for Grades 1–8",
+    description: `Visual lessons, guided and independent practice, quick checks and a worksheet generator for Grades 1–8 math. ${TRIAL_HOURS}-hour free trial, then ${MONTHLY_PRICE_LABEL} a month.`
   },
   "/math-games": {
     title: "Math games for the classroom",

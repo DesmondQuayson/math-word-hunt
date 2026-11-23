@@ -41,7 +41,7 @@ describe("public page search metadata", () => {
   it("gives every page its own title", () => {
     const titles = Object.values(PUBLIC_PAGE_SEO).map((page) => typeof page.title === "string" ? page.title : page.title.absolute);
     expect(new Set(titles).size).toBe(titles.length);
-    expect(PUBLIC_PAGE_SEO["/about"].title).toEqual({ absolute: "About MathNexa: Online Math Prep for Grades 3–8" });
+    expect(PUBLIC_PAGE_SEO["/about"].title).toEqual({ absolute: "About MathNexa: Online Math Prep for Grades 1–8" });
   });
 
   it("quotes the price and trial length from the billing policy, as the terms do", () => {
@@ -52,7 +52,7 @@ describe("public page search metadata", () => {
   });
 
   it("titles each product page after what it offers, under the site name template", () => {
-    expect(PUBLIC_PAGE_SEO["/online-math-prep"].title).toBe("Online Math Prep for Grades 3–8");
+    expect(PUBLIC_PAGE_SEO["/online-math-prep"].title).toBe("Online Math Prep for Grades 1–8");
     expect(PUBLIC_PAGE_SEO["/math-games"].title).toBe("Math games for the classroom");
     expect(PUBLIC_PAGE_SEO["/math-games/math-tug-of-war"].title).toBe("Math Tug of War: free online math game");
     expect(PUBLIC_PAGE_SEO["/homework-pdfs"].title).toBe("Printable math homework PDFs");

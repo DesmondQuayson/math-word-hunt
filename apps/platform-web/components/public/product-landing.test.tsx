@@ -103,7 +103,7 @@ describe("public product pages", () => {
 
   it("Online Math Prep explains the method, the grades and the worked example, and opens the product", async () => {
     await renderPage(OnlineMathPrepPage);
-    expect(screen.getByRole("heading", { level: 1, name: "Online Math Prep for Grades 3–8" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Online Math Prep for Grades 1–8" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open Online Math Prep" }).getAttribute("href")).toBe("/map-prep");
     // The trial is offered at the top (2026-11 funnel fix): account creation that returns to Online Math Prep.
     expect(screen.getByRole("link", { name: "Start free trial" }).getAttribute("href")).toBe("/sign-up?next=/map-prep");

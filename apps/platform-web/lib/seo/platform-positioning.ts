@@ -3,7 +3,7 @@
  * product names and the Google-facing metadata, so the hero, the navigation,
  * the footer, the access flow and the search snippet can never drift apart.
  *
- * Positioning (owner direction, 2026-09): the Grades 3–8 product is "online
+ * Positioning (owner direction, 2026-09): the Grades 1–8 product is "online
  * math prep" first; Missouri MAP alignment is a supported use case inside it,
  * not the identity. Route paths are deliberately NOT part of this change:
  * /games, /map-prep, /homework and /quizzes stay exactly as indexed and
@@ -14,7 +14,7 @@
 export const PLATFORM_HERO_EYEBROW = "Teacher-led math resources";
 export const PLATFORM_HERO_HEADLINE = "Make every math lesson clearer, more engaging, and ready to teach.";
 export const PLATFORM_HERO_DESCRIPTION =
-  "Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.";
+  "Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.";
 export const PLATFORM_HERO_AUDIENCE =
   "Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.";
 
@@ -63,7 +63,7 @@ export const PLATFORM_PRODUCTS: readonly [PlatformProduct, PlatformProduct, Plat
   {
     href: "/map-prep",
     label: "Online Math Prep",
-    cardTitle: "Online Math Prep (Grades 3–8)",
+    cardTitle: "Online Math Prep (Grades 1–8)",
     features: "Learn · Practice · Review · Worksheet Generator"
   },
   { href: "/homework", label: "Homework PDFs", cardTitle: "Homework PDFs", features: "Practice · Print" },

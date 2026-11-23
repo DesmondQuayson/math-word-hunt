@@ -28,9 +28,9 @@ export default function OnlineMathPrepPage() {
   const label = platformProductLabel("/map-prep");
   return <ProductLanding
     path={PATH}
-    eyebrow={`${label} · Grades 3–8`}
-    title="Online Math Prep for Grades 3–8"
-    description="Visual lessons, guided and independent practice, and quick checks for Grades 3–8 math, plus a worksheet generator for printing practice."
+    eyebrow={`${label} · Grades 1–8`}
+    title="Online Math Prep for Grades 1–8"
+    description="Visual lessons, guided and independent practice, and quick checks for Grades 1–8 math, plus a worksheet generator for printing practice."
     // "Start free trial" creates the account with Online Math Prep as its
     // destination: after confirming, /map-prep re-checks access and offers the
     // trial, and a finished Checkout continues into Online Math Prep. A signed-in
@@ -55,8 +55,8 @@ export default function OnlineMathPrepPage() {
       </ol>
     </section>
     <section aria-labelledby="prep-grades">
-      <h2 id="prep-grades">Grades 3 to 8</h2>
-      <p>Six grade levels, from Grade 3 to Grade 8. Each has lessons, guided and independent practice, quick checks and reviews.</p>
+      <h2 id="prep-grades">Grades 1 to 8</h2>
+      <p>Eight grade levels, from Grade 1 to Grade 8. Each has lessons, guided and independent practice, quick checks and reviews.</p>
       <p>{MISSOURI_ALIGNMENT_NOTE}</p>
     </section>
     <section aria-labelledby="prep-example">

@@ -100,11 +100,11 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(page).toHaveTitle("MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    "Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
+    "Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
   );
-  await expect(page.getByText("Online math prep · Grades 3–8", { exact: true })).toBeVisible();
+  await expect(page.getByText("Online math prep · Grades 1–8", { exact: true })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://mathnexa.com");
-  await expect(page.getByText("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeVisible();
+  await expect(page.getByText("Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Games, Missouri MAP Prep, image-rich homework, and topic quizzes");
   await expect(page.getByRole("heading", { level: 1, name: "Online math prep that shows the thinking, not just the answer." })).toBeVisible();
   await expect(page.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeVisible();
@@ -135,7 +135,7 @@ test("teacher-first homepage uses approved copy, SEO, modules, and public naviga
   await expect(accountNavigation.getByRole("link", { name: "My Account" })).toHaveAttribute("href", "/account");
   await expect(accountNavigation.getByRole("button", { name: "Sign out" })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  for (const [label, href] of [[/Math Games Engage · Practice/, "/games"], [/Online Math Prep [(]Grades 3–8[)] Learn · Practice · Review · Worksheet Generator/, "/map-prep"], [/Homework PDFs Practice · Print/, "/homework"], [/Quiz PDFs Assess · Print/, "/quizzes"]] as const) {
+  for (const [label, href] of [[/Math Games Engage · Practice/, "/games"], [/Online Math Prep [(]Grades 1–8[)] Learn · Practice · Review · Worksheet Generator/, "/map-prep"], [/Homework PDFs Practice · Print/, "/homework"], [/Quiz PDFs Assess · Print/, "/quizzes"]] as const) {
     await expect(page.getByRole("link", { name: label })).toHaveAttribute("href", href);
   }
   await expect(page.getByRole("img", { name: /Math Vocabulary Hunt game artwork/i })).toBeVisible();
@@ -195,7 +195,7 @@ test("signed-out product and account choices preserve only allowlisted destinati
 
 test("pointer and keyboard choices reach the preserved account-intent path", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: /Online Math Prep [(]Grades 3–8[)]/ }).click();
+  await page.getByRole("link", { name: /Online Math Prep [(]Grades 1–8[)]/ }).click();
   await expect(page).toHaveURL("/access?next=/map-prep");
   await page.goto("/");
   // The hero's first step is the trial since the 2026-11 funnel fixes (the header offers it too).

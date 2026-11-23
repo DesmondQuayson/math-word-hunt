@@ -22,7 +22,7 @@ describe("MathNexa homepage positioning and SEO metadata", () => {
   it("publishes the approved Google-facing title and description", () => {
     expect(PLATFORM_HOMEPAGE_TITLE).toBe("MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets");
     // Owner-exact wording (V2): identical to the visible hero description, never prefixed with "MathNexa offers".
-    expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.");
+    expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe("Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.");
     expect(PLATFORM_HOMEPAGE_DESCRIPTION).toBe(PLATFORM_HERO_DESCRIPTION);
     expect(PLATFORM_HOMEPAGE_DESCRIPTION.startsWith("MathNexa offers")).toBe(false);
     expect(PLATFORM_HOMEPAGE_DESCRIPTION).not.toMatch(/Missouri|Praxis/);
@@ -31,7 +31,7 @@ describe("MathNexa homepage positioning and SEO metadata", () => {
     expect(PLATFORM_HOMEPAGE_DESCRIPTION.length).toBeLessThanOrEqual(160);
     // The description and the visible hero make the same factual claims, so
     // Google has consistent snippet material.
-    for (const concept of ["Math games", "online math prep for Grades 3–8", "Homework PDFs", "Quiz PDFs", "worksheet generator"]) {
+    for (const concept of ["Math games", "online math prep for Grades 1–8", "Homework PDFs", "Quiz PDFs", "worksheet generator"]) {
       expect(PLATFORM_HOMEPAGE_DESCRIPTION).toContain(concept);
       expect(PLATFORM_HERO_DESCRIPTION).toContain(concept);
     }
@@ -41,7 +41,7 @@ describe("MathNexa homepage positioning and SEO metadata", () => {
     expect(PLATFORM_HERO_EYEBROW).toBe("Teacher-led math resources");
     expect(PLATFORM_HERO_HEADLINE).toBe("Make every math lesson clearer, more engaging, and ready to teach.");
     expect(PLATFORM_HERO_DESCRIPTION).toBe(
-      "Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
+      "Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform."
     );
     expect(PLATFORM_HERO_AUDIENCE).toBe(
       "Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review."
@@ -58,7 +58,7 @@ describe("MathNexa homepage positioning and SEO metadata", () => {
     ]);
     expect(PLATFORM_PRODUCTS.map((product) => product.cardTitle)).toEqual([
       "Math Games",
-      "Online Math Prep (Grades 3–8)",
+      "Online Math Prep (Grades 1–8)",
       "Homework PDFs",
       "Quiz PDFs"
     ]);

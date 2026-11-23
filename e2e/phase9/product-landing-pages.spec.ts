@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
 const axeSource = readFileSync(resolve("node_modules/axe-core/axe.min.js"), "utf8");
 
 const PAGES = [
-  { path: "/online-math-prep", h1: "Online Math Prep for Grades 3–8", button: "Open Online Math Prep", target: "/map-prep" },
+  { path: "/online-math-prep", h1: "Online Math Prep for Grades 1–8", button: "Open Online Math Prep", target: "/map-prep" },
   { path: "/math-games", h1: "Math games for the classroom", button: "Open Math Games", target: "/games" },
   { path: "/math-games/math-tug-of-war", h1: "Math Tug of War", button: "Play for free", target: "/games/math-tug-of-war/play" },
   { path: "/homework-pdfs", h1: "Printable math homework PDFs", button: "Open Homework PDFs", target: "/homework" },

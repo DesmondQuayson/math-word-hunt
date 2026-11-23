@@ -539,7 +539,7 @@
 }
 
 /* Narrow constellation nodes: the product name and its feature line stack
-   instead of sharing one row, so "Online Math Prep (Grades 3–8)" and
+   instead of sharing one row, so "Online Math Prep (Grades 1–8)" and
    "Learn · Practice · Review · Worksheet Generator" wrap into balanced,
    left-aligned lines rather than a ragged right-aligned column. */
 .constellation-node:not(.constellation-node-wide) .constellation-caption {

@@ -174,7 +174,7 @@ test("entitled Online Math Prep launch: redirect ceiling, no duplicate or foreig
   for (let run = 0; run < runs; run++) {
     await page.goto("/");
     await expect(page.getByText("Your MathNexa resource shelf is ready below.")).toBeVisible();
-    const card = page.getByRole("link", { name: /Online Math Prep [(]Grades 3–8[)]/ });
+    const card = page.getByRole("link", { name: /Online Math Prep [(]Grades 1–8[)]/ });
     const result = await clickAndMeasure(page, card, async () => {
       await page.waitForURL((current) => current.origin === destinationOrigin, { timeout: 45_000 });
       await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });

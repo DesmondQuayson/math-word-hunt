@@ -31,11 +31,11 @@ const SUBSCRIPTION_GAMES = { "crosscalc": "/games/crosscalc/play", "number-logic
 describe("teacher-first public homepage", () => {
   it("leads with online math prep: eyebrow, one H1, and the owner's description and audience lines unchanged", () => {
     const { container } = render(<TeacherFirstHome />);
-    expect(screen.getByText("Online math prep · Grades 3–8")).toBeTruthy();
+    expect(screen.getByText("Online math prep · Grades 1–8")).toBeTruthy();
     expect(container.querySelectorAll("h1")).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1, name: HEADLINE })).toBeTruthy();
     // The hero lede is still the owner's exact sentence, the same text as the meta description.
-    expect(screen.getByText("Math games, online math prep for Grades 3–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeTruthy();
+    expect(screen.getByText("Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.")).toBeTruthy();
     expect(screen.getByText(PLATFORM_HOMEPAGE_DESCRIPTION)).toBeTruthy();
     expect(screen.getByText("Built for teachers. Useful for families. Designed for classroom instruction, extra practice, and middle school math review.")).toBeTruthy();
     // The old Missouri-first hero wording is gone.
@@ -63,7 +63,7 @@ describe("teacher-first public homepage", () => {
     expect(decodeURIComponent(screen.getByAltText(/Math Vocabulary Hunt game artwork/).getAttribute("src") ?? "")).toContain("/media/games/math-vocabulary-hunt.webp");
     // New customer-facing names; the route paths behind them are the indexed originals.
     expect(screen.getByRole("link", { name: /Math Games Engage · Practice/ }).getAttribute("href")).toBe("/games");
-    expect(screen.getByRole("link", { name: /Online Math Prep \(Grades 3–8\) Learn · Practice · Review · Worksheet Generator/ }).getAttribute("href")).toBe("/map-prep");
+    expect(screen.getByRole("link", { name: /Online Math Prep \(Grades 1–8\) Learn · Practice · Review · Worksheet Generator/ }).getAttribute("href")).toBe("/map-prep");
     expect(screen.getByRole("link", { name: /Homework PDFs Practice · Print/ }).getAttribute("href")).toBe("/homework");
     expect(screen.getByRole("link", { name: /Quiz PDFs Assess · Print/ }).getAttribute("href")).toBe("/quizzes");
     expect(screen.getByText(/One connected system:/).textContent).toBe("One connected system: engage, learn, practice, assess.");

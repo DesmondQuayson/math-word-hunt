@@ -10,7 +10,7 @@
  * do not have. The worked problem is an example, labelled as one.
  */
 
-export const HOME_EYEBROW = "Online math prep · Grades 3–8";
+export const HOME_EYEBROW = "Online math prep · Grades 1–8";
 export const HOME_HEADLINE_LEAD = "Online math prep that ";
 // The comma rides inside the mark so accessible-name spacing between the runs
 // can only ever fall where the sentence already has a space.

@@ -54,7 +54,7 @@ const text = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH
       <text x="530" y="378">not just the answer.</text>
     </g>
     <g font-size="24" font-weight="600" fill="${MIST}">
-      <text x="530" y="448">Math games · Online Math Prep for Grades 3–8</text>
+      <text x="530" y="448">Math games · Online Math Prep for Grades 1–8</text>
       <text x="530" y="482">Homework PDFs · Quiz PDFs</text>
     </g>
     <text x="530" y="552" font-size="28" font-weight="800" fill="${SUN}">mathnexa.com</text>

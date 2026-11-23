@@ -43,7 +43,7 @@ function PlatformAboutPage({ free }: Readonly<{ free: readonly GameSummary[] }>)
     <section aria-labelledby="about-included">
       <h2 id="about-included">What one subscription includes</h2>
       <ul className="principle-list">
-        <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[mathPrep.href]}>{mathPrep.cardTitle}</Link></strong><span>Lessons, practice and review for Grades 3–8, with a worksheet generator for printing practice. {MISSOURI_ALIGNMENT_NOTE}</span></li>
+        <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[mathPrep.href]}>{mathPrep.cardTitle}</Link></strong><span>Lessons, practice and review for Grades 1–8, with a worksheet generator for printing practice. {MISSOURI_ALIGNMENT_NOTE}</span></li>
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[games.href]}>{games.cardTitle}</Link></strong><span>Math games for whole-class play and quick practice.{free.length ? <> <FreeGameNames games={free} /> {freeGamesPredicate(free.length)}.</> : null}</span></li>
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[homework.href]}>{homework.cardTitle}</Link></strong><span>Printable homework by grade, topic, and lesson.</span></li>
         <li><strong><Link href={PRODUCT_PAGE_FOR_ROUTE[quizzes.href]}>{quizzes.cardTitle}</Link></strong><span>Printable topic quizzes for checking understanding.</span></li>
