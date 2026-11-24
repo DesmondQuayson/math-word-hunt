@@ -91,6 +91,20 @@ probe-live after PASS.
   answers).
 - Subscriber records (`subscriber-readonly`, restricted key): 6 of 6 Stripe subscriptions match the database.
 
+## Incident after release: accidental rollback for about 1.5 minutes
+
+At about 20:45 UTC, after this record was pushed, a local shell command that only updated the release notes contained
+the rollback command inside backticks in a double-quoted string. Bash ran it as command substitution and promoted
+`dpl_DdFiZBfNNWu3E2kJ9VSJT24UQZ24` (v1.2.66), so production served v1.2.66 until v1.2.67
+(`dpl_Dzvs59fWtgcWE8y4nxYHyFAyr65k`) was promoted again, finishing 20:46:35 UTC.
+
+- Impact: visitors in that window saw the previous homepage (no grade selector, the old picture, the Stop control).
+  v1.2.66 is the retained, verified rollback build; no data, billing or access rule changed.
+- Afterwards: `/api/health` build `8e72984`; `vercel inspect https://mathnexa.com` → `dpl_Dzvs…`; probe-live PASS;
+  homepage and grade links 81/81; runtime logs on both deployments since 20:44 UTC: 0 error, 0 5xx.
+- Cause and rule: shell text that quotes a command must never sit in backticks inside double quotes. Notes are
+  written with a file tool, never through a shell string.
+
 ## Not proven here
 
 Real entry into ShowMe per grade with an account that has access: the pass cookie only reaches ShowMe from
