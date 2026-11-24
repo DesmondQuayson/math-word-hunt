@@ -20,8 +20,6 @@ import {
 
 import styles from "./home/home.module.css";
 import { HOME_EYEBROW, HOME_HEADLINE_LEAD, HOME_HEADLINE_MARK, HOME_HEADLINE_TAIL } from "./home/home-copy";
-import { InView } from "./home/in-view";
-import { Marked } from "./home/marked";
 import { PrepBoard } from "./home/prep-board";
 
 export type HomeAuthState = "signed-out" | "unconfirmed" | "signed-in";
@@ -137,12 +135,7 @@ const SHELF_CARD_SIZES = "(max-width: 34rem) 36vw, (max-width: 78rem) 31vw, 24re
  */
 function ProductShelf() {
   const [games, mathPrep, homework, quizzes] = PLATFORM_PRODUCTS;
-  return <section className={`container ${styles.shelf}`} aria-labelledby="home-shelf-title">
-    <InView className={`${styles.inView} ${styles.sectionHead}`}>
-      <p className="eyebrow">How MathNexa fits together</p>
-      <h2 id="home-shelf-title"><Marked>Prepare online</Marked>, practice on paper, check what stuck</h2>
-      <p className={styles.shelfLede}>One connected system: <strong>engage</strong>, <strong>learn</strong>, <strong>practice</strong>, <strong>assess</strong>.</p>
-    </InView>
+  return <section className={`container ${styles.shelf}`}>
     <div className={styles.shelfGrid}>
       <Link className={`${styles.shelfCard} ${styles.shelfFeature}`} href={mathPrep.href} data-product="map-prep">
         <span className={styles.shelfImage}>

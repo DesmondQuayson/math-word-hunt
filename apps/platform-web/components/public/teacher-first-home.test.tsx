@@ -67,7 +67,10 @@ describe("teacher-first public homepage", () => {
     expect(screen.getByRole("link", { name: /Online Math Prep \(Grades 1–8\) Learn · Practice · Review · Worksheet Generator/ }).getAttribute("href")).toBe("/map-prep");
     expect(screen.getByRole("link", { name: /Homework PDFs Practice · Print/ }).getAttribute("href")).toBe("/homework");
     expect(screen.getByRole("link", { name: /Quiz PDFs Assess · Print/ }).getAttribute("href")).toBe("/quizzes");
-    expect(screen.getByText(/One connected system:/).textContent).toBe("One connected system: engage, learn, practice, assess.");
+    // The shelf's introduction was removed (owner, 2026-11-24): the cards start the section.
+    expect(document.body.textContent).not.toMatch(/How MathNexa fits together|Prepare online, practice on paper|check what stuck|One connected system/i);
+    expect(document.getElementById("home-shelf-title")).toBeNull();
+    expect(document.querySelector('[aria-labelledby="home-shelf-title"]')).toBeNull();
     // Online Math Prep leads the shelf.
     expect(document.querySelector("[data-product]")?.getAttribute("data-product")).toBe("map-prep");
   });
@@ -78,7 +81,7 @@ describe("teacher-first public homepage", () => {
     expect(container.textContent).not.toMatch(/Coming soon|Praxis|ETS|Middle School Math Review/);
     // The owner removed "Inside Online Math Prep" and "Made for the kitchen table and the classroom".
     expect(container.textContent).not.toMatch(/Inside Online Math Prep|A prep session|kitchen table|After school, at home|In the classroom|Explore Online Math Prep|Find a Homework PDF|Find a Quiz PDF/);
-    const after = ["Prepare online, practice on paper, check what stuck", "Free math games", ...FREE_TITLES];
+    const after = ["Free math games", ...FREE_TITLES];
     // Headings: the H1, the authorized-code form heading, then the sections in order.
     expect([...container.querySelectorAll("h1, h2, h3")].map((node) => node.textContent)).toEqual([HEADLINE, "Authorize Code", ...after]);
     cleanup();

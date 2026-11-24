@@ -9,9 +9,7 @@
  *
  * Motion: the hero's worked problem plays (under five seconds) when it is
  * seen, rests three seconds on the solved problem and plays again, three
- * plays in all, then stays solved; a Pause animation / Play animation button
- * shows only while plays are still to come. The toolkit heading's marker draws once as it
- * scrolls into view.
+ * plays in all, then stays solved.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
  */
@@ -31,48 +29,6 @@
 
 .heroBand {
   --hand: "MathNexa Hand", "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", var(--font-body);
-}
-
-.inView {
-  min-width: 0;
-}
-
-.marked {
-  padding-inline: 0.08em;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M3 9.5 C 40 5.5, 92 4.5, 140 6.5 C 162 7.5, 182 8.5, 197 6' fill='none' stroke='%23f5c542' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-position: 0 88%;
-  background-repeat: no-repeat;
-  background-size: 0% 0.5em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-}
-
-.inView[data-in-view] .marked {
-  animation: home-marker 700ms var(--ease-standard) 150ms forwards;
-}
-
-@keyframes home-marker {
-  to { background-size: 100% 0.5em; }
-}
-
-.sectionHead {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 46rem;
-}
-
-.sectionHead h2 {
-  margin: 0;
-  font-size: clamp(1.9rem, 3.4vw, 2.85rem);
-  line-height: 1.08;
-  overflow-wrap: break-word;
-}
-
-.sectionHead p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body-large);
-  line-height: 1.55;
 }
 
 /* ---------- 1. Hero ---------- */
@@ -701,63 +657,6 @@
   text-align: center;
 }
 
-/* The figure takes focus only when the Pause / Play control goes while focused. */
-.board:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: var(--space-2);
-}
-
-/* Pause animation / Play animation shows only while plays are still to come
-   (WCAG 2.2.2). It sits below the caption, in the hero's bottom padding and out
-   of the layout, so nothing moves when it appears, changes or goes. */
-.boardControl {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  inset-inline: 0;
-  width: fit-content;
-  min-height: 2rem;
-  margin-inline: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  border: var(--border-width-thin) solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-elevated);
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-size-label);
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-standard);
-}
-
-.boardControl:hover {
-  background: var(--color-accent-sky);
-}
-
-.boardControl:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-/* Two bars: the board is moving and can be paused. */
-.boardControlPause {
-  width: 0.6rem;
-  height: 0.65rem;
-  border-inline: 0.2rem solid currentColor;
-}
-
-/* A triangle: the board is paused and can play again. */
-.boardControlPlay {
-  width: 0;
-  height: 0;
-  border-block: 0.35rem solid transparent;
-  border-inline-start: 0.6rem solid currentColor;
-}
-
 @keyframes home-sheet-in {
   from { translate: 0 1.1rem; rotate: -3deg; }
 }
@@ -984,16 +883,6 @@
   translate: 0.2rem 0;
 }
 
-.shelfLede {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body-large);
-}
-
-.shelfLede strong {
-  color: var(--color-text-primary);
-}
-
 @media (max-width: 60rem) {
   .hero {
     grid-template-columns: minmax(0, 1fr);
@@ -1073,10 +962,6 @@
   .board *::before,
   .headlineMark {
     animation: none !important;
-  }
-
-  .inView .marked {
-    background-size: 100% 0.5em;
   }
 
   .shelfCard,

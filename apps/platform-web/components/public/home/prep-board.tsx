@@ -13,8 +13,8 @@ import { YourTurn } from "./your-turn";
  * 5 × 4 = 20, 28 ÷ 4 = 7.
  *
  * Motion: one sequence, finished in under five seconds, replayed after a
- * three-second rest while on screen, three plays in all, with a Pause
- * animation / Play animation button only while plays are still to come. Every animated
+ * three-second rest while on screen, three plays in all, with no playback
+ * control. Every animated
  * element's resting style is its final state, so reduced motion, a cancelled
  * animation or a screenshot all show the solved problem. The sheet and the
  * problem text never fade (they only slide), so the page's largest text
