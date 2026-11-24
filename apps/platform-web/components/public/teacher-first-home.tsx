@@ -11,6 +11,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { CREATE_ACCOUNT_HREF, SIGN_IN_HREF, START_TRIAL_SIGN_UP_HREF } from "@/lib/consumer/header-cta";
 import { homeFreeGames, type HomeFreeGame } from "@/lib/games/home-free-games";
 import { AUTHORIZED_ACCESS_ANCHOR } from "@/lib/navigation/banner";
+import { ONLINE_MATH_PREP_GRADES, onlineMathPrepGradeHref } from "@/lib/showme-access/grades";
 import {
   PLATFORM_HERO_AUDIENCE,
   PLATFORM_HERO_DESCRIPTION,
@@ -84,6 +85,30 @@ function HeroActions({ authState, entitled, heroCta }: Readonly<{ authState: Hom
 }
 
 /**
+ * "Select your grade to start learning", straight under the headline: one link
+ * per Online Math Prep grade, Grade 1 to Grade 8 (lib/showme-access/grades).
+ * Each goes through MathNexa's ShowMe pass route, the same server-side check as
+ * the shelf's Online Math Prep card: with a trial, a subscription or a school
+ * code the visitor lands on that grade; otherwise they are sent to sign in,
+ * confirm their email or subscribe, and the grade is remembered for 30 minutes.
+ * Nothing here decides access. Plain <a> elements, not next/link: a prefetch
+ * would call the pass route (issuing a pass, or overwriting the remembered
+ * grade), and a client-side visit cannot follow its redirect to another site.
+ * The title is a paragraph, not a heading, so the page's heading outline is
+ * unchanged.
+ */
+function GradeSelector() {
+  return <nav className={styles.gradePicker} aria-labelledby="home-grade-title">
+    <p id="home-grade-title" className={styles.gradePickerTitle}>Select your grade to start learning</p>
+    <ul className={styles.gradeGrid}>
+      {ONLINE_MATH_PREP_GRADES.map((grade) => <li key={grade}>
+        <a className={styles.gradeKey} href={onlineMathPrepGradeHref(grade)} data-grade={grade} rel="nofollow">Grade {grade}</a>
+      </li>)}
+    </ul>
+  </nav>;
+}
+
+/**
  * "Learn · Practice · Review · Worksheet Generator" must only ever break at a
  * middot, never inside a phrase: each phrase is an unbreakable run and the
  * separators stay ordinary text, so the rendered text is unchanged.
@@ -122,10 +147,10 @@ function ProductShelf() {
       <Link className={`${styles.shelfCard} ${styles.shelfFeature}`} href={mathPrep.href} data-product="map-prep">
         <span className={styles.shelfImage}>
           <Image
-            src="/media/home/online-math-prep-preview.webp"
-            alt="MathNexa Online Math Prep workspace with a graph, working board, and math tools"
-            width={1200}
-            height={800}
+            src="/media/home/mathnexa-grade1-math-visual.webp"
+            alt="A child learning with a teacher beside Grade 1 activities about telling time and understanding money."
+            width={2400}
+            height={1440}
             sizes={SHELF_FEATURE_SIZES}
           />
         </span>
@@ -245,6 +270,7 @@ export function TeacherFirstHome({
       <div className={`teacher-home-copy ${styles.heroCopy}`}>
         <p className="eyebrow">{HOME_EYEBROW}</p>
         <h1 id="home-title">{HOME_HEADLINE_LEAD}<span className={styles.headlineMark}>{HOME_HEADLINE_MARK}</span>{HOME_HEADLINE_TAIL}</h1>
+        <GradeSelector />
         <p className={styles.lede}>{PLATFORM_HERO_DESCRIPTION}</p>
         <p className={styles.audience}>{PLATFORM_HERO_AUDIENCE}</p>
         <HeroActions authState={authState} entitled={entitled} heroCta={heroCta} />

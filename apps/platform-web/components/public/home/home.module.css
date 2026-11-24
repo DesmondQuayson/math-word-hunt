@@ -9,8 +9,7 @@
  *
  * Motion: the hero's worked problem plays (under five seconds) when it is
  * seen, rests three seconds on the solved problem and plays again, three
- * plays in all, then stays solved; a Stop animation button shows only while
- * plays are still to come. The toolkit heading's marker draws once as it
+ * plays in all, then stays solved. The toolkit heading's marker draws once as it
  * scrolls into view.
  * Resting styles are final states, so reduced motion, a cancelled animation
  * and a screenshot all show finished content.
@@ -132,6 +131,108 @@
   color: var(--color-text-primary);
   font-weight: 700;
   line-height: 1.5;
+}
+
+/* Grade selector: straight under the headline, inside the hero's text column
+   (on phones it follows the headline in reading order). Eight raised keys in
+   two columns, Grade 1 to Grade 8, teal through blue to purple. Each key is an
+   ordinary link (see GradeSelector in teacher-first-home.tsx). White labels
+   keep at least 4.5:1 on the lightest part of every key. */
+.gradePicker {
+  max-width: 34rem;
+}
+
+.gradePickerTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 1.9vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.gradeGrid {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.8rem, 1.6vw, 1.15rem) clamp(0.75rem, 1.8vw, 1.25rem);
+}
+
+.gradeGrid li {
+  min-width: 0;
+  margin: 0;
+}
+
+.gradeKey {
+  --key-top: #3a8070;
+  --key-bottom: #2f6e60;
+  --key-edge: #1f4d43;
+  min-height: clamp(3.25rem, 5vw, 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, var(--key-top), var(--key-bottom));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 24%),
+    0 5px 0 var(--key-edge),
+    0 10px 18px rgb(11 34 57 / 16%);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 1.9vw, 1.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 22%);
+  overflow-wrap: break-word;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    translate var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.gradeKey:visited,
+.gradeKey:hover,
+.gradeKey:active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.gradeKey[data-grade="2"] { --key-top: #357a86; --key-bottom: #2b6a75; --key-edge: #1d4a52; }
+.gradeKey[data-grade="3"] { --key-top: #357596; --key-bottom: #2b6584; --key-edge: #1d465d; }
+.gradeKey[data-grade="4"] { --key-top: #346fae; --key-bottom: #2b5f9a; --key-edge: #1e436f; }
+.gradeKey[data-grade="5"] { --key-top: #3667b3; --key-bottom: #2d579f; --key-edge: #203e73; }
+.gradeKey[data-grade="6"] { --key-top: #4459b6; --key-bottom: #3949a0; --key-edge: #283373; }
+.gradeKey[data-grade="7"] { --key-top: #4c53b4; --key-bottom: #3f449e; --key-edge: #2c2f72; }
+.gradeKey[data-grade="8"] { --key-top: #5a49aa; --key-bottom: #4b3b95; --key-edge: #33286b; }
+
+/* Hover lifts the key without lightening it, so every label keeps 4.5:1. */
+.gradeKey:hover {
+  translate: 0 -2px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 24%),
+    0 7px 0 var(--key-edge),
+    0 14px 22px rgb(11 34 57 / 20%);
+}
+
+/* Pressed: the key sinks onto its lower edge. */
+.gradeKey:active {
+  translate: 0 4px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 18%),
+    0 1px 0 var(--key-edge),
+    0 3px 6px rgb(11 34 57 / 14%);
+}
+
+/* Navy ring: clear on the warm hero band and on every key colour. */
+.gradeKey:focus-visible {
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 4px;
 }
 
 /* ---------- 2. The worked problem ---------- */
@@ -599,55 +700,6 @@
   text-align: center;
 }
 
-/* The figure takes focus only when Stop animation goes while focused. */
-.board:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: var(--space-2);
-}
-
-/* Stop animation shows only while plays are still to come. It sits below the
-   caption, in the hero's bottom padding and out of the layout, so nothing
-   moves when it appears or goes. */
-.boardStop {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  inset-inline: 0;
-  width: fit-content;
-  min-height: 2rem;
-  margin-inline: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  border: var(--border-width-thin) solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-elevated);
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-size-label);
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-standard);
-}
-
-.boardStop:hover {
-  background: var(--color-accent-sky);
-}
-
-.boardStop:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.boardStopIcon {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 1px;
-  background: currentColor;
-}
-
 @keyframes home-sheet-in {
   from { translate: 0 1.1rem; rotate: -3deg; }
 }
@@ -785,6 +837,23 @@
   scale: 1.035;
 }
 
+/* The feature picture (the Grade 1 artwork, 2400 x 1440) is finished art with
+   words on it: it always shows whole at its own 5:3 shape, never cropped and
+   never zoomed on hover. Where the caption beside it is taller than the
+   picture, the picture is centred on the card's own white. */
+.shelfFeature .shelfImage {
+  background: var(--color-surface-elevated);
+}
+
+.shelfFeature .shelfImage img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.shelfFeature:hover .shelfImage img {
+  scale: none;
+}
+
 .shelfCaption {
   min-width: 0;
   display: flex;
@@ -883,7 +952,7 @@
   }
 
   .shelfFeature .shelfImage {
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 5 / 3;
     min-height: 0;
     border-right: 0;
     border-bottom: var(--border-width-standard) solid var(--color-text-primary);
@@ -955,7 +1024,12 @@
   .shelfCard,
   .shelfImage img,
   .shelfAction span,
-  .choice {
+  .choice,
+  .gradeKey {
     transition: none;
+  }
+
+  .gradeKey:hover {
+    translate: none;
   }
 }

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PLATFORM_HOMEPAGE_DESCRIPTION } from "@/lib/seo/platform-positioning";
 
 import { homeFreeGames } from "@/lib/games/home-free-games";
+import { safeShowMeReturnPath } from "@/lib/showme-access/pass";
 
 import { TeacherFirstHome } from "./teacher-first-home";
 
@@ -128,17 +129,48 @@ describe("teacher-first public homepage", () => {
     fetchSpy.mockRestore();
   });
 
-  it("shows Online Math Prep, not the retired Missouri MAP Prep name, in the shelf preview", () => {
-    render(<TeacherFirstHome />);
-    expect(decodeURIComponent(screen.getByAltText(/Online Math Prep workspace/).getAttribute("src") ?? "")).toContain("/media/home/online-math-prep-preview.webp");
-    // The preview is a homepage-only drawing; its source carries the visible title.
-    const source = readFileSync(resolve(process.cwd(), "public/media/home/online-math-prep-preview-source.svg"), "utf8");
-    expect(source).toContain(">Online Math Prep</text>");
-    expect(source).not.toMatch(/Missouri|MAP Prep/);
-    // The mathematics in the drawing is unchanged: 2 notebooks cost $5, 4 cost $10, y = 2.5x.
-    expect(source).toContain(">y = 2.5x</text>");
-    expect(source).toContain(">$5</text>");
-    expect(source).toContain(">$10</text>");
+  it("shows the owner's Grade 1 artwork whole in the Online Math Prep shelf card (owner, 2026-11-24)", () => {
+    const { container } = render(<TeacherFirstHome />);
+    const image = screen.getByAltText("A child learning with a teacher beside Grade 1 activities about telling time and understanding money.");
+    expect(container.querySelector('[data-product="map-prep"] img')).toBe(image);
+    expect(decodeURIComponent(image.getAttribute("src") ?? "")).toContain("/media/home/mathnexa-grade1-math-visual.webp");
+    // Its real size, so the browser reserves a 5:3 box and nothing shifts as it loads.
+    expect([image.getAttribute("width"), image.getAttribute("height")]).toEqual(["2400", "1440"]);
+    const file = readFileSync(resolve(process.cwd(), "public/media/home/mathnexa-grade1-math-visual.webp"));
+    expect(file.toString("ascii", 0, 4) + file.toString("ascii", 8, 12)).toBe("RIFFWEBP");
+    expect([file.readUInt16LE(26) & 0x3fff, file.readUInt16LE(28) & 0x3fff]).toEqual([2400, 1440]);
+    // The homepage no longer shows the old drawing; the file stays for /online-math-prep and rollback.
+    expect(container.innerHTML).not.toContain("online-math-prep-preview");
+    expect(readFileSync(resolve(process.cwd(), "public/media/home/online-math-prep-preview.webp")).length).toBeGreaterThan(0);
+    expect(image.getAttribute("alt")).not.toMatch(/Missouri|MAP Prep/);
+  });
+
+  it("puts \"Select your grade to start learning\" and Grade 1 to Grade 8 straight under the headline, for every visitor", () => {
+    for (const authState of ["signed-out", "unconfirmed", "signed-in"] as const) {
+      for (const entitled of [false, true]) {
+        const { container } = render(<TeacherFirstHome authState={authState} entitled={entitled} />);
+        const heading = screen.getByRole("heading", { level: 1 });
+        const picker = screen.getByRole("navigation", { name: "Select your grade to start learning" });
+        // The headline's very next sibling, outside it, inside the hero's text column.
+        expect(heading.nextElementSibling).toBe(picker);
+        expect(picker.parentElement?.classList.contains("teacher-home-copy")).toBe(true);
+        expect(heading.textContent).toBe(HEADLINE);
+        expect(within(picker).queryByRole("heading")).toBeNull();
+        const links = within(picker).getAllByRole("link");
+        expect(links.map((link) => link.textContent)).toEqual([1, 2, 3, 4, 5, 6, 7, 8].map((grade) => `Grade ${grade}`));
+        links.forEach((link, index) => {
+          const grade = index + 1;
+          const href = link.getAttribute("href") ?? "";
+          // Through MathNexa's pass route, which checks access on the server; never a ShowMe or staging host.
+          expect(href).toBe(`/map-prep/pass?to=/grades/${grade}`);
+          expect(safeShowMeReturnPath(new URLSearchParams(href.split("?")[1]).get("to"))).toBe(`/grades/${grade}`);
+          expect(link.getAttribute("data-grade")).toBe(String(grade));
+          expect(link.tagName).toBe("A");
+        });
+        expect(container.querySelectorAll("[data-grade]")).toHaveLength(8);
+        cleanup();
+      }
+    }
   });
 
   it("shows the worked example with no manual controls (owner, after v1.2.27): it replays on its own", () => {
@@ -381,7 +413,7 @@ describe("teacher-first public homepage", () => {
     for (const authState of ["signed-out", "signed-in"] as const) {
       const { container } = render(<TeacherFirstHome authState={authState} />);
       const hrefs = new Set([...container.querySelectorAll("a")].map((link) => link.getAttribute("href")));
-      for (const href of hrefs) expect(["/sign-up?entry=account", "/sign-up?next=/subscription", "/pricing", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
+      for (const href of hrefs) expect([...[1, 2, 3, 4, 5, 6, 7, 8].map((grade) => `/map-prep/pass?to=/grades/${grade}`), "/sign-up?entry=account", "/sign-up?next=/subscription", "/pricing", "/sign-in", "/subscription", "/account", "/games", "/map-prep", "/homework", "/quizzes", "/worksheets", "/games/polygon-showdown/play", "/games/math-tug-of-war/play", "/games/math-bingo-live/host", "/games/math-race-champions/play", "/join", "/math-games"], `${authState} ${href}`).toContain(href);
       cleanup();
     }
   });

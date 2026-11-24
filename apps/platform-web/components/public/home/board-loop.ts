@@ -14,12 +14,10 @@
  * resumes the pass, or starts a fresh rest if it had finished.
  *
  * The cycle waits while keyboard focus is inside the sheet ("Your turn"), and
- * stops for good on the solved problem when the visitor presses Stop
- * animation or answers "Your turn", so their answer stays on screen. With
- * reduced motion the stylesheet removes the animations, so there is nothing
- * to play. The cycle is active while plays are still to come; only then is
- * there anything for Stop animation to stop (WCAG 2.2.2: the three plays and
- * their rests last about 19 seconds).
+ * stops for good on the solved problem when the visitor answers "Your turn",
+ * so their answer stays on screen. With reduced motion the stylesheet removes
+ * the animations, so there is nothing to play. The three plays and their
+ * rests last about 19 seconds.
  */
 
 /** The rest on the solved problem between passes. */
@@ -31,8 +29,6 @@ export const PLAYS = 3;
 export type BoardLoopOptions = {
   /** Replace the board with a fresh copy: a full reset, "Your turn" included. */
   remount: () => void;
-  /** Called when the cycle becomes active or stops being active (see above). */
-  onActiveChange?: (active: boolean) => void;
   onScreen: boolean;
   reduced: boolean;
 };
@@ -43,7 +39,7 @@ export type BoardLoop = {
   setOnScreen: (onScreen: boolean) => void;
   setFocused: (focused: boolean) => void;
   setReduced: (reduced: boolean) => void;
-  /** Stop animation, or an answer to "Your turn": show the solved problem and stop for good. */
+  /** An answer to "Your turn": show the solved problem and stop for good. */
   stop: () => void;
   dispose: () => void;
 };
@@ -58,17 +54,9 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
   let focused = false;
   let stopped = false;
   let disposed = false;
-  let active: boolean | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const moving = () => onScreen && !stopped && !reduced;
-
-  const report = () => {
-    const now = !stopped && !reduced;
-    if (now === active) return;
-    active = now;
-    options.onActiveChange?.(now);
-  };
 
   const clearTimer = () => {
     if (timer === undefined) return;
@@ -88,7 +76,6 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
     const due = settled && animations.length > 0 && move && !focused;
     if (!due) clearTimer();
     else if (timer === undefined) timer = setTimeout(rewind, HOLD_MS);
-    report();
   };
 
   const follow = (list: readonly Animation[]) => {

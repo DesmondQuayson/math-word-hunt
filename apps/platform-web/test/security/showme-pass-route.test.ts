@@ -37,7 +37,8 @@ vi.mock("@/lib/supabase/server", () => ({ createServerSupabaseClient: async () =
 import { GET } from "@/app/map-prep/pass/route";
 import { signOutAction } from "@/app/auth-actions";
 import { exitSchoolAccessAction } from "@/app/school-access-actions";
-import { decodeShowMeReturn, encodeShowMeReturn, verifyShowMePass } from "@/lib/showme-access/pass";
+import { ONLINE_MATH_PREP_GRADES, onlineMathPrepGradeHref } from "@/lib/showme-access/grades";
+import { decodeShowMeReturn, encodeShowMeReturn, safeShowMeReturnPath, verifyShowMePass } from "@/lib/showme-access/pass";
 
 const SECRET = "showme-pass-route-test-secret-0123456789abcdef";
 const now = new Date();
@@ -220,6 +221,55 @@ describe("where the visitor is sent", () => {
     mocks.getGameAccessView.mockResolvedValue(SUBSCRIBER());
     await ask("?to=/grades/6");
     expect(written.filter((entry) => entry.name === "mathnexa-showme-return")).toEqual([]);
+  });
+});
+
+describe("the homepage grade links (Grade 1 to Grade 8)", () => {
+  const gradeQuery = (grade: (typeof ONLINE_MATH_PREP_GRADES)[number]) => {
+    const href = onlineMathPrepGradeHref(grade);
+    expect(href.startsWith("/map-prep/pass?")).toBe(true);
+    return href.slice("/map-prep/pass".length);
+  };
+
+  it("name a ShowMe grade page the route accepts unchanged, and never the staging site or a host", () => {
+    expect([...ONLINE_MATH_PREP_GRADES]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    for (const grade of ONLINE_MATH_PREP_GRADES) {
+      const query = new URLSearchParams(gradeQuery(grade));
+      expect([...query.keys()]).toEqual(["to"]);
+      expect(query.get("to")).toBe(`/grades/${grade}`);
+      expect(safeShowMeReturnPath(query.get("to"))).toBe(`/grades/${grade}`);
+      expect(onlineMathPrepGradeHref(grade)).not.toMatch(/staging|showme|https?:|\/\//);
+    }
+  });
+
+  it("send an account with access straight to that grade with a pass", async () => {
+    for (const grade of ONLINE_MATH_PREP_GRADES) {
+      written.length = 0;
+      const answer = await ask(gradeQuery(grade));
+      expect(answer.status, `grade ${grade}`).toBe(307);
+      expect(answer.location, `grade ${grade}`).toBe(`https://showme.mathnexa.com/grades/${grade}`);
+      expect(passWritten(), `grade ${grade}`).toHaveLength(1);
+    }
+  });
+
+  it("send anyone without access through the usual check with no pass, remembering the grade", async () => {
+    for (const [label, state, expected] of [
+      ["signed out", ANONYMOUS(), "/access?next=/map-prep"],
+      ["unconfirmed", view("unconfirmed", {}, { emailConfirmed: false }), "/confirmation-required?next=/map-prep"],
+      ["no access", view("active", {}), "/subscription?next=/map-prep"]
+    ] as const) {
+      for (const grade of ONLINE_MATH_PREP_GRADES) {
+        jar.clear();
+        written.length = 0;
+        mocks.getGameAccessView.mockResolvedValue(state);
+        const answer = await ask(gradeQuery(grade));
+        expect(answer.status, `${label} ${grade}`).toBe(307);
+        expect(answer.location, `${label} ${grade}`).toBe(expected);
+        expect(passWritten(), `${label} ${grade}`).toEqual([]);
+        const remembered = written.find((entry) => entry.name === "mathnexa-showme-return");
+        expect(decodeShowMeReturn(remembered!.value), `${label} ${grade}`).toEqual({ site: "production", path: `/grades/${grade}` });
+      }
+    }
   });
 });
 
