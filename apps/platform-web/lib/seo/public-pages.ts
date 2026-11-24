@@ -28,7 +28,7 @@ export const TRIAL_HOURS = COMMERCIAL_POLICY.trialSeconds / 3600;
  * structured-data logo stays the square app icon (MATHNEXA_LOGO).
  */
 export const SOCIAL_PREVIEW_IMAGE = Object.freeze({
-  url: "/media/social/mathnexa-share.png",
+  url: "/media/social/mathnexa-share-grades-1-8.png",
   width: 1200,
   height: 630,
   alt: "MathNexa: online math prep that shows the thinking, not just the answer"

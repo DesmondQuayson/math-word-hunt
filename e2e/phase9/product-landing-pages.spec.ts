@@ -26,7 +26,7 @@ for (const entry of PAGES) {
     expect(response?.status()).toBe(200);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /^index, follow/);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://mathnexa.com${entry.path}`);
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://mathnexa.com/media/social/mathnexa-share.png");
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://mathnexa.com/media/social/mathnexa-share-grades-1-8.png");
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry.h1);

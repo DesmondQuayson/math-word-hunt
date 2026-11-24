@@ -1,15 +1,20 @@
 // Builds the 1200x630 link-preview card for mathnexa.com:
-//   apps/platform-web/public/media/social/mathnexa-share.png
+//   apps/platform-web/public/media/social/mathnexa-share-grades-1-8.png
 // from the owner-approved app icon art (apps/platform-web/assets/brand/mathnexa-app-icon-source.jpg)
 // and copy the homepage already shows. The art is cropped to the rabbit only, so the icon's
 // older "MAP Prep" label never appears. Usage: node scripts/build-share-image.mjs
-import { mkdirSync } from "node:fs";
+//
+// The card took a new name when Online Math Prep became Grades 1-8 (2026-11-23), so link
+// previews cached with the old Grades 3-8 card are fetched again; the old name keeps
+// answering with the same new card for anything that still asks for it.
+import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import sharp from "sharp";
 
 const SOURCE = resolve("apps/platform-web/assets/brand/mathnexa-app-icon-source.jpg");
-const OUT = resolve("apps/platform-web/public/media/social/mathnexa-share.png");
+const OUT = resolve("apps/platform-web/public/media/social/mathnexa-share-grades-1-8.png");
+const LEGACY = resolve("apps/platform-web/public/media/social/mathnexa-share.png");
 const WIDTH = 1200;
 const HEIGHT = 630;
 
@@ -66,5 +71,6 @@ await sharp(background)
   .composite([{ input: portrait, left: PORTRAIT_LEFT, top: PORTRAIT_TOP }, { input: text, left: 0, top: 0 }])
   .png({ compressionLevel: 9 })
   .toFile(OUT);
+copyFileSync(OUT, LEGACY);
 const meta = await sharp(OUT).metadata();
 console.log(`${OUT}: ${meta.width}x${meta.height} ${meta.format}`);

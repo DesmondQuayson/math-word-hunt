@@ -66,7 +66,7 @@ describe("public page search metadata", () => {
       expect(metadata.openGraph).toMatchObject({ siteName: "MathNexa", type: "website", url: path, images: [SOCIAL_PREVIEW_IMAGE] });
     }
     expect(PLATFORM_OPEN_GRAPH.images).toEqual([{
-      url: "/media/social/mathnexa-share.png",
+      url: "/media/social/mathnexa-share-grades-1-8.png",
       width: 1200,
       height: 630,
       alt: "MathNexa: online math prep that shows the thinking, not just the answer"
