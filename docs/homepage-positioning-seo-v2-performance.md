@@ -1,5 +1,9 @@
 # MathNexa homepage refinement + speed V2
 
+> **Addendum 2026-11-24 (MathNexa v1.2.66):** the owner's hero and meta sentence below now reads "Math games, online
+> math prep for Grades 1–8, …": Online Math Prep covers Grades 1–8 since ShowMe v1.2.25 (2026-11-23). The rest of
+> this record is history as written.
+
 Branch `feature/homepage-refinement-speed-v2` off `main` = `cb465c5` (the v1.2.9 release lineage). Staging only. Production stays `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` (runtime `9e54cf7`) until the owner approves; MAP Prep / ShowMe untouched. Not merged, not tagged.
 
 ## 1. Owner requests

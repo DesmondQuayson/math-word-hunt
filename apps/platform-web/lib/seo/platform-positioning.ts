@@ -3,9 +3,10 @@
  * product names and the Google-facing metadata, so the hero, the navigation,
  * the footer, the access flow and the search snippet can never drift apart.
  *
- * Positioning (owner direction, 2026-09): the Grades 1–8 product is "online
- * math prep" first; Missouri MAP alignment is a supported use case inside it,
- * not the identity. Route paths are deliberately NOT part of this change:
+ * Positioning (owner direction, 2026-09): the Online Math Prep product (Grades
+ * 3–8 then, Grades 1–8 since ShowMe added Grades 1 and 2 on 2026-11-23) is
+ * "online math prep" first; Missouri MAP alignment is a supported use case
+ * inside it, not the identity. Route paths are deliberately NOT part of this change:
  * /games, /map-prep, /homework and /quizzes stay exactly as indexed and
  * bookmarked, and internal identifiers such as the "map-prep" entitlement key
  * are untouched. Only the words people read change.

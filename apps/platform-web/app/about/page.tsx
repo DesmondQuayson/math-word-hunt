@@ -39,7 +39,7 @@ export function generateMetadata(): Metadata {
 function PlatformAboutPage({ free }: Readonly<{ free: readonly GameSummary[] }>) {
   const [games, mathPrep, homework, quizzes] = PLATFORM_PRODUCTS;
   return <Container className="page-stack">
-    <PageHeader eyebrow="About MathNexa" title="Online math resources for Grades 3–8 teachers and families" description={PLATFORM_HOMEPAGE_DESCRIPTION} />
+    <PageHeader eyebrow="About MathNexa" title="Online math resources for Grades 1–8 teachers and families" description={PLATFORM_HOMEPAGE_DESCRIPTION} />
     <section aria-labelledby="about-included">
       <h2 id="about-included">What one subscription includes</h2>
       <ul className="principle-list">

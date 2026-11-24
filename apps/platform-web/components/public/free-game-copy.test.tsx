@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { isFreeToPlayGame } from "@/lib/games/access-policy";
 import type { GameCatalogSummary, GameSummary } from "@/lib/seo/catalog-summaries";
+import { MISSOURI_ALIGNMENT_NOTE } from "@/lib/seo/platform-positioning";
 
 const mocks = vi.hoisted(() => ({ games: vi.fn(), context: vi.fn(), access: vi.fn() }));
 vi.mock("@/lib/seo/catalog-summaries", () => ({ loadGameCatalogSummary: mocks.games }));
@@ -132,6 +133,17 @@ describe("Help", () => {
 describe("About", () => {
   /** The "What one subscription includes" entry for Math Games: its title link, then its sentence. */
   const mathGamesEntry = () => screen.getByRole("link", { name: "Math Games" }).closest("li") as HTMLElement;
+
+  it("names Grades 1–8 in the heading and the Online Math Prep entry; only the MAP alignment note keeps Grades 3–8", async () => {
+    // Online Math Prep (ShowMe) covers Grades 1–8 since 2026-11-23; the owner chose the same range for the heading (2026-11-24).
+    render(await AboutPage());
+    expect(screen.getByRole("heading", { level: 1, name: "Online math resources for Grades 1–8 teachers and families" })).toBeTruthy();
+    const prep = screen.getByRole("link", { name: "Online Math Prep (Grades 1–8)" }).closest("li") as HTMLElement;
+    expect(prep.querySelector("span")?.textContent).toBe(`Lessons, practice and review for Grades 1–8, with a worksheet generator for printing practice. ${MISSOURI_ALIGNMENT_NOTE}`);
+    expect(MISSOURI_ALIGNMENT_NOTE).toContain("Missouri MAP-style Grades 3–8 mathematics");
+    // Apart from that note, no sentence on the page gives the old Grades 3–8 range.
+    expect(document.body.textContent?.replace(MISSOURI_ALIGNMENT_NOTE, "")).not.toMatch(/Grades 3–8/);
+  });
 
   it("names every free game the catalog publishes, with a link to each", async () => {
     render(await AboutPage());

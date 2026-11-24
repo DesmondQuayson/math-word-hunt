@@ -2,6 +2,13 @@
 
 **STATUS: RELEASED / OWNER VERIFIED / FROZEN — tag `v1.2.9` → `9e54cf7`, production `dpl_ZG6MgsFNiibDQjfDqJDEEVrWMbmv` (see §19).**
 
+> **Addendum 2026-11-24 (MathNexa v1.2.66):** ShowMe added Grades 1 and 2 (ShowMe v1.2.25, 2026-11-23), so Online
+> Math Prep now covers Grades 1–8. Every statement below that gives Online Math Prep as Grades 3–8 (hero description,
+> eyebrow, product card, `/about`, `/online-math-prep`, the `/map-prep` fallback and the link-preview card) now says
+> Grades 1–8, and the `/about` heading reads "Online math resources for Grades 1–8 teachers and families" (owner
+> decision). The Missouri alignment note keeps "MAP-style Grades 3–8", because the MAP Grade-Level Assessment covers
+> Grades 3–8. The rest of this record is history as written; do not restore Grades 3–8 from it.
+
 Branch `feature/homepage-positioning-seo-v1` (off `origin/main` = `c0dbf9c`), runtime commit `9e54cf7`.
 Sections 1–16 are the staging handoff as written at the time (staging only, production unchanged); §17 records the certification and candidate, §18 the promotion, §19 the release. MAP Prep / ShowMe is unchanged throughout. Premium Conversion C1 is paused.
 
