@@ -13,11 +13,14 @@
  * the rest timer is cleared, so nothing ticks in the background; coming back
  * resumes the pass, or starts a fresh rest if it had finished.
  *
+ * Pause animation holds the board the same way, on whatever frame it has
+ * reached, until Play animation resumes it (WCAG 2.2.2: the three plays and
+ * their rests last about 19 seconds). A paused board never uses up a play.
  * The cycle waits while keyboard focus is inside the sheet ("Your turn"), and
  * stops for good on the solved problem when the visitor answers "Your turn",
  * so their answer stays on screen. With reduced motion the stylesheet removes
- * the animations, so there is nothing to play. The three plays and their
- * rests last about 19 seconds.
+ * the animations, so there is nothing to play. The cycle is active while
+ * plays are still to come; only then is there anything to pause.
  */
 
 /** The rest on the solved problem between passes. */
@@ -29,6 +32,10 @@ export const PLAYS = 3;
 export type BoardLoopOptions = {
   /** Replace the board with a fresh copy: a full reset, "Your turn" included. */
   remount: () => void;
+  /** Called when the cycle becomes active or stops being active (see above). */
+  onActiveChange?: (active: boolean) => void;
+  /** Called when the visitor's pause starts or ends (a fresh board starts unpaused). */
+  onPausedChange?: (paused: boolean) => void;
   onScreen: boolean;
   reduced: boolean;
 };
@@ -39,6 +46,8 @@ export type BoardLoop = {
   setOnScreen: (onScreen: boolean) => void;
   setFocused: (focused: boolean) => void;
   setReduced: (reduced: boolean) => void;
+  /** Pause animation (true) or Play animation (false): hold or resume the current frame. */
+  setPaused: (paused: boolean) => void;
   /** An answer to "Your turn": show the solved problem and stop for good. */
   stop: () => void;
   dispose: () => void;
@@ -52,11 +61,26 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
   let onScreen = options.onScreen;
   let reduced = options.reduced;
   let focused = false;
+  let paused = false;
   let stopped = false;
   let disposed = false;
+  let active: boolean | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const moving = () => onScreen && !stopped && !reduced;
+  const moving = () => onScreen && !paused && !stopped && !reduced;
+
+  const report = () => {
+    const now = !stopped && !reduced;
+    if (now === active) return;
+    active = now;
+    options.onActiveChange?.(now);
+  };
+
+  const setPausedState = (value: boolean) => {
+    if (paused === value) return;
+    paused = value;
+    options.onPausedChange?.(value);
+  };
 
   const clearTimer = () => {
     if (timer === undefined) return;
@@ -76,6 +100,7 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
     const due = settled && animations.length > 0 && move && !focused;
     if (!due) clearTimer();
     else if (timer === undefined) timer = setTimeout(rewind, HOLD_MS);
+    report();
   };
 
   const follow = (list: readonly Animation[]) => {
@@ -108,6 +133,7 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
     animations = [];
     settled = false;
     focused = false;
+    setPausedState(false);
     options.remount();
   };
 
@@ -131,12 +157,18 @@ export function createBoardLoop(options: BoardLoopOptions): BoardLoop {
       if (was && !value && !disposed) remount();
       else sync();
     },
+    setPaused(value) {
+      if (disposed || stopped || reduced) return;
+      setPausedState(value);
+      sync();
+    },
     stop() {
       if (disposed) return;
       for (const animation of animations) {
         if (animation.playState === "running" || animation.playState === "paused") animation.finish();
       }
       stopped = true;
+      setPausedState(false);
       sync();
     },
     dispose() {
