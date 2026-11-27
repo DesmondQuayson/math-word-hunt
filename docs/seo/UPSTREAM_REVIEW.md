@@ -6,6 +6,10 @@ MIT license, copyright 2026 agricidaniel. The complete checkout, including its
 license, skills, scripts, data, schema, assets, extensions, tests and runtime
 files, is retained locally under ignored `.seo-output/upstream/claude-seo`.
 It is reproducible from the remote immutable commit, not copied as a lone skill.
+Targeted installation inventory found no existing global Claude seo/mathnexa-seo
+skill, global Codex mathnexa-seo skill, or SEO-named registration in Claude's
+installed_plugins.json/enabledPlugins settings. Those files were read only and
+unchanged. Repository wrappers are the only host configuration added.
 
 ## Reviewed surface and decision
 
