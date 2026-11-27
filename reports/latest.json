@@ -1,0 +1,402 @@
+{
+  "schemaVersion": 1,
+  "kind": "mathnexa-public-seo",
+  "publicDataOnly": true,
+  "generatedAt": "2026-11-27T10:13:54.987Z",
+  "mode": "live",
+  "sourceCommit": "1ccebb3b4296de62918c9f11c31ee4f7c03eebbb",
+  "runUrl": "https://github.com/DesmondQuayson/math-word-hunt/actions/runs/45980293569",
+  "timezone": "America/Chicago",
+  "status": "Partial",
+  "audit": {
+    "schemaVersion": 1,
+    "observedAt": "2026-11-27T10:13:50.205Z",
+    "requestsUsed": 13,
+    "requestLimit": 30,
+    "complete": false,
+    "sites": [
+      {
+        "origin": "https://mathnexa.com",
+        "robots": {
+          "url": "https://mathnexa.com/robots.txt",
+          "finalUrl": "https://mathnexa.com/robots.txt",
+          "status": 200,
+          "error": null,
+          "directives": [
+            "user-agent: *",
+            "allow: /",
+            "allow: /accessibility",
+            "disallow: /admin",
+            "disallow: /api",
+            "user-agent: GPTBot",
+            "user-agent: ClaudeBot",
+            "user-agent: CCBot",
+            "user-agent: Applebot-Extended",
+            "user-agent: meta-externalagent",
+            "user-agent: MistralAI-Training",
+            "user-agent: Amazonbot",
+            "user-agent: Bytespider",
+            "disallow: /",
+            "sitemap: https://mathnexa.com/sitemap.xml"
+          ],
+          "groups": [
+            {
+              "userAgents": [
+                "*"
+              ],
+              "allow": [
+                "/",
+                "/accessibility"
+              ],
+              "disallow": [
+                "/admin",
+                "/api"
+              ]
+            },
+            {
+              "userAgents": [
+                "gptbot",
+                "claudebot",
+                "ccbot",
+                "applebot-extended",
+                "meta-externalagent",
+                "mistralai-training",
+                "amazonbot",
+                "bytespider"
+              ],
+              "allow": [],
+              "disallow": [
+                "/"
+              ]
+            }
+          ],
+          "groupsTruncated": false,
+          "searchFullDisallowAgents": []
+        },
+        "sitemap": {
+          "url": "https://mathnexa.com/sitemap.xml",
+          "finalUrl": "https://mathnexa.com/sitemap.xml",
+          "status": 200,
+          "error": null,
+          "kind": "urlset",
+          "urlCount": 12
+        },
+        "pages": [
+          {
+            "url": "https://mathnexa.com/",
+            "finalUrl": "https://mathnexa.com/",
+            "status": 200,
+            "error": null,
+            "title": "MathNexa | Online Math Prep, Homework PDFs, Quiz PDFs & Worksheets",
+            "description": "Math games, online math prep for Grades 1–8, Homework PDFs, Quiz PDFs, and a worksheet generator—all in one teacher-friendly platform.",
+            "canonical": "https://mathnexa.com/",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "ContactPoint",
+              "ImageObject",
+              "OnlineBusiness",
+              "WebSite"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 36,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/about",
+            "finalUrl": "https://mathnexa.com/about",
+            "status": 200,
+            "error": null,
+            "title": "About MathNexa: Online Math Prep for Grades 1–8",
+            "description": "What a MathNexa subscription includes: online math prep for Grades 1–8, math games, Homework PDFs, Quiz PDFs and a worksheet generator, and how to start.",
+            "canonical": "https://mathnexa.com/about",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 34,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/online-math-prep",
+            "finalUrl": "https://mathnexa.com/online-math-prep",
+            "status": 200,
+            "error": null,
+            "title": "Online Math Prep for Grades 1–8 · MathNexa",
+            "description": "Visual lessons, guided and independent practice, quick checks and a worksheet generator for Grades 1–8 math. 24-hour free trial, then $5.99 USD a month.",
+            "canonical": "https://mathnexa.com/online-math-prep",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "BreadcrumbList",
+              "ListItem"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 33,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/math-games",
+            "finalUrl": "https://mathnexa.com/math-games",
+            "status": 200,
+            "error": null,
+            "title": "Math games for the classroom · MathNexa",
+            "description": "Math games for whole-class play and quick practice, with the grades and skills for each game. Some are free with any MathNexa account.",
+            "canonical": "https://mathnexa.com/math-games",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "BreadcrumbList",
+              "ListItem"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 38,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/math-games/math-tug-of-war",
+            "finalUrl": "https://mathnexa.com/math-games/math-tug-of-war",
+            "status": 200,
+            "error": null,
+            "title": "Math Tug of War: free online math game · MathNexa",
+            "description": "Answer quick math questions to pull the rope. Play the robot, two teams on one screen, or another player online. Free with any MathNexa account.",
+            "canonical": "https://mathnexa.com/math-games/math-tug-of-war",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "BreadcrumbList",
+              "ListItem"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 35,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/homework-pdfs",
+            "finalUrl": "https://mathnexa.com/homework-pdfs",
+            "status": 200,
+            "error": null,
+            "title": "Printable math homework PDFs · MathNexa",
+            "description": "Printable math homework organized by grade, topic and lesson. Preview each lesson activity, then download its PDF. Included with a MathNexa subscription.",
+            "canonical": "https://mathnexa.com/homework-pdfs",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "BreadcrumbList",
+              "ListItem"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 32,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/quiz-pdfs",
+            "finalUrl": "https://mathnexa.com/quiz-pdfs",
+            "status": 200,
+            "error": null,
+            "title": "Printable math quizzes by topic · MathNexa",
+            "description": "Printable math quizzes by grade and topic, one PDF per topic, for checking understanding after a unit. Included with a MathNexa subscription.",
+            "canonical": "https://mathnexa.com/quiz-pdfs",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [
+              "BreadcrumbList",
+              "ListItem"
+            ],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 32,
+            "inSitemap": true
+          },
+          {
+            "url": "https://mathnexa.com/help",
+            "finalUrl": "https://mathnexa.com/help",
+            "status": 200,
+            "error": null,
+            "title": "Help with accounts and access · MathNexa",
+            "description": "How to create a MathNexa account, start the free trial, play a game for free, use a school access code, and manage your subscription.",
+            "canonical": "https://mathnexa.com/help",
+            "robots": [
+              "index, follow"
+            ],
+            "xRobotsTag": "",
+            "h1Count": 1,
+            "schemaTypes": [],
+            "schemaParseFailures": 0,
+            "internalLinkCount": 31,
+            "inSitemap": true
+          }
+        ]
+      },
+      {
+        "origin": "https://showme.mathnexa.com",
+        "robots": {
+          "url": "https://showme.mathnexa.com/robots.txt",
+          "finalUrl": "https://showme.mathnexa.com/robots.txt",
+          "status": 200,
+          "error": null,
+          "directives": [
+            "user-agent: *",
+            "allow: /"
+          ],
+          "groups": [
+            {
+              "userAgents": [
+                "*"
+              ],
+              "allow": [
+                "/"
+              ],
+              "disallow": []
+            }
+          ],
+          "groupsTruncated": false,
+          "searchFullDisallowAgents": []
+        },
+        "sitemap": {
+          "url": "https://showme.mathnexa.com/sitemap.xml",
+          "finalUrl": "https://showme.mathnexa.com/sitemap.xml",
+          "status": 401,
+          "error": null,
+          "kind": "unknown",
+          "urlCount": 0
+        },
+        "pages": [
+          {
+            "url": "https://showme.mathnexa.com/",
+            "finalUrl": "https://showme.mathnexa.com/",
+            "status": 401,
+            "error": null,
+            "title": null,
+            "description": null,
+            "canonical": null,
+            "robots": [],
+            "xRobotsTag": null,
+            "h1Count": null,
+            "schemaTypes": [],
+            "schemaParseFailures": null,
+            "internalLinkCount": null,
+            "inSitemap": null
+          }
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "https://showme.mathnexa.com/sitemap.xml#http-401",
+        "severity": "error",
+        "target": "https://showme.mathnexa.com/sitemap.xml",
+        "message": "Public request returned HTTP 401."
+      },
+      {
+        "id": "https://showme.mathnexa.com/#http-401",
+        "severity": "error",
+        "target": "https://showme.mathnexa.com/",
+        "message": "Public request returned HTTP 401."
+      }
+    ]
+  },
+  "freshness": {
+    "observedAt": "2026-11-27T10:13:50.205Z",
+    "ageHours": 0.0013283333333333333,
+    "live": true
+  },
+  "comparison": {
+    "previousObservedAt": null,
+    "daysBetweenObservations": null,
+    "comparableWeeklySnapshot": false,
+    "newFindingIds": [
+      "https://showme.mathnexa.com/sitemap.xml#http-401",
+      "https://showme.mathnexa.com/#http-401"
+    ],
+    "note": "Point-in-time public checks only. This is not a seven-day traffic or revenue comparison."
+  },
+  "coverage": {
+    "publicTechnicalAudit": "Partial",
+    "searchConsole": "Blocked: no verified cloud credentials or property",
+    "ga4": "Blocked: no verified cloud credentials or property",
+    "subscriptions": "Blocked: no authorized private aggregate data source",
+    "baseline28Days": "Blocked: source data unavailable; missing is not zero",
+    "aiVisibility": "Pending: no sampled AI answers collected",
+    "backlinks": "Pending: no verified external-link inventory",
+    "contentChanges": "Pending owner review; no production edits",
+    "aiExecutor": "Not configured; this job executes deterministic checks, not a Codex or Claude session"
+  },
+  "proposalBudget": {
+    "cycle": "2026-11-23",
+    "limit": 3,
+    "used": 2
+  },
+  "ledger": [
+    {
+      "id": "https://showme.mathnexa.com/sitemap.xml#http-401",
+      "severity": "error",
+      "target": "https://showme.mathnexa.com/sitemap.xml",
+      "message": "Public request returned HTTP 401.",
+      "firstSeenAt": "2026-11-27T10:13:50.205Z",
+      "lastSeenAt": "2026-11-27T10:13:50.205Z",
+      "status": "observed"
+    },
+    {
+      "id": "https://showme.mathnexa.com/#http-401",
+      "severity": "error",
+      "target": "https://showme.mathnexa.com/",
+      "message": "Public request returned HTTP 401.",
+      "firstSeenAt": "2026-11-27T10:13:50.205Z",
+      "lastSeenAt": "2026-11-27T10:13:50.205Z",
+      "status": "observed"
+    }
+  ],
+  "proposals": [
+    {
+      "id": "proposal:https://showme.mathnexa.com/#http-401",
+      "findingId": "https://showme.mathnexa.com/#http-401",
+      "target": "https://showme.mathnexa.com/",
+      "evidence": "Public request returned HTTP 401.",
+      "hypothesis": "Resolving this observed public-page issue may improve reliable discovery or answer readability; review the intended page behavior first.",
+      "priority": "P1",
+      "status": "awaiting-review",
+      "createdAt": "2026-11-27T10:13:50.205Z",
+      "reviewAfter": "2026-12-04",
+      "validation": "Confirm the finding manually, prepare a scoped diff, preserve access rules, then repeat the affected check.",
+      "currentObservation": "observed"
+    },
+    {
+      "id": "proposal:https://showme.mathnexa.com/sitemap.xml#http-401",
+      "findingId": "https://showme.mathnexa.com/sitemap.xml#http-401",
+      "target": "https://showme.mathnexa.com/sitemap.xml",
+      "evidence": "Public request returned HTTP 401.",
+      "hypothesis": "Resolving this observed public-page issue may improve reliable discovery or answer readability; review the intended page behavior first.",
+      "priority": "P1",
+      "status": "awaiting-review",
+      "createdAt": "2026-11-27T10:13:50.205Z",
+      "reviewAfter": "2026-12-04",
+      "validation": "Confirm the finding manually, prepare a scoped diff, preserve access rules, then repeat the affected check.",
+      "currentObservation": "observed"
+    }
+  ],
+  "newProposalIds": [
+    "proposal:https://showme.mathnexa.com/#http-401",
+    "proposal:https://showme.mathnexa.com/sitemap.xml#http-401"
+  ]
+}
