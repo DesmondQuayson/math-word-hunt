@@ -28,9 +28,9 @@ function EmailLinkNotice({ failure, recovery }: Readonly<{ failure: EmailLinkFai
     <strong>This password reset link can’t be used.</strong>
     <p>It may have expired, been used already, or been opened in a different browser. <Link href="/forgot-password">Request a new link</Link>.</p>
   </Notice>;
-  if (failure === "link-other-browser") return <Notice label="Email confirmed" tone="success" live>
-    <strong>Your email address is confirmed.</strong>
-    <p>The link opened in a different browser or device from the one you signed up on, so you are not signed in here yet. Sign in below to continue.</p>
+  if (failure === "link-other-browser") return <Notice label="Email link" tone="information" live>
+    <strong>This link couldn’t sign you in here.</strong>
+    <p>It may have opened in a different browser or device, expired, or been used already. Sign in below to continue. If your email still needs confirming, you can request a new confirmation email.</p>
   </Notice>;
   if (failure === "link-expired") return <Notice label="Email link" tone="information" live>
     <strong>This link has expired or was already used.</strong>

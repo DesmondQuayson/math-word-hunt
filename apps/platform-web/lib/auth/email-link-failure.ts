@@ -2,11 +2,10 @@
  * Why an email link (sign-up confirmation or password recovery) could not
  * sign someone in, as app/auth/callback/route.ts tells /sign-in.
  *
- * - "link-other-browser": the provider accepted the link and returned a code,
- *   but this browser could not exchange it. With the PKCE flow that almost
- *   always means the link was opened in a different browser or device from
- *   the one that asked for it; a sign-up confirmation is already recorded by
- *   then, so signing in here works.
+ * - "link-other-browser": a code was present, but this browser could not
+ *   exchange it. A different browser/device can cause this in the PKCE flow,
+ *   as can an expired, used or invalid code. Its presence alone does not prove
+ *   that the address was confirmed; only successful Auth validation can.
  * - "link-expired": the provider refused the link itself (expired, or already
  *   used, sometimes by an email scanner that opened it first).
  * - "link-unusable": anything else.

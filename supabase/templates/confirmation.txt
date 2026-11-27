@@ -1,0 +1,14 @@
+MathNexa
+
+Confirm your email address
+
+Confirm this email address to finish creating your MathNexa account.
+
+Confirm my email address:
+{{ .ConfirmationURL }}
+
+Open the link in the browser where you signed up. If you use another browser or device, you may need to sign in after confirming.
+
+This link can be used once. If it has expired, return to MathNexa and request a new confirmation email. Never share this link.
+
+If you did not create a MathNexa account, you can ignore this email.

@@ -117,6 +117,7 @@ export function EmailConfirmationDialog({ maskedEmail, initialCooldownSeconds = 
             ? <p>Your MathNexa account for <strong>{maskedEmail}</strong> isn’t confirmed yet. Select “Resend confirmation email”, then open the link in that email on this device.</p>
             : <p>We sent a confirmation link to <strong>{maskedEmail}</strong>. Open the email and select “Confirm email” to finish setting up your MathNexa account.</p>}
           <p>Once your email is confirmed, return to MathNexa and continue where you left off.</p>
+          <p>Can’t find the email? Check your Spam or Junk folder. If it’s there, mark it as “Not spam”, then open the confirmation link. Use the newest email if you request another.</p>
         </div>
         <ConfirmationStatus status={checkState.status} message={checkState.message} />
         {checkState.signInHref ? <p className="confirmation-sign-in"><Link href={checkState.signInHref}>Sign in to continue</Link></p> : null}
@@ -156,6 +157,7 @@ export function ConfirmationReminder() {
     <div>
       <strong id="confirmation-reminder-title">Confirm your email to unlock MathNexa access.</strong>
       <p>Use the link in your confirmation email, then return to your selected resource.</p>
+      <p>Check Spam or Junk too. If the email is there, mark it as “Not spam” and open the newest confirmation link.</p>
       {resendState.message ? <ConfirmationStatus status={resendState.status} message={resendState.message} /> : null}
     </div>
     <form action={resendAction}>

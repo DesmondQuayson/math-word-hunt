@@ -167,7 +167,9 @@ describe("/sign-up entry modes (2026-11-22): wording only", () => {
 describe("/sign-in", () => {
   it("explains a confirmation link opened on another device, and keeps the destination", async () => {
     const { container } = await signIn({ error: "link-other-browser", next: "/subscription" });
-    expect(container.textContent).toContain("Your email address is confirmed.");
+    expect(container.textContent).toContain("This link couldn’t sign you in here.");
+    expect(container.textContent).not.toContain("Your email address is confirmed.");
+    expect(container.textContent).toContain("If your email still needs confirming, you can request a new confirmation email.");
     expect(container.textContent).toContain("different browser or device");
     expect(container.querySelector('input[name="next"]')?.getAttribute("value")).toBe("/subscription");
   });

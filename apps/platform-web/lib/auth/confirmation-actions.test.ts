@@ -14,6 +14,7 @@ const testState = vi.hoisted(() => {
     signUp: vi.fn(),
     getUser: vi.fn(),
     resend: vi.fn(),
+    consume: vi.fn(),
     record: vi.fn()
   };
 });
@@ -27,6 +28,11 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/environment/production-public", () => ({ isProductionPublicMode: () => false }));
 vi.mock("@/lib/environment/production-platform", () => ({ isProductionPlatformMode: () => true }));
 vi.mock("@/lib/operations/server", () => ({ recordAggregateSignal: testState.record }));
+vi.mock("@/lib/auth/rate-limit", () => ({
+  consumeConsumerAuthAttempt: testState.consume,
+  clearConsumerAuthAttempts: vi.fn(),
+  observeFailedSignIn: vi.fn()
+}));
 vi.mock("@/lib/email/server", () => ({
   getAuthEmailExperience: () => ({ signUpResponse: "Check your email.", recoveryResponse: "Check your email." })
 }));
@@ -43,6 +49,7 @@ beforeEach(() => {
   testState.signUp.mockReset().mockResolvedValue({ error: null });
   testState.getUser.mockReset().mockResolvedValue({ data: { user: null }, error: null });
   testState.resend.mockReset().mockResolvedValue({ error: null });
+  testState.consume.mockReset().mockResolvedValue("allowed");
   testState.record.mockReset().mockResolvedValue(undefined);
   testState.cookieStore.get.mockClear();
   testState.cookieStore.set.mockClear();
@@ -97,6 +104,8 @@ describe("email confirmation actions", () => {
 
     const first = await resendConfirmationAction(initialEmailConfirmationState);
     expect(first).toMatchObject({ status: "success", cooldownSeconds: 60 });
+    expect(first.message).toContain("Spam or Junk");
+    expect(first.message).toContain("“Not spam”");
     expect(testState.resend).toHaveBeenCalledWith(expect.objectContaining({
       type: "signup",
       email: "person@example.test"
@@ -106,6 +115,69 @@ describe("email confirmation actions", () => {
     expect(second.status).toBe("error");
     expect(second.message).toMatch(/^Wait \d+ seconds/);
     expect(testState.resend).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["throttled", "unavailable"])("refuses a resend when the server budget is %s, even without a cooldown cookie", async (limit) => {
+    testState.values.set("mathnexa-confirmation-email", "person@example.test");
+    testState.consume.mockResolvedValueOnce(limit);
+    const result = await resendConfirmationAction(initialEmailConfirmationState);
+    expect(result.status).toBe("error");
+    expect(result.message).not.toContain("person@example.test");
+    expect(testState.consume).toHaveBeenCalledWith("sign-up", "person@example.test");
+    expect(testState.resend).not.toHaveBeenCalled();
+  });
+
+  it("ignores forged resend fields and refuses an external callback destination", async () => {
+    testState.values.set("mathnexa-confirmation-email", "person@example.test");
+    testState.values.set("mathnexa-confirmation-next", "https://attacker.example");
+    const forged = new FormData();
+    forged.set("email", "someone-else@example.test");
+    forged.set("next", "https://attacker.example");
+    await resendConfirmationAction(initialEmailConfirmationState, forged);
+    expect(testState.resend).toHaveBeenCalledWith({
+      type: "signup", email: "person@example.test",
+      options: { emailRedirectTo: "https://mathnexa.example/auth/callback?next=%2F" }
+    });
+  });
+
+  it("does not send to a confirmed account or bypass the provider's verified state", async () => {
+    testState.getUser.mockResolvedValueOnce({ data: { user: { email: "person@example.test", email_confirmed_at: "2026-11-27T12:00:00Z" } }, error: null });
+    expect(await resendConfirmationAction(initialEmailConfirmationState)).toMatchObject({ status: "success", destination: "/" });
+    expect(testState.resend).not.toHaveBeenCalled();
+    expect(testState.consume).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ code: "unexpected_failure", status: 500, message: "Error sending confirmation email: private diagnostic" }, "failure"],
+    [{ code: "email_address_not_authorized", status: 403, message: "Private provider detail" }, "failure"],
+    [{ code: "over_email_send_rate_limit", status: 429, message: "Email rate limit exceeded" }, "unavailable"]
+  ])("records only safe signup-email outcome %s", async (error, outcome) => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries({ email: "person@example.test", password: "Synthetic42!", passwordConfirmation: "Synthetic42!" })) form.set(key, value);
+    testState.signUp.mockResolvedValueOnce({ data: { user: null }, error });
+    const result = await signUpAction(initialAuthFormState, form);
+    expect(result).toEqual({ status: "error", message: "The account could not be created. Check the information and try again." });
+    expect(testState.record).toHaveBeenCalledExactlyOnceWith({ metricKey: "email-confirmation-failure", outcome, source: "email" });
+    expect(testState.values.size).toBe(0);
+  });
+
+  it.each([
+    { code: "weak_password", status: 422, message: "Password is too weak" },
+    { code: "unexpected_failure", status: 500, message: "Database error saving new user" }
+  ])("does not mislabel other signup failures as email failures", async (error) => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries({ email: "person@example.test", password: "Synthetic42!", passwordConfirmation: "Synthetic42!" })) form.set(key, value);
+    testState.signUp.mockResolvedValueOnce({ data: { user: null }, error });
+    expect((await signUpAction(initialAuthFormState, form)).status).toBe("error");
+    expect(testState.record).not.toHaveBeenCalled();
+  });
+
+  it("keeps the safe signup response if recording the email failure is unavailable", async () => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries({ email: "person@example.test", password: "Synthetic42!", passwordConfirmation: "Synthetic42!" })) form.set(key, value);
+    testState.signUp.mockResolvedValueOnce({ data: { user: null }, error: { status: 500, message: "Error sending confirmation email" } });
+    testState.record.mockRejectedValueOnce(new Error("Private monitoring detail"));
+    expect(await signUpAction(initialAuthFormState, form)).toEqual({ status: "error", message: "The account could not be created. Check the information and try again." });
   });
 
   it("starts the resend wait at sign-up, so a resend seconds later never reaches the provider (production 2026-10-04)", async () => {
