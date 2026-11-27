@@ -44,6 +44,9 @@ The local production-mode browser smoke could not reach the page because the
 app correctly returned 503 with backend credentials disabled. No gate was
 bypassed to obtain a preview. Mobile rendering remains a release verification
 item on an authorized configured preview; the reviewable source diff is ready.
+The existing live page separately passed mobile/desktop browser checks and a
+Lighthouse mobile lab run; see MOBILE_DIAGNOSTIC.md. These observations predate
+deployment of this change and must not be presented as its result.
 
 ## Other existing pages inspected
 

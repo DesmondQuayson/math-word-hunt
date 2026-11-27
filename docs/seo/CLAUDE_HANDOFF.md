@@ -1,6 +1,6 @@
 # MathNexa SEO / AEO / GEO / backlinks handoff
 
-Checkpoint: **2026-11-27 15:38:48 UTC**. Reporting zone: America/Chicago.
+Checkpoint: **2026-11-27 15:48 UTC**. Reporting zone: America/Chicago.
 Owner intent: full original scope, with execution continuing when devices are off.
 A local automation or a prompt does not satisfy that cloud requirement.
 [Requirement-by-requirement coverage](COVERAGE.md) is authoritative for scope.
@@ -51,11 +51,16 @@ build/typecheck failed because local packages were missing; locked dependency
 restoration fixed them. The skill creator Python validator lacked PyYAML;
 existing js-yaml validated wrapper metadata instead, with no global installation.
 
-PageSpeed mobile API returned **429**, with null scores/metrics. A local production
-preview with backend credentials disabled returned **503**, as its configuration
-guard requires. No gate was bypassed. Mobile rendering/performance and broader
-rendered-link coverage remain unverified; use an authorized configured preview.
-Passing tests and metadata checks are not proof of indexing, rankings or sales.
+PageSpeed mobile API returned **429**; first local Lighthouse trace failed with
+NO_NAVSTART, then one bounded retry succeeded. Current live page mobile lab:
+**79 performance / 100 accessibility / 100 SEO**, LCP 1.20 s, TBT 879 ms, CLS 0.
+Live 375px/1280px browser checks passed with no horizontal overflow. See
+MOBILE_DIAGNOSTIC.md and its sanitized dated evidence; this is not real-user
+performance or an outcome of the unreleased content. A local production preview
+with backend credentials disabled returned **503**, as its guard requires; no
+gate was bypassed. The proposed content still needs configured-preview/mobile
+review. Broader broken-link/indexing coverage remains open. Passing tests or lab
+scores do not prove indexing, rankings, full accessibility or sales.
 
 ## Single scheduler and merge boundary
 
