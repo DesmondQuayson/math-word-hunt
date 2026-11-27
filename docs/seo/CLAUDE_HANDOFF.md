@@ -1,102 +1,128 @@
 # MathNexa SEO execution handoff
 
-Checkpoint UTC: 2026-11-27 03:41:51 UTC. Reporting/schedule zone:
-`America/Chicago` (owner's local date November 26).
+Checkpoint UTC: 2026-11-27 10:16:45 UTC. Reporting/schedule zone: America/Chicago.
+**Owner requirement: keep running while the owner's computer is off or disconnected.**
+A local automation or open chat does not meet this cloud-execution requirement.
 
-**Owner requirement:** keep working while the owner's computer is off or
-disconnected. This requires a cloud executor. Local-only execution is inadequate.
-
-## Repository and ownership
+## Verified delivery
 
 - Repository: https://github.com/DesmondQuayson/math-word-hunt (public).
-- Implementation branch: `codex/seo-cloud-execution`.
-- Refreshed remote source/base: `4d8ad62a706e225e364bb6c8958e4feb4d94da30`
-  (v1.2.69). The initial local `4a22720` checkout was stale; its missing-canonical
-  and outdated-About findings were superseded. Preserve existing SEO work.
-- Current interactive owner: Codex; implementation/checkpoint verification in
-  progress. Claude must reconcile actual ownership before mutation.
-- Worktree initially had unrelated untracked `owner-review/` marketing material;
-  preserve it. New SEO files are not yet a verified remote handoff at this checkpoint.
-- Intended runtime lock: one GitHub Actions concurrency group. No distributed
-  interactive-agent lease has been verified; do not infer one from this file.
+- Review branch: codex/seo-cloud-execution; base 4d8ad62a706e225e364bb6c8958e4feb4d94da30.
+- Verified executable commit: 1ccebb3b4296de62918c9f11c31ee4f7c03eebbb. Subsequent handoff-only commits do not change the tested runtime. Resolve the latest branch SHA before resuming.
+- Draft review: https://github.com/DesmondQuayson/math-word-hunt/pull/48
+- Hosted execution: https://github.com/DesmondQuayson/math-word-hunt/actions/runs/45980293569
+- Fresh-run recovery: https://github.com/DesmondQuayson/math-word-hunt/actions/runs/45980293569/attempts/2
+- Public report: https://github.com/DesmondQuayson/math-word-hunt/blob/seo-reports/reports/latest.md
+- Public state: https://github.com/DesmondQuayson/math-word-hunt/blob/seo-reports/reports/latest.json
+- Verified report commit: 13ae2120b59f4dde5f4a5d03ddde8b279f99b9e3 on seo-reports.
+- Unrelated untracked owner-review/marketing/ material remains untouched. No website application code changed.
 
-## Current delivery status
+## Ownership and schedule
 
-| Area | Status | Evidence / remaining work |
+Codex owns this implementation checkpoint. The hosted executor runs deterministic Node code,
+not a Codex/Claude model session. Verify no active interactive edits before transfer; no
+distributed agent lease is implied by this file.
+
+Workflow ID **432326706**, name **MathNexa public SEO cloud checks**, path
+.github/workflows/mathnexa-seo.yml, is registered with API state active.
+**Recurring scheduling is not activated:** the file is only on the review branch.
+Scheduled events require the default branch. PR #48 awaits owner review before merge,
+which may invoke the repository's existing production deployment integration.
+
+The definition is Monday at 7:00 AM America/Chicago. If merged before then, the next nominal
+scheduled time is November 30, 2026 at 7:00 AM CST (13:00 UTC). This is calculated, not a
+verified queued run; GitHub can delay/drop schedules or disable inactive public-repository
+schedules. Concurrency group mathnexa-seo-cloud serializes runs. Both hosted attempts above
+finished; no SEO job was running at this checkpoint.
+
+Keep the unrelated local MathNexa live operations watch unchanged. Initial GitHub inventory
+contained only Pages deployment; no pre-existing SEO job was found. Do not enable a duplicate
+SEO scheduler. Verify replacement access/output before transferring executor ownership.
+
+## Results and coverage
+
+| Area | Status | Evidence / next action |
 | --- | --- | --- |
-| Source access | Verified | Remote main refreshed and source rechecked at `4d8ad62`; historical deployment docs are not live truth |
-| Existing executors | Partial | GitHub inventory showed Pages deployment only; local “MathNexa live operations watch” exists for different work and remains unchanged |
-| Hosted public audit | Partial | Implementation in progress at `scripts/seo/`; hosted run and final checked commit still to be recorded |
-| Shared workflow | Partial | `WORKFLOW.md`, `PRODUCT_BRIEF.md`, `BACKLOG.md`, `geo-panel.json` prepared; final consistency review pending |
-| Search/GA4/billing | Blocked | No tested property access/private output destination in this workflow; no metrics claimed |
-| Baseline | Blocked | Public technical observations cannot substitute for 28-day traffic/payment data |
-| Initial website improvements | Partial | Evidence-led backlog with combined three-initial/two-weekly cap; no approved or deployed website change |
-| GEO/AEO/backlinks | Partial | Measurement protocol and 12 proposed questions prepared; observations/inventory/outreach remain unperformed |
-| Toolkit compatibility | Pending | Upstream installation/security/runtime review and pinned source not completed; no Claude plugin claims |
-| Checks | Pending | Record actual test commands/results and live hosted execution below before marking verified |
-| Persistence | Pending | Intended public report branch `seo-reports`; actual remote report/commit verification still required |
-| Schedule | Pending | Intended Monday 7:00 AM `America/Chicago`; definition alone is not activation |
-| Claude loading/handoff | Partial | Resume entry point exists; native loading and transfer not tested |
+| Source/GitHub access | Verified | Refreshed base; remote executable commit; PR #48 |
+| Cloud execution | Verified | Fresh hosted Ubuntu/Node 22 runner; no local vault or application dependencies |
+| Checks | Verified | 34 dependency-free tests passed on hosted runner; targeted ESLint and whitespace checks passed locally |
+| MathNexa public pages | Verified | Eight configured HTML pages returned 200 and passed implemented metadata checks |
+| ShowMe public pages | Partial | Homepage and sitemap returned 401 locally and in cloud; gates preserved |
+| Remote persistence/recovery | Verified | First report af084c057132f2d64fb43ae115bb542bba6af928; fresh attempt restored it, retained two proposals, added zero duplicates, saved 13ae212 |
+| Shared workflow/memory | Verified | WORKFLOW.md, PRODUCT_BRIEF.md, BACKLOG.md, config.json, geo-panel.json, root AGENTS.md |
+| Search Console/GA4/billing | Blocked | No tested cloud properties/credentials or authorized private output destination |
+| 28-day baseline | Blocked | Source data unavailable; missing is not zero |
+| AEO/GEO/backlinks | Partial | Protocol and twelve proposed questions prepared; no measured citations, backlink inventory, or outreach |
+| Website proposals | Partial | Two public access investigations retained; no approved/released website edits |
+| Upstream toolkit | Partial | Repository landing page inspected only; review/pinning/install/runtime compatibility not performed |
+| Recurring schedule | Partial | Hosted executor proven; default-branch activation awaits review; no scheduled event tested |
+| Claude handoff/loading | Partial | Shared state remotely saved; native skill/plugin loading and ownership transfer untested |
 
-## Source-brief coverage map
+The hosted job is marked **failure intentionally** by its final coverage gate because ShowMe
+returns 401. Tests, restore, audit execution, and remote report saving succeeded. Do not call
+this a completely clean audit or bypass authentication to remove the warning. Verify whether
+ShowMe is intentionally protected and whether its public marketing coverage belongs on the
+already-accessible main-domain /online-math-prep page.
 
-| Reference sections | Treatment |
-| --- | --- |
-| 1–3: scope, discovery, actual access | Source/executor inventory started; preserve cost/access/publication boundaries; owner clarified cloud execution |
-| 4, 6: data and baseline | Private Google/billing integrations pending; figures unavailable |
-| 5: shared host entry points | Shared workflow prepared; native coordinator loading remains to be verified |
-| 7: audit and initial improvements | Bounded public audit under implementation; combined three-initial/two-weekly proposal limits retained |
-| 8: durable portable state | Repository-relative docs prepared; remote reports and fresh-checkout recovery need verification |
-| 9: scheduling | Cloud requirement explicit; one intended hosted workflow; no local replacement presented as cloud |
-| 10: evidence reporting | Statuses and limitations explicit; final verified run/diff references pending |
-| 11–13: GEO/public clarity/visibility | Public checks plus fixed proposed panel; no fabricated citations or guaranteed outcomes |
-| 14: backlinks | Inventory/prospect process retained; no external messages authorized or sent |
-| 15: optional creative work | Deferred behind core cloud execution and evidence |
-| 16: AEO | Original checked answers and existing-page mapping required before content release |
-| 17: optional Claude toolkit | Not installed; review, pinning, compatibility and native tests pending |
+Initial run 45936482035 failed before crawling because the repository REST endpoint had a
+trailing slash. Commit 1ccebb3 fixed that and added a regression test. The two later attempts
+prove the corrected path and fresh-run recovery. Application builds/gameplay tests were not
+run because no application code changed.
 
-## Reproduction and verification record
+## Reproduction
 
-Read [WORKFLOW.md](WORKFLOW.md). From a fresh repository checkout, use the workflow's
-Node version and these commands:
+Use Node 22 or newer from the repository root. No npm installation is needed.
 
 ```text
 node --test scripts/seo/*.test.mjs
 node scripts/seo/run.mjs --output qa-artifacts/seo
+node scripts/seo/run.mjs --previous qa-artifacts/seo/report.json --output qa-artifacts/seo-next
+node scripts/seo/run.mjs --offline --snapshot qa-artifacts/seo/audit.json --output qa-artifacts/seo-replay
 ```
 
-Code/configuration entry points: `.github/workflows/mathnexa-seo.yml`,
-`scripts/seo/run.mjs`, `scripts/seo/public-audit.mjs`, `docs/seo/config.json`.
-Saved-snapshot offline reproduction is a diagnostic mode; it does not replace
-the required hosted recurring executor. No production application build or
-gameplay change is part of this integration.
+Offline replay preserves observation time; tests verify it with all network access forbidden.
+It is a diagnostic option, not the cloud executor. Live runs exit nonzero on incomplete coverage
+while saving their public report. See WORKFLOW.md for lock recovery and publication boundaries.
 
-The public audit needs no Google, Stripe, Supabase, Claude, or OpenAI credential.
-Use only the hosted job's scoped repository token for permitted report persistence;
-never add private analytics to its public output. Record any future credential
-**names**, never values, only after the private execution design is authorized.
+Cloud persistence receives GH_TOKEN from github.token only in its restore/publish steps.
+The crawler receives no Google, Stripe, Supabase, Claude, or OpenAI credentials. Action
+dependencies are pinned to full SHAs; Node's 22.x patch is resolved at runtime. No paid model
+calls, Actions artifact uploads, or dependency caches are used. Report history is an independent
+branch; updates are non-forced, parent-checked, and verified remotely.
 
-Final checkpoint must append: actual implementation/remote commit, clean/dirty
-status, exact test results, hosted execution URL, report branch commit, workflow
-enabled state, next expected run with source/timezone, pending approvals, running
-jobs, and any failed/skipped checks. Until recorded, those facts are unverified.
+Private analytics exports, revenue/customer/student records, and credentials must not enter
+this public repository, report branch, summaries, or logs. A private analytics pipeline requires
+separate verified access and storage. No credential values are recorded here.
 
-## Next task and resume instruction
+## Reference-brief coverage
 
-Next unfinished task: finish and test the bounded hosted audit, verify a real
-cloud execution and saved public report, then reconcile activation of its single
-default-branch schedule. Keep production website changes as reviewable proposals.
-Google property authorization and a private reporting location are later essential
-owner-only dependencies if they cannot be discovered through existing access.
+| Sections | Current treatment |
+| --- | --- |
+| 1–3 | Scope/source/access discovery completed for cloud execution; boundaries retained |
+| 4, 6 | Private Google/billing data and baseline blocked on verified access/storage |
+| 5 | One shared workflow and project memory; native Codex/Claude skill wrappers not installed |
+| 7 | Bounded live public audit; combined three-initial/two-weekly proposal limit tested |
+| 8–10 | Portable code, hosted runs, remote report history and review PR; schedule activation pending |
+| 11–13, 16 | Public metadata checks, AEO/GEO protocol; actual answer observations and content changes pending |
+| 14 | Backlink process retained; inventory/prospects/outreach not performed |
+| 15 | Optional creative work deferred |
+| 17 | Toolkit not installed; source review/pinning and compatibility tests pending |
 
-For Claude: read this file, repository guidance, and `WORKFLOW.md`; verify actual
-branch/commit and active jobs; confirm Codex has checkpointed and stopped editing
-before claiming ownership. Resume the next unfinished task, reusing valid checks.
-Do not restart discovery, enable a duplicate scheduler, spend model credits, send
-outreach, or deploy merely because this handoff exists. Native Claude skill/plugin
-tests remain pending until actually performed. A prompt does not detect allowance
-resets, transfer credentials, start another assistant, or transfer executor ownership.
+## Next task and approval boundary
 
-Rollback: disable only the exact SEO workflow and revert only reviewed SEO
-integration changes. Preserve report history, unrelated local operations jobs,
-application routes, access controls, billing, and existing agent configuration.
+Next: owner review of PR #48 for default-branch activation. The supplied brief says
+“Prepare production changes for owner review”; merging main may invoke the repository's
+deployment integration. After approval, merge, verify default-branch workflow state, dispatch
+one default-branch run, and record its actual result. Do not claim weekly activation beforehand.
+
+Then investigate the ShowMe 401 coverage without changing access policies, and discover an
+authorized private Google reporting destination/properties. Continue BACKLOG.md without
+inventing metrics, attribution, or AI visibility.
+
+For Claude: read this file and WORKFLOW.md, reconcile actual branch/job state, verify Codex
+has stopped editing, then claim ownership and continue the next unfinished task. Reuse valid
+checks. A prompt does not start another assistant, reset quotas, transfer credentials, or
+authorize deployment, paid fallback, account changes, or contacting recipients.
+
+Rollback: disable only workflow 432326706 and revert only reviewed SEO integration commits.
+Preserve report history, unrelated operations jobs, application access/billing, and agent config.

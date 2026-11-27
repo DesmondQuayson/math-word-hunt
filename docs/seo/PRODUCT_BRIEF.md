@@ -15,7 +15,7 @@ in public copy.
 | Homework and quizzes | `lib/resources/catalog.ts` loads published taxonomy/resources and answer-key file roles | Available grades/topics/files require live catalog evidence |
 | Protected libraries | `/games`, `/homework`, `/quizzes`, `/map-prep` call `requireProductAccess` | Verified access boundary; excluded from unattended crawl |
 | Public product pages | `/online-math-prep`, `/math-games`, `/math-games/math-tug-of-war`, `/homework-pdfs`, `/quiz-pdfs` in `lib/seo/product-pages.ts` | Existing indexable explanations; improve these before creating competing pages |
-| ShowMe | The owner identified `https://showme.mathnexa.com`; MAP Prep destination is CMS-configured | Relationship and destination require live verification; no ShowMe source repository identified here |
+| ShowMe | The owner identified `https://showme.mathnexa.com`; MAP Prep destination is CMS-configured | Public homepage and sitemap returned 401 on Nov 27 from a hosted audit; source repository and intended public coverage remain unverified |
 | Pricing and trials | `lib/seo/public-pages.ts` derives price and trial text from shared commercial policy | Live price/terms remain to be checked; do not quote legacy environment branches as current evidence |
 | Devices | Homepage source mentions phones, laptops, tablets, and shared displays | Marketing text is not a device-test result; verify behavior before making compatibility claims |
 

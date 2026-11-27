@@ -16,7 +16,12 @@ until supporting live evidence and an owner-reviewable diff exist.
 | P2 / days 15–28 | Optional upstream toolkit review | Claude-oriented toolkit cannot be assumed compatible with Codex/cloud | Pin immutable source SHA; review license/install/runtime behavior; test only compatible procedures; keep paid extensions off | Dec 24 |
 | P2 / days 22–30 | Review outcomes and scheduling health | Initial changes may have too little data for causal claims | Reconcile pending proposals, observed trends, holiday/sample effects, missed runs and report recovery | Dec 26 |
 
-There are no new evidence-complete website proposals at this checkpoint. Prepare
+The Nov 27 hosted audit retained two investigations: ShowMe's public homepage and
+sitemap return 401. Confirm intended access before proposing any change; do not
+remove gates. These are recorded with stable IDs on `seo-reports`; the fresh-run
+recovery check added zero duplicate proposals. Eight selected MathNexa public HTML
+pages returned 200 and passed the implemented metadata checks. There are no
+approved website changes. Prepare
 at most three initial proposals across all work, without filling slots merely to
 meet a count. Weekly maintenance may prepare at most two justified website
 improvements in total across SEO/AEO/GEO/toolkit work. Update an existing proposal
