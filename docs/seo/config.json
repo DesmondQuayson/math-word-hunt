@@ -3,6 +3,21 @@
   "repository": "DesmondQuayson/math-word-hunt",
   "reportBranch": "seo-reports",
   "timezone": "America/Chicago",
+  "manualProposals": [
+    {
+      "id": "proposal:manual:homework-public-example",
+      "findingId": "manual:homework-public-example",
+      "target": "https://mathnexa.com/homework-pdfs#practice-example",
+      "evidence": "2026-11-27 source inspection: product features/catalog but no worked example; docs/seo/AEO_CONTENT_REVIEW.md",
+      "hypothesis": "An original worked example and practice routine may improve usefulness and answer clarity; no measured lift is claimed.",
+      "priority": "P2",
+      "status": "prepared-awaiting-owner-review",
+      "createdAt": "2026-11-27T10:45:00Z",
+      "reviewAfter": "2026-12-25",
+      "validation": "Exact rational arithmetic, lint/typecheck/build and local page/access-boundary verification; manual production release only.",
+      "currentObservation": "source-reviewed-not-deployed"
+    }
+  ],
   "sites": [
     {
       "origin": "https://mathnexa.com",

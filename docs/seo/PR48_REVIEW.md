@@ -53,14 +53,21 @@ Not connected** (project root apps/platform-web). A merge does not automatically
 deploy that production project through Git. Preserve its manual owner-reviewed
 production release process. The repository's staging Git integration does react
 to commits: the previous PR head's staging deployment is BLOCKED/STAGED,
-`dpl_2XSwaERdoCbSWpwNUkhe1JAq8thD`. No compilation log or error code was returned;
-the underlying provider reason is unresolved. This is not a proved build defect.
+  `dpl_2XSwaERdoCbSWpwNUkhe1JAq8thD`. Follow-up inspection of the corrected head's
+  deployment `dpl_8Bj19k9NK4UcZTjiXNLkpJYnUie4` returned `readyStateReason`:
+  the project was paused. No build was attempted. This is not a proved build defect.
 Do not change billing, protection or provider policy to make a check green.
 
 Concrete approval impact: merge the monitoring-only PR to activate its existing
 weekly cloud schedule and permit public report writes to `seo-reports`; no paid
 AI, website content publication, Google data upload or entitlement change. The
-staging check must be acknowledged/resolved through the existing review process.
+  staging check must be resolved through the existing review process. The owner
+  approved merge subject to existing checks on 2026-11-27. That approval is
+  recorded; merge is held because Vercel remains failed. Main has no branch
+  protection according to GitHub, but the approval condition still applies.
+  No pause setting was changed and no failed status was bypassed. Once the
+  staging owner restores its normal check, verify the same PR head and merge
+  under this existing approval without asking for merge approval again.
 
 Sources: [schedule semantics](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule),
 [job token permissions](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication).

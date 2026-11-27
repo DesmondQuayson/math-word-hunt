@@ -48,6 +48,18 @@ test('manual reruns cannot exceed the combined weekly proposal budget', () => {
   const nextRepeat = buildReport(audit('2026-12-01T13:00:00Z', 10), { previous: nextWeek, now: new Date('2026-12-01T14:00:00Z') });
   assert.equal(nextRepeat.newProposalIds.length, 0);
 });
+test('manual content and automatic findings share the cap and are retained once', () => {
+  const now = new Date('2026-11-23T14:00:00Z');
+  const manual = { id: 'proposal:manual:example', findingId: 'manual:example', target: 'https://mathnexa.com/homework-pdfs', status: 'prepared-awaiting-owner-review' };
+  const first = buildReport(audit(), { now, manualProposals: [manual] });
+  assert.equal(first.proposalBudget.used, 3);
+  assert.equal(first.proposals.filter(p => p.findingId === 'manual:example').length, 1);
+  const next = buildReport(audit(), { now, previous: first, manualProposals: [manual] });
+  assert.equal(next.newProposalIds.length, 0);
+  assert.throws(() => buildReport(audit(), { now, previous: first, manualProposals: [{ ...manual, id: 'proposal:manual:extra' }] }), /exceed/);
+  const replay = buildReport(audit(), { now, mode: 'offline-replay', manualProposals: [manual] });
+  assert.equal(replay.proposals.length, 0);
+});
 test('sitemap failures and unexpanded indexes do not clear membership findings', () => {
   const firstAudit = audit();
   firstAudit.findings = [{ id: 'https://mathnexa.com/#sitemap-membership', target: 'https://mathnexa.com/', severity: 'warning', message: 'Missing from sitemap' }];
