@@ -1,0 +1,62 @@
+name: MathNexa public SEO cloud checks
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+      timezone: America/Chicago
+  workflow_dispatch:
+  push:
+    branches: [codex/seo-cloud-execution]
+    paths:
+      - '.github/workflows/mathnexa-seo.yml'
+      - 'scripts/seo/**'
+      - 'docs/seo/config.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mathnexa-seo-cloud
+  cancel-in-progress: false
+
+jobs:
+  public-checks:
+    # Standard GitHub-hosted public-repository execution; no paid runner or AI API.
+    if: github.repository == 'DesmondQuayson/math-word-hunt' && !github.event.repository.private
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Node (no npm installation)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Test request boundaries and report recovery
+        run: node --test scripts/seo/*.test.mjs
+      - name: Restore previous public state
+        run: node scripts/seo/github-state.mjs --mode restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Audit allowlisted public URLs
+        id: audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          args=()
+          if [ -f .seo-output/previous.json ]; then
+            args+=(--previous .seo-output/previous.json)
+          fi
+          node scripts/seo/run.mjs "${args[@]}"
+      - name: Save and verify public report history
+        if: ${{ !cancelled() && steps.audit.outcome != 'skipped' }}
+        run: node scripts/seo/github-state.mjs --mode publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Surface an incomplete audit
+        if: ${{ steps.audit.outcome == 'failure' }}
+        run: exit 1

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "repository": "DesmondQuayson/math-word-hunt",
+  "reportBranch": "seo-reports",
+  "timezone": "America/Chicago",
+  "sites": [
+    {
+      "origin": "https://mathnexa.com",
+      "paths": ["/", "/about", "/online-math-prep", "/math-games", "/math-games/math-tug-of-war", "/homework-pdfs", "/quiz-pdfs", "/help"]
+    },
+    {
+      "origin": "https://showme.mathnexa.com",
+      "paths": ["/"]
+    }
+  ],
+  "maxRequests": 30,
+  "timeoutMs": 10000,
+  "maxBytes": 1500000
+}
