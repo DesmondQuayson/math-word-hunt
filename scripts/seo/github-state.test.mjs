@@ -24,6 +24,13 @@ test('token goes only to fixed GitHub repository with redirects forbidden', asyn
   await api('/git/ref/heads/seo-reports');
   await assert.rejects(api('https://example.com'));
 });
+test('repository preflight uses the canonical REST endpoint without a trailing slash', async () => {
+  const api = githubClient({ token: 'test-token', fetchImpl: async url => {
+    assert.equal(url, 'https://api.github.com/repos/DesmondQuayson/math-word-hunt');
+    return new Response('{"private":false}', { status: 200 });
+  } });
+  assert.deepEqual(await api('/'), { private: false });
+});
 test('first run creates an orphan evidence branch without touching main', async () => {
   const calls = [];
   let created = false;

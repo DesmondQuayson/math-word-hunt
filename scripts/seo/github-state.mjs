@@ -20,7 +20,8 @@ export function githubClient({ token, fetchImpl = globalThis.fetch } = {}) {
   if (!token) throw new Error('GitHub workflow token is required');
   return async (path, { method = 'GET', body, allow404 = false } = {}) => {
     if (!/^\/(?:git\/|contents\/|$)/.test(path)) throw new Error('GitHub endpoint outside report scope');
-    const response = await fetchImpl(`https://api.github.com/repos/${REPOSITORY}${path}`, {
+    // GitHub's repository endpoint does not accept a trailing slash.
+    const response = await fetchImpl(`https://api.github.com/repos/${REPOSITORY}${path === '/' ? '' : path}`, {
       method, redirect: 'error', signal: AbortSignal.timeout(20_000),
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10', 'Content-Type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {})
