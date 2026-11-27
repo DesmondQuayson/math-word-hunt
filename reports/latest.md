@@ -1,6 +1,6 @@
 # MathNexa public SEO check
 
-Observed: 2026-11-27T10:13:50.205Z. Generated: 2026-11-27T10:13:54.987Z. Mode: live.
+Observed: 2026-11-27T10:15:40.093Z. Generated: 2026-11-27T10:15:44.552Z. Mode: live.
 Technical check: **Partial**. Requests: 13/30.
 Scope: anonymous public HTML and crawl metadata. No private analytics, customer data, model calls, or production changes.
 
@@ -23,7 +23,7 @@ Scope: anonymous public HTML and crawl metadata. No private analytics, customer 
 
 ## Review queue
 
-2 new proposals; 2 retained proposals. Existing IDs are reused.
+0 new proposals; 2 retained proposals. Existing IDs are reused.
 
 - P1 / awaiting-review / observed — https://showme.mathnexa.com/: Public request returned HTTP 401. Review after 2026-12-04.
 - P1 / awaiting-review / observed — https://showme.mathnexa.com/sitemap.xml: Public request returned HTTP 401. Review after 2026-12-04.

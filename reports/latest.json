@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "mathnexa-public-seo",
   "publicDataOnly": true,
-  "generatedAt": "2026-11-27T10:13:54.987Z",
+  "generatedAt": "2026-11-27T10:15:44.552Z",
   "mode": "live",
   "sourceCommit": "1ccebb3b4296de62918c9f11c31ee4f7c03eebbb",
   "runUrl": "https://github.com/DesmondQuayson/math-word-hunt/actions/runs/45980293569",
@@ -10,7 +10,7 @@
   "status": "Partial",
   "audit": {
     "schemaVersion": 1,
-    "observedAt": "2026-11-27T10:13:50.205Z",
+    "observedAt": "2026-11-27T10:15:40.093Z",
     "requestsUsed": 13,
     "requestLimit": 30,
     "complete": false,
@@ -317,18 +317,15 @@
     ]
   },
   "freshness": {
-    "observedAt": "2026-11-27T10:13:50.205Z",
-    "ageHours": 0.0013283333333333333,
+    "observedAt": "2026-11-27T10:15:40.093Z",
+    "ageHours": 0.0012386111111111111,
     "live": true
   },
   "comparison": {
-    "previousObservedAt": null,
-    "daysBetweenObservations": null,
+    "previousObservedAt": "2026-11-27T10:13:50.205Z",
+    "daysBetweenObservations": 0.001271851851851852,
     "comparableWeeklySnapshot": false,
-    "newFindingIds": [
-      "https://showme.mathnexa.com/sitemap.xml#http-401",
-      "https://showme.mathnexa.com/#http-401"
-    ],
+    "newFindingIds": [],
     "note": "Point-in-time public checks only. This is not a seven-day traffic or revenue comparison."
   },
   "coverage": {
@@ -354,7 +351,7 @@
       "target": "https://showme.mathnexa.com/sitemap.xml",
       "message": "Public request returned HTTP 401.",
       "firstSeenAt": "2026-11-27T10:13:50.205Z",
-      "lastSeenAt": "2026-11-27T10:13:50.205Z",
+      "lastSeenAt": "2026-11-27T10:15:40.093Z",
       "status": "observed"
     },
     {
@@ -363,7 +360,7 @@
       "target": "https://showme.mathnexa.com/",
       "message": "Public request returned HTTP 401.",
       "firstSeenAt": "2026-11-27T10:13:50.205Z",
-      "lastSeenAt": "2026-11-27T10:13:50.205Z",
+      "lastSeenAt": "2026-11-27T10:15:40.093Z",
       "status": "observed"
     }
   ],
@@ -395,8 +392,5 @@
       "currentObservation": "observed"
     }
   ],
-  "newProposalIds": [
-    "proposal:https://showme.mathnexa.com/#http-401",
-    "proposal:https://showme.mathnexa.com/sitemap.xml#http-401"
-  ]
+  "newProposalIds": []
 }
