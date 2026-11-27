@@ -1,7 +1,7 @@
 # MathNexa public SEO check
 
-Observed: 2026-11-27T10:15:40.093Z. Generated: 2026-11-27T10:15:44.552Z. Mode: live.
-Technical check: **Partial**. Requests: 13/30.
+Observed: 2026-11-27T10:42:34.586Z. Generated: 2026-11-27T10:42:40.240Z. Mode: live.
+Technical check: **Verified**. Requests: 12/30.
 Scope: anonymous public HTML and crawl metadata. No private analytics, customer data, model calls, or production changes.
 
 | Public page | HTTP | Title | Canonical | H1 |
@@ -14,23 +14,26 @@ Scope: anonymous public HTML and crawl metadata. No private analytics, customer 
 | https://mathnexa.com/homework-pdfs | 200 | Printable math homework PDFs · MathNexa | https://mathnexa.com/homework-pdfs | 1 |
 | https://mathnexa.com/quiz-pdfs | 200 | Printable math quizzes by topic · MathNexa | https://mathnexa.com/quiz-pdfs | 1 |
 | https://mathnexa.com/help | 200 | Help with accounts and access · MathNexa | https://mathnexa.com/help | 1 |
-| https://showme.mathnexa.com/ | 401 |  |  | — |
+
+## Protected resource checks
+
+- https://showme.mathnexa.com/: HTTP 401; documented 401/noindex boundary verified. Paid content is not audited or cached.
+- https://showme.mathnexa.com/sitemap.xml: HTTP 401; documented 401/noindex boundary verified. Paid content is not audited or cached.
 
 ## Findings
 
-- error — https://showme.mathnexa.com/sitemap.xml: Public request returned HTTP 401.
-- error — https://showme.mathnexa.com/: Public request returned HTTP 401.
+No issues detected by the implemented checks. This is not proof of indexing or SEO effectiveness.
 
 ## Review queue
 
 0 new proposals; 2 retained proposals. Existing IDs are reused.
 
-- P1 / awaiting-review / observed — https://showme.mathnexa.com/: Public request returned HTTP 401. Review after 2026-12-04.
-- P1 / awaiting-review / observed — https://showme.mathnexa.com/sitemap.xml: Public request returned HTTP 401. Review after 2026-12-04.
+- P1 / closed-expected-access / expected-access-control — https://showme.mathnexa.com/: Public request returned HTTP 401. Review after 2026-12-04.
+- P1 / closed-expected-access / expected-access-control — https://showme.mathnexa.com/sitemap.xml: Public request returned HTTP 401. Review after 2026-12-04.
 
 ## Coverage limits
 
-- publicTechnicalAudit: Partial
+- publicTechnicalAudit: Verified
 - searchConsole: Blocked: no verified cloud credentials or property
 - ga4: Blocked: no verified cloud credentials or property
 - subscriptions: Blocked: no authorized private aggregate data source
