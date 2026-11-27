@@ -27,6 +27,17 @@ test('network failure is not recorded as an issue resolved', () => {
   assert.equal(next.proposals[0].currentObservation, 'unavailable');
   assert.equal(next.status, 'Partial');
 });
+test('confirmed intentional access closes the old 401 proposal with evidence and retains history', () => {
+  const old = audit();
+  old.findings = [{id:'https://showme.mathnexa.com/#http-401',target:'https://showme.mathnexa.com/',severity:'error',message:'HTTP 401'}];
+  const previous = buildReport(old,{now:new Date('2026-11-23T14:00:00Z')});
+  const nextAudit = audit('2026-11-24T13:00:00Z',0);
+  nextAudit.accessChecks=[{url:'https://showme.mathnexa.com/',status:401,matched:true}];
+  const next = buildReport(nextAudit,{previous,now:new Date('2026-11-24T14:00:00Z')});
+  assert.equal(next.proposals[0].status,'closed-expected-access');
+  assert.equal(next.ledger[0].status,'expected-access-control');
+  assert.equal(next.proposalBudget.used,1);
+});
 test('manual reruns cannot exceed the combined weekly proposal budget', () => {
   const first = buildReport(audit(), { now: new Date('2026-11-23T14:00:00Z') });
   const repeat = buildReport(audit('2026-11-24T13:00:00Z', 8), { previous: first, now: new Date('2026-11-24T14:00:00Z') });

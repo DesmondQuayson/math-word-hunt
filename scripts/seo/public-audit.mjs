@@ -41,6 +41,12 @@ function checkedConfig(config) {
   });
   return {
     sites,
+    accessChecks: (() => {
+      const urls = config.accessChecks ?? [];
+      const permitted = new Set(["https://showme.mathnexa.com/", "https://showme.mathnexa.com/sitemap.xml"]);
+      if (!Array.isArray(urls) || urls.some(url => !permitted.has(url))) throw new Error("Invalid protected access check");
+      return [...new Set(urls)];
+    })(),
     maxRequests: bound(config.maxRequests, 30, 60, "maxRequests"),
     timeoutMs: bound(config.timeoutMs, 10000, 30000, "timeoutMs"),
     maxBytes: bound(config.maxBytes, 1500000, 5000000, "maxBytes")
@@ -172,13 +178,13 @@ export async function auditPublicSites(config, { fetchImpl = globalThis.fetch, n
   let complete = true;
   const add = (target, code, severity, message) => findings.push({ id: `${target}#${code}`, severity, target, message });
 
-  async function attempt(url) {
+  async function attempt(url, accept) {
     const controller = new AbortController();
     let timer;
     let reader;
     let bytes = 0;
     const read = async () => {
-      const response = await fetchImpl(url, { method: "GET", redirect: "manual", credentials: "omit", signal: controller.signal, headers: { Accept: "text/html,application/xhtml+xml,application/xml,text/plain;q=0.9", "User-Agent": "MathNexaPublicAudit/1.0" } });
+      const response = await fetchImpl(url, { method: "GET", redirect: "manual", credentials: "omit", signal: controller.signal, headers: { Accept: accept, "User-Agent": "MathNexaPublicAudit/1.0" } });
       if (controller.signal.aborted) { if (response.body) await response.body.cancel(); return { status: null, error: "timeout" }; }
       const metadata = { status: response.status, location: response.headers.get("location"), retryAfter: response.headers.get("retry-after"), contentType: response.headers.get("content-type") ?? "", xRobotsTag: response.headers.get("x-robots-tag") ?? "" };
       if (REDIRECTS.has(response.status) || response.status === 429 || response.status >= 500) {
@@ -215,14 +221,14 @@ export async function auditPublicSites(config, { fetchImpl = globalThis.fetch, n
     finally { clearTimeout(timer); }
   }
 
-  async function request(url, allowed) {
+  async function request(url, allowed, accept = "text/html,application/xhtml+xml,application/xml,text/plain;q=0.9") {
     let current = url;
     let redirects = 0;
     let retried = false;
     for (;;) {
       if (requestsUsed >= settings.maxRequests) return { url, finalUrl: current, status: null, error: "request-budget-exhausted" };
       requestsUsed++;
-      const response = await attempt(current);
+      const response = await attempt(current, accept);
       const result = { url, finalUrl: current, ...response };
       if (response.error) return result;
       if (REDIRECTS.has(response.status)) {
@@ -314,5 +320,16 @@ export async function auditPublicSites(config, { fetchImpl = globalThis.fetch, n
     }
     sites.push({ origin: site.origin, robots, sitemap, pages });
   }
-  return { schemaVersion: 1, observedAt, requestsUsed, requestLimit: settings.maxRequests, complete, sites, findings };
+  const accessChecks = [];
+  for (const url of settings.accessChecks) {
+    const response = await request(url, new Set([url]), "text/plain");
+    const robots = clean(response.xRobotsTag, 200).toLowerCase();
+    const matched = !response.error && response.status === 401 && /\bnoindex\b/.test(robots);
+    accessChecks.push({ url, status: response.status, error: response.error ?? null, expectedStatus: 401, matched, robots, policyEvidence: "docs/showme-access-gate.md" });
+    if (!matched) {
+      complete = false;
+      add(url, "access-policy-unexpected", "error", "Expected an anonymous 401 with noindex for this protected resource. Investigate without changing access controls.");
+    }
+  }
+  return { schemaVersion: 1, observedAt, requestsUsed, requestLimit: settings.maxRequests, complete, sites, accessChecks, findings };
 }

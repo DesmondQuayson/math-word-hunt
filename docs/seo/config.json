@@ -7,12 +7,9 @@
     {
       "origin": "https://mathnexa.com",
       "paths": ["/", "/about", "/online-math-prep", "/math-games", "/math-games/math-tug-of-war", "/homework-pdfs", "/quiz-pdfs", "/help"]
-    },
-    {
-      "origin": "https://showme.mathnexa.com",
-      "paths": ["/"]
     }
   ],
+  "accessChecks": ["https://showme.mathnexa.com/", "https://showme.mathnexa.com/sitemap.xml"],
   "maxRequests": 30,
   "timeoutMs": 10000,
   "maxBytes": 1500000

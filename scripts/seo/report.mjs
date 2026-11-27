@@ -18,6 +18,7 @@ export function buildReport(audit, { previous = null, now = new Date(), mode = '
   const observed = Date.parse(audit.observedAt);
   if (!Number.isFinite(observed) || observed > now.getTime() + 60_000) throw new Error('Invalid observation time');
   const currentIds = new Set(audit.findings.map(f => f.id));
+  const expectedAccess = new Set((audit.accessChecks ?? []).filter(check => check.matched).map(check => `${check.url}#http-401`));
   const successfulTargets = new Set(audit.sites.flatMap(site => [site.robots, site.sitemap, ...site.pages])
     .filter(page => page && !page.error && page.status >= 200 && page.status < 300).map(page => page.url));
   const checkAvailable = item => {
@@ -30,6 +31,7 @@ export function buildReport(audit, { previous = null, now = new Date(), mode = '
   };
   const oldLedger = previous?.ledger ?? [];
   const ledger = oldLedger.map(item => {
+    if (expectedAccess.has(item.id)) return { ...item, status: 'expected-access-control', checkedAt: audit.observedAt, resolutionEvidence: 'docs/showme-access-gate.md' };
     if (currentIds.has(item.id)) return { ...item, lastSeenAt: audit.observedAt, status: 'observed' };
     // A timeout or inaccessible page is not evidence that a previous problem was fixed.
     return checkAvailable(item) ? { ...item, status: 'not-observed', checkedAt: audit.observedAt } : item;
@@ -37,7 +39,9 @@ export function buildReport(audit, { previous = null, now = new Date(), mode = '
   for (const finding of audit.findings) {
     if (!ledger.some(item => item.id === finding.id)) ledger.push({ ...finding, firstSeenAt: audit.observedAt, lastSeenAt: audit.observedAt, status: 'observed' });
   }
-  const proposals = (previous?.proposals ?? []).map(p => ({ ...p, currentObservation: currentIds.has(p.findingId) ? 'observed' : checkAvailable(p) ? 'not-observed' : 'unavailable' }));
+  const proposals = (previous?.proposals ?? []).map(p => expectedAccess.has(p.findingId)
+    ? { ...p, status: 'closed-expected-access', currentObservation: 'expected-access-control', resolutionEvidence: 'docs/showme-access-gate.md; access boundary verified 2026-11-27' }
+    : { ...p, currentObservation: currentIds.has(p.findingId) ? 'observed' : checkAvailable(p) ? 'not-observed' : 'unavailable' });
   const cycle = reportingWeek(new Date(observed));
   const sameCycle = previous?.proposalBudget?.cycle === cycle;
   const limit = sameCycle ? previous.proposalBudget.limit : previous ? 2 : 3;
@@ -92,6 +96,8 @@ export function renderReport(report) {
   for (const site of report.audit.sites) {
     for (const page of site.pages) lines.push(`| ${publicMarkdown(page.url)} | ${page.status ?? 'Unavailable'} | ${publicMarkdown(page.title)} | ${publicMarkdown(page.canonical)} | ${page.h1Count ?? '—'} |`);
   }
+  lines.push('', '## Protected resource checks', '');
+  for (const check of report.audit.accessChecks ?? []) lines.push(`- ${publicMarkdown(check.url)}: HTTP ${check.status ?? 'unavailable'}; documented 401/noindex boundary ${check.matched ? 'verified' : 'NOT verified'}. Paid content is not audited or cached.`);
   lines.push('', '## Findings', '');
   if (!report.audit.findings.length) lines.push('No issues detected by the implemented checks. This is not proof of indexing or SEO effectiveness.');
   for (const f of report.audit.findings) lines.push(`- ${publicMarkdown(f.severity)} — ${publicMarkdown(f.target)}: ${publicMarkdown(f.message)}`);

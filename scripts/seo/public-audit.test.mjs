@@ -3,6 +3,15 @@ import assert from "node:assert/strict";
 import { auditPublicSites } from "./public-audit.mjs";
 
 const origin = "https://mathnexa.com";
+test('documented ShowMe protection is verified, while unexpected exposure or missing noindex fails', async () => {
+  for (const [status, robots, expected] of [[401,'noindex, nofollow',true],[200,'noindex',false],[401,'',false],[503,'noindex',false]]) {
+    const source = fixture(validHtml, { 'https://showme.mathnexa.com/': () => new Response('access required', {status,headers:{'x-robots-tag':robots}}) });
+    const result = await auditPublicSites({ ...config, accessChecks:['https://showme.mathnexa.com/'] }, source);
+    assert.equal(result.accessChecks[0].matched, expected);
+    assert.equal(result.complete, expected);
+    assert.equal(source.calls.at(-1).options.headers.Accept, 'text/plain');
+  }
+});
 const config = { sites: [{ origin, paths: ["/"] }], timeoutMs: 100, maxRequests: 12, maxBytes: 10000 };
 const validHtml = '<!doctype html><html><head><title>MathNexa</title><meta name="description" content="Checked math practice"><link rel="canonical" href="https://mathnexa.com/"><script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite"}</script></head><body><h1>Math practice</h1><a href="/about">About</a><a href="https://elsewhere.example/">Elsewhere</a></body></html>';
 function fixture(page = validHtml, overrides = {}) {
