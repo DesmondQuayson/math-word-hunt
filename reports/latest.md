@@ -1,6 +1,6 @@
 # MathNexa public SEO check
 
-Observed: 2026-11-27T10:42:34.586Z. Generated: 2026-11-27T10:42:40.240Z. Mode: live.
+Observed: 2026-11-27T15:36:51.553Z. Generated: 2026-11-27T15:36:56.650Z. Mode: live.
 Technical check: **Verified**. Requests: 12/30.
 Scope: anonymous public HTML and crawl metadata. No private analytics, customer data, model calls, or production changes.
 
@@ -26,10 +26,11 @@ No issues detected by the implemented checks. This is not proof of indexing or S
 
 ## Review queue
 
-0 new proposals; 2 retained proposals. Existing IDs are reused.
+1 new proposals; 3 retained proposals. Existing IDs are reused.
 
 - P1 / closed-expected-access / expected-access-control — https://showme.mathnexa.com/: Public request returned HTTP 401. Review after 2026-12-04.
 - P1 / closed-expected-access / expected-access-control — https://showme.mathnexa.com/sitemap.xml: Public request returned HTTP 401. Review after 2026-12-04.
+- P2 / prepared-awaiting-owner-review / source-reviewed-not-deployed — https://mathnexa.com/homework-pdfs#practice-example: 2026-11-27 source inspection: product features/catalog but no worked example; docs/seo/AEO_CONTENT_REVIEW.md Review after 2026-12-25.
 
 ## Coverage limits
 
