@@ -1,6 +1,7 @@
 # Initial improvement 3 — public homework guidance
 
-Status: implemented on the review branch; **not deployed**. Owner review required.
+Status: implemented on draft PR #49 and rendered on protected staging;
+**not deployed to production**. Owner release review required.
 Target: https://mathnexa.com/homework-pdfs#practice-example
 Evidence date: 2026-11-27. Existing live page is HTTP 200 with metadata and
 canonical intact; source contains product features and a live catalog summary,
@@ -41,9 +42,15 @@ Validation: production build, workspace typecheck, targeted ESLint and 50 existi
 public-page/metadata/catalog tests pass after restoring the existing npm lockfile.
 No dependency or lockfile change. PageSpeed mobile returned HTTP 429; no score.
 The local production-mode browser smoke could not reach the page because the
-app correctly returned 503 with backend credentials disabled. No gate was
-bypassed to obtain a preview. Mobile rendering remains a release verification
-item on an authorized configured preview; the reviewable source diff is ready.
+app correctly returned 503 with backend credentials disabled. The later
+configured Vercel staging deployment `dpl_7wVQ7gEruzofNypfDqsnhNQkwbbi`
+was Ready with a passing PR check. Authorized `vercel curl` returned HTTP 200
+and rendered HTML containing both new sections, the stable anchor, answer
+disclosure, canonical marker and existing subscription destination. A separate
+unauthenticated request returned 302 to Vercel SSO with `X-Robots-Tag: noindex`;
+staging protection remains active. Browser visual/mobile inspection reached the
+existing Vercel authenticator-code prompt, so that last preview check awaits
+owner sign-in. The reviewable source diff is ready.
 The existing live page separately passed mobile/desktop browser checks and a
 Lighthouse mobile lab run; see MOBILE_DIAGNOSTIC.md. These observations predate
 deployment of this change and must not be presented as its result.

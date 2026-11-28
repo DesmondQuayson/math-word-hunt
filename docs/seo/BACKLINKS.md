@@ -7,12 +7,18 @@ outreach. Recheck the editorial channel and eligibility immediately before sendi
 
 ## Inventory and evidence limits
 
-No authenticated GSC Links export, Bing backlink export or referral dataset is
-available. Search Analytics is not a backlink inventory. A limited public search
-for MathNexa on the three prospective editorial domains returned no results; this
-does **not** establish that MathNexa has no backlinks elsewhere (or even there).
-No link totals, domain-authority scores, paid conversions or existing partner
-relationships are invented. Backlink inventory and impact baseline remain blocked.
+An authenticated GSC Links UI snapshot was read on 2026-11-28, but no export,
+Bing backlink data or referral dataset has been saved. One [public homeschool
+card-game article](https://reallyfungameslp.com/homeschool-card-games-playful-learning-beyond-worksheets/)
+was independently opened and contains a MathNexa homepage link. The site also
+has unrelated commercial cross-links; placement terms and editorial independence
+are unknown, so this is an observed external link, **not** a verified earned
+endorsement or measured referral. A feed URL may duplicate that article, and a
+social link needs separate classification. Search Analytics is not a backlink
+inventory. A limited public search for MathNexa on the three prospective
+editorial domains returned no results; this does **not** establish absence of
+links elsewhere. No exhaustive total, domain-authority score, paid conversion
+or existing partner relationship is invented. Export/referral impact remains open.
 
 ## Prospects
 

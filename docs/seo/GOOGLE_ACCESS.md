@@ -6,11 +6,23 @@ paths. The available Supermetrics connector returned NOT_AUTHENTICATED for both
 GSC and GA4; it is not used as a dependency. Windsor is not required or used.
 Existing GTM/Ads tags do not establish a GA4 property or correct event tracking.
 No analytics values, credentials or customer records were collected or committed.
+On 2026-11-28, the signed-in Google Cloud console for `showme-math-lab` showed
+Google Auth Platform unconfigured and no OAuth clients. Its existing TTS service
+account is for another purpose; do not reuse or expand it for analytics.
+The same signed-in identity opened Search Console's `sc-domain:mathnexa.com`
+property and its Performance, Links and beta generative AI reports. That is
+authorized UI access, **not** an API token. A read-only GSC comparison used the
+exact windows 2026-10-28–11-24 and 2026-09-30–10-27; its totals and page rows
+were discussed privately, not committed. The latest date avoids Google's newest
+processing days, but final-data status has not been verified through the API. The
+GA4 UI showed setup/onboarding for this identity, so GA4 property access is not
+established. GSC counts and URL-level export data remain outside this public file.
 
 ## Exact connection needed
 
-The owner must authorize a Google identity with access to MathNexa's Search
-Console property and GA4 property, using read-only OAuth scopes:
+The owner must authorize the identity already verified for MathNexa's Search
+Console property and grant it access to the correct GA4 property, using
+read-only OAuth scopes:
 
 ```text
 https://www.googleapis.com/auth/webmasters.readonly
@@ -25,15 +37,31 @@ Enable the relevant APIs in the existing authorized Google project if they are
 disabled; that setup requires the project owner. Do not purchase a connector.
 
 Run discovery first to identify actual permissions and exact property IDs. The
-GSC candidate is `sc-domain:mathnexa.com` or the `https://mathnexa.com/` URL-prefix
-property; neither is asserted to exist until discovery verifies it. Do not sum
-overlapping properties. GA4 numeric property ID is unknown. The baseline verifies
+GSC domain property `sc-domain:mathnexa.com` is visible in the authorized UI;
+API discovery must verify it separately. Do not sum overlapping properties.
+GA4 numeric property ID is unknown. The baseline verifies
 a web stream whose default hostname is mathnexa.com before querying.
 
 The owner must also select a private output folder **outside every Git repo**.
 The script rejects public CI/GitHub Actions and Git-contained output. On Windows,
 the owner should confirm the chosen folder's account ACLs and sync/sharing policy;
 POSIX file modes alone are not a Windows ACL guarantee.
+
+### Owner sign-in / consent step
+
+The exact missing grant is a dedicated Google OAuth desktop client in an
+authorized project, with a consenting Google identity that can read the
+MathNexa GSC property and GA4 property. Configure the consent screen and client
+in Google Auth Platform, and enable Search Console API, Google Analytics Admin
+API and Google Analytics Data API if disabled. Request **only** the two scopes
+above. The owner completes Google sign-in/consent and keeps the resulting client
+identifier/token in a private credential manager; do not paste either into chat
+or this public repository. If the current Cloud project is not the approved
+project for this access, use the approved project instead. A Cloud project alone
+does not grant access to Search Console or GA4; property-level access must be
+verified in discovery. The existing direct API helper does not perform OAuth
+sign-in itself, so a trusted credential manager must supply its short-lived
+access token privately before the commands below run.
 
 ```text
 node scripts/seo/google-readonly.mjs --mode discover --output ABSOLUTE_PRIVATE_FOLDER
