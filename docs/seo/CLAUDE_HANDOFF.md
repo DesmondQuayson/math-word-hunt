@@ -1,6 +1,6 @@
 # MathNexa SEO / AEO / GEO / backlinks handoff
 
-Checkpoint: **2026-11-28 07:46 UTC** (America/Chicago reporting zone).
+Checkpoint: **2026-11-28** (America/Chicago reporting zone).
 The owner wants the original full scope and cloud execution while their devices
 are off. [Coverage](COVERAGE.md) records each original requirement. Read this
 file and [WORKFLOW](WORKFLOW.md) before changing the executor. Reconcile live
@@ -12,7 +12,7 @@ state; this document does not transfer ownership to another assistant.
 | --- | --- |
 | Public repository | `DesmondQuayson/math-word-hunt` |
 | Monitoring [PR #48](https://github.com/DesmondQuayson/math-word-hunt/pull/48) | Merged 2026-11-28 07:37 UTC after its Vercel and public checks passed; main merge commit `4d8cbe1ec23ce55ccc561f012a8cf46bdb994ce0` |
-| Full-scope [draft PR #49](https://github.com/DesmondQuayson/math-word-hunt/pull/49) | Branch `codex/seo-full-scope`, head `bd00109fd7bbba7c9177aa883235b0a91b81ca86`, base `main`, clean merge status, Vercel and Preview Comments checks passed. Application diff is limited to public `/homework-pdfs` copy; **not in production** |
+| Full-scope [draft PR #49](https://github.com/DesmondQuayson/math-word-hunt/pull/49) | Branch `codex/seo-full-scope`, base `main`. Application implementation commit `7dab76d9c8d0a3483834add56fcb9b03e5e7231f`; later commits update docs only. Vercel and Preview Comments checks passed after the latest handoff push. Resolve the live head before new work. Application diff is limited to public `/homework-pdfs` copy; **not in production** |
 | One recurring SEO workflow | GitHub workflow ID `432326706`, `.github/workflows/mathnexa-seo.yml`, API state `active`, now present on default `main`. Monday **07:00 America/Chicago** using timezone-aware cron (13:00 UTC winter, 12:00 UTC summer). No second SEO scheduler or paid AI execution |
 | Hosted main run | [Manual run 46122127317](https://github.com/DesmondQuayson/math-word-hunt/actions/runs/46122127317), `workflow_dispatch`, main merge SHA above, successful tests, state restore, bounded public audit and remote publish |
 | Remote persistence | `seo-reports` latest report commit `121dcdd400f5402a611c6669a2d0cd0830bba991`; [latest.json](https://github.com/DesmondQuayson/math-word-hunt/blob/seo-reports/reports/latest.json) records the main SHA, run URL and observation `2026-11-28T07:38:39.217Z`. Fresh `contents` API returned the remote file |
