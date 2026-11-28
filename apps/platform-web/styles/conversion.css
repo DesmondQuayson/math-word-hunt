@@ -668,7 +668,29 @@
 }
 
 .onboarding-footer-link {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  font-weight: 800;
   text-align: center;
+}
+
+.onboarding-footer-link a {
+  max-width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-small);
+  color: var(--color-brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.onboarding-footer-link a:hover {
+  color: var(--color-brand-primary-hover);
+  background: var(--color-surface-muted);
+}
+
+.onboarding-footer-link a:focus-visible {
+  outline: 3px solid var(--color-brand-primary);
+  outline-offset: var(--focus-offset);
 }
 
 /* Account chip on the signed-in trial page. */

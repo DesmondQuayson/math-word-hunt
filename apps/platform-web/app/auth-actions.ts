@@ -162,7 +162,19 @@ export async function signUpAction(_previous: AuthFormState, formData: FormData)
       data: consumerMode ? {} : { display_name: displayName }
     }
   });
-  if (error) return { status: "error", message: "The account could not be created. Check the information and try again." };
+  if (error) {
+    // Keep only a coarse operational signal: never the address, token or raw
+    // provider response. A rejected password or database trigger is not an
+    // email-delivery failure, and a sending limit is not an SMTP failure.
+    const emailPacing = error.code === "over_email_send_rate_limit" || providerResendWaitSeconds(error) !== null;
+    const emailFailure = error.code === "email_address_not_authorized" || /error sending (confirmation )?email/i.test(error.message);
+    if (emailPacing || emailFailure) {
+      await withTimeout(recordAggregateSignal({
+        metricKey: "email-confirmation-failure", outcome: emailPacing ? "unavailable" : "failure", source: "email"
+      }).catch(() => false), 1000, false);
+    }
+    return { status: "error", message: "The account could not be created. Check the information and try again." };
+  }
   if (consumerMode) {
     await rememberConfirmationRequest(email, destination);
     // A visitor who arrived from a Google ad: keep that click with the new
@@ -253,7 +265,7 @@ export async function resendConfirmationAction(
   await recordAggregateSignal({ metricKey: "email-confirmation-success", outcome: "success", source: "email" });
   return {
     status: "success",
-    message: "A new confirmation email is on its way. Check your inbox.",
+    message: "Confirmation email requested. Check your inbox and Spam or Junk folder. If it’s there, mark it as “Not spam”. Use the newest confirmation link.",
     cooldownSeconds: resendCooldownSeconds
   };
 }

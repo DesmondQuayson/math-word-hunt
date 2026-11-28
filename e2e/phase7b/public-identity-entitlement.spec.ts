@@ -122,6 +122,8 @@ test("general account signup requires confirmation and recovery stays generic", 
   const confirmationDialog = page.getByRole("dialog", { name: "Check your email" });
   await expect(confirmationDialog).toBeVisible();
   await expect(confirmationDialog.getByText(/Open the email and select “Confirm email”/)).toBeVisible();
+  await expect(confirmationDialog.getByText(/Check your Spam or Junk folder/)).toBeVisible();
+  await expect(confirmationDialog.getByText(/mark it as “Not spam”/)).toBeVisible();
   // Sign-up just sent the first email and the provider refuses another for a
   // minute, so the resend button starts counting down at once (production
   // recorded a refused resend seven seconds after a sign-up).

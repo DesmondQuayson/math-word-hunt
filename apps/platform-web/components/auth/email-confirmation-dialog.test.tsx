@@ -31,6 +31,9 @@ describe("email confirmation dialog", () => {
     expect(screen.getByRole("button", { name: "I've confirmed my email" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Resend confirmation email" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Continue browsing" })).toBeTruthy();
+    expect(screen.getByText(/Can’t find the email/).textContent).toContain("Spam or Junk");
+    expect(screen.getByText(/Can’t find the email/).textContent).toContain("“Not spam”");
+    expect(screen.getByText(/Can’t find the email/).textContent).toContain("Use the newest email");
   });
 
   it("starts the provider's resend wait immediately after sign-up and announces only its start and end", async () => {
@@ -55,6 +58,7 @@ describe("email confirmation dialog", () => {
   it("counts down from the wait the server returns instead of offering a refused request", async () => {
     vi.mocked(resendConfirmationAction).mockResolvedValueOnce({ status: "error", message: "Wait 53 seconds before requesting another confirmation email.", cooldownSeconds: 53 });
     render(<ConfirmationReminder />);
+    expect(screen.getByText(/Check Spam or Junk too/).textContent).toContain("“Not spam”");
     fireEvent.click(screen.getByRole("button", { name: "Resend confirmation email" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Resend in 53s" })).toBeTruthy());
     expect((screen.getByRole("button", { name: "Resend in 53s" }) as HTMLButtonElement).disabled).toBe(true);

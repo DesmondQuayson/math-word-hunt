@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameAccessStatus } from "@/components/consumer/game-access-status";
@@ -75,7 +76,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
         </section>
         <CommercialConsentForm returnDestination={destination} enabled={config?.checkoutEnabled === true} trialEligible />
       </div>
-      <p className="form-switch onboarding-footer-link">Not ready yet? <a href="/account">Go to My Account</a></p>
+      <p className="form-switch onboarding-footer-link"><strong>Not ready yet? <Link href="/">Go to Home and enjoy free games</Link></strong></p>
     </Container>;
   }
 
