@@ -12,7 +12,7 @@ export function reportingWeek(date) {
   return localDay.toISOString().slice(0, 10);
 }
 
-export function buildReport(audit, { previous = null, now = new Date(), mode = 'live', sourceCommit = null, runUrl = null } = {}) {
+export function buildReport(audit, { previous = null, now = new Date(), mode = 'live', sourceCommit = null, runUrl = null, manualProposals = [] } = {}) {
   if (audit.schemaVersion !== 1 || !Array.isArray(audit.findings) || !Array.isArray(audit.sites)) throw new Error('Unsupported audit schema');
   if (previous && (previous.schemaVersion !== 1 || previous.kind !== 'mathnexa-public-seo')) throw new Error('Unsupported previous report');
   const observed = Date.parse(audit.observedAt);
@@ -46,9 +46,12 @@ export function buildReport(audit, { previous = null, now = new Date(), mode = '
   const sameCycle = previous?.proposalBudget?.cycle === cycle;
   const limit = sameCycle ? previous.proposalBudget.limit : previous ? 2 : 3;
   const alreadyUsed = sameCycle ? previous.proposalBudget.used : 0;
+  const manualAdditions = mode === 'live' ? manualProposals.filter(p => !proposals.some(old => old.id === p.id)) : [];
+  if (manualAdditions.some(p => !p.id?.startsWith('proposal:manual:') || !p.findingId?.startsWith('manual:')) || new Set(manualAdditions.map(p => p.id)).size !== manualAdditions.length) throw new Error('Invalid manual proposal registry');
+  if (manualAdditions.length > Math.max(0, limit - alreadyUsed)) throw new Error('Manual proposals exceed the shared proposal budget');
   const candidates = mode === 'live' ? audit.findings.filter(f => !proposals.some(p => p.findingId === f.id)) : [];
   candidates.sort((a, b) => Number(b.severity === 'error') - Number(a.severity === 'error') || a.id.localeCompare(b.id));
-  const additions = candidates.slice(0, Math.max(0, limit - alreadyUsed)).map(f => ({
+  const additions = candidates.slice(0, Math.max(0, limit - alreadyUsed - manualAdditions.length)).map(f => ({
     id: `proposal:${f.id}`, findingId: f.id, target: f.target, evidence: f.message,
     hypothesis: 'Resolving this observed public-page issue may improve reliable discovery or answer readability; review the intended page behavior first.',
     priority: f.severity === 'error' ? 'P1' : 'P2', status: 'awaiting-review',
@@ -80,8 +83,8 @@ export function buildReport(audit, { previous = null, now = new Date(), mode = '
       contentChanges: 'Pending owner review; no production edits',
       aiExecutor: 'Not configured; this job executes deterministic checks, not a Codex or Claude session'
     },
-    proposalBudget: { cycle, limit, used: alreadyUsed + additions.length },
-    ledger, proposals: [...proposals, ...additions], newProposalIds: additions.map(p => p.id)
+    proposalBudget: { cycle, limit, used: alreadyUsed + manualAdditions.length + additions.length },
+    ledger, proposals: [...proposals, ...manualAdditions, ...additions], newProposalIds: [...manualAdditions, ...additions].map(p => p.id)
   };
 }
 

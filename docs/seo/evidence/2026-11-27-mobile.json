@@ -1,0 +1,41 @@
+{
+  "target": "https://mathnexa.com/homework-pdfs",
+  "observedAt": "2026-11-27T15:45:08.750Z",
+  "kind": "single_local_mobile_lab_run_on_current_production_before_proposed_content_release",
+  "tool": "Lighthouse",
+  "version": "13.6.0",
+  "browser": "Chrome 158.0.8127.37, fresh headless profile on Windows",
+  "formFactor": "mobile",
+  "throttlingMethod": "simulate",
+  "runtimeError": null,
+  "scores": { "performance": 0.79, "accessibility": 1, "seo": 1 },
+  "metrics": {
+    "firstContentfulPaintMs": 1196.4775,
+    "largestContentfulPaintMs": 1196.4775,
+    "totalBlockingTimeMs": 879.21,
+    "cumulativeLayoutShift": 0,
+    "speedIndexMs": 2734.7753525761245
+  },
+  "warnings": [],
+  "previousAttempts": [
+    { "tool": "PageSpeed Insights public API", "status": "unavailable", "httpStatus": 429 },
+    { "tool": "Lighthouse 13.6.0", "status": "trace_failed", "code": "NO_NAVSTART", "performanceScore": null }
+  ],
+  "responsiveCheck": {
+    "observedAt": "2026-11-27T15:45:58.013Z",
+    "viewports": [{ "width": 375, "height": 812 }, { "width": 1280, "height": 900 }],
+    "httpStatus": 200,
+    "headingVisible": true,
+    "canonicalCorrect": true,
+    "noHorizontalOverflow": true,
+    "gatedLibraryLinkPreserved": true,
+    "proposedExampleNotYetLive": true,
+    "scope": "two fresh anonymous browser contexts; no sign-in or transaction"
+  },
+  "limitations": [
+    "One local simulated mobile run is not real-user performance or a trend.",
+    "Lighthouse SEO/accessibility checks do not prove indexing, rankings, full accessibility or AI visibility.",
+    "The unreleased content diff still needs a configured preview/mobile review.",
+    "Raw trace, HTML and screenshots remain ignored local scratch; only this public summary is committed."
+  ]
+}

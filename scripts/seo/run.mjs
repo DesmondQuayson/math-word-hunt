@@ -23,7 +23,7 @@ try {
   const runId = process.env.GITHUB_RUN_ID;
   const runUrl = /^\d+$/.test(runId ?? '') ? `https://github.com/DesmondQuayson/math-word-hunt/actions/runs/${runId}` : null;
   const commit = process.env.GITHUB_SHA;
-  const report = buildReport(audit, { previous, mode: values.offline ? 'offline-replay' : 'live', sourceCommit: /^[a-f\d]{40}$/.test(commit ?? '') ? commit : null, runUrl });
+  const report = buildReport(audit, { previous, manualProposals: config.manualProposals ?? [], mode: values.offline ? 'offline-replay' : 'live', sourceCommit: /^[a-f\d]{40}$/.test(commit ?? '') ? commit : null, runUrl });
   const markdown = renderReport(report);
   // .lock prevents concurrent writers; publication occurs only after all files exist.
   await writeFile(join(output, 'audit.json'), `${JSON.stringify(audit, null, 2)}\n`);
