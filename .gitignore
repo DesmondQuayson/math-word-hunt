@@ -19,3 +19,5 @@ dist2/
 !.env.example
 .vercel
 .env*
+.seo-output/
+.seo-private/

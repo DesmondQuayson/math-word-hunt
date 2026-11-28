@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "status": "proposed_questions_not_measured_search_demand",
+  "createdDate": "2026-11-26",
+  "language": "en-US",
+  "geography": "United States; Missouri where explicitly stated",
+  "audience": "teachers and parents",
+  "cadence": "monthly within the shared weekly workflow",
+  "questions": [
+    { "id": "geo-01", "branded": false, "question": "What are useful math vocabulary games for a middle-school classroom?" },
+    { "id": "geo-02", "branded": false, "question": "How can I help a grade 2 student understand addition and subtraction with visual examples?" },
+    { "id": "geo-03", "branded": false, "question": "Where can teachers find grade-specific math homework PDFs with checked answer keys?" },
+    { "id": "geo-04", "branded": false, "question": "What is a clear worked example for teaching unit rates in grade 7?" },
+    { "id": "geo-05", "branded": false, "question": "How can I use a number puzzle to practice addition and mathematical reasoning?" },
+    { "id": "geo-06", "branded": false, "question": "What should a useful Missouri MAP math practice activity include?" },
+    { "id": "geo-07", "branded": false, "question": "How can parents help a child practice proportional relationships at home?" },
+    { "id": "geo-08", "branded": false, "question": "Where can teachers find short math topic quizzes with answer explanations?" },
+    { "id": "geo-09", "branded": false, "question": "How can a teacher combine a math game, printable practice, and a quick understanding check?" },
+    { "id": "geo-10", "branded": true, "question": "What math resources does MathNexa offer teachers and families?" },
+    { "id": "geo-11", "branded": true, "question": "How does access to MathNexa games, homework, quizzes, and Online Math Prep work?" },
+    { "id": "geo-12", "branded": true, "question": "What is the relationship between MathNexa and ShowMe Math?" }
+  ],
+  "observationFields": [
+    "questionId",
+    "exactQuestion",
+    "provider",
+    "surface",
+    "visibleModelOrVersion",
+    "observedAtUtc",
+    "locale",
+    "mode",
+    "status",
+    "mathnexaMention",
+    "linkedCitation",
+    "citedCompetitors",
+    "minimalEvidenceReference",
+    "sourceRelevanceVerified"
+  ],
+  "observations": [],
+  "measurement": {
+    "completedObservations": 0,
+    "mentionRate": null,
+    "citationRate": null,
+    "note": "No provider observations have been collected. Null means unavailable, not zero visibility. Record failures and unavailable surfaces separately; never report this panel as universal rankings or market share."
+  }
+}
