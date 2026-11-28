@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "kind": "mathnexa-public-seo",
   "publicDataOnly": true,
-  "generatedAt": "2026-11-27T15:36:56.650Z",
+  "generatedAt": "2026-11-28T07:38:43.694Z",
   "mode": "live",
-  "sourceCommit": "7dab76d9c8d0a3483834add56fcb9b03e5e7231f",
-  "runUrl": "https://github.com/DesmondQuayson/math-word-hunt/actions/runs/46026413021",
+  "sourceCommit": "4d8cbe1ec23ce55ccc561f012a8cf46bdb994ce0",
+  "runUrl": "https://github.com/DesmondQuayson/math-word-hunt/actions/runs/46122127317",
   "timezone": "America/Chicago",
   "status": "Verified",
   "audit": {
     "schemaVersion": 1,
-    "observedAt": "2026-11-27T15:36:51.553Z",
+    "observedAt": "2026-11-28T07:38:39.217Z",
     "requestsUsed": 12,
     "requestLimit": 30,
     "complete": true,
@@ -272,13 +272,13 @@
     "findings": []
   },
   "freshness": {
-    "observedAt": "2026-11-27T15:36:51.553Z",
-    "ageHours": 0.0014158333333333334,
+    "observedAt": "2026-11-28T07:38:39.217Z",
+    "ageHours": 0.0012436111111111111,
     "live": true
   },
   "comparison": {
-    "previousObservedAt": "2026-11-27T10:42:34.586Z",
-    "daysBetweenObservations": 0.20436304398148147,
+    "previousObservedAt": "2026-11-27T15:36:51.553Z",
+    "daysBetweenObservations": 0.6679127777777778,
     "comparableWeeklySnapshot": false,
     "newFindingIds": [],
     "note": "Point-in-time public checks only. This is not a seven-day traffic or revenue comparison."
@@ -308,7 +308,7 @@
       "firstSeenAt": "2026-11-27T10:13:50.205Z",
       "lastSeenAt": "2026-11-27T10:15:40.093Z",
       "status": "expected-access-control",
-      "checkedAt": "2026-11-27T15:36:51.553Z",
+      "checkedAt": "2026-11-28T07:38:39.217Z",
       "resolutionEvidence": "docs/showme-access-gate.md"
     },
     {
@@ -319,7 +319,7 @@
       "firstSeenAt": "2026-11-27T10:13:50.205Z",
       "lastSeenAt": "2026-11-27T10:15:40.093Z",
       "status": "expected-access-control",
-      "checkedAt": "2026-11-27T15:36:51.553Z",
+      "checkedAt": "2026-11-28T07:38:39.217Z",
       "resolutionEvidence": "docs/showme-access-gate.md"
     }
   ],
@@ -363,10 +363,8 @@
       "createdAt": "2026-11-27T10:45:00Z",
       "reviewAfter": "2026-12-25",
       "validation": "Exact rational arithmetic, lint/typecheck/build and local page/access-boundary verification; manual production release only.",
-      "currentObservation": "source-reviewed-not-deployed"
+      "currentObservation": "unavailable"
     }
   ],
-  "newProposalIds": [
-    "proposal:manual:homework-public-example"
-  ]
+  "newProposalIds": []
 }
