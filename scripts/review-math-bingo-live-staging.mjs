@@ -12,8 +12,18 @@
  * with a code and a name only, in separate browsers (Chromium and WebKit),
  * and play a real game to three Bingos under the real route CSP.
  *
- * Also checks, read-only, that production (https://mathnexa.com) still does
- * not serve the draft.
+ * The preview must serve the game. On the staging database the catalog entry
+ * is still a draft (it was published on production only), and a draft is
+ * served only by a preview deployed with the staging owner preview on:
+ *
+ *   vercel deploy . --project mathnexa-platform-staging \
+ *     --env MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review \
+ *     --env MVH_SOURCE_REVISION=<commit>
+ *
+ * (docs/math-bingo-live-v1.md, "Availability gate"). Any other preview answers
+ * 404 for the host page once the teacher has signed in, and the review says so.
+ *
+ * Also checks, read-only, what production (https://mathnexa.com) serves at /join.
  */
 import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
@@ -67,8 +77,36 @@ async function open(engine, options) {
   await protection.install(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => { if (!/due to access control checks/.test(error.message)) ok(false, `page error: ${error.message}`); });
+  // What went wrong on this page, kept for the message of a step that times out:
+  // console errors, and the preview's own answers of 400 and above outside the build files.
+  const trouble = [];
+  page.on("console", (message) => { if (message.type() === "error") trouble.push(`console: ${message.text().replace(/\s+/g, " ").slice(0, 160)}`); });
+  page.on("response", (response) => {
+    const url = new URL(response.url());
+    if (url.origin === origin && response.status() >= 400 && !url.pathname.startsWith("/_next/")) trouble.push(`${response.status()} ${response.request().method()} ${url.pathname}`);
+  });
   await page.goto(landing, { waitUntil: "domcontentloaded" });
-  return { context, page };
+  return { context, page, trouble };
+}
+
+// Waits for the host screen to show one of its named screens (body[data-screen]).
+// A timeout says which screen it was on instead, what it showed and what failed.
+async function hostScreen(host, want, timeout = 60_000) {
+  try {
+    await host.page.waitForFunction((want) => document.body.dataset.screen === want, want, { timeout });
+  } catch {
+    const seen = await host.page.evaluate(() => ({
+      screen: document.body.dataset.screen ?? "(none)",
+      path: location.pathname,
+      text: (document.querySelector("main, #app, body")?.innerText ?? "").replace(/\s+/g, " ").trim().slice(0, 200)
+    })).catch(() => ({ screen: "(unreadable)", path: "?", text: "" }));
+    // The commonest cause on staging: the catalog entry is a draft there, and a draft is served
+    // only by a preview that was deployed with the staging owner preview switched on.
+    const hidden = host.trouble.includes(`404 GET ${HOST}`)
+      ? ` The host page answered 404: on staging the game is a catalog draft, so this preview must have been deployed with MVH_MATH_BINGO_LIVE_PREVIEW=staging-owner-review (docs/math-bingo-live-v1.md, "Availability gate").`
+      : "";
+    throw new Error(`the host screen did not reach "${want}" in ${timeout / 1000} s: it is on "${seen.screen}" at ${seen.path}, showing "${seen.text}"; ${host.trouble.length ? `seen on the way: ${[...new Set(host.trouble)].slice(0, 8).join(" | ")}` : "no failed request and no console error"}.${hidden}`);
+  }
 }
 
 const state = (page) => page.evaluate(() => window.__MATH_BINGO_LIVE__?.state ?? null);
@@ -200,7 +238,7 @@ try {
   await host.page.locator('input[name="password"]').first().fill(password);
   await host.page.locator('form:has(input[name="password"]) button[type="submit"]').first().click();
   await host.page.waitForURL((url) => url.pathname === HOST, { timeout: 120_000 });
-  await host.page.waitForFunction(() => document.body.dataset.screen === "setup", null, { timeout: 60_000 });
+  await hostScreen(host, "setup");
   ok(true, "a free MathNexa account (no subscription) opens the host screen");
   await host.page.locator("#winners-count").fill("3");
   for (const [name, value] of [["mode", "addition"], ["level", "within-50"], ["questionSeconds", "0"], ["revealSeconds", "0"]]) {
