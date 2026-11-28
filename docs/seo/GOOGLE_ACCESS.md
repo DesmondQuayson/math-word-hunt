@@ -16,12 +16,26 @@ exact windows 2026-10-28–11-24 and 2026-09-30–10-27; its totals and page row
 were discussed privately, not committed. The latest date avoids Google's newest
 processing days, but final-data status has not been verified through the API. The
 GA4 UI showed setup/onboarding for this identity, so GA4 property access is not
-established. GSC counts and URL-level export data remain outside this public file.
+established. On 2026-11-28, read-only Google Ads Data Manager inspection under
+that identity showed an Ads-only tag destination and no linked GA4 property;
+the GA4 linking panel listed no unlinked property managed by this identity.
+Tag Manager's account list was also empty for it. Repository source loads the
+Ads GTM container, not a verified GA4 measurement ID. A separate connected
+Google identity exists, but its Analytics access has not been tested. These
+findings do **not** prove that a GA4 property does not exist under another
+account. GSC counts and URL-level export data remain outside this public file.
 
 ## Exact connection needed
 
-The owner must authorize the identity already verified for MathNexa's Search
-Console property and grant it access to the correct GA4 property, using
+First identify the **existing** MathNexa GA4 account and property under its
+actual owner identity. Do not create an Analytics account, property, data stream,
+tag, or new OAuth client merely because the currently signed-in identity sees
+the setup screen. The owner signs into Analytics with the identity that owns
+the property, selects the account/property, checks Property details for its
+numeric ID and Data streams for the MathNexa web stream/hostname, then grants
+the GSC identity property-level **Viewer** access if needed. Viewer supports
+reading reports and settings. Only after the existing property and account are
+verified should the owner authorize a private direct API credential with these
 read-only OAuth scopes:
 
 ```text
@@ -47,11 +61,11 @@ The script rejects public CI/GitHub Actions and Git-contained output. On Windows
 the owner should confirm the chosen folder's account ACLs and sync/sharing policy;
 POSIX file modes alone are not a Windows ACL guarantee.
 
-### Owner sign-in / consent step
+### Owner sign-in / consent step, after property identification
 
-The exact missing grant is a dedicated Google OAuth desktop client in an
+The exact missing API grant is a dedicated Google OAuth desktop client in an
 authorized project, with a consenting Google identity that can read the
-MathNexa GSC property and GA4 property. Configure the consent screen and client
+verified MathNexa GSC and existing GA4 properties. Configure the consent screen and client
 in Google Auth Platform, and enable Search Console API, Google Analytics Admin
 API and Google Analytics Data API if disabled. Request **only** the two scopes
 above. The owner completes Google sign-in/consent and keeps the resulting client
@@ -113,3 +127,6 @@ Sources: [GSC discovery](https://developers.google.com/webmaster-tools/v1/sites/
 [Search Analytics limits](https://developers.google.com/webmaster-tools/v1/searchanalytics/query),
 [GA4 discovery](https://developers.google.com/analytics/devguides/config/admin/v1/rest/v1beta/accountSummaries/list),
 [GA4 reports](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport).
+For finding the existing account/property and granting the narrow Viewer role,
+see [Google's account/property selector](https://support.google.com/analytics/answer/12813202)
+and [property access management](https://support.google.com/analytics/answer/9305788).

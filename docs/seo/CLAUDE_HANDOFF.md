@@ -40,17 +40,25 @@ PR #48's blocked preview was redeployed and its required Vercel check passed
 before the approved merge. Do not put private account balances in this public
 repository or its reports.
 
-PR #49 staging deployment `dpl_7wVQ7gEruzofNypfDqsnhNQkwbbi` is **Ready**
+PR #49 reviewed staging deployment `dpl_5FfbCqLpg5SkGR3JKKVe31xtcHS6` is **Ready**
 with a passing Vercel status. An authorized `vercel curl` GET of
 `/homework-pdfs` returned HTTP 200 and rendered HTML containing the answer-first
 homework section, fraction example, practice anchor, answer disclosure, canonical
 marker and existing `/subscription` destination. A separate unauthenticated
 request returned HTTP 302 to Vercel SSO and `X-Robots-Tag: noindex`; preview
 protection remains active. The CLI request uses authorized deployment access,
-so its 200 does **not** show public accessibility. In-app browser visual/mobile
-inspection reached Vercel's authenticator-code prompt; that browser check is
-pending owner sign-in. Existing live-page 375/1280 checks and Lighthouse lab
-scores predate PR #49 and cannot validate this new rendering.
+so its 200 does **not** show public accessibility. After owner Vercel sign-in,
+the protected preview was visually inspected at **1280 × 900** and **375 × 812**:
+no horizontal overflow, readable answer and worked steps, and expandable
+reasoning for all three practice answers. The canonical remained the public
+homework URL and the practice anchor was present. Header trial link reached
+`/sign-up?next=/subscription`; anonymous `/homework` and `/subscription`
+reached `/access?next=...` with account/code choices. No code, signup, checkout
+or payment was submitted. The signup page displays a separate pre-existing
+confirmation-delivery verification warning; PR #49 did not change that flow.
+The preview is
+https://mathnexa-platform-staging-oi6whnk8r-bright-path-ed-tech.vercel.app/homework-pdfs.
+Existing live-page Lighthouse scores predate PR #49 and are not its result.
 
 The source diff adds two semantic sections: a parent practice routine and
 `3/4 − 1/8 = 5/8` with equal-part reasoning, a misconception, three checked
@@ -66,24 +74,30 @@ See [content review](AEO_CONTENT_REVIEW.md) and [mobile diagnostic](MOBILE_DIAGN
 
 ## Remaining dependencies and owner action
 
-1. **Preview visual check / release:** owner completes Vercel's existing 2FA
-   sign-in for the protected preview. Then agent verifies the new page at mobile
-   and desktop widths and unchanged gated destinations. Present the concrete
-   diff/checks and request the existing manual production-release approval once
-   that check is complete. PR #49 stays draft; do not deploy production now.
+1. **Approved production release, pending gates:** the owner reviewed the
+   protected-preview visual/gate evidence and explicitly approved merging PR #49
+   and releasing the page through the existing manual production pipeline,
+   subject to normal checks. Do not request the same approval again. Verify the
+   final PR checks, merge, deploy a production candidate, probe it, promote it,
+   and verify the live page before calling the release complete.
 2. **Direct Google access:** the signed-in identity can open GSC's
    `sc-domain:mathnexa.com` property; its Links and beta generative AI reports
-   were read-only inspected. The same identity reaches GA4 onboarding, so GA4
-   access/property and stream remain unverified. The `showme-math-lab` Cloud
-   project's Google Auth overview has no configured consent screen/OAuth client;
-   its TTS service account is unrelated. Owner grants this identity GA4 read
-   access and completes a dedicated OAuth consent/client grant for
+   were read-only inspected. The same identity reaches GA4 onboarding. Its Ads
+   Data Manager has an Ads-only tag destination and no linked GA4 property;
+   the GA4 linking panel lists no property it manages. Tag Manager likewise
+   lists no account for it. Another connected Google identity exists, but its
+   Analytics access is unverified. **Identify the existing GA4 account,
+   property ID and MathNexa web stream before creating anything.** Then, if
+   needed, owner grants the GSC identity property-level Viewer and completes
+   a dedicated OAuth consent/client grant for
    `webmasters.readonly` and `analytics.readonly`, then designates a private
    output folder outside Git. No token in chat, public repo, Actions log or
    report branch. A read-only GSC UI comparison of 2026-10-28–11-24 against
    2026-09-30–10-27 was captured in this private conversation; metrics and
    page rows are omitted from public files. Its latest date was chosen to avoid
    the newest processing days, but final-data status is not API-verified.
+   The `showme-math-lab` Cloud project's Google Auth overview has no configured
+   consent screen/OAuth client; its TTS service account is unrelated.
    [GOOGLE_ACCESS](GOOGLE_ACCESS.md) has direct API commands. No direct API or
    GA4 baseline or verified conversion event yet; no Windsor purchase.
    Durable private cloud analytics needs separately approved credential

@@ -1,15 +1,15 @@
 # MathNexa 30-day SEO backlog
 
-Updated November 27, 2026. Review dates are planning dates in America/Chicago,
+Updated November 28, 2026. Review dates are planning dates in America/Chicago,
 not promised scheduler events. See COVERAGE.md for the full original brief.
 
 | Priority / state | Evidence and completed work | Next action / owner | Review |
 | --- | --- | --- | --- |
-| P0 / activation blocked | Cloud run 45984321795 passes; state saved at 194d05a; PR #48 merge approved subject to checks | Staging owner resolves paused project/check; agent rechecks and merges under existing approval. Do not bypass failed Vercel status | Nov 30 |
-| P0 / private access blocked | Direct Google reader and tests prepared; GSC/GA4 not authenticated | Owner authorizes read-only Google scopes and selects private output folder; agent discovers exact properties and tests real requests | Dec 3 |
+| P0 / scheduler active; first event pending | PR #48 merged; main manual run 46122127317 and remote report persistence verified | Check the first Monday `schedule` event and remote report; do not equate manual dispatch with scheduled delivery | Nov 30 |
+| P0 / private access partial | Direct Google reader/tests prepared; GSC domain property and private UI comparison verified. Current identity sees GA4 onboarding; Ads Data Manager lists no managed GA4 property or linked GA4 | Identify existing GA4 owner/property and web stream before creating anything; then arrange Viewer, read-only OAuth and private output folder | Dec 3 |
 | P1 / public audit verified within bounds | Eight HTML pages 200; ShowMe expected 401/noindex; live mobile/desktop checks pass; Lighthouse mobile performance 79, dated single-run evidence | Maintain bounded checks; inspect indexing via GSC; investigate observed long tasks in a later review without exceeding the initial cap | Dec 3 |
-| P1 / content prepared, unreleased | Homework example, practice and reasoning added on review branch; AEO_CONTENT_REVIEW.md | Owner reviews diff and normal production release; monitoring approval does not approve content release | Dec 3 |
-| P1 / baseline blocked | Private 28/28 and 7/7 windows, GSC splits and GA4 organic landing sessions prepared | After access, verify source timezones/latest dates, branded-query classification and cross-subdomain funnel; billing needs authorized private source | Dec 10 |
+| P1 / content staged, release approved | Homework example, practice and reasoning visually validated at mobile/desktop widths; paid destinations remain gated; owner approved the reviewed release subject to normal checks | Finish PR checks, merge and manual production candidate/probe/promotion; verify live before claiming improvement | Dec 3 |
+| P1 / baseline partial | GSC UI 28/28 comparison observed privately; direct API final-data flag, GA4 organic landing sessions and 7/7 context absent | After correct property/API access, verify source timezones/latest dates, branded queries and cross-subdomain funnel; billing needs authorized private source | Dec 10 |
 | P2 / GEO method verified, observations pending | Fixed 12 prompts; validator rejects unsupported/duplicate measurements; default not-measured | Authorized owner/agent captures consumer AI evidence privately, same panel/modes monthly; no paid fallback | Dec 17 |
 | P2 / outreach drafted | Three editorial channels researched; original resource prepared; BACKLINKS.md | Release/verify resource, confirm truthful bio and recipient, then obtain recipient-specific send approval | Dec 17 |
 | P2 / upstream adapted | v2.6.3 immutable source retained; two tools run; thin wrappers prepared | Verify fresh-session Codex discovery and native Claude loading; full hooks/install off | Dec 24 |

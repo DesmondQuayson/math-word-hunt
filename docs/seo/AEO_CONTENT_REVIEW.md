@@ -6,7 +6,9 @@ Target: https://mathnexa.com/homework-pdfs#practice-example
 Evidence date: 2026-11-27. Existing live page is HTTP 200 with metadata and
 canonical intact; source contains product features and a live catalog summary,
 but no worked example or explanation of how to use a homework activity.
-No Search Console demand, ranking or conversion measurement is available.
+An authenticated Search Console UI baseline was later reviewed privately;
+it predates this unreleased change and is not evidence of its effect. No
+ranking or conversion improvement is claimed.
 
 Hypothesis: an answer-first practice routine and original worked example make
 this existing canonical page more useful to parents and easier to cite. This
@@ -43,14 +45,24 @@ public-page/metadata/catalog tests pass after restoring the existing npm lockfil
 No dependency or lockfile change. PageSpeed mobile returned HTTP 429; no score.
 The local production-mode browser smoke could not reach the page because the
 app correctly returned 503 with backend credentials disabled. The later
-configured Vercel staging deployment `dpl_7wVQ7gEruzofNypfDqsnhNQkwbbi`
-was Ready with a passing PR check. Authorized `vercel curl` returned HTTP 200
+configured Vercel staging deployment was Ready with a passing PR check.
+The final reviewed preview is
+`https://mathnexa-platform-staging-oi6whnk8r-bright-path-ed-tech.vercel.app/homework-pdfs`
+at deployment `dpl_5FfbCqLpg5SkGR3JKKVe31xtcHS6`. Authorized `vercel curl` returned HTTP 200
 and rendered HTML containing both new sections, the stable anchor, answer
 disclosure, canonical marker and existing subscription destination. A separate
 unauthenticated request returned 302 to Vercel SSO with `X-Robots-Tag: noindex`;
-staging protection remains active. Browser visual/mobile inspection reached the
-existing Vercel authenticator-code prompt, so that last preview check awaits
-owner sign-in. The reviewable source diff is ready.
+staging protection remains active. After owner sign-in, browser review at
+1280 × 900 and 375 × 812 found no horizontal overflow. The answer disclosure
+opened and showed all three explanations. Canonical remained
+`https://mathnexa.com/homework-pdfs` and `#practice-example` existed. The
+header trial link led to `/sign-up?next=/subscription`; anonymous `/homework`
+and `/subscription` requests led to `/access?next=...`, retaining the access
+code and account choices. No signup, checkout, code redemption or payment was
+performed. The staged signup page displays a separate existing confirmation-
+delivery verification warning; this proposal does not change that workflow.
+The owner approved the reviewed production release subject to normal checks;
+the page remains unreleased until those checks and the manual pipeline complete.
 The existing live page separately passed mobile/desktop browser checks and a
 Lighthouse mobile lab run; see MOBILE_DIAGNOSTIC.md. These observations predate
 deployment of this change and must not be presented as its result.
